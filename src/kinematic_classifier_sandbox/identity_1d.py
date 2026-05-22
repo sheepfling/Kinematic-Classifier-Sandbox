@@ -1035,6 +1035,64 @@ def render_identity_benchmark_png_bytes(result: IdentityBenchmarkResult) -> byte
         plt.close(fig)
 
 
+def _build_identity_feature_confusion_figure(result: IdentityBenchmarkResult):
+    plt = _prepare_matplotlib()
+    summary = result.summary
+    class_names = sorted(summary.confusion_counts)
+    feature_names = list(FEATURE_NAMES)
+    true_matrix = [
+        [summary.true_feature_predicted_class_counts[feature_name][class_name] for class_name in class_names]
+        for feature_name in feature_names
+    ]
+    detected_matrix = [
+        [summary.detected_feature_predicted_class_counts[feature_name][class_name] for class_name in class_names]
+        for feature_name in feature_names
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 0.9 * len(feature_names) + 3.5))
+    true_ax, detected_ax = axes
+
+    for ax, matrix, title in (
+        (true_ax, true_matrix, "True Feature vs Predicted Class"),
+        (detected_ax, detected_matrix, "Detected Feature vs Predicted Class"),
+    ):
+        image = ax.imshow(matrix, aspect="auto", cmap="Blues")
+        ax.set_title(title, loc="left", fontsize=12, fontweight="bold")
+        ax.set_xticks(range(len(class_names)), class_names, rotation=45, ha="right")
+        ax.set_yticks(range(len(feature_names)), feature_names)
+        for row_index, row in enumerate(matrix):
+            for col_index, value in enumerate(row):
+                text_color = "#ffffff" if value > max(1, max(max(r) for r in matrix) * 0.45) else "#111827"
+                ax.text(col_index, row_index, str(value), ha="center", va="center", fontsize=8, color=text_color)
+        fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+
+    fig.suptitle("Identity Feature-Class Confusion Matrices", fontsize=14, fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    return fig
+
+
+def render_identity_feature_confusion_svg(result: IdentityBenchmarkResult) -> str:
+    plt = _prepare_matplotlib()
+    fig = _build_identity_feature_confusion_figure(result)
+    buffer = io.StringIO()
+    try:
+        fig.savefig(buffer, format="svg", bbox_inches="tight")
+        return buffer.getvalue()
+    finally:
+        plt.close(fig)
+
+
+def render_identity_feature_confusion_png_bytes(result: IdentityBenchmarkResult) -> bytes:
+    plt = _prepare_matplotlib()
+    fig = _build_identity_feature_confusion_figure(result)
+    buffer = io.BytesIO()
+    try:
+        fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
+        return buffer.getvalue()
+    finally:
+        plt.close(fig)
+
+
 def write_identity_benchmark_trace_csv(result: IdentityBenchmarkResult, output_dir: str | Path) -> Path:
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -1102,3 +1160,21 @@ def write_identity_benchmark_artifacts(
     svg_path.write_text(render_identity_benchmark_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_benchmark_png_bytes(benchmark_result))
     return markdown_path, svg_path, png_path, csv_path
+
+
+def write_identity_feature_confusion_artifacts(
+    output_dir: str | Path,
+    *,
+    steps: int = 20,
+    seed: int = 7,
+    obs_sigma_mph: float = 2.0,
+    result: IdentityBenchmarkResult | None = None,
+) -> tuple[Path, Path]:
+    benchmark_result = result or run_identity_benchmark(steps=steps, seed=seed, obs_sigma_mph=obs_sigma_mph)
+    output_root = Path(output_dir)
+    output_root.mkdir(parents=True, exist_ok=True)
+    svg_path = output_root / "identity_1d_feature_confusion.svg"
+    png_path = output_root / "identity_1d_feature_confusion.png"
+    svg_path.write_text(render_identity_feature_confusion_svg(benchmark_result), encoding="utf-8")
+    png_path.write_bytes(render_identity_feature_confusion_png_bytes(benchmark_result))
+    return svg_path, png_path

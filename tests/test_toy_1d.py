@@ -12,10 +12,13 @@ from kinematic_classifier_sandbox.toy_1d import (
     render_toy_benchmark_markdown,
     render_toy_benchmark_png_bytes,
     render_toy_benchmark_svg,
+    render_toy_feature_confusion_png_bytes,
+    render_toy_feature_confusion_svg,
     run_class_bank,
     run_toy_benchmark,
     summarize_runs,
     write_toy_benchmark_artifact,
+    write_toy_feature_confusion_artifacts,
     write_toy_benchmark_plot_artifacts,
     write_toy_benchmark_trace_csv,
 )
@@ -149,6 +152,16 @@ class Toy1DBenchmarkTests(unittest.TestCase):
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_benchmark_posteriors.png")
             self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
+            feature_svg = render_toy_feature_confusion_svg(result)
+            feature_png = render_toy_feature_confusion_png_bytes(result)
+            self.assertIn("<svg", feature_svg)
+            self.assertIn("Toy 1D Feature-Class Confusion Matrices", feature_svg)
+            self.assertTrue(feature_png.startswith(b"\x89PNG\r\n\x1a\n"))
+            feature_svg_path, feature_png_path = write_toy_feature_confusion_artifacts(temp_dir, result=result)
+            self.assertEqual(feature_svg_path, Path(temp_dir) / "toy_1d_feature_confusion.svg")
+            self.assertEqual(feature_png_path, Path(temp_dir) / "toy_1d_feature_confusion.png")
+            self.assertTrue(feature_svg_path.exists())
+            self.assertTrue(feature_png_path.exists())
 
     def test_write_benchmark_artifact_creates_markdown(self) -> None:
         import tempfile

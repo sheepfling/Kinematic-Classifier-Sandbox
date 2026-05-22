@@ -15,6 +15,7 @@ if str(SRC) not in sys.path:
 
 from kinematic_classifier_sandbox import (
     run_identity_benchmark,
+    write_identity_feature_confusion_artifacts,
     write_identity_posterior_comparison_artifacts,
     write_identity_posterior_explainer_artifacts,
     write_identity_posterior_failure_artifacts,
@@ -29,6 +30,7 @@ from kinematic_classifier_sandbox import (
     write_posterior_failure_artifacts,
     write_posterior_margin_trace_artifacts,
     write_toy_benchmark_plot_artifacts,
+    write_toy_feature_confusion_artifacts,
     write_toy_benchmark_trace_csv,
 )
 
@@ -37,6 +39,10 @@ def main() -> int:
     survey_path = write_method_survey_artifact(ROOT / "artifacts")
     identity_result = run_identity_benchmark()
     identity_markdown_path, identity_svg_path, identity_png_path, identity_csv_path = write_identity_benchmark_artifacts(
+        ROOT / "artifacts",
+        result=identity_result,
+    )
+    identity_feature_confusion_svg_path, identity_feature_confusion_png_path = write_identity_feature_confusion_artifacts(
         ROOT / "artifacts",
         result=identity_result,
     )
@@ -59,6 +65,10 @@ def main() -> int:
     result = run_toy_benchmark()
     benchmark_path = ROOT / "artifacts" / "toy_1d_benchmark_summary.md"
     benchmark_plot_svg_path, benchmark_plot_png_path = write_toy_benchmark_plot_artifacts(
+        ROOT / "artifacts",
+        result=result,
+    )
+    toy_feature_confusion_svg_path, toy_feature_confusion_png_path = write_toy_feature_confusion_artifacts(
         ROOT / "artifacts",
         result=result,
     )
@@ -85,6 +95,8 @@ def main() -> int:
     print(identity_svg_path)
     print(identity_png_path)
     print(identity_csv_path)
+    print(identity_feature_confusion_svg_path)
+    print(identity_feature_confusion_png_path)
     print(identity_posterior_markdown_path)
     print(identity_posterior_svg_path)
     print(identity_posterior_png_path)
@@ -100,6 +112,8 @@ def main() -> int:
     print(benchmark_path)
     print(benchmark_plot_svg_path)
     print(benchmark_plot_png_path)
+    print(toy_feature_confusion_svg_path)
+    print(toy_feature_confusion_png_path)
     print(benchmark_trace_csv)
     print(posterior_markdown_path)
     print(posterior_svg_path)

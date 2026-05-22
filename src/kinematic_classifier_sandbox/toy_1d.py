@@ -1394,6 +1394,63 @@ def render_toy_benchmark_png_bytes(result: ToyBenchmarkResult) -> bytes:
         fig.clf()
 
 
+def _build_toy_feature_confusion_figure(result: ToyBenchmarkResult):
+    plt = _prepare_matplotlib()
+    summary = result.summary
+    class_names = sorted(summary.confusion_counts)
+    feature_names = list(FEATURE_NAMES)
+    true_matrix = [
+        [summary.true_feature_predicted_class_counts[feature_name][class_name] for class_name in class_names]
+        for feature_name in feature_names
+    ]
+    detected_matrix = [
+        [summary.detected_feature_predicted_class_counts[feature_name][class_name] for class_name in class_names]
+        for feature_name in feature_names
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 0.9 * len(feature_names) + 3.5))
+    true_ax, detected_ax = axes
+
+    for ax, matrix, title in (
+        (true_ax, true_matrix, "True Feature vs Predicted Class"),
+        (detected_ax, detected_matrix, "Detected Feature vs Predicted Class"),
+    ):
+        image = ax.imshow(matrix, aspect="auto", cmap="Blues")
+        ax.set_title(title, loc="left", fontsize=12, fontweight="bold")
+        ax.set_xticks(range(len(class_names)), class_names, rotation=45, ha="right")
+        ax.set_yticks(range(len(feature_names)), feature_names)
+        matrix_max = max((max(row) for row in matrix), default=0)
+        for row_index, row in enumerate(matrix):
+            for col_index, value in enumerate(row):
+                text_color = "#ffffff" if value > max(1, matrix_max * 0.45) else "#111827"
+                ax.text(col_index, row_index, str(value), ha="center", va="center", fontsize=8, color=text_color)
+        fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+
+    fig.suptitle("Toy 1D Feature-Class Confusion Matrices", fontsize=14, fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    return fig
+
+
+def render_toy_feature_confusion_svg(result: ToyBenchmarkResult) -> str:
+    fig = _build_toy_feature_confusion_figure(result)
+    try:
+        buffer = io.StringIO()
+        fig.savefig(buffer, format="svg", bbox_inches="tight")
+        return buffer.getvalue()
+    finally:
+        fig.clf()
+
+
+def render_toy_feature_confusion_png_bytes(result: ToyBenchmarkResult) -> bytes:
+    fig = _build_toy_feature_confusion_figure(result)
+    try:
+        buffer = io.BytesIO()
+        fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
+        return buffer.getvalue()
+    finally:
+        fig.clf()
+
+
 def write_toy_benchmark_trace_csv(result: ToyBenchmarkResult, output_dir: str | Path) -> Path:
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -1703,6 +1760,30 @@ def write_toy_benchmark_plot_artifacts(
     png_path = output_root / "toy_1d_benchmark_posteriors.png"
     svg_path.write_text(render_toy_benchmark_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_toy_benchmark_png_bytes(benchmark_result))
+    return svg_path, png_path
+
+
+def write_toy_feature_confusion_artifacts(
+    output_dir: str | Path,
+    *,
+    seed: int = 7,
+    steps: int = 32,
+    tracks_per_class: int = 6,
+    obs_sigma: float = 0.75,
+    result: ToyBenchmarkResult | None = None,
+) -> tuple[Path, Path]:
+    benchmark_result = result or run_toy_benchmark(
+        seed=seed,
+        steps=steps,
+        tracks_per_class=tracks_per_class,
+        obs_sigma=obs_sigma,
+    )
+    output_root = Path(output_dir)
+    output_root.mkdir(parents=True, exist_ok=True)
+    svg_path = output_root / "toy_1d_feature_confusion.svg"
+    png_path = output_root / "toy_1d_feature_confusion.png"
+    svg_path.write_text(render_toy_feature_confusion_svg(benchmark_result), encoding="utf-8")
+    png_path.write_bytes(render_toy_feature_confusion_png_bytes(benchmark_result))
     return svg_path, png_path
 
 

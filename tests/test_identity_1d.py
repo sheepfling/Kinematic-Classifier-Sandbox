@@ -11,11 +11,14 @@ from kinematic_classifier_sandbox.identity_1d import (
     generate_identity_scenarios,
     make_identity_scenario,
     render_identity_benchmark_markdown,
+    render_identity_feature_confusion_png_bytes,
+    render_identity_feature_confusion_svg,
     render_identity_benchmark_png_bytes,
     render_identity_benchmark_svg,
     run_identity_benchmark,
     run_identity_classifier,
     write_identity_benchmark_artifacts,
+    write_identity_feature_confusion_artifacts,
     write_identity_benchmark_trace_csv,
 )
 from kinematic_classifier_sandbox import (
@@ -125,6 +128,10 @@ class Identity1DBenchmarkTests(unittest.TestCase):
         self.assertIn("<svg", svg)
         self.assertIn("bike", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
+        feature_svg = render_identity_feature_confusion_svg(result)
+        feature_png = render_identity_feature_confusion_png_bytes(result)
+        self.assertIn("Identity Feature-Class Confusion Matrices", feature_svg)
+        self.assertTrue(feature_png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
             csv_path = write_identity_benchmark_trace_csv(result, temp_dir)
@@ -145,6 +152,11 @@ class Identity1DBenchmarkTests(unittest.TestCase):
             self.assertTrue(markdown_path.exists())
             self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
+            feature_svg_path, feature_png_path = write_identity_feature_confusion_artifacts(temp_dir, result=result)
+            self.assertEqual(feature_svg_path, Path(temp_dir) / "identity_1d_feature_confusion.svg")
+            self.assertEqual(feature_png_path, Path(temp_dir) / "identity_1d_feature_confusion.png")
+            self.assertTrue(feature_svg_path.exists())
+            self.assertTrue(feature_png_path.exists())
 
     def test_identity_posterior_explainer_artifacts_are_generated(self) -> None:
         result = run_identity_benchmark(steps=20, seed=7, obs_sigma_mph=2.0)
