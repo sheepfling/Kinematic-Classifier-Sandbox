@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kinematic-classifier-sandbox"
+version = "0.1.0"
+description = "Survey-first sandbox for kinematic classification methods."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Rick" }]
+dependencies = ["matplotlib>=3.10"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
