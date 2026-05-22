@@ -140,11 +140,10 @@ Behavior terms compare latent posterior moments to class signatures:
 
 ```tex
 \log L^{\text{behavior}}_{i,t}
-=
-\log L^{\text{vel-center}}_{i,t}
-\log L^{\text{accel-center}}_{i,t}
-\log L^{\text{direction}}_{i,t}
-\log L^{\text{oscillation}}_{i,t}.
+= \log L^{\text{vel-center}}_{i,t}
++ \log L^{\text{accel-center}}_{i,t}
++ \log L^{\text{direction}}_{i,t}
++ \log L^{\text{oscillation}}_{i,t}.
 ```
 
 Observed-kinematics terms use finite differences of the measurement history:
@@ -159,9 +158,8 @@ then score them against class signatures with Gaussian log densities:
 
 ```tex
 \log L^{\text{obs}}_{i,t}
-=
-\log L^{\text{obs-vel}}_{i,t}
-\log L^{\text{obs-accel}}_{i,t}.
+= \log L^{\text{obs-vel}}_{i,t}
++ \log L^{\text{obs-accel}}_{i,t}.
 ```
 
 For `brake` and `maneuver`, there is also a small within-class mode mixture:
@@ -184,13 +182,12 @@ The implemented toy class score is:
 
 ```tex
 \log L_{i,t}
-=
-\log L^{\text{dyn}}_{i,t}
-\log L^{\text{speed}}_{i,t}
-\log L^{\text{accel}}_{i,t}
-\log L^{\text{behavior}}_{i,t}
-\log L^{\text{obs}}_{i,t}
-\log L^{\text{mode}}_{i,t}
+= \log L^{\text{dyn}}_{i,t}
++ \log L^{\text{speed}}_{i,t}
++ \log L^{\text{accel}}_{i,t}
++ \log L^{\text{behavior}}_{i,t}
++ \log L^{\text{obs}}_{i,t}
++ \log L^{\text{mode}}_{i,t}
 - \mathbf{1}\{s_i=\text{unknown}\}\,\gamma_{\text{unknown}}.
 ```
 
