@@ -215,34 +215,12 @@ def _build_posterior_explainer_figure(walkthrough: IdentityPosteriorWalkthrough)
     return fig
 
 
-def render_identity_posterior_explainer_svg(result: IdentityBenchmarkResult) -> str:
-    plt = _prepare_matplotlib()
-    fig = _build_posterior_explainer_figure(_select_success_walkthrough(result))
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
-
-
 def render_identity_posterior_explainer_png_bytes(result: IdentityBenchmarkResult) -> bytes:
     plt = _prepare_matplotlib()
     fig = _build_posterior_explainer_figure(_select_success_walkthrough(result))
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
-
-
-def render_identity_posterior_failure_svg(result: IdentityBenchmarkResult) -> str:
-    plt = _prepare_matplotlib()
-    fig = _build_posterior_explainer_figure(_select_failure_walkthrough(result))
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
         return buffer.getvalue()
     finally:
         plt.close(fig)
@@ -340,17 +318,6 @@ def _build_identity_posterior_comparison_figure(result: IdentityBenchmarkResult)
     fig.suptitle("Identity Posterior Success vs Failure Comparison", fontsize=14, fontweight="bold")
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     return fig
-
-
-def render_identity_posterior_comparison_svg(result: IdentityBenchmarkResult) -> str:
-    plt = _prepare_matplotlib()
-    fig = _build_identity_posterior_comparison_figure(result)
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
 
 
 def render_identity_posterior_comparison_png_bytes(result: IdentityBenchmarkResult) -> bytes:
@@ -468,17 +435,6 @@ def _build_identity_posterior_margin_trace_figure(result: IdentityBenchmarkResul
     return fig
 
 
-def render_identity_posterior_margin_trace_svg(result: IdentityBenchmarkResult) -> str:
-    plt = _prepare_matplotlib()
-    fig = _build_identity_posterior_margin_trace_figure(result)
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
-
-
 def render_identity_posterior_margin_trace_png_bytes(result: IdentityBenchmarkResult) -> bytes:
     plt = _prepare_matplotlib()
     fig = _build_identity_posterior_margin_trace_figure(result)
@@ -494,65 +450,57 @@ def write_identity_posterior_explainer_artifacts(
     output_dir: str | Path,
     *,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     benchmark_result = result or run_identity_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "identity_1d_posterior_walkthrough.md"
-    svg_path = output_root / "identity_1d_posterior_walkthrough.svg"
     png_path = output_root / "identity_1d_posterior_walkthrough.png"
     markdown_path.write_text(render_identity_posterior_explainer_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_identity_posterior_explainer_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_posterior_explainer_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path
+    return markdown_path, png_path
 
 
 def write_identity_posterior_failure_artifacts(
     output_dir: str | Path,
     *,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     benchmark_result = result or run_identity_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "identity_1d_posterior_failure_walkthrough.md"
-    svg_path = output_root / "identity_1d_posterior_failure_walkthrough.svg"
     png_path = output_root / "identity_1d_posterior_failure_walkthrough.png"
     markdown_path.write_text(render_identity_posterior_failure_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_identity_posterior_failure_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_posterior_failure_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path
+    return markdown_path, png_path
 
 
 def write_identity_posterior_comparison_artifacts(
     output_dir: str | Path,
     *,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     benchmark_result = result or run_identity_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "identity_1d_posterior_comparison.md"
-    svg_path = output_root / "identity_1d_posterior_comparison.svg"
     png_path = output_root / "identity_1d_posterior_comparison.png"
     markdown_path.write_text(render_identity_posterior_comparison_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_identity_posterior_comparison_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_posterior_comparison_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path
+    return markdown_path, png_path
 
 
 def write_identity_posterior_margin_trace_artifacts(
     output_dir: str | Path,
     *,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     benchmark_result = result or run_identity_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "identity_1d_posterior_margin_trace.md"
-    svg_path = output_root / "identity_1d_posterior_margin_trace.svg"
     png_path = output_root / "identity_1d_posterior_margin_trace.png"
     markdown_path.write_text(render_identity_posterior_margin_trace_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_identity_posterior_margin_trace_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_posterior_margin_trace_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path
+    return markdown_path, png_path

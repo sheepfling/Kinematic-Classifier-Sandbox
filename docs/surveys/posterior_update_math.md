@@ -37,6 +37,44 @@ w_{i,t} = \frac{\exp(\log \tilde{w}_{i,t})}
 That is the common structure across both files. The difference is what
 `L_i(...)` contains.
 
+## 1.1 What Is Random In These Benchmarks
+
+The cleanest way to read the repo is:
+
+- `s_i` is the class label
+- `z_t` is the measurement at time `t`
+- `x_t` is a latent state only in the toy benchmark
+- `p(s_i | z_{1:t})` is the posterior class probability after seeing data up to step `t`
+
+The important split is:
+
+- `toy_1d` is a latent-state model with class-conditioned filters
+- `identity_1d` is a direct measurement classifier with no latent Kalman state
+
+So the two 1D classifiers are not using the same probabilistic object.
+
+## 1.2 Are We Chopping The Gaussian Probability Space?
+
+Mostly no. The main measurement-fit terms are standard Gaussian log densities.
+
+Where the code does integrate or "cut" probability space is in the soft
+validity terms. Those terms ask questions like:
+
+```tex
+P(|v_t| \le c), \qquad P(|a_t| \le c), \qquad P(z_t \le c)
+```
+
+Those are not pointwise PDF values. They are integrated Gaussian mass over a
+region:
+
+- interval mass for `|v_t| <= c` or `|a_t| <= c`
+- upper-tail or lower-tail mass for one-sided checks
+
+So the repo currently uses both:
+
+- Gaussian PDF or log-PDF terms for "how well does this exact measurement fit?"
+- Gaussian CDF-derived terms for "how much class probability mass lies inside a valid region?"
+
 ## 2. Toy 1D benchmark
 
 ### 2.1 Latent state and measurement model
@@ -59,6 +97,25 @@ H = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix},
 
 Each class `s_i` maintains its own predicted and updated state moments
 `(\mu_{i,t}, P_{i,t})`.
+
+## 2.1 How The Toy 1D Classifier Is Set Up
+
+The toy classifier is a class bank.
+
+For each class:
+
+1. keep a separate latent state mean and covariance
+2. predict that state forward using class-specific dynamics
+3. score the new position measurement under that class
+4. add class-specific soft plausibility terms
+5. update the class posterior weight
+
+So the toy benchmark is not:
+
+- one shared tracker followed by a classifier
+- or a static feature classifier over a finished trajectory
+
+It is a joint recursive filter-bank style classifier.
 
 ### 2.2 Innovation likelihood
 
@@ -97,6 +154,15 @@ In log form:
 
 This is the `dyn` term in the toy posterior artifacts.
 
+This is the part that corresponds most directly to the textbook
+
+```tex
+p(z_t \mid s_i)
+```
+
+term. It is a Gaussian density on the innovation, not a thresholded region
+probability.
+
 ### 2.3 Soft envelope terms
 
 The toy model does not hard-threshold velocity or acceleration. It uses
@@ -130,6 +196,34 @@ The corresponding log terms are
 ```
 
 These are the `speed` and `accel` terms in the toy artifacts.
+
+### 2.3 What "Cutting Probability Space" Means In Toy 1D
+
+This is the main place where the toy classifier "cuts" the Gaussian
+probability space.
+
+For example, if class `s_i` says velocity should stay inside `[-v_max, v_max]`,
+the code does not ask only for the density at the current mean velocity. It
+asks for the total posterior Gaussian mass that lies inside that interval.
+
+So instead of using only:
+
+```tex
+\mathcal{N}(v_t; \mu_v, \sigma_v^2),
+```
+
+it also uses:
+
+```tex
+P(-v_{\max,i} \le v_t \le v_{\max,i} \mid s_i).
+```
+
+That is a soft geometric cut on the probability space. It says:
+
+- classes are rewarded when much of their uncertainty lies in the valid region
+- classes are penalized when much of their uncertainty lies outside it
+
+The same logic applies to acceleration limits.
 
 ### 2.4 Behavior, observed-kinematics, and mode terms
 
@@ -210,6 +304,32 @@ This is why the toy posterior walkthrough artifacts show per-class columns for:
 - total
 - posterior
 
+## 2.6 What The Toy Posterior Really Represents
+
+The toy posterior after each step is:
+
+```tex
+p(s_i \mid z_{1:t})
+```
+
+not
+
+```tex
+p(x_t \mid z_{1:t})
+```
+
+The state posterior exists separately inside each class-conditioned filter.
+
+So a more complete mental model is:
+
+- inside each class: estimate `p(x_t | s_i, z_{1:t})`
+- across classes: compare class scores and update `p(s_i | z_{1:t})`
+
+That is why the benchmark can say:
+
+- class `drift` currently has posterior `0.63`
+- while the `drift` filter also has its own mean and covariance for `[p, v, a]`
+
 ## 3. Identity benchmark
 
 ### 3.1 Measurement model
@@ -224,6 +344,26 @@ z_t = \text{observed speed in mph}.
 There is no latent Kalman state here. Each class `s_i` is represented by a
 speed-shape prior and a few history terms.
 
+## 3.1 How The Identity 1D Classifier Is Set Up
+
+The identity classifier is much simpler than toy.
+
+At each step it takes one observed speed sample and asks:
+
+- how likely is this speed under the `bike` speed model?
+- how likely is it under the `horse` speed model?
+- how likely is it under the `car` speed model?
+
+Then it adjusts those instantaneous fits with:
+
+- a soft upper-speed validity term
+- a running-history term
+- a short-window mode term
+- a recent-dynamics term
+
+So identity is not estimating a latent PVA state. It is recursively updating
+class weights from direct speed evidence.
+
 ### 3.2 Base speed-shape likelihood
 
 For class `s_i` with cruise mean `\mu_i` and class spread `\sigma_i`, the
@@ -235,6 +375,8 @@ instantaneous speed fit is
 ```
 
 This is the dominant `speed_shape` term shown in the identity artifacts.
+
+This is again a Gaussian density term, not a chopped region probability.
 
 ### 3.3 Soft speed-validity term
 
@@ -254,6 +396,24 @@ The log contribution is
 ```
 
 This is the `speed_validity` term in the identity posterior artifacts.
+
+### 3.3 What "Cutting Probability Space" Means In Identity 1D
+
+This is the identity-side version of a soft cut.
+
+The model uses a one-sided Gaussian mass term:
+
+```tex
+P(z_t \le v_{\max,i} + \delta_i)
+```
+
+instead of a hard statement like:
+
+- valid if `z_t <= v_max`
+- invalid otherwise
+
+That matters because a noisy measurement slightly above the nominal limit does
+not instantly collapse the class to zero. It only receives a softer penalty.
 
 ### 3.4 History, mode, and dynamics terms
 
@@ -326,7 +486,66 @@ This is why the identity posterior artifacts show:
 - total
 - posterior
 
-## 4. Feature probabilities are not the class posterior
+## 3.6 What The Identity Posterior Really Represents
+
+The identity posterior is directly:
+
+```tex
+p(s_i \mid z_{1:t})
+```
+
+with `z_t` equal to observed speed. There is no separate latent state posterior
+inside the identity classifier.
+
+So compared with toy:
+
+- toy has class posterior plus per-class state posteriors
+- identity has class posterior only
+
+## 4. PDF Terms Versus CDF Terms
+
+The repo currently mixes two different probabilistic objects.
+
+### 4.1 Density terms
+
+These answer:
+
+```tex
+\text{How well does this exact observed value fit the class model?}
+```
+
+Examples:
+
+- toy innovation likelihood
+- toy latent center terms
+- identity `speed_shape`
+- identity `history_shape`
+
+These use Gaussian PDF or log-PDF forms.
+
+### 4.2 Region-probability terms
+
+These answer:
+
+```tex
+\text{How much class probability mass lies in a valid region?}
+```
+
+Examples:
+
+- toy `speed`
+- toy `accel`
+- identity `speed_validity`
+
+These use Gaussian CDF or tail-probability forms.
+
+That distinction is the clean answer to the user's question about "cutting" the
+probability space:
+
+- PDF terms do not cut the space; they score a point
+- CDF terms do cut the space; they integrate over a region
+
+## 5. Feature probabilities are not the class posterior
 
 Both benchmark families also compute feature probabilities, but those are
 derived diagnostic quantities, not the class posterior itself.
@@ -353,7 +572,7 @@ produce:
 They help explain why a class won or lost, but they are not themselves the
 normalized class posterior.
 
-## 5. Why the confusion matrices matter
+## 6. Why the confusion matrices matter
 
 The confusion artifacts are downstream summaries of these posterior updates.
 
@@ -387,7 +606,7 @@ That entropy trace is useful because it shows whether the classifier is:
 - becoming confidently wrong
 - or staying ambiguous over time
 
-## 6. Practical interpretation
+## 7. Practical interpretation
 
 The clean mental model for the repo is:
 

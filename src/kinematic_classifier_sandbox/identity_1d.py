@@ -1013,17 +1013,6 @@ def _build_identity_figure(result: IdentityBenchmarkResult):
     return fig
 
 
-def render_identity_benchmark_svg(result: IdentityBenchmarkResult) -> str:
-    plt = _prepare_matplotlib()
-    fig = _build_identity_figure(result)
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
-
-
 def render_identity_benchmark_png_bytes(result: IdentityBenchmarkResult) -> bytes:
     plt = _prepare_matplotlib()
     fig = _build_identity_figure(result)
@@ -1069,17 +1058,6 @@ def _build_identity_feature_confusion_figure(result: IdentityBenchmarkResult):
     fig.suptitle("Identity Feature-Class Confusion Matrices", fontsize=14, fontweight="bold")
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     return fig
-
-
-def render_identity_feature_confusion_svg(result: IdentityBenchmarkResult) -> str:
-    plt = _prepare_matplotlib()
-    fig = _build_identity_feature_confusion_figure(result)
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
 
 
 def render_identity_feature_confusion_png_bytes(result: IdentityBenchmarkResult) -> bytes:
@@ -1148,18 +1126,16 @@ def write_identity_benchmark_artifacts(
     seed: int = 7,
     obs_sigma_mph: float = 2.0,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path]:
     benchmark_result = result or run_identity_benchmark(steps=steps, seed=seed, obs_sigma_mph=obs_sigma_mph)
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "identity_1d_benchmark_summary.md"
-    svg_path = output_root / "identity_1d_benchmark_posteriors.svg"
     png_path = output_root / "identity_1d_benchmark_posteriors.png"
     csv_path = write_identity_benchmark_trace_csv(benchmark_result, output_root)
     markdown_path.write_text(render_identity_benchmark_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_identity_benchmark_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_benchmark_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path, csv_path
+    return markdown_path, png_path, csv_path
 
 
 def write_identity_feature_confusion_artifacts(
@@ -1169,12 +1145,10 @@ def write_identity_feature_confusion_artifacts(
     seed: int = 7,
     obs_sigma_mph: float = 2.0,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path]:
+) -> Path:
     benchmark_result = result or run_identity_benchmark(steps=steps, seed=seed, obs_sigma_mph=obs_sigma_mph)
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
-    svg_path = output_root / "identity_1d_feature_confusion.svg"
     png_path = output_root / "identity_1d_feature_confusion.png"
-    svg_path.write_text(render_identity_feature_confusion_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_feature_confusion_png_bytes(benchmark_result))
-    return svg_path, png_path
+    return png_path

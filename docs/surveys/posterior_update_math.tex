@@ -1,0 +1,402 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts, bm}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\graphicspath{{../../artifacts/}}
+
+\title{Posterior Update Math for Toy and Identity Benchmarks}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Purpose}
+
+This document is the beginning of a formal mathematical write-up for the two
+active benchmark families in the repository:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{toy\_1d.py}: a class-matched latent-state filter bank
+    \item \texttt{identity\_1d.py}: a direct speed-identity classifier over
+    \texttt{bike}, \texttt{horse}, and \texttt{car}
+\end{itemize}
+
+The aim is to connect the implemented code paths to explicit posterior update
+equations and to show how those updates produce the downstream confusion
+matrices, feature summaries, and entropy traces.
+
+\section{What Is Random and What Is Being Inferred}
+
+The cleanest reading of the repository is:
+\begin{itemize}[leftmargin=1.5em]
+    \item $s_i$ denotes class $i$
+    \item $z_t$ denotes the measurement at time $t$
+    \item $x_t$ denotes a latent kinematic state only in the toy benchmark
+    \item $p(s_i \mid z_{1:t})$ is the posterior class probability after seeing
+    measurements up to time $t$
+\end{itemize}
+
+The two benchmark families do not infer the same latent object:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{toy\_1d.py} maintains a latent state posterior inside each
+    class-conditioned filter
+    \item \texttt{identity\_1d.py} does not maintain a latent Kalman state and
+    instead updates class probabilities directly from observed speed
+\end{itemize}
+
+\section{Generic Recursive Posterior Update}
+
+For either benchmark, let $s_i$ denote class $i$ and let $z_{1:t}$ denote the
+measurement history up to time $t$. The recursive class update is
+\begin{equation}
+    p(s_i \mid z_{1:t}) \propto p(s_i \mid z_{1:t-1}) \, L_i(z_t, z_{1:t-1}),
+\end{equation}
+with normalization
+\begin{equation}
+    p(s_i \mid z_{1:t}) =
+    \frac{p(s_i \mid z_{1:t-1}) \, L_i(z_t, z_{1:t-1})}
+    {\sum_j p(s_j \mid z_{1:t-1}) \, L_j(z_t, z_{1:t-1})}.
+\end{equation}
+
+In log space, define
+\begin{equation}
+    \ell_{i,t} = \log p(s_i \mid z_{1:t-1}) + \log L_i(z_t, z_{1:t-1}),
+\end{equation}
+so that
+\begin{equation}
+    p(s_i \mid z_{1:t}) =
+    \frac{\exp(\ell_{i,t})}{\sum_j \exp(\ell_{j,t})}.
+\end{equation}
+
+\subsection{PDF Terms Versus Probability-Mass Terms}
+
+A key implementation detail is that the repository uses two different types of
+probabilistic terms:
+\begin{itemize}[leftmargin=1.5em]
+    \item density terms, which score how well an exact observed value fits a
+    class model
+    \item region-probability terms, which integrate Gaussian mass over a valid
+    region of the state or measurement space
+\end{itemize}
+
+So the answer to ``are we chopping the Gaussian probability space?'' is:
+\begin{itemize}[leftmargin=1.5em]
+    \item mostly no for the main innovation or speed-shape terms
+    \item yes, softly, for the envelope or validity terms
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{probability_primitives.png}
+    \caption{Simple explanatory charts for the probability primitives used in
+    the 1D classifiers: innovation density, symmetric soft limits, one-sided
+    soft limits, and prior-to-posterior updating.}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{posterior_update_math.png}
+    \caption{Rendered overview of the posterior update structure for the toy and
+    identity 1D classifiers.}
+\end{figure}
+
+\section{Toy 1D Benchmark}
+
+\subsection{State and Measurement Model}
+
+The toy benchmark uses a latent state
+\begin{equation}
+    x_t =
+    \begin{bmatrix}
+        p_t \\
+        v_t \\
+        a_t
+    \end{bmatrix},
+\end{equation}
+with scalar position measurement
+\begin{equation}
+    z_t = H x_t + \nu_t,
+    \qquad
+    H = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix},
+    \qquad
+    \nu_t \sim \mathcal{N}(0, R).
+\end{equation}
+
+Each class maintains its own predicted state mean and covariance,
+$\hat{x}_{i,t}^{-}$ and $P_{i,t}^{-}$, and its own updated moments after
+measurement incorporation.
+
+\subsection{How the Toy Classifier Is Set Up}
+
+The toy benchmark is a class bank. For each class, the code:
+\begin{enumerate}[leftmargin=1.8em]
+    \item maintains a separate latent state mean and covariance
+    \item predicts that state forward with class-specific dynamics
+    \item scores the new position measurement under that class
+    \item adds soft plausibility terms on velocity, acceleration, direction,
+    oscillation, and short-window behavior
+    \item updates the posterior weight of that class
+\end{enumerate}
+
+So this is not a single shared tracker followed by an external classifier. It
+is a joint recursive filter-bank style classifier.
+
+\subsection{Innovation Likelihood}
+
+For class $s_i$, the innovation is
+\begin{equation}
+    r_{i,t} = z_t - H \hat{x}_{i,t}^{-},
+    \qquad
+    S_{i,t} = H P_{i,t}^{-} H^\top + R.
+\end{equation}
+
+The innovation log likelihood is
+\begin{equation}
+    \log L^{\text{dyn}}_{i,t}
+    =
+    -\frac{1}{2}
+    \left[
+        \log(2\pi S_{i,t}) + \frac{r_{i,t}^2}{S_{i,t}}
+    \right].
+\end{equation}
+
+This is the most textbook piece of the toy classifier. It is a Gaussian
+density term on the innovation, not an interval probability.
+
+\subsection{Soft Envelope Terms}
+
+The benchmark uses covariance-aware envelope probabilities rather than hard
+thresholds. For example,
+\begin{equation}
+    \log L^{\text{speed}}_{i,t}
+    =
+    \lambda_v \log\!\Big(
+        \epsilon + P(|v_t| \leq v_{\max,i} \mid s_i)
+    \Big),
+\end{equation}
+and
+\begin{equation}
+    \log L^{\text{accel}}_{i,t}
+    =
+    \lambda_a \log\!\Big(
+        \epsilon + P(|a_t| \leq a_{\max,i} \mid s_i)
+    \Big).
+\end{equation}
+
+\subsection{How the Toy Model Cuts Probability Space}
+
+The toy model softly cuts probability space through Gaussian CDF-based region
+probabilities. For example, instead of using only a density like
+\begin{equation}
+    \mathcal{N}(v_t; \mu_v, \sigma_v^2),
+\end{equation}
+it also asks for the posterior mass inside a class-valid interval:
+\begin{equation}
+    P(-v_{\max,i} \leq v_t \leq v_{\max,i} \mid s_i).
+\end{equation}
+
+This is a soft geometric cut:
+\begin{itemize}[leftmargin=1.5em]
+    \item if most of the velocity posterior lies inside the valid interval, the
+    class is rewarded
+    \item if much of that posterior lies outside, the class is penalized
+\end{itemize}
+
+The same logic applies to acceleration.
+
+\subsection{Composite Toy Score}
+
+The implemented toy score can be written schematically as
+\begin{align}
+    \log L_{i,t}
+    &=
+    \log L^{\text{dyn}}_{i,t}
+    + \log L^{\text{speed}}_{i,t}
+    + \log L^{\text{accel}}_{i,t} \\
+    &\quad
+    + \log L^{\text{behavior}}_{i,t}
+    + \log L^{\text{obs}}_{i,t}
+    + \log L^{\text{mode}}_{i,t} \nonumber \\
+    &\quad
+    - \mathbf{1}\{s_i = \text{unknown}\}\gamma_{\text{unknown}}. \nonumber
+\end{align}
+
+Here:
+\begin{itemize}[leftmargin=1.5em]
+    \item $\log L^{\text{behavior}}_{i,t}$ scores latent velocity,
+    acceleration, direction, and oscillation consistency.
+    \item $\log L^{\text{obs}}_{i,t}$ scores finite-difference observed
+    kinematics from recent measurements.
+    \item $\log L^{\text{mode}}_{i,t}$ is a within-class mode mixture used
+    especially for \texttt{brake} and \texttt{maneuver}.
+\end{itemize}
+
+\subsection{What the Toy Posterior Represents}
+
+The toy classifier is carrying two layers of inference:
+\begin{itemize}[leftmargin=1.5em]
+    \item inside each class: a state posterior $p(x_t \mid s_i, z_{1:t})$
+    \item across classes: a class posterior $p(s_i \mid z_{1:t})$
+\end{itemize}
+
+That distinction matters because the benchmark can simultaneously hold:
+\begin{itemize}[leftmargin=1.5em]
+    \item a posterior class weight for \texttt{drift}
+    \item a latent mean and covariance for the \texttt{drift} state estimate
+\end{itemize}
+
+\section{Identity Benchmark}
+
+\subsection{Measurement Model}
+
+The identity benchmark uses a direct scalar speed observation
+\begin{equation}
+    z_t = \text{observed speed in mph}.
+\end{equation}
+
+There is no latent Kalman state in this benchmark. The posterior update is
+driven by a class-conditioned speed-shape model and several short-window
+history terms.
+
+\subsection{How the Identity Classifier Is Set Up}
+
+At each step, the identity classifier takes one observed speed and asks:
+\begin{itemize}[leftmargin=1.5em]
+    \item how well does this speed fit the \texttt{bike} speed model?
+    \item how well does it fit the \texttt{horse} speed model?
+    \item how well does it fit the \texttt{car} speed model?
+\end{itemize}
+
+It then adjusts those instantaneous fits with:
+\begin{itemize}[leftmargin=1.5em]
+    \item a soft upper-speed validity term
+    \item a running-history term
+    \item a short-window mode term
+    \item a recent-dynamics term
+\end{itemize}
+
+So the identity model is a recursive class-evidence updater, not a latent-state
+tracker.
+
+\subsection{Composite Identity Score}
+
+For class $s_i$, the current code is well approximated by
+\begin{equation}
+    \log L_{i,t}
+    =
+    \log L^{\text{speed-shape}}_{i,t}
+    + \log L^{\text{valid}}_{i,t}
+    + \log L^{\text{history}}_{i,t}
+    + \log L^{\text{mode}}_{i,t}
+    + \log L^{\text{dyn-shape}}_{i,t}.
+\end{equation}
+
+The main pieces are:
+\begin{align}
+    \log L^{\text{speed-shape}}_{i,t}
+    &= \log \mathcal{N}\!\left(z_t; \mu_i, \sigma_i^2 + \sigma_{\text{obs}}^2\right), \\
+    \log L^{\text{valid}}_{i,t}
+    &= 1.4 \log P\!\left(z_t \leq v_{\max,i} + \delta_i\right), \\
+    \log L^{\text{history}}_{i,t}
+    &= 0.45 \log \mathcal{N}\!\left(\bar{z}_{1:t}; \mu_i, \sigma_i^2 + \sigma_{\text{hist},t}^2\right).
+\end{align}
+
+The mode and dynamics terms capture recent-window structure such as cruise
+regimes, border modes, surge behavior, or persistent push.
+
+\subsection{How the Identity Model Cuts Probability Space}
+
+The identity model does not cut probability space through the main
+\texttt{speed-shape} term. That term is a Gaussian density on the observed
+speed. The soft cut appears in the validity term:
+\begin{equation}
+    P(z_t \leq v_{\max,i} + \delta_i).
+\end{equation}
+
+So instead of using a hard rule
+\[
+    z_t \leq v_{\max,i},
+\]
+the classifier uses a one-sided Gaussian probability mass term. This means that
+a noisy observation slightly above the nominal class limit does not force the
+class posterior to zero; it is only penalized.
+
+\subsection{What the Identity Posterior Represents}
+
+The identity benchmark carries only the class posterior
+\begin{equation}
+    p(s_i \mid z_{1:t}),
+\end{equation}
+with no separate latent-state posterior.
+
+Compared with toy:
+\begin{itemize}[leftmargin=1.5em]
+    \item toy has class posterior plus per-class state posterior
+    \item identity has class posterior only
+\end{itemize}
+
+\section{Worked Numeric Walkthrough Procedure}
+
+For a given step $t$ and class $s_i$, the most direct numeric walkthrough is:
+\begin{align}
+    \ell_{i,t}^{\text{prior}} &= \log p(s_i \mid z_{1:t-1}), \\
+    \ell_{i,t}^{\text{total}} &= \log L_i(z_t, z_{1:t-1}), \\
+    \ell_{i,t}^{\text{num}} &= \ell_{i,t}^{\text{prior}} + \ell_{i,t}^{\text{total}}, \\
+    \log Z_t &= \log \sum_j \exp(\ell_{j,t}^{\text{num}}), \\
+    p(s_i \mid z_{1:t}) &= \exp\!\left(\ell_{i,t}^{\text{num}} - \log Z_t\right).
+\end{align}
+
+This sequence corresponds exactly to the rendered artifact
+\texttt{posterior\_numeric\_walkthrough.(md, svg, png)} in the repo.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{posterior_numeric_walkthrough.png}
+    \caption{Numeric substitution of the posterior equations for one toy failure
+    case and one identity boundary failure case.}
+\end{figure}
+
+\section{Features, Confusion, and Entropy}
+
+The feature probabilities are diagnostic quantities rather than the class
+posterior itself. They are used to build feature-vs-class matrices and feature
+confusion counts.
+
+Class entropy at step $t$ is
+\begin{equation}
+    H_t = - \sum_i p(s_i \mid z_{1:t}) \log p(s_i \mid z_{1:t}).
+\end{equation}
+
+This quantity is useful for distinguishing:
+\begin{itemize}[leftmargin=1.5em]
+    \item confident correct classification,
+    \item confident incorrect classification,
+    \item persistent ambiguity across classes.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{toy_1d_feature_confusion.png}
+    \hfill
+    \includegraphics[width=0.48\textwidth]{identity_1d_feature_confusion.png}
+    \caption{Rendered feature-to-class confusion heatmaps for the toy benchmark
+    (left) and the identity benchmark (right).}
+\end{figure}
+
+\section{Next Extensions}
+
+This starter document is intentionally narrow. Good next additions would be:
+\begin{itemize}[leftmargin=1.5em]
+    \item explicit notation for every toy behavior subterm,
+    \item explicit notation for the identity mode-mixture terms,
+    \item one worked numerical example copied directly from a benchmark run,
+    \item figures inserted from the generated SVG or PNG artifacts.
+\end{itemize}
+
+\end{document}

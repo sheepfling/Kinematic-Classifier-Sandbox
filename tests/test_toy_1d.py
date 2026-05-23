@@ -11,9 +11,7 @@ from kinematic_classifier_sandbox.toy_1d import (
     generate_toy_track,
     render_toy_benchmark_markdown,
     render_toy_benchmark_png_bytes,
-    render_toy_benchmark_svg,
     render_toy_feature_confusion_png_bytes,
-    render_toy_feature_confusion_svg,
     run_class_bank,
     run_toy_benchmark,
     summarize_runs,
@@ -25,16 +23,12 @@ from kinematic_classifier_sandbox.toy_1d import (
 from kinematic_classifier_sandbox import (
     render_posterior_comparison_markdown,
     render_posterior_comparison_png_bytes,
-    render_posterior_comparison_svg,
     render_posterior_explainer_markdown,
     render_posterior_explainer_png_bytes,
-    render_posterior_explainer_svg,
     render_posterior_failure_markdown,
     render_posterior_failure_png_bytes,
-    render_posterior_failure_svg,
     render_posterior_margin_trace_markdown,
     render_posterior_margin_trace_png_bytes,
-    render_posterior_margin_trace_svg,
     write_posterior_comparison_artifacts,
     write_posterior_explainer_artifacts,
     write_posterior_failure_artifacts,
@@ -127,9 +121,6 @@ class Toy1DBenchmarkTests(unittest.TestCase):
         self.assertIn("True Feature vs Predicted Class Matrix", markdown)
         self.assertIn("Detected Feature vs Predicted Class Matrix", markdown)
         self.assertIn("Mean Posterior Entropy by Step", markdown)
-        svg = render_toy_benchmark_svg(result)
-        self.assertIn("<svg", svg)
-        self.assertIn("Posterior Evolution", svg)
         png = render_toy_benchmark_png_bytes(result)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
@@ -147,20 +138,13 @@ class Toy1DBenchmarkTests(unittest.TestCase):
             self.assertIn("target_phase_label", csv_text.splitlines()[0])
             self.assertIn("transient_map_class", csv_text.splitlines()[0])
             self.assertIn("agg_hard_brake", csv_text.splitlines()[0])
-            svg_path, png_path = write_toy_benchmark_plot_artifacts(temp_dir, result=result)
-            self.assertEqual(svg_path, Path(temp_dir) / "toy_1d_benchmark_posteriors.svg")
+            png_path = write_toy_benchmark_plot_artifacts(temp_dir, result=result)
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_benchmark_posteriors.png")
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
-            feature_svg = render_toy_feature_confusion_svg(result)
             feature_png = render_toy_feature_confusion_png_bytes(result)
-            self.assertIn("<svg", feature_svg)
-            self.assertIn("Toy 1D Feature-Class Confusion Matrices", feature_svg)
             self.assertTrue(feature_png.startswith(b"\x89PNG\r\n\x1a\n"))
-            feature_svg_path, feature_png_path = write_toy_feature_confusion_artifacts(temp_dir, result=result)
-            self.assertEqual(feature_svg_path, Path(temp_dir) / "toy_1d_feature_confusion.svg")
+            feature_png_path = write_toy_feature_confusion_artifacts(temp_dir, result=result)
             self.assertEqual(feature_png_path, Path(temp_dir) / "toy_1d_feature_confusion.png")
-            self.assertTrue(feature_svg_path.exists())
             self.assertTrue(feature_png_path.exists())
 
     def test_write_benchmark_artifact_creates_markdown(self) -> None:
@@ -179,22 +163,18 @@ class Toy1DBenchmarkTests(unittest.TestCase):
 
         result = run_toy_benchmark(seed=7, steps=20, tracks_per_class=2, obs_sigma=0.6)
         markdown = render_posterior_explainer_markdown(result)
-        svg = render_posterior_explainer_svg(result)
         png = render_posterior_explainer_png_bytes(result)
 
         self.assertIn("Posterior Update Walkthrough", markdown)
         self.assertIn("Bayesian Update", markdown)
         self.assertIn("Composite Log-Likelihood Terms by Class", markdown)
-        self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, svg_path, png_path = write_posterior_explainer_artifacts(temp_dir, result=result)
+            markdown_path, png_path = write_posterior_explainer_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "toy_1d_posterior_walkthrough.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "toy_1d_posterior_walkthrough.svg")
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_posterior_walkthrough.png")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
 
     def test_posterior_failure_artifacts_are_generated(self) -> None:
@@ -203,22 +183,18 @@ class Toy1DBenchmarkTests(unittest.TestCase):
 
         result = run_toy_benchmark(seed=7, steps=20, tracks_per_class=2, obs_sigma=0.6)
         markdown = render_posterior_failure_markdown(result)
-        svg = render_posterior_failure_svg(result)
         png = render_posterior_failure_png_bytes(result)
 
         self.assertIn("Posterior Failure Walkthrough", markdown)
         self.assertIn("Aggregate predicted class", markdown)
         self.assertIn("Composite Log-Likelihood Terms by Class", markdown)
-        self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, svg_path, png_path = write_posterior_failure_artifacts(temp_dir, result=result)
+            markdown_path, png_path = write_posterior_failure_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "toy_1d_posterior_failure_walkthrough.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "toy_1d_posterior_failure_walkthrough.svg")
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_posterior_failure_walkthrough.png")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
 
     def test_posterior_comparison_artifacts_are_generated(self) -> None:
@@ -227,22 +203,18 @@ class Toy1DBenchmarkTests(unittest.TestCase):
 
         result = run_toy_benchmark(seed=7, steps=20, tracks_per_class=2, obs_sigma=0.6)
         markdown = render_posterior_comparison_markdown(result)
-        svg = render_posterior_comparison_svg(result)
         png = render_posterior_comparison_png_bytes(result)
 
         self.assertIn("Toy 1D Posterior Comparison", markdown)
         self.assertIn("Side-by-Side Posterior Terms", markdown)
         self.assertIn("Decision Margins", markdown)
-        self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, svg_path, png_path = write_posterior_comparison_artifacts(temp_dir, result=result)
+            markdown_path, png_path = write_posterior_comparison_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "toy_1d_posterior_comparison.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "toy_1d_posterior_comparison.svg")
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_posterior_comparison.png")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
 
     def test_posterior_margin_trace_artifacts_are_generated(self) -> None:
@@ -251,22 +223,18 @@ class Toy1DBenchmarkTests(unittest.TestCase):
 
         result = run_toy_benchmark(seed=7, steps=20, tracks_per_class=2, obs_sigma=0.6)
         markdown = render_posterior_margin_trace_markdown(result)
-        svg = render_posterior_margin_trace_svg(result)
         png = render_posterior_margin_trace_png_bytes(result)
 
         self.assertIn("Toy 1D Posterior Margin Trace", markdown)
         self.assertIn("Posterior margin", markdown)
         self.assertIn("Stepwise Margins", markdown)
-        self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, svg_path, png_path = write_posterior_margin_trace_artifacts(temp_dir, result=result)
+            markdown_path, png_path = write_posterior_margin_trace_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "toy_1d_posterior_margin_trace.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "toy_1d_posterior_margin_trace.svg")
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_posterior_margin_trace.png")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
 
 

@@ -12,9 +12,7 @@ from kinematic_classifier_sandbox.identity_1d import (
     make_identity_scenario,
     render_identity_benchmark_markdown,
     render_identity_feature_confusion_png_bytes,
-    render_identity_feature_confusion_svg,
     render_identity_benchmark_png_bytes,
-    render_identity_benchmark_svg,
     run_identity_benchmark,
     run_identity_classifier,
     write_identity_benchmark_artifacts,
@@ -24,16 +22,12 @@ from kinematic_classifier_sandbox.identity_1d import (
 from kinematic_classifier_sandbox import (
     render_identity_posterior_comparison_markdown,
     render_identity_posterior_comparison_png_bytes,
-    render_identity_posterior_comparison_svg,
     render_identity_posterior_explainer_markdown,
     render_identity_posterior_explainer_png_bytes,
-    render_identity_posterior_explainer_svg,
     render_identity_posterior_failure_markdown,
     render_identity_posterior_failure_png_bytes,
-    render_identity_posterior_failure_svg,
     render_identity_posterior_margin_trace_markdown,
     render_identity_posterior_margin_trace_png_bytes,
-    render_identity_posterior_margin_trace_svg,
     write_identity_posterior_comparison_artifacts,
     write_identity_posterior_explainer_artifacts,
     write_identity_posterior_failure_artifacts,
@@ -113,7 +107,6 @@ class Identity1DBenchmarkTests(unittest.TestCase):
     def test_identity_artifacts_are_generated(self) -> None:
         result = run_identity_benchmark(steps=20, seed=7, obs_sigma_mph=2.0)
         markdown = render_identity_benchmark_markdown(result)
-        svg = render_identity_benchmark_svg(result)
         png = render_identity_benchmark_png_bytes(result)
 
         self.assertIn("1D Identity Speed Benchmark", markdown)
@@ -125,12 +118,8 @@ class Identity1DBenchmarkTests(unittest.TestCase):
         self.assertIn("Mean Posterior Entropy by Step", markdown)
         self.assertIn("bike_horse_border", markdown)
         self.assertIn("bike=", markdown)
-        self.assertIn("<svg", svg)
-        self.assertIn("bike", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
-        feature_svg = render_identity_feature_confusion_svg(result)
         feature_png = render_identity_feature_confusion_png_bytes(result)
-        self.assertIn("Identity Feature-Class Confusion Matrices", feature_svg)
         self.assertTrue(feature_png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -144,99 +133,79 @@ class Identity1DBenchmarkTests(unittest.TestCase):
             self.assertIn("scenario_family", csv_text.splitlines()[0])
             self.assertIn("bike", csv_text.splitlines()[0])
 
-            markdown_path, svg_path, png_path, trace_path = write_identity_benchmark_artifacts(temp_dir, result=result)
+            markdown_path, png_path, trace_path = write_identity_benchmark_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "identity_1d_benchmark_summary.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "identity_1d_benchmark_posteriors.svg")
             self.assertEqual(png_path, Path(temp_dir) / "identity_1d_benchmark_posteriors.png")
             self.assertEqual(trace_path, Path(temp_dir) / "identity_1d_benchmark_traces.csv")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
-            feature_svg_path, feature_png_path = write_identity_feature_confusion_artifacts(temp_dir, result=result)
-            self.assertEqual(feature_svg_path, Path(temp_dir) / "identity_1d_feature_confusion.svg")
+            feature_png_path = write_identity_feature_confusion_artifacts(temp_dir, result=result)
             self.assertEqual(feature_png_path, Path(temp_dir) / "identity_1d_feature_confusion.png")
-            self.assertTrue(feature_svg_path.exists())
             self.assertTrue(feature_png_path.exists())
 
     def test_identity_posterior_explainer_artifacts_are_generated(self) -> None:
         result = run_identity_benchmark(steps=20, seed=7, obs_sigma_mph=2.0)
         markdown = render_identity_posterior_explainer_markdown(result)
-        svg = render_identity_posterior_explainer_svg(result)
         png = render_identity_posterior_explainer_png_bytes(result)
 
         self.assertIn("Identity Posterior Walkthrough", markdown)
         self.assertIn("Composite Log-Likelihood Terms by Class", markdown)
-        self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, svg_path, png_path = write_identity_posterior_explainer_artifacts(temp_dir, result=result)
+            markdown_path, png_path = write_identity_posterior_explainer_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "identity_1d_posterior_walkthrough.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "identity_1d_posterior_walkthrough.svg")
             self.assertEqual(png_path, Path(temp_dir) / "identity_1d_posterior_walkthrough.png")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
 
     def test_identity_posterior_failure_artifacts_are_generated(self) -> None:
         result = run_identity_benchmark(steps=20, seed=7, obs_sigma_mph=2.0)
         markdown = render_identity_posterior_failure_markdown(result)
-        svg = render_identity_posterior_failure_svg(result)
         png = render_identity_posterior_failure_png_bytes(result)
 
         self.assertIn("Identity Posterior Failure Walkthrough", markdown)
         self.assertIn("bike_horse_border", markdown)
-        self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, svg_path, png_path = write_identity_posterior_failure_artifacts(temp_dir, result=result)
+            markdown_path, png_path = write_identity_posterior_failure_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "identity_1d_posterior_failure_walkthrough.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "identity_1d_posterior_failure_walkthrough.svg")
             self.assertEqual(png_path, Path(temp_dir) / "identity_1d_posterior_failure_walkthrough.png")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
 
     def test_identity_posterior_comparison_artifacts_are_generated(self) -> None:
         result = run_identity_benchmark(steps=20, seed=7, obs_sigma_mph=2.0)
         markdown = render_identity_posterior_comparison_markdown(result)
-        svg = render_identity_posterior_comparison_svg(result)
         png = render_identity_posterior_comparison_png_bytes(result)
 
         self.assertIn("Identity Posterior Comparison", markdown)
         self.assertIn("Side-by-Side Posterior Terms", markdown)
-        self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, svg_path, png_path = write_identity_posterior_comparison_artifacts(temp_dir, result=result)
+            markdown_path, png_path = write_identity_posterior_comparison_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "identity_1d_posterior_comparison.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "identity_1d_posterior_comparison.svg")
             self.assertEqual(png_path, Path(temp_dir) / "identity_1d_posterior_comparison.png")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
 
     def test_identity_posterior_margin_trace_artifacts_are_generated(self) -> None:
         result = run_identity_benchmark(steps=20, seed=7, obs_sigma_mph=2.0)
         markdown = render_identity_posterior_margin_trace_markdown(result)
-        svg = render_identity_posterior_margin_trace_svg(result)
         png = render_identity_posterior_margin_trace_png_bytes(result)
 
         self.assertIn("Identity Posterior Margin Trace", markdown)
         self.assertIn("Stepwise Margins", markdown)
         self.assertIn("bike_horse_border", markdown)
-        self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, svg_path, png_path = write_identity_posterior_margin_trace_artifacts(temp_dir, result=result)
+            markdown_path, png_path = write_identity_posterior_margin_trace_artifacts(temp_dir, result=result)
             self.assertEqual(markdown_path, Path(temp_dir) / "identity_1d_posterior_margin_trace.md")
-            self.assertEqual(svg_path, Path(temp_dir) / "identity_1d_posterior_margin_trace.svg")
             self.assertEqual(png_path, Path(temp_dir) / "identity_1d_posterior_margin_trace.png")
             self.assertTrue(markdown_path.exists())
-            self.assertTrue(svg_path.exists())
             self.assertTrue(png_path.exists())
 
 

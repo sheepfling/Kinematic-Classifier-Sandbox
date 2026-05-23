@@ -1374,24 +1374,15 @@ def _plot_toy_benchmark(result: ToyBenchmarkResult):
     return fig
 
 
-def render_toy_benchmark_svg(result: ToyBenchmarkResult) -> str:
-    fig = _plot_toy_benchmark(result)
-    try:
-        buffer = io.StringIO()
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        fig.clf()
-
-
 def render_toy_benchmark_png_bytes(result: ToyBenchmarkResult) -> bytes:
+    plt = _prepare_matplotlib()
     fig = _plot_toy_benchmark(result)
     try:
         buffer = io.BytesIO()
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
         return buffer.getvalue()
     finally:
-        fig.clf()
+        plt.close(fig)
 
 
 def _build_toy_feature_confusion_figure(result: ToyBenchmarkResult):
@@ -1431,24 +1422,15 @@ def _build_toy_feature_confusion_figure(result: ToyBenchmarkResult):
     return fig
 
 
-def render_toy_feature_confusion_svg(result: ToyBenchmarkResult) -> str:
-    fig = _build_toy_feature_confusion_figure(result)
-    try:
-        buffer = io.StringIO()
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        fig.clf()
-
-
 def render_toy_feature_confusion_png_bytes(result: ToyBenchmarkResult) -> bytes:
+    plt = _prepare_matplotlib()
     fig = _build_toy_feature_confusion_figure(result)
     try:
         buffer = io.BytesIO()
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
         return buffer.getvalue()
     finally:
-        fig.clf()
+        plt.close(fig)
 
 
 def write_toy_benchmark_trace_csv(result: ToyBenchmarkResult, output_dir: str | Path) -> Path:
@@ -1729,14 +1711,14 @@ def write_toy_benchmark_plot_artifact(
     tracks_per_class: int = 8,
     obs_sigma: float = 0.75,
 ) -> Path:
-    svg_path, _ = write_toy_benchmark_plot_artifacts(
+    png_path = write_toy_benchmark_plot_artifacts(
         output_dir,
         seed=seed,
         steps=steps,
         tracks_per_class=tracks_per_class,
         obs_sigma=obs_sigma,
     )
-    return svg_path
+    return png_path
 
 
 def write_toy_benchmark_plot_artifacts(
@@ -1747,7 +1729,7 @@ def write_toy_benchmark_plot_artifacts(
     tracks_per_class: int = 8,
     obs_sigma: float = 0.75,
     result: ToyBenchmarkResult | None = None,
-) -> tuple[Path, Path]:
+) -> Path:
     benchmark_result = result or run_toy_benchmark(
         seed=seed,
         steps=steps,
@@ -1756,11 +1738,9 @@ def write_toy_benchmark_plot_artifacts(
     )
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
-    svg_path = output_root / "toy_1d_benchmark_posteriors.svg"
     png_path = output_root / "toy_1d_benchmark_posteriors.png"
-    svg_path.write_text(render_toy_benchmark_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_toy_benchmark_png_bytes(benchmark_result))
-    return svg_path, png_path
+    return png_path
 
 
 def write_toy_feature_confusion_artifacts(
@@ -1771,7 +1751,7 @@ def write_toy_feature_confusion_artifacts(
     tracks_per_class: int = 6,
     obs_sigma: float = 0.75,
     result: ToyBenchmarkResult | None = None,
-) -> tuple[Path, Path]:
+) -> Path:
     benchmark_result = result or run_toy_benchmark(
         seed=seed,
         steps=steps,
@@ -1780,11 +1760,9 @@ def write_toy_feature_confusion_artifacts(
     )
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
-    svg_path = output_root / "toy_1d_feature_confusion.svg"
     png_path = output_root / "toy_1d_feature_confusion.png"
-    svg_path.write_text(render_toy_feature_confusion_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_toy_feature_confusion_png_bytes(benchmark_result))
-    return svg_path, png_path
+    return png_path
 
 
 def _format_summary(summary: BenchmarkSummary) -> str:

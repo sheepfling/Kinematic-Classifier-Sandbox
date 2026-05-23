@@ -204,44 +204,26 @@ def _build_posterior_explainer_figure(walkthrough: PosteriorWalkthrough):
     return fig
 
 
-def render_posterior_explainer_svg(result: ToyBenchmarkResult) -> str:
-    fig = _build_posterior_explainer_figure(_select_success_walkthrough(result))
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        fig.clf()
-
-
 def render_posterior_explainer_png_bytes(result: ToyBenchmarkResult) -> bytes:
+    plt = _prepare_matplotlib()
     fig = _build_posterior_explainer_figure(_select_success_walkthrough(result))
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
         return buffer.getvalue()
     finally:
-        fig.clf()
-
-
-def render_posterior_failure_svg(result: ToyBenchmarkResult) -> str:
-    fig = _build_posterior_explainer_figure(_select_failure_walkthrough(result))
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        fig.clf()
+        plt.close(fig)
 
 
 def render_posterior_failure_png_bytes(result: ToyBenchmarkResult) -> bytes:
+    plt = _prepare_matplotlib()
     fig = _build_posterior_explainer_figure(_select_failure_walkthrough(result))
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
         return buffer.getvalue()
     finally:
-        fig.clf()
+        plt.close(fig)
 
 
 def render_posterior_comparison_markdown(result: ToyBenchmarkResult) -> str:
@@ -345,24 +327,15 @@ def _build_posterior_comparison_figure(result: ToyBenchmarkResult):
     return fig
 
 
-def render_posterior_comparison_svg(result: ToyBenchmarkResult) -> str:
-    fig = _build_posterior_comparison_figure(result)
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        fig.clf()
-
-
 def render_posterior_comparison_png_bytes(result: ToyBenchmarkResult) -> bytes:
+    plt = _prepare_matplotlib()
     fig = _build_posterior_comparison_figure(result)
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
         return buffer.getvalue()
     finally:
-        fig.clf()
+        plt.close(fig)
 
 
 def render_posterior_margin_trace_markdown(result: ToyBenchmarkResult) -> str:
@@ -473,89 +446,72 @@ def _build_posterior_margin_trace_figure(result: ToyBenchmarkResult):
     return fig
 
 
-def render_posterior_margin_trace_svg(result: ToyBenchmarkResult) -> str:
-    fig = _build_posterior_margin_trace_figure(result)
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        fig.clf()
-
-
 def render_posterior_margin_trace_png_bytes(result: ToyBenchmarkResult) -> bytes:
+    plt = _prepare_matplotlib()
     fig = _build_posterior_margin_trace_figure(result)
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
         return buffer.getvalue()
     finally:
-        fig.clf()
+        plt.close(fig)
 
 
 def write_posterior_explainer_artifacts(
     output_dir: str | Path,
     *,
     result: ToyBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     benchmark_result = result or run_toy_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "toy_1d_posterior_walkthrough.md"
-    svg_path = output_root / "toy_1d_posterior_walkthrough.svg"
     png_path = output_root / "toy_1d_posterior_walkthrough.png"
     markdown_path.write_text(render_posterior_explainer_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_posterior_explainer_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_posterior_explainer_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path
+    return markdown_path, png_path
 
 
 def write_posterior_failure_artifacts(
     output_dir: str | Path,
     *,
     result: ToyBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     benchmark_result = result or run_toy_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "toy_1d_posterior_failure_walkthrough.md"
-    svg_path = output_root / "toy_1d_posterior_failure_walkthrough.svg"
     png_path = output_root / "toy_1d_posterior_failure_walkthrough.png"
     markdown_path.write_text(render_posterior_failure_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_posterior_failure_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_posterior_failure_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path
+    return markdown_path, png_path
 
 
 def write_posterior_comparison_artifacts(
     output_dir: str | Path,
     *,
     result: ToyBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     benchmark_result = result or run_toy_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "toy_1d_posterior_comparison.md"
-    svg_path = output_root / "toy_1d_posterior_comparison.svg"
     png_path = output_root / "toy_1d_posterior_comparison.png"
     markdown_path.write_text(render_posterior_comparison_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_posterior_comparison_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_posterior_comparison_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path
+    return markdown_path, png_path
 
 
 def write_posterior_margin_trace_artifacts(
     output_dir: str | Path,
     *,
     result: ToyBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     benchmark_result = result or run_toy_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "toy_1d_posterior_margin_trace.md"
-    svg_path = output_root / "toy_1d_posterior_margin_trace.svg"
     png_path = output_root / "toy_1d_posterior_margin_trace.png"
     markdown_path.write_text(render_posterior_margin_trace_markdown(benchmark_result), encoding="utf-8")
-    svg_path.write_text(render_posterior_margin_trace_svg(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_posterior_margin_trace_png_bytes(benchmark_result))
-    return markdown_path, svg_path, png_path
+    return markdown_path, png_path
