@@ -101,6 +101,26 @@ class KalmanFilterBankTests(unittest.TestCase):
             delta=0.20,
         )
 
+    def test_constant_velocity_track_with_single_outlier_stays_constant_velocity(self) -> None:
+        times = tuple(float(step) for step in range(8))
+        true_positions = tuple(1.0 * time for time in times)
+        measurements = list(true_positions)
+        measurements[4] -= 2.6
+        trajectory = KalmanTrajectory(
+            trajectory_id="cv_outlier",
+            true_class="constant_velocity",
+            scenario_name="cv_outlier",
+            seed=7,
+            times=times,
+            measurements=tuple(measurements),
+            true_position=true_positions,
+            true_velocity=tuple(1.0 for _ in times),
+            true_acceleration=tuple(0.0 for _ in times),
+        )
+        run = run_kalman_filter_bank(trajectory, default_kalman_model_specs())
+        self.assertEqual(run.final_predicted_class, "constant_velocity")
+        self.assertGreater(run.final_weights["constant_velocity"], 0.95)
+
     def test_kalman_bank_artifacts_are_generated(self) -> None:
         result = run_kalman_bank_benchmark(seed=7)
         report = render_kalman_bank_report(result)
@@ -108,6 +128,7 @@ class KalmanFilterBankTests(unittest.TestCase):
         png = render_kalman_bank_png_bytes(result)
 
         self.assertIn("Kalman Filter Bank", report)
+        self.assertIn("variance inflation", report)
         self.assertIn("<svg", svg)
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertGreater(result.summary.final_accuracy, 0.60)
@@ -123,7 +144,6 @@ class KalmanFilterBankTests(unittest.TestCase):
             self.assertTrue(artifacts.config_path.exists())
             self.assertTrue(artifacts.dataset_manifest_path.exists())
             self.assertTrue(artifacts.model_definitions_path.exists())
-            self.assertTrue(artifacts.plot_svg_path.exists())
             self.assertTrue(artifacts.plot_png_path.exists())
 
 

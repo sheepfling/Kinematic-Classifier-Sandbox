@@ -1,0 +1,61 @@
+{
+  "class_pairs": [
+    {
+      "pair": [
+        "stationary",
+        "constant_velocity"
+      ],
+      "expected_difficulty": "easy",
+      "primary_separators": [
+        "speed_range",
+        "linear_slope"
+      ]
+    },
+    {
+      "pair": [
+        "constant_velocity",
+        "constant_acceleration"
+      ],
+      "expected_difficulty": "duration_dependent",
+      "primary_separators": [
+        "linear_fit_residual",
+        "acceleration_range"
+      ]
+    },
+    {
+      "pair": [
+        "constant_acceleration",
+        "maneuver"
+      ],
+      "expected_difficulty": "hard",
+      "primary_separators": [
+        "acceleration_sign_changes",
+        "model_residual"
+      ]
+    },
+    {
+      "pair": [
+        "constant_velocity",
+        "braking"
+      ],
+      "expected_difficulty": "short_horizon_boundary",
+      "primary_separators": [
+        "speed_range",
+        "velocity_residual",
+        "time_to_stop_proxy"
+      ]
+    },
+    {
+      "pair": [
+        "maneuver",
+        "bounded_acceleration"
+      ],
+      "expected_difficulty": "hard",
+      "primary_separators": [
+        "acceleration_sign_changes",
+        "monotonicity",
+        "innovation_sequence"
+      ]
+    }
+  ]
+}

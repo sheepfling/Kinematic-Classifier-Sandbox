@@ -77,9 +77,82 @@ def _innovation_log_likelihood(innovation: float, variance: float) -> float:
     return -0.5 * (log(2.0 * pi * safe_variance) + (innovation * innovation) / safe_variance)
 
 
+def _least_squares_slope(times: list[float], values: list[float]) -> tuple[float, float]:
+    count = len(values)
+    if count < 2:
+        return 0.0, 1e9
+    mean_t = sum(times) / count
+    mean_y = sum(values) / count
+    denominator = sum((time - mean_t) ** 2 for time in times)
+    if denominator <= 1e-9:
+        return 0.0, 1e9
+    numerator = sum((time - mean_t) * (value - mean_y) for time, value in zip(times, values))
+    slope = numerator / denominator
+    return slope, denominator
+
+
+def _local_quadratic_acceleration(times: list[float], values: list[float]) -> tuple[float, float]:
+    if len(times) < 3 or len(values) < 3:
+        return 0.0, 1e9
+    local_times = times[-3:]
+    local_values = values[-3:]
+    weights: list[float] = []
+    for index in range(3):
+        time_i = local_times[index]
+        other_times = [local_times[other] for other in range(3) if other != index]
+        denominator = (time_i - other_times[0]) * (time_i - other_times[1])
+        if abs(denominator) <= 1e-9:
+            return 0.0, 1e9
+        weights.append(2.0 / denominator)
+    acceleration = sum(weight * value for weight, value in zip(weights, local_values))
+    variance_scale = sum(weight * weight for weight in weights)
+    return acceleration, variance_scale
+
+
+def _unique_class_names(model_specs: tuple[KalmanModelSpec, ...]) -> tuple[str, ...]:
+    ordered: list[str] = []
+    for spec in model_specs:
+        if spec.class_name not in ordered:
+            ordered.append(spec.class_name)
+    return tuple(ordered)
+
+
+def _effective_measurement_sigma(
+    predicted_covariance: list[list[float]],
+    measurement: float,
+    predicted_mean: list[float],
+    base_measurement_sigma: float,
+) -> float:
+    innovation = measurement - predicted_mean[0]
+    baseline_variance = predicted_covariance[0][0] + base_measurement_sigma * base_measurement_sigma
+    normalized_innovation_squared = (innovation * innovation) / max(baseline_variance, 1e-9)
+    gate = 9.0
+    if normalized_innovation_squared <= gate:
+        return base_measurement_sigma
+    inflation = normalized_innovation_squared / gate
+    return base_measurement_sigma * (inflation ** 0.5)
+
+
+def _next_process_scale(
+    *,
+    previous_scale: float,
+    innovation: float,
+    innovation_variance: float,
+) -> float:
+    normalized_innovation_squared = (innovation * innovation) / max(innovation_variance, 1e-9)
+    trigger_nis = 2.0
+    if normalized_innovation_squared <= trigger_nis:
+        desired_scale = 1.0
+    else:
+        desired_scale = min(2.5, 1.0 + 0.20 * (normalized_innovation_squared - trigger_nis))
+    smoothed_scale = 0.90 * previous_scale + 0.10 * desired_scale
+    return max(1.0, min(2.5, smoothed_scale))
+
+
 @dataclass(frozen=True, slots=True)
 class KalmanModelSpec:
     name: str
+    class_name: str
     state_dim: int
     process_sigma: float
     measurement_sigma: float
@@ -157,7 +230,6 @@ class KalmanBenchmarkArtifacts:
     config_path: Path
     dataset_manifest_path: Path
     model_definitions_path: Path
-    plot_svg_path: Path
     plot_png_path: Path
 
 
@@ -165,6 +237,7 @@ def default_kalman_model_specs() -> tuple[KalmanModelSpec, ...]:
     return (
         KalmanModelSpec(
             name="stationary",
+            class_name="stationary",
             state_dim=1,
             process_sigma=0.04,
             measurement_sigma=0.20,
@@ -173,6 +246,7 @@ def default_kalman_model_specs() -> tuple[KalmanModelSpec, ...]:
         ),
         KalmanModelSpec(
             name="constant_velocity",
+            class_name="constant_velocity",
             state_dim=2,
             process_sigma=0.14,
             measurement_sigma=0.20,
@@ -181,6 +255,7 @@ def default_kalman_model_specs() -> tuple[KalmanModelSpec, ...]:
         ),
         KalmanModelSpec(
             name="constant_acceleration",
+            class_name="constant_acceleration",
             state_dim=3,
             process_sigma=0.24,
             measurement_sigma=0.20,
@@ -190,9 +265,9 @@ def default_kalman_model_specs() -> tuple[KalmanModelSpec, ...]:
     )
 
 
-def _transition_and_noise(model: KalmanModelSpec, dt: float) -> tuple[list[list[float]], list[list[float]]]:
+def _transition_and_noise(model: KalmanModelSpec, dt: float, process_scale: float = 1.0) -> tuple[list[list[float]], list[list[float]]]:
     safe_dt = max(dt, 1e-6)
-    q = model.process_sigma * model.process_sigma
+    q = (model.process_sigma * process_scale) * (model.process_sigma * process_scale)
     if model.state_dim == 1:
         return [[1.0]], [[q * safe_dt]]
     if model.state_dim == 2:
@@ -215,8 +290,14 @@ def _transition_and_noise(model: KalmanModelSpec, dt: float) -> tuple[list[list[
     return f, q_matrix
 
 
-def _predict(mean: list[float], covariance: list[list[float]], model: KalmanModelSpec, dt: float) -> tuple[list[float], list[list[float]]]:
-    transition, process_noise = _transition_and_noise(model, dt)
+def _predict(
+    mean: list[float],
+    covariance: list[list[float]],
+    model: KalmanModelSpec,
+    dt: float,
+    process_scale: float = 1.0,
+) -> tuple[list[float], list[list[float]]]:
+    transition, process_noise = _transition_and_noise(model, dt, process_scale)
     predicted_mean = _matvec(transition, mean)
     predicted_covariance = _add_matrices(_matmul(_matmul(transition, covariance), _transpose(transition)), process_noise)
     return predicted_mean, predicted_covariance
@@ -228,13 +309,36 @@ def _update(
     measurement: float,
     measurement_sigma: float,
 ) -> tuple[list[float], list[list[float]], float, float]:
-    innovation = measurement - predicted_mean[0]
-    innovation_variance = predicted_covariance[0][0] + measurement_sigma * measurement_sigma
-    gain = [predicted_covariance[row][0] / innovation_variance for row in range(len(predicted_mean))]
+    return _update_scalar_measurement(
+        predicted_mean,
+        predicted_covariance,
+        measurement,
+        measurement_sigma * measurement_sigma,
+        [1.0] + [0.0] * (len(predicted_mean) - 1),
+    )
+
+
+def _update_scalar_measurement(
+    predicted_mean: list[float],
+    predicted_covariance: list[list[float]],
+    measurement: float,
+    measurement_variance: float,
+    h_vector: list[float],
+) -> tuple[list[float], list[list[float]], float, float]:
+    predicted_observation = sum(h_vector[index] * predicted_mean[index] for index in range(len(predicted_mean)))
+    innovation = measurement - predicted_observation
+    projected_covariance = [
+        sum(predicted_covariance[row][col] * h_vector[col] for col in range(len(predicted_mean)))
+        for row in range(len(predicted_mean))
+    ]
+    innovation_variance = (
+        sum(h_vector[row] * projected_covariance[row] for row in range(len(predicted_mean)))
+        + measurement_variance
+    )
+    gain = [projected_covariance[row] / innovation_variance for row in range(len(predicted_mean))]
     updated_mean = [predicted_mean[index] + gain[index] * innovation for index in range(len(predicted_mean))]
-    h = [[1.0] + [0.0] * (len(predicted_mean) - 1)]
     i = _identity(len(predicted_mean))
-    kh = _outer(gain, h[0])
+    kh = _outer(gain, h_vector)
     updated_covariance = _matmul(_subtract_matrices(i, kh), predicted_covariance)
     return updated_mean, updated_covariance, innovation, innovation_variance
 
@@ -362,43 +466,186 @@ def run_kalman_filter_bank(
     model_specs: tuple[KalmanModelSpec, ...],
     *,
     prior: dict[str, float] | None = None,
+    robust_measurement_update: bool = True,
+    adaptive_process_noise: bool = True,
+    derived_velocity_observation: bool = False,
+    derived_acceleration_observation: bool = False,
+    velocity_measurements: tuple[float, ...] | None = None,
+    velocity_measurement_sigma: float | None = None,
 ) -> KalmanClassificationRun:
+    class_names = _unique_class_names(model_specs)
     total_prior = sum(spec.prior_weight for spec in model_specs)
-    posterior = prior or {spec.name: spec.prior_weight / total_prior for spec in model_specs}
+    if prior is None:
+        model_posterior = {spec.name: spec.prior_weight / total_prior for spec in model_specs}
+    else:
+        model_posterior = {}
+        for class_name in class_names:
+            members = [spec for spec in model_specs if spec.class_name == class_name]
+            class_prior = max(prior.get(class_name, 0.0), 0.0)
+            share = class_prior / max(len(members), 1)
+            for spec in members:
+                model_posterior[spec.name] = share
+        normalization = sum(model_posterior.values())
+        if normalization <= 1e-12:
+            model_posterior = {spec.name: spec.prior_weight / total_prior for spec in model_specs}
+        else:
+            model_posterior = {name: value / normalization for name, value in model_posterior.items()}
     states = {}
+    process_scales = {}
     for spec in model_specs:
         mean = [trajectory.measurements[0]] + [0.0] * (spec.state_dim - 1)
         covariance = _identity(spec.state_dim)
         for row in range(spec.state_dim):
             covariance[row][row] *= spec.initial_covariance_scale
         states[spec.name] = (mean, covariance)
+        process_scales[spec.name] = 1.0
 
     steps: list[KalmanPosteriorStep] = []
     previous_time = trajectory.times[0]
+    measurement_history_times: list[float] = []
+    measurement_history_values: list[float] = []
+    if velocity_measurements is not None and len(velocity_measurements) != len(trajectory.measurements):
+        raise ValueError("velocity_measurements must align with trajectory.measurements")
+
     for step_index, (time, measurement) in enumerate(zip(trajectory.times, trajectory.measurements)):
         dt = 0.0 if step_index == 0 else time - previous_time
         previous_time = time
-        log_scores = {}
-        log_likelihood_terms = {}
-        innovations = {}
-        innovation_variances = {}
+        measurement_history_times.append(time)
+        measurement_history_values.append(measurement)
+        model_log_scores = {}
+        model_log_likelihoods = {}
+        model_innovations = {}
+        model_innovation_variances = {}
         updated_states = {}
+        updated_process_scales = {}
         for spec in model_specs:
             mean, covariance = states[spec.name]
-            predicted_mean, predicted_covariance = _predict(mean, covariance, spec, dt)
+            predicted_mean, predicted_covariance = _predict(
+                mean,
+                covariance,
+                spec,
+                dt,
+                process_scales[spec.name],
+            )
+            effective_measurement_sigma = (
+                _effective_measurement_sigma(
+                    predicted_covariance,
+                    measurement,
+                    predicted_mean,
+                    spec.measurement_sigma,
+                )
+                if robust_measurement_update
+                else spec.measurement_sigma
+            )
             updated_mean, updated_covariance, innovation, innovation_variance = _update(
                 predicted_mean,
                 predicted_covariance,
                 measurement,
-                spec.measurement_sigma,
+                effective_measurement_sigma,
             )
-            log_likelihood = _innovation_log_likelihood(innovation, innovation_variance)
-            log_scores[spec.name] = log(max(posterior[spec.name], 1e-12)) + log_likelihood
-            log_likelihood_terms[spec.name] = log_likelihood
-            innovations[spec.name] = innovation
-            innovation_variances[spec.name] = innovation_variance
+            pseudo_log_likelihood = 0.0
+            if derived_velocity_observation and spec.state_dim >= 2 and len(measurement_history_values) >= 3:
+                window_times = measurement_history_times[-3:]
+                window_values = measurement_history_values[-3:]
+                velocity_observation, slope_denominator = _least_squares_slope(window_times, window_values)
+                velocity_variance = max(
+                    4.0 * (spec.measurement_sigma * spec.measurement_sigma) / max(slope_denominator, 1e-6),
+                    0.10,
+                )
+                updated_mean, updated_covariance, velocity_innovation, velocity_innovation_variance = _update_scalar_measurement(
+                    updated_mean,
+                    updated_covariance,
+                    velocity_observation,
+                    velocity_variance,
+                    [0.0, 1.0] + [0.0] * (len(updated_mean) - 2),
+                )
+                # Temper the pseudo-observation contribution because it is derived
+                # from the same position measurements already used above.
+                pseudo_log_likelihood += 0.5 * _innovation_log_likelihood(
+                    velocity_innovation,
+                    velocity_innovation_variance,
+                )
+            if derived_acceleration_observation and len(measurement_history_values) >= 3:
+                acceleration_observation, variance_scale = _local_quadratic_acceleration(
+                    measurement_history_times,
+                    measurement_history_values,
+                )
+                acceleration_variance = max(
+                    (spec.measurement_sigma * spec.measurement_sigma) * variance_scale,
+                    0.25,
+                )
+                if spec.state_dim >= 3:
+                    updated_mean, updated_covariance, acceleration_innovation, acceleration_innovation_variance = _update_scalar_measurement(
+                        updated_mean,
+                        updated_covariance,
+                        acceleration_observation,
+                        acceleration_variance,
+                        [0.0, 0.0, 1.0],
+                    )
+                else:
+                    expected_acceleration = 0.0
+                    acceleration_innovation = acceleration_observation - expected_acceleration
+                    acceleration_innovation_variance = acceleration_variance + max(spec.process_sigma * spec.process_sigma, 0.05)
+                pseudo_log_likelihood += 0.35 * _innovation_log_likelihood(
+                    acceleration_innovation,
+                    acceleration_innovation_variance,
+                )
+            if velocity_measurements is not None and velocity_measurement_sigma is not None:
+                velocity_measurement = velocity_measurements[step_index]
+                velocity_variance = velocity_measurement_sigma * velocity_measurement_sigma
+                if spec.state_dim >= 2:
+                    updated_mean, updated_covariance, velocity_sensor_innovation, velocity_sensor_innovation_variance = _update_scalar_measurement(
+                        updated_mean,
+                        updated_covariance,
+                        velocity_measurement,
+                        velocity_variance,
+                        [0.0, 1.0] + [0.0] * (len(updated_mean) - 2),
+                    )
+                else:
+                    velocity_sensor_innovation = velocity_measurement
+                    velocity_sensor_innovation_variance = velocity_variance + max(spec.process_sigma * spec.process_sigma, 0.05)
+                pseudo_log_likelihood += _innovation_log_likelihood(
+                    velocity_sensor_innovation,
+                    velocity_sensor_innovation_variance,
+                )
+            log_likelihood = _innovation_log_likelihood(innovation, innovation_variance) + pseudo_log_likelihood
+            model_log_scores[spec.name] = log(max(model_posterior[spec.name], 1e-12)) + log_likelihood
+            model_log_likelihoods[spec.name] = log_likelihood
+            model_innovations[spec.name] = innovation
+            model_innovation_variances[spec.name] = innovation_variance
             updated_states[spec.name] = (updated_mean, updated_covariance)
-        posterior = _normalize_log_scores(log_scores)
+            updated_process_scales[spec.name] = (
+                _next_process_scale(
+                    previous_scale=process_scales[spec.name],
+                    innovation=innovation,
+                    innovation_variance=innovation_variance,
+                )
+                if adaptive_process_noise
+                else 1.0
+            )
+        model_posterior = _normalize_log_scores(model_log_scores)
+        class_log_scores = {
+            class_name: _logsumexp([model_log_scores[spec.name] for spec in model_specs if spec.class_name == class_name])
+            for class_name in class_names
+        }
+        posterior = _normalize_log_scores(class_log_scores)
+        log_likelihood_terms = {}
+        innovations = {}
+        innovation_variances = {}
+        for class_name in class_names:
+            members = [spec for spec in model_specs if spec.class_name == class_name]
+            member_weights = [model_posterior[spec.name] for spec in members]
+            weight_total = sum(member_weights)
+            normalized_weights = [weight / max(weight_total, 1e-12) for weight in member_weights]
+            log_likelihood_terms[class_name] = _logsumexp([model_log_likelihoods[spec.name] for spec in members])
+            innovations[class_name] = sum(
+                normalized_weights[index] * model_innovations[spec.name]
+                for index, spec in enumerate(members)
+            )
+            innovation_variances[class_name] = sum(
+                normalized_weights[index] * model_innovation_variances[spec.name]
+                for index, spec in enumerate(members)
+            )
         predicted_class = max(posterior, key=posterior.get)
         steps.append(
             KalmanPosteriorStep(
@@ -413,6 +660,7 @@ def run_kalman_filter_bank(
             )
         )
         states = updated_states
+        process_scales = updated_process_scales
 
     final_states = {name: _pad_state(mean, covariance) for name, (mean, covariance) in states.items()}
     final_class = max(posterior, key=posterior.get)
@@ -454,7 +702,7 @@ def run_kalman_bank_benchmark(
     specs = model_specs or default_kalman_model_specs()
     trajectories = generate_kalman_bank_trajectories(seed=seed, trajectories_per_class=trajectories_per_class)
     runs = tuple(run_kalman_filter_bank(trajectory, specs) for trajectory in trajectories)
-    summary = _summarize_runs(runs, tuple(spec.name for spec in specs))
+    summary = _summarize_runs(runs, _unique_class_names(specs))
     return KalmanBenchmarkResult(
         model_specs=specs,
         trajectories=trajectories,
@@ -467,7 +715,7 @@ def render_kalman_bank_report(result: KalmanBenchmarkResult) -> str:
     lines = [
         "# Kalman Filter Bank",
         "",
-        "This benchmark runs one linear-Gaussian motion model per class, scores scalar position innovations, and updates class posterior weights recursively over time.",
+        "This benchmark runs one linear-Gaussian motion model per class, scores scalar position innovations, and updates class posterior weights recursively over time. The measurement update uses innovation-based variance inflation so isolated surprising measurements do not dominate the state or class posterior as aggressively as a plain Kalman update. Process noise is also adapted over time from recent innovation energy so the filter can temporarily loosen its motion assumptions on noisy segments.",
         "",
         "## Summary",
         "",
@@ -487,6 +735,8 @@ def render_kalman_bank_report(result: KalmanBenchmarkResult) -> str:
             "- Constant-velocity tracks should favor the constant-velocity model over the stationary model.",
             "- Constant-acceleration tracks should move toward the constant-acceleration model after enough measurements.",
             "- Irregular sampling should still produce stable class decisions because each transition uses the observed `dt`.",
+            "- Large normalized innovations should be downweighted by adaptive measurement variance inflation instead of being trusted at face value.",
+            "- Repeated elevated innovation energy should increase effective process noise for subsequent prediction steps.",
         ]
     )
     return "\n".join(lines)
@@ -565,17 +815,15 @@ def write_kalman_bank_artifacts(
     config_path = run_dir / "kalman_bank_config.yaml"
     dataset_manifest_path = run_dir / "dataset_manifest.json"
     model_definitions_path = run_dir / "kalman_model_definitions.json"
-    plot_svg_path = run_dir / "kalman_bank_diagnostics.svg"
     plot_png_path = run_dir / "kalman_bank_diagnostics.png"
 
     report_path.write_text(render_kalman_bank_report(benchmark), encoding="utf-8")
-    plot_svg_path.write_text(render_kalman_bank_svg(benchmark), encoding="utf-8")
     plot_png_path.write_bytes(render_kalman_bank_png_bytes(benchmark))
 
     innovation_rows: list[dict[str, object]] = []
     posterior_rows: list[dict[str, object]] = []
     state_rows: list[dict[str, object]] = []
-    class_names = [spec.name for spec in benchmark.model_specs]
+    class_names = list(_unique_class_names(benchmark.model_specs))
     for run in benchmark.runs:
         for step_index, step in enumerate(run.steps):
             posterior_rows.append(
@@ -648,6 +896,14 @@ def write_kalman_bank_artifacts(
                 "classifier:",
                 "  type: kalman_filter_bank",
                 "  models: [stationary, constant_velocity, constant_acceleration]",
+                "  robust_measurement_update:",
+                "    enabled: true",
+                "    innovation_gate_nis: 9.0",
+                "  adaptive_process_noise:",
+                "    enabled: true",
+                "    trigger_nis: 2.0",
+                "    smoothing: 0.10",
+                "    scale_range: [1.0, 2.5]",
                 "dataset:",
                 "  scenarios: [stationary_regular, constant_velocity_regular, constant_velocity_irregular, constant_acceleration_regular]",
                 "",
@@ -671,6 +927,7 @@ def write_kalman_bank_artifacts(
         json.dumps(
             {
                 spec.name: {
+                    "class_name": spec.class_name,
                     "state_dim": spec.state_dim,
                     "process_sigma": spec.process_sigma,
                     "measurement_sigma": spec.measurement_sigma,
@@ -694,6 +951,5 @@ def write_kalman_bank_artifacts(
         config_path=config_path,
         dataset_manifest_path=dataset_manifest_path,
         model_definitions_path=model_definitions_path,
-        plot_svg_path=plot_svg_path,
         plot_png_path=plot_png_path,
     )

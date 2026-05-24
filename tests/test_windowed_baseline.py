@@ -127,7 +127,6 @@ class WindowedBaselineTests(unittest.TestCase):
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.confusion_raw_path.exists())
             self.assertTrue(artifacts.confusion_robust_path.exists())
-            self.assertTrue(artifacts.plot_svg_path.exists())
             self.assertTrue(artifacts.plot_png_path.exists())
 
 

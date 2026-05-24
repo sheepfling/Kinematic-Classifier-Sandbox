@@ -81,7 +81,6 @@ class PointwiseBaselineTests(unittest.TestCase):
             self.assertTrue(artifacts.report_path.exists())
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.confusion_matrix_path.exists())
-            self.assertTrue(artifacts.plot_svg_path.exists())
             self.assertTrue(artifacts.plot_png_path.exists())
 
 

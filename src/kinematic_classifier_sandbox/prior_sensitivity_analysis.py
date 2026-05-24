@@ -118,18 +118,13 @@ class PriorSensitivityArtifacts:
     flip_thresholds_path: Path
     metrics_path: Path
     config_path: Path
-    plot_posterior_svg_path: Path
     plot_posterior_png_path: Path
-    plot_flip_svg_path: Path
     plot_flip_png_path: Path
-    plot_heatmap_svg_path: Path
     plot_heatmap_png_path: Path
-    plot_decision_svg_path: Path
     plot_decision_png_path: Path
-    plot_decomposition_svg_path: Path
     plot_decomposition_png_path: Path
-    plot_pairwise_flip_svg_path: Path
     plot_pairwise_flip_png_path: Path
+    plot_fragility_png_path: Path
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,7 +140,6 @@ class CrossMethodPriorComparisonArtifacts:
     report_path: Path
     comparison_csv_path: Path
     status_csv_path: Path
-    plot_svg_path: Path
     plot_png_path: Path
 
 
@@ -634,6 +628,48 @@ def _build_pairwise_flip_heatmap_figure(result: PriorSensitivityResult):
     return fig
 
 
+def _build_fragility_overview_figure(result: PriorSensitivityResult):
+    plt = _prepare_matplotlib()
+    ordered = sorted(
+        result.flip_thresholds,
+        key=lambda row: (
+            row.smallest_prior_shift_to_flip is None,
+            row.smallest_prior_shift_to_flip if row.smallest_prior_shift_to_flip is not None else 1.0,
+            row.trajectory_id,
+        ),
+    )
+    labels = [row.trajectory_id for row in ordered]
+    values = [
+        row.smallest_prior_shift_to_flip if row.smallest_prior_shift_to_flip is not None else 0.50
+        for row in ordered
+    ]
+    colors = [
+        "#d97706" if row.smallest_prior_shift_to_flip is not None else "#9ca3af"
+        for row in ordered
+    ]
+    fig, ax = plt.subplots(figsize=(8.8, max(4.6, 0.4 * len(ordered) + 1.5)))
+    positions = list(range(len(ordered)))
+    ax.barh(positions, values, color=colors, alpha=0.88)
+    ax.axvline(0.25, color="#2563eb", linestyle="--", linewidth=1.2, label="small prior perturbation")
+    ax.axvline(0.50, color="#6b7280", linestyle=":", linewidth=1.0, label="stable in sweep")
+    ax.set_title("Trajectory Prior Fragility Overview", loc="left", fontsize=13, fontweight="bold")
+    ax.set_xlabel("minimum absolute prior shift needed to flip")
+    ax.set_ylabel("trajectory")
+    ax.set_xlim(0.0, 0.52)
+    ax.set_yticks(positions)
+    ax.set_yticklabels(labels)
+    for index, row in enumerate(ordered):
+        if row.smallest_prior_shift_to_flip is None:
+            label = "stable"
+        else:
+            label = f"{row.smallest_prior_shift_to_flip:.2f}"
+        ax.text(min(values[index] + 0.012, 0.505), index, label, va="center", fontsize=8)
+    ax.grid(True, axis="x", alpha=0.22)
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
+    fig.tight_layout()
+    return fig
+
+
 def render_prior_sensitivity_posterior_svg(result: PriorSensitivityResult) -> str:
     plt = _prepare_matplotlib()
     fig = _build_posterior_figure(result)
@@ -758,6 +794,28 @@ def render_prior_sensitivity_pairwise_flip_svg(result: PriorSensitivityResult) -
 def render_prior_sensitivity_pairwise_flip_png_bytes(result: PriorSensitivityResult) -> bytes:
     plt = _prepare_matplotlib()
     fig = _build_pairwise_flip_heatmap_figure(result)
+    buffer = io.BytesIO()
+    try:
+        fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
+        return buffer.getvalue()
+    finally:
+        plt.close(fig)
+
+
+def render_prior_sensitivity_fragility_svg(result: PriorSensitivityResult) -> str:
+    plt = _prepare_matplotlib()
+    fig = _build_fragility_overview_figure(result)
+    buffer = io.StringIO()
+    try:
+        fig.savefig(buffer, format="svg", bbox_inches="tight")
+        return buffer.getvalue()
+    finally:
+        plt.close(fig)
+
+
+def render_prior_sensitivity_fragility_png_bytes(result: PriorSensitivityResult) -> bytes:
+    plt = _prepare_matplotlib()
+    fig = _build_fragility_overview_figure(result)
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
@@ -925,7 +983,6 @@ def write_cross_method_prior_comparison_artifacts(
     report_path = run_dir / "cross_method_prior_comparison_report.md"
     comparison_csv_path = run_dir / "cross_method_prior_comparison.csv"
     status_csv_path = run_dir / "cross_method_prior_comparison_status.csv"
-    plot_svg_path = run_dir / "cross_method_prior_fragility_heatmap.svg"
     plot_png_path = run_dir / "cross_method_prior_fragility_heatmap.png"
 
     report_path.write_text(render_cross_method_prior_comparison_report(analysis), encoding="utf-8")
@@ -952,14 +1009,12 @@ def write_cross_method_prior_comparison_artifacts(
         ],
         ["method_name", *analysis.scenario_names],
     )
-    plot_svg_path.write_text(render_cross_method_prior_comparison_svg(analysis), encoding="utf-8")
     plot_png_path.write_bytes(render_cross_method_prior_comparison_png_bytes(analysis))
     return CrossMethodPriorComparisonArtifacts(
         run_dir=run_dir,
         report_path=report_path,
         comparison_csv_path=comparison_csv_path,
         status_csv_path=status_csv_path,
-        plot_svg_path=plot_svg_path,
         plot_png_path=plot_png_path,
     )
 
@@ -989,18 +1044,13 @@ def write_prior_sensitivity_artifacts(
     flip_thresholds_path = run_dir / "prior_flip_thresholds.csv"
     metrics_path = run_dir / "prior_dominance_metrics.json"
     config_path = run_dir / "prior_sensitivity_config.yaml"
-    plot_posterior_svg_path = run_dir / "posterior_vs_prior.svg"
     plot_posterior_png_path = run_dir / "posterior_vs_prior.png"
-    plot_flip_svg_path = run_dir / "decision_flip_thresholds.svg"
     plot_flip_png_path = run_dir / "decision_flip_thresholds.png"
-    plot_heatmap_svg_path = run_dir / "prior_dominance_heatmap.svg"
     plot_heatmap_png_path = run_dir / "prior_dominance_heatmap.png"
-    plot_decision_svg_path = run_dir / "prior_decision_map.svg"
     plot_decision_png_path = run_dir / "prior_decision_map.png"
-    plot_decomposition_svg_path = run_dir / "log_odds_decomposition.svg"
     plot_decomposition_png_path = run_dir / "log_odds_decomposition.png"
-    plot_pairwise_flip_svg_path = run_dir / "pairwise_flip_threshold_heatmap.svg"
     plot_pairwise_flip_png_path = run_dir / "pairwise_flip_threshold_heatmap.png"
+    plot_fragility_png_path = run_dir / "trajectory_prior_fragility_overview.png"
 
     report_path.write_text(render_prior_sensitivity_report(analysis), encoding="utf-8")
     sweep_path.write_text("", encoding="utf-8")
@@ -1023,18 +1073,13 @@ def write_prior_sensitivity_artifacts(
         ),
         encoding="utf-8",
     )
-    plot_posterior_svg_path.write_text(render_prior_sensitivity_posterior_svg(analysis), encoding="utf-8")
     plot_posterior_png_path.write_bytes(render_prior_sensitivity_posterior_png_bytes(analysis))
-    plot_flip_svg_path.write_text(render_prior_sensitivity_flip_svg(analysis), encoding="utf-8")
     plot_flip_png_path.write_bytes(render_prior_sensitivity_flip_png_bytes(analysis))
-    plot_heatmap_svg_path.write_text(render_prior_sensitivity_heatmap_svg(analysis), encoding="utf-8")
     plot_heatmap_png_path.write_bytes(render_prior_sensitivity_heatmap_png_bytes(analysis))
-    plot_decision_svg_path.write_text(render_prior_sensitivity_decision_svg(analysis), encoding="utf-8")
     plot_decision_png_path.write_bytes(render_prior_sensitivity_decision_png_bytes(analysis))
-    plot_decomposition_svg_path.write_text(render_prior_sensitivity_decomposition_svg(analysis), encoding="utf-8")
     plot_decomposition_png_path.write_bytes(render_prior_sensitivity_decomposition_png_bytes(analysis))
-    plot_pairwise_flip_svg_path.write_text(render_prior_sensitivity_pairwise_flip_svg(analysis), encoding="utf-8")
     plot_pairwise_flip_png_path.write_bytes(render_prior_sensitivity_pairwise_flip_png_bytes(analysis))
+    plot_fragility_png_path.write_bytes(render_prior_sensitivity_fragility_png_bytes(analysis))
 
     sweep_rows = [asdict(row) for row in analysis.sweep_rows]
     flip_rows = [asdict(row) for row in analysis.flip_thresholds]
@@ -1080,16 +1125,11 @@ def write_prior_sensitivity_artifacts(
         flip_thresholds_path=flip_thresholds_path,
         metrics_path=metrics_path,
         config_path=config_path,
-        plot_posterior_svg_path=plot_posterior_svg_path,
         plot_posterior_png_path=plot_posterior_png_path,
-        plot_flip_svg_path=plot_flip_svg_path,
         plot_flip_png_path=plot_flip_png_path,
-        plot_heatmap_svg_path=plot_heatmap_svg_path,
         plot_heatmap_png_path=plot_heatmap_png_path,
-        plot_decision_svg_path=plot_decision_svg_path,
         plot_decision_png_path=plot_decision_png_path,
-        plot_decomposition_svg_path=plot_decomposition_svg_path,
         plot_decomposition_png_path=plot_decomposition_png_path,
-        plot_pairwise_flip_svg_path=plot_pairwise_flip_svg_path,
         plot_pairwise_flip_png_path=plot_pairwise_flip_png_path,
+        plot_fragility_png_path=plot_fragility_png_path,
     )

@@ -1,0 +1,93 @@
+{
+  "instantaneous": {
+    "description": "Single-step measurement and finite-difference features only.",
+    "features": [
+      "position_range",
+      "speed_range",
+      "acceleration_range"
+    ],
+    "groups": [
+      "position",
+      "finite_difference_velocity"
+    ],
+    "history_behavior": "instantaneous"
+  },
+  "raw_extrema": {
+    "description": "Cumulative and fixed-window extrema without outlier protection.",
+    "features": [
+      "duration",
+      "position_range",
+      "speed_range",
+      "acceleration_range"
+    ],
+    "groups": [
+      "running_min",
+      "running_max",
+      "running_range",
+      "window_min",
+      "window_max",
+      "window_range"
+    ],
+    "history_behavior": "cumulative_and_windowed",
+    "risk": "duration_sample_count_noise_sensitive"
+  },
+  "robust_extrema": {
+    "description": "Robust extrema and trimmed range intended to reduce outlier sensitivity.",
+    "features": [
+      "acceleration_variance",
+      "quadratic_fit_residual",
+      "outlier_score"
+    ],
+    "groups": [
+      "robust_min",
+      "robust_max",
+      "trimmed_range"
+    ],
+    "history_behavior": "windowed",
+    "risk": "less_outlier_sensitive_than_raw_extrema"
+  },
+  "shape_window": {
+    "description": "Windowed shape and persistence descriptors.",
+    "features": [
+      "velocity_sign_changes",
+      "acceleration_sign_changes",
+      "monotonicity",
+      "linear_fit_residual",
+      "quadratic_fit_residual"
+    ],
+    "groups": [
+      "slope",
+      "linear_fit_residual",
+      "monotonicity",
+      "sign_changes"
+    ],
+    "history_behavior": "windowed"
+  },
+  "model_residuals": {
+    "description": "Likelihood and innovation-style features derived from model mismatch.",
+    "features": [
+      "acceleration_variance",
+      "linear_fit_residual",
+      "quadratic_fit_residual",
+      "outlier_score"
+    ],
+    "groups": [
+      "innovation",
+      "innovation_variance",
+      "log_likelihood",
+      "state_residual"
+    ],
+    "history_behavior": "model_residual"
+  },
+  "all_engineered": {
+    "description": "Union of instantaneous, raw/robust extrema, shape, and residual features.",
+    "includes": [
+      "instantaneous",
+      "raw_extrema",
+      "robust_extrema",
+      "shape_window",
+      "model_residuals"
+    ],
+    "history_behavior": "mixed"
+  }
+}

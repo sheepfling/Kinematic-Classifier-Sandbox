@@ -92,7 +92,6 @@ class SequentialBayesAccumulatorTests(unittest.TestCase):
             self.assertTrue(artifacts.log_odds_history_path.exists())
             self.assertTrue(artifacts.confidence_crossings_path.exists())
             self.assertTrue(artifacts.prior_sensitivity_path.exists())
-            self.assertTrue(artifacts.plot_svg_path.exists())
             self.assertTrue(artifacts.plot_png_path.exists())
 
 

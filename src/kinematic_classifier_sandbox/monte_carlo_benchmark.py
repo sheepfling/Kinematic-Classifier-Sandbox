@@ -410,17 +410,11 @@ class MonteCarloBenchmarkArtifacts:
     calibration_bins_path: Path
     confusion_final_path: Path
     confusion_confidence_gated_path: Path
-    plot_accuracy_svg_path: Path
     plot_accuracy_png_path: Path
-    plot_posterior_svg_path: Path
     plot_posterior_png_path: Path
-    plot_time_to_confidence_svg_path: Path
     plot_time_to_confidence_png_path: Path
-    plot_time_to_correct_svg_path: Path
     plot_time_to_correct_png_path: Path
-    plot_calibration_svg_path: Path
     plot_calibration_png_path: Path
-    plot_confusion_svg_path: Path
     plot_confusion_png_path: Path
 
 
@@ -776,32 +770,20 @@ def write_monte_carlo_artifacts(
     calibration_bins_path = run_dir / "calibration_bins.csv"
     confusion_final_path = run_dir / "confusion_final.csv"
     confusion_confidence_gated_path = run_dir / "confusion_confidence_gated.csv"
-    plot_accuracy_svg_path = run_dir / "accuracy_vs_time.svg"
     plot_accuracy_png_path = run_dir / "accuracy_vs_time.png"
-    plot_posterior_svg_path = run_dir / "true_class_posterior_quantiles.svg"
     plot_posterior_png_path = run_dir / "true_class_posterior_quantiles.png"
-    plot_time_to_confidence_svg_path = run_dir / "time_to_confidence.svg"
     plot_time_to_confidence_png_path = run_dir / "time_to_confidence.png"
-    plot_time_to_correct_svg_path = run_dir / "time_to_correct_classification.svg"
     plot_time_to_correct_png_path = run_dir / "time_to_correct_classification.png"
-    plot_calibration_svg_path = run_dir / "calibration_curve.svg"
     plot_calibration_png_path = run_dir / "calibration_curve.png"
-    plot_confusion_svg_path = run_dir / "confusion_matrices.svg"
     plot_confusion_png_path = run_dir / "confusion_matrices.png"
 
     report_path.write_text(render_monte_carlo_report(benchmark_result), encoding="utf-8")
     summary_json_path.write_text(json.dumps(asdict(benchmark_result.summary), indent=2, sort_keys=True), encoding="utf-8")
-    plot_accuracy_svg_path.write_text(render_monte_carlo_accuracy_svg(benchmark_result), encoding="utf-8")
     plot_accuracy_png_path.write_bytes(render_monte_carlo_accuracy_png_bytes(benchmark_result))
-    plot_posterior_svg_path.write_text(render_monte_carlo_posterior_svg(benchmark_result), encoding="utf-8")
     plot_posterior_png_path.write_bytes(render_monte_carlo_posterior_png_bytes(benchmark_result))
-    plot_time_to_confidence_svg_path.write_text(render_monte_carlo_time_to_confidence_svg(benchmark_result), encoding="utf-8")
     plot_time_to_confidence_png_path.write_bytes(render_monte_carlo_time_to_confidence_png_bytes(benchmark_result))
-    plot_time_to_correct_svg_path.write_text(render_monte_carlo_time_to_correct_svg(benchmark_result), encoding="utf-8")
     plot_time_to_correct_png_path.write_bytes(render_monte_carlo_time_to_correct_png_bytes(benchmark_result))
-    plot_calibration_svg_path.write_text(render_monte_carlo_calibration_svg(benchmark_result), encoding="utf-8")
     plot_calibration_png_path.write_bytes(render_monte_carlo_calibration_png_bytes(benchmark_result))
-    plot_confusion_svg_path.write_text(render_monte_carlo_confusion_svg(benchmark_result), encoding="utf-8")
     plot_confusion_png_path.write_bytes(render_monte_carlo_confusion_png_bytes(benchmark_result))
 
     class_names = tuple(benchmark_result.final_confusion)
@@ -887,16 +869,10 @@ def write_monte_carlo_artifacts(
         calibration_bins_path=calibration_bins_path,
         confusion_final_path=confusion_final_path,
         confusion_confidence_gated_path=confusion_confidence_gated_path,
-        plot_accuracy_svg_path=plot_accuracy_svg_path,
         plot_accuracy_png_path=plot_accuracy_png_path,
-        plot_posterior_svg_path=plot_posterior_svg_path,
         plot_posterior_png_path=plot_posterior_png_path,
-        plot_time_to_confidence_svg_path=plot_time_to_confidence_svg_path,
         plot_time_to_confidence_png_path=plot_time_to_confidence_png_path,
-        plot_time_to_correct_svg_path=plot_time_to_correct_svg_path,
         plot_time_to_correct_png_path=plot_time_to_correct_png_path,
-        plot_calibration_svg_path=plot_calibration_svg_path,
         plot_calibration_png_path=plot_calibration_png_path,
-        plot_confusion_svg_path=plot_confusion_svg_path,
         plot_confusion_png_path=plot_confusion_png_path,
     )

@@ -77,17 +77,11 @@ class MonteCarloBenchmarkTests(unittest.TestCase):
             self.assertTrue(artifacts.calibration_bins_path.exists())
             self.assertTrue(artifacts.confusion_final_path.exists())
             self.assertTrue(artifacts.confusion_confidence_gated_path.exists())
-            self.assertTrue(artifacts.plot_accuracy_svg_path.exists())
             self.assertTrue(artifacts.plot_accuracy_png_path.exists())
-            self.assertTrue(artifacts.plot_posterior_svg_path.exists())
             self.assertTrue(artifacts.plot_posterior_png_path.exists())
-            self.assertTrue(artifacts.plot_time_to_confidence_svg_path.exists())
             self.assertTrue(artifacts.plot_time_to_confidence_png_path.exists())
-            self.assertTrue(artifacts.plot_time_to_correct_svg_path.exists())
             self.assertTrue(artifacts.plot_time_to_correct_png_path.exists())
-            self.assertTrue(artifacts.plot_calibration_svg_path.exists())
             self.assertTrue(artifacts.plot_calibration_png_path.exists())
-            self.assertTrue(artifacts.plot_confusion_svg_path.exists())
             self.assertTrue(artifacts.plot_confusion_png_path.exists())
 
 

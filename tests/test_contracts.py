@@ -26,6 +26,23 @@ class ContractTests(unittest.TestCase):
         )
         self.assertEqual(validate_trajectory_artifact(artifact), [])
 
+    def test_trajectory_validation_accepts_dimension_metadata(self) -> None:
+        artifact = TrajectoryArtifact(
+            trajectory_id="traj",
+            true_class="A",
+            scenario_id="scenario",
+            seed=1,
+            times=(0.0, 1.0, 2.0),
+            measurements=(0.1, 0.2, 0.3),
+            measurement_dim=3,
+            measurement_axes=("x", "y", "z"),
+            coordinate_frame="enu",
+            state_dim=9,
+            state_axes=("x", "y", "z", "vx", "vy", "vz", "ax", "ay", "az"),
+            truth_series={"x": (0.0, 1.0, 2.0), "vz": (0.0, 0.0, 0.0)},
+        )
+        self.assertEqual(validate_trajectory_artifact(artifact), [])
+
     def test_trajectory_validation_rejects_non_monotonic_time(self) -> None:
         artifact = TrajectoryArtifact(
             trajectory_id="traj",
@@ -37,6 +54,20 @@ class ContractTests(unittest.TestCase):
         )
         errors = validate_trajectory_artifact(artifact)
         self.assertTrue(any("strictly increasing" in error for error in errors))
+
+    def test_trajectory_validation_rejects_axis_dim_mismatch(self) -> None:
+        artifact = TrajectoryArtifact(
+            trajectory_id="traj",
+            true_class="A",
+            scenario_id="scenario",
+            seed=1,
+            times=(0.0, 1.0),
+            measurements=(0.1, 0.2),
+            measurement_dim=3,
+            measurement_axes=("x", "y"),
+        )
+        errors = validate_trajectory_artifact(artifact)
+        self.assertTrue(any("measurement_axes must match measurement_dim" in error for error in errors))
 
     def test_classifier_output_validation_enforces_probability_contract(self) -> None:
         artifact = ClassifierOutputArtifact(

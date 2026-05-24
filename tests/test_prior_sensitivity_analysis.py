@@ -17,6 +17,8 @@ from kinematic_classifier_sandbox import (
     render_prior_sensitivity_decision_svg,
     render_prior_sensitivity_decomposition_png_bytes,
     render_prior_sensitivity_decomposition_svg,
+    render_prior_sensitivity_fragility_png_bytes,
+    render_prior_sensitivity_fragility_svg,
     render_prior_sensitivity_flip_png_bytes,
     render_prior_sensitivity_flip_svg,
     render_prior_sensitivity_heatmap_png_bytes,
@@ -88,7 +90,6 @@ class PriorSensitivityAnalysisTests(unittest.TestCase):
             self.assertTrue(artifacts.report_path.exists())
             self.assertTrue(artifacts.comparison_csv_path.exists())
             self.assertTrue(artifacts.status_csv_path.exists())
-            self.assertTrue(artifacts.plot_svg_path.exists())
             self.assertTrue(artifacts.plot_png_path.exists())
 
     def test_artifacts_are_generated(self) -> None:
@@ -106,6 +107,8 @@ class PriorSensitivityAnalysisTests(unittest.TestCase):
         decomposition_png = render_prior_sensitivity_decomposition_png_bytes(result)
         pairwise_flip_svg = render_prior_sensitivity_pairwise_flip_svg(result)
         pairwise_flip_png = render_prior_sensitivity_pairwise_flip_png_bytes(result)
+        fragility_svg = render_prior_sensitivity_fragility_svg(result)
+        fragility_png = render_prior_sensitivity_fragility_png_bytes(result)
 
         self.assertIn("Prior Sensitivity and Bias Study", report)
         self.assertIn("<svg", posterior_svg)
@@ -114,12 +117,14 @@ class PriorSensitivityAnalysisTests(unittest.TestCase):
         self.assertIn("<svg", decision_svg)
         self.assertIn("<svg", decomposition_svg)
         self.assertIn("<svg", pairwise_flip_svg)
+        self.assertIn("<svg", fragility_svg)
         self.assertTrue(posterior_png.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertTrue(flip_png.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertTrue(heatmap_png.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertTrue(decision_png.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertTrue(decomposition_png.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertTrue(pairwise_flip_png.startswith(b"\x89PNG\r\n\x1a\n"))
+        self.assertTrue(fragility_png.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertGreater(result.summary.flipped_by_small_prior_fraction, 0.0)
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -130,18 +135,13 @@ class PriorSensitivityAnalysisTests(unittest.TestCase):
             self.assertTrue(artifacts.flip_thresholds_path.exists())
             self.assertTrue(artifacts.metrics_path.exists())
             self.assertTrue(artifacts.config_path.exists())
-            self.assertTrue(artifacts.plot_posterior_svg_path.exists())
             self.assertTrue(artifacts.plot_posterior_png_path.exists())
-            self.assertTrue(artifacts.plot_flip_svg_path.exists())
             self.assertTrue(artifacts.plot_flip_png_path.exists())
-            self.assertTrue(artifacts.plot_heatmap_svg_path.exists())
             self.assertTrue(artifacts.plot_heatmap_png_path.exists())
-            self.assertTrue(artifacts.plot_decision_svg_path.exists())
             self.assertTrue(artifacts.plot_decision_png_path.exists())
-            self.assertTrue(artifacts.plot_decomposition_svg_path.exists())
             self.assertTrue(artifacts.plot_decomposition_png_path.exists())
-            self.assertTrue(artifacts.plot_pairwise_flip_svg_path.exists())
             self.assertTrue(artifacts.plot_pairwise_flip_png_path.exists())
+            self.assertTrue(artifacts.plot_fragility_png_path.exists())
             metrics = json.loads(artifacts.metrics_path.read_text(encoding="utf-8"))
             self.assertIn("fraction_flipped_by_small_prior_perturbation", metrics)
 

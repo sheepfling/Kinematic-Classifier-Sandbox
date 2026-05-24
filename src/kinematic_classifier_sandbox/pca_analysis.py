@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 
-from .feature_analysis import FEATURE_NAMES, FeatureAnalysisResult, analyze_feature_datasets
+from .feature_analysis import FeatureAnalysisResult, analyze_feature_datasets
 
 
 def _prepare_matplotlib():
@@ -123,6 +123,7 @@ class PcaComponent:
 @dataclass(frozen=True, slots=True)
 class PcaAnalysisResult:
     feature_analysis: FeatureAnalysisResult
+    feature_set_name: str
     feature_names: tuple[str, ...]
     coordinates: tuple[dict[str, object], ...]
     components: tuple[PcaComponent, ...]
@@ -138,11 +139,8 @@ class PcaAnalysisArtifacts:
     loadings_path: Path
     explained_variance_path: Path
     config_path: Path
-    plot_scatter_svg_path: Path
     plot_scatter_png_path: Path
-    plot_variance_svg_path: Path
     plot_variance_png_path: Path
-    plot_loadings_svg_path: Path
     plot_loadings_png_path: Path
 
 
@@ -151,12 +149,20 @@ def analyze_feature_pca(
     seed: int = 7,
     trajectories_per_class: int = 5,
     n_components: int = 3,
+    feature_set: str | None = None,
+    feature_names: tuple[str, ...] | list[str] | None = None,
 ) -> PcaAnalysisResult:
-    feature_analysis = analyze_feature_datasets(seed=seed, trajectories_per_class=trajectories_per_class)
+    feature_analysis = analyze_feature_datasets(
+        seed=seed,
+        trajectories_per_class=trajectories_per_class,
+        feature_set=feature_set,
+        feature_names=feature_names,
+    )
+    selected_feature_names = feature_analysis.summary.feature_names
     numeric_rows = []
     metadata_rows = []
     for row in feature_analysis.feature_rows:
-        numeric_rows.append({name: float(getattr(row, name)) for name in FEATURE_NAMES})
+        numeric_rows.append({name: float(getattr(row, name)) for name in selected_feature_names})
         metadata_rows.append(
             {
                 "trajectory_id": row.trajectory_id,
@@ -166,14 +172,14 @@ def analyze_feature_pca(
                 "seed": row.seed,
             }
         )
-    matrix, means, stds = _standardize_matrix(numeric_rows, FEATURE_NAMES)
+    matrix, means, stds = _standardize_matrix(numeric_rows, selected_feature_names)
     covariance = _covariance_matrix(matrix)
     total_variance = sum(covariance[index][index] for index in range(len(covariance))) if covariance else 0.0
 
     components: list[PcaComponent] = []
     working = [row[:] for row in covariance]
     component_vectors: list[list[float]] = []
-    component_count = min(n_components, len(FEATURE_NAMES))
+    component_count = min(n_components, len(selected_feature_names))
     for component_index in range(component_count):
         eigenvalue, eigenvector = _power_iteration(working)
         if not eigenvector:
@@ -184,7 +190,7 @@ def analyze_feature_pca(
                 component_index=component_index + 1,
                 explained_variance=eigenvalue,
                 explained_variance_ratio=(eigenvalue / total_variance) if total_variance > 0.0 else 0.0,
-                loadings={feature_name: eigenvector[index] for index, feature_name in enumerate(FEATURE_NAMES)},
+                loadings={feature_name: eigenvector[index] for index, feature_name in enumerate(selected_feature_names)},
             )
         )
         working = _deflate(working, eigenvalue, eigenvector)
@@ -198,7 +204,8 @@ def analyze_feature_pca(
 
     return PcaAnalysisResult(
         feature_analysis=feature_analysis,
-        feature_names=FEATURE_NAMES,
+        feature_set_name=feature_analysis.summary.feature_set_name,
+        feature_names=selected_feature_names,
         coordinates=tuple(coordinates),
         components=tuple(components),
         standardization_means=means,
@@ -306,6 +313,9 @@ def _render_report(result: PcaAnalysisResult) -> str:
         "",
         "This PCA is a diagnostic over the engineered feature matrix, not a replacement classifier.",
         "",
+        f"- Feature set: {result.feature_set_name}",
+        f"- Active features: {', '.join(result.feature_names)}",
+        "",
         "## Explained Variance",
         "",
         "| component | explained_variance | explained_variance_ratio |",
@@ -341,14 +351,20 @@ def write_pca_analysis_artifacts(
     seed: int = 7,
     trajectories_per_class: int = 5,
     n_components: int = 3,
+    feature_set: str | None = None,
+    feature_names: tuple[str, ...] | list[str] | None = None,
 ) -> PcaAnalysisArtifacts:
     result = analyze_feature_pca(
         seed=seed,
         trajectories_per_class=trajectories_per_class,
         n_components=n_components,
+        feature_set=feature_set,
+        feature_names=feature_names,
     )
     output_root = Path(output_dir)
-    run_dir = output_root / "pca_analysis_v1"
+    run_dir = output_root / (
+        "pca_analysis_v1" if result.feature_set_name == "all_engineered" else f"pca_analysis_{result.feature_set_name}_v1"
+    )
     run_dir.mkdir(parents=True, exist_ok=True)
 
     report_path = run_dir / "pca_report.md"
@@ -356,11 +372,8 @@ def write_pca_analysis_artifacts(
     loadings_path = run_dir / "pca_loadings.csv"
     explained_variance_path = run_dir / "pca_explained_variance.csv"
     config_path = run_dir / "pca_config.yaml"
-    plot_scatter_svg_path = run_dir / "pc1_pc2_by_class.svg"
     plot_scatter_png_path = run_dir / "pc1_pc2_by_class.png"
-    plot_variance_svg_path = run_dir / "explained_variance.svg"
     plot_variance_png_path = run_dir / "explained_variance.png"
-    plot_loadings_svg_path = run_dir / "loadings_heatmap.svg"
     plot_loadings_png_path = run_dir / "loadings_heatmap.png"
 
     report_path.write_text(_render_report(result), encoding="utf-8")
@@ -368,10 +381,12 @@ def write_pca_analysis_artifacts(
         "\n".join(
             [
                 "experiment:",
-                "  name: pca_analysis_v1",
+                f"  name: {run_dir.name}",
                 f"  seed: {seed}",
                 f"  trajectories_per_class: {trajectories_per_class}",
                 f"  n_components: {n_components}",
+                f"  feature_set: {result.feature_set_name}",
+                f"  feature_names: [{', '.join(result.feature_names)}]",
                 "",
             ]
         ),
@@ -399,11 +414,8 @@ def write_pca_analysis_artifacts(
         ],
         ["component", "explained_variance", "explained_variance_ratio"],
     )
-    plot_scatter_svg_path.write_text(_figure_to_svg(_render_scatter(result)), encoding="utf-8")
     plot_scatter_png_path.write_bytes(_figure_to_png(_render_scatter(result)))
-    plot_variance_svg_path.write_text(_figure_to_svg(_render_variance(result)), encoding="utf-8")
     plot_variance_png_path.write_bytes(_figure_to_png(_render_variance(result)))
-    plot_loadings_svg_path.write_text(_figure_to_svg(_render_loadings(result)), encoding="utf-8")
     plot_loadings_png_path.write_bytes(_figure_to_png(_render_loadings(result)))
     return PcaAnalysisArtifacts(
         run_dir=run_dir,
@@ -412,10 +424,7 @@ def write_pca_analysis_artifacts(
         loadings_path=loadings_path,
         explained_variance_path=explained_variance_path,
         config_path=config_path,
-        plot_scatter_svg_path=plot_scatter_svg_path,
         plot_scatter_png_path=plot_scatter_png_path,
-        plot_variance_svg_path=plot_variance_svg_path,
         plot_variance_png_path=plot_variance_png_path,
-        plot_loadings_svg_path=plot_loadings_svg_path,
         plot_loadings_png_path=plot_loadings_png_path,
     )

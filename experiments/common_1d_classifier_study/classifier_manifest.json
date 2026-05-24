@@ -1,0 +1,67 @@
+{
+  "classifiers": [
+    {
+      "id": "pointwise",
+      "family": "pointwise",
+      "requires_feature_set": "instantaneous",
+      "produces": [
+        "predictions",
+        "posterior_history",
+        "log_likelihoods"
+      ]
+    },
+    {
+      "id": "windowed_raw_extrema",
+      "family": "windowed",
+      "feature_set_id": "raw_extrema",
+      "produces": [
+        "predictions",
+        "posterior_history",
+        "feature_matrix"
+      ]
+    },
+    {
+      "id": "windowed_robust_extrema",
+      "family": "windowed",
+      "feature_set_id": "robust_extrema",
+      "produces": [
+        "predictions",
+        "posterior_history",
+        "feature_matrix"
+      ]
+    },
+    {
+      "id": "windowed_shape_features",
+      "family": "windowed",
+      "feature_set_id": "shape_window",
+      "produces": [
+        "predictions",
+        "posterior_history",
+        "feature_matrix"
+      ]
+    },
+    {
+      "id": "bayes_accumulator",
+      "family": "sequential_bayes",
+      "requires_feature_set": "instantaneous",
+      "produces": [
+        "predictions",
+        "posterior_history",
+        "log_likelihoods",
+        "log_odds_history"
+      ]
+    },
+    {
+      "id": "kalman_bank",
+      "family": "state_space",
+      "requires_feature_set": "model_residuals",
+      "produces": [
+        "predictions",
+        "posterior_history",
+        "innovation_history",
+        "state_estimate_history",
+        "log_likelihoods"
+      ]
+    }
+  ]
+}

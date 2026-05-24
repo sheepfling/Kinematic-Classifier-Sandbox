@@ -39,15 +39,45 @@ class PcaAnalysisTests(unittest.TestCase):
             self.assertTrue(artifacts.loadings_path.exists())
             self.assertTrue(artifacts.explained_variance_path.exists())
             self.assertTrue(artifacts.config_path.exists())
-            self.assertTrue(artifacts.plot_scatter_svg_path.exists())
             self.assertTrue(artifacts.plot_scatter_png_path.exists())
-            self.assertTrue(artifacts.plot_variance_svg_path.exists())
             self.assertTrue(artifacts.plot_variance_png_path.exists())
-            self.assertTrue(artifacts.plot_loadings_svg_path.exists())
             self.assertTrue(artifacts.plot_loadings_png_path.exists())
             report = artifacts.report_path.read_text(encoding="utf-8")
             self.assertIn("Explained Variance", report)
             self.assertIn("Dominant Loadings", report)
+
+    def test_pca_analysis_respects_feature_subset(self) -> None:
+        result = analyze_feature_pca(
+            seed=7,
+            trajectories_per_class=5,
+            n_components=2,
+            feature_set="model_residuals",
+        )
+
+        self.assertEqual(result.feature_set_name, "model_residuals")
+        self.assertEqual(
+            result.feature_names,
+            (
+                "acceleration_variance",
+                "linear_fit_residual",
+                "quadratic_fit_residual",
+                "outlier_score",
+            ),
+        )
+        self.assertEqual(len(result.components), 2)
+        self.assertTrue(all(set(component.loadings) == set(result.feature_names) for component in result.components))
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts = write_pca_analysis_artifacts(
+                temp_dir,
+                seed=7,
+                trajectories_per_class=5,
+                n_components=2,
+                feature_set="model_residuals",
+            )
+            self.assertEqual(artifacts.run_dir, Path(temp_dir) / "pca_analysis_model_residuals_v1")
+            report = artifacts.report_path.read_text(encoding="utf-8")
+            self.assertIn("Feature set: model_residuals", report)
 
 
 if __name__ == "__main__":

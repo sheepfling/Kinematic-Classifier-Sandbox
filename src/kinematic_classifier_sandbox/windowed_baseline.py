@@ -206,7 +206,6 @@ class WindowedBenchmarkArtifacts:
     config_path: Path
     dataset_manifest_path: Path
     feature_manifest_path: Path
-    plot_svg_path: Path
     plot_png_path: Path
 
 
@@ -636,11 +635,9 @@ def write_windowed_benchmark_artifacts(
     config_path = run_dir / "windowed_classifier_config.yaml"
     dataset_manifest_path = run_dir / "dataset_manifest.json"
     feature_manifest_path = run_dir / "feature_manifest.json"
-    plot_svg_path = run_dir / "windowed_baseline_diagnostics.svg"
     plot_png_path = run_dir / "windowed_baseline_diagnostics.png"
 
     report_path.write_text(render_windowed_benchmark_report(benchmark_result), encoding="utf-8")
-    plot_svg_path.write_text(render_windowed_benchmark_svg(benchmark_result), encoding="utf-8")
     plot_png_path.write_bytes(render_windowed_benchmark_png_bytes(benchmark_result))
 
     feature_rows_dicts = [asdict(row) for row in benchmark_result.feature_rows]
@@ -802,6 +799,5 @@ def write_windowed_benchmark_artifacts(
         config_path=config_path,
         dataset_manifest_path=dataset_manifest_path,
         feature_manifest_path=feature_manifest_path,
-        plot_svg_path=plot_svg_path,
         plot_png_path=plot_png_path,
     )

@@ -68,10 +68,16 @@ class TrajectoryArtifact:
     seed: int
     times: tuple[float, ...]
     measurements: tuple[float, ...]
+    measurement_dim: int = 1
+    measurement_axes: tuple[str, ...] = ("position",)
+    coordinate_frame: str = "scalar_line"
     measurement_std: float | None = None
     true_position: tuple[float, ...] | None = None
     true_velocity: tuple[float, ...] | None = None
     true_acceleration: tuple[float, ...] | None = None
+    state_dim: int = 1
+    state_axes: tuple[str, ...] = ("position",)
+    truth_series: dict[str, tuple[float, ...]] = field(default_factory=dict)
     generator_parameters: dict[str, Any] = field(default_factory=dict)
 
 
@@ -89,6 +95,10 @@ class ClassifierOutputArtifact:
     trajectory_id: str
     class_names: tuple[str, ...]
     rows: tuple[dict[str, Any], ...]
+    classifier_id: str | None = None
+    sensor_regime_id: str | None = None
+    feature_set_id: str | None = None
+    run_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +130,14 @@ def validate_trajectory_artifact(artifact: TrajectoryArtifact) -> list[str]:
         errors.append("times and measurements must have the same length")
     if len(artifact.times) == 0:
         errors.append("times and measurements must not be empty")
+    if artifact.measurement_dim < 1:
+        errors.append("measurement_dim must be at least 1")
+    if artifact.state_dim < 1:
+        errors.append("state_dim must be at least 1")
+    if len(artifact.measurement_axes) != artifact.measurement_dim:
+        errors.append("measurement_axes must match measurement_dim")
+    if len(artifact.state_axes) != artifact.state_dim:
+        errors.append("state_axes must match state_dim")
     for index, value in enumerate(artifact.times):
         if not _is_finite(value):
             errors.append(f"time[{index}] is not finite")
@@ -137,6 +155,14 @@ def validate_trajectory_artifact(artifact: TrajectoryArtifact) -> list[str]:
     for name, series in optional_series.items():
         if series is not None and len(series) != len(artifact.times):
             errors.append(f"{name} must match the trajectory length when provided")
+    for name, series in artifact.truth_series.items():
+        if len(series) != len(artifact.times):
+            errors.append(f"truth_series[{name}] must match the trajectory length")
+            continue
+        for index, value in enumerate(series):
+            if not _is_finite(value):
+                errors.append(f"truth_series[{name}][{index}] is not finite")
+                break
     return errors
 
 
@@ -166,6 +192,10 @@ def validate_classifier_output_artifact(artifact: ClassifierOutputArtifact) -> l
         errors.append("trajectory_id is required")
     if not artifact.class_names:
         errors.append("class_names are required")
+    if artifact.sensor_regime_id is not None and not artifact.sensor_regime_id:
+        errors.append("sensor_regime_id must not be empty when provided")
+    if artifact.classifier_id is not None and not artifact.classifier_id:
+        errors.append("classifier_id must not be empty when provided")
     posterior_columns = [f"posterior_{name}" for name in artifact.class_names]
     likelihood_columns = [f"log_likelihood_{name}" for name in artifact.class_names]
     for row_index, row in enumerate(artifact.rows):
@@ -244,10 +274,10 @@ def _sample_feature_rows(trajectory: TrajectoryArtifact) -> tuple[dict[str, Any]
     for index, time in enumerate(trajectory.times):
         rows.append(
             {
-                "trajectory_id": trajectory.trajectory_id,
-                "time": time,
-                "window_start": trajectory.times[0],
-                "window_end": time,
+        "trajectory_id": trajectory.trajectory_id,
+        "time": time,
+        "window_start": trajectory.times[0],
+        "window_end": time,
                 "running_mean": running_mean[index],
                 "running_range": running_range[index],
                 "running_slope": running_slope[index],

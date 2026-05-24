@@ -84,7 +84,9 @@ class TrajectoryGeneratorArtifacts:
     dataset_manifest_paths: dict[str, Path]
     generated_trajectories_paths: dict[str, Path]
     true_states_paths: dict[str, Path]
-    plot_svg_path: Path
+    supplemental_manifest_paths: dict[str, Path]
+    supplemental_generated_paths: dict[str, Path]
+    supplemental_true_states_paths: dict[str, Path]
     plot_png_path: Path
 
 
@@ -326,6 +328,17 @@ def _sample_parameters(
         params["deceleration"] = -abs(params["deceleration"])
     if class_definition.kind == "maneuver":
         params["switch_fraction"] = _clamp(params["switch_fraction"], 0.2, 0.8)
+        early = params["accel_early"]
+        late = params["accel_late"]
+        # A maneuver track must actually cross an acceleration regime boundary.
+        if abs(early) < 0.45:
+            early = 0.45 if early >= 0.0 else -0.45
+        if abs(late) < 0.45:
+            late = 0.45 if late >= 0.0 else -0.45
+        if early * late >= 0.0:
+            late = -abs(late) if early >= 0.0 else abs(late)
+        params["accel_early"] = early
+        params["accel_late"] = late
     if class_definition.kind == "bounded_acceleration":
         params["accel_limit"] = max(0.2, params["accel_limit"])
     if tier_definition.parameter_mode == "adversarial":
@@ -347,6 +360,8 @@ def _sample_parameters(
             params["acceleration"] = _clamp(params.get("acceleration", 0.0), -0.35, 0.35)
         if class_definition.kind == "maneuver":
             params["switch_fraction"] = _clamp(params["switch_fraction"], 0.35, 0.65)
+            params["accel_early"] = -0.55 if params["accel_early"] < 0.0 else 0.55
+            params["accel_late"] = -params["accel_early"]
     return params
 
 
@@ -506,6 +521,42 @@ def _inject_measurement_noise(
     return tuple(measurements), outlier_indices
 
 
+def _make_manual_trajectory(
+    *,
+    trajectory_id: str,
+    true_class: str,
+    tier: str,
+    scenario_family: str,
+    measurements: tuple[float, ...],
+    times: tuple[float, ...],
+    true_position: tuple[float, ...],
+    true_velocity: tuple[float, ...],
+    true_acceleration: tuple[float, ...],
+    measurement_std: float,
+    outlier_indices: list[int],
+    seed: int,
+    generator_parameters: dict[str, object],
+) -> TrajectoryArtifact:
+    return TrajectoryArtifact(
+        trajectory_id=trajectory_id,
+        true_class=true_class,
+        scenario_id=trajectory_id,
+        seed=seed,
+        times=times,
+        measurements=measurements,
+        measurement_std=measurement_std,
+        true_position=true_position,
+        true_velocity=true_velocity,
+        true_acceleration=true_acceleration,
+        generator_parameters={
+            "tier": tier,
+            "scenario_family": scenario_family,
+            "outlier_indices": list(outlier_indices),
+            **generator_parameters,
+        },
+    )
+
+
 def _make_trajectory(
     *,
     class_definition: TrajectoryClassDefinition,
@@ -620,6 +671,219 @@ def generate_trajectory_datasets(
     )
 
 
+def generate_short_horizon_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifact, ...]:
+    rng = random.Random(seed + 10_000)
+    scenarios: list[TrajectoryArtifact] = []
+    specs = (
+        (
+            "short_horizon_constant_velocity",
+            "constant_velocity",
+            (0.0, 0.45, 0.95, 1.55, 2.25),
+            {"position": -0.5, "velocity": 1.2},
+        ),
+        (
+            "short_horizon_constant_acceleration",
+            "constant_acceleration",
+            (0.0, 0.40, 0.85, 1.35, 1.90),
+            {"position": 0.2, "velocity": 0.45, "acceleration": 0.55},
+        ),
+        (
+            "short_horizon_braking",
+            "braking",
+            (0.0, 0.35, 0.75, 1.10, 1.45),
+            {"position": 0.0, "velocity": 1.8, "deceleration": -0.9},
+        ),
+        (
+            "short_horizon_maneuver",
+            "maneuver",
+            (0.0, 0.40, 0.80, 1.20, 1.60),
+            {"position": -0.2, "velocity": 0.65, "accel_early": 0.7, "accel_late": -0.85, "switch_fraction": 0.58},
+        ),
+    )
+    for index, (scenario_id, class_name, times, params) in enumerate(specs):
+        class_definition = _class_by_name(class_name)
+        positions_true, velocities_true, accelerations_true = _generate_states(class_definition, times, params)
+        measurement_std = 0.06
+        measurements, outlier_indices = _inject_measurement_noise(
+            rng,
+            positions_true,
+            measurement_std,
+            outlier_probability=0.0,
+        )
+        scenarios.append(
+            _make_manual_trajectory(
+                trajectory_id=scenario_id,
+                true_class=class_name,
+                tier="short_horizon_v1",
+                scenario_family="short_horizon",
+                measurements=measurements,
+                times=times,
+                true_position=positions_true,
+                true_velocity=velocities_true,
+                true_acceleration=accelerations_true,
+                measurement_std=measurement_std,
+                outlier_indices=outlier_indices,
+                seed=seed + index,
+                generator_parameters={"coverage_target": "short_horizon"},
+            )
+        )
+    return tuple(scenarios)
+
+
+def generate_perturbation_sweep_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifact, ...]:
+    times_regular = tuple(0.45 * index for index in range(8))
+    times_irregular = (0.0, 0.30, 0.86, 1.22, 1.95, 2.36, 3.11, 3.48)
+    base_class = _class_by_name("constant_velocity")
+    base_params = {"position": -1.0, "velocity": 1.05}
+    positions_true_regular, velocities_true_regular, accelerations_true_regular = _generate_states(base_class, times_regular, base_params)
+    positions_true_irregular, velocities_true_irregular, accelerations_true_irregular = _generate_states(base_class, times_irregular, base_params)
+    specs = (
+        ("noise_sweep_low", times_regular, positions_true_regular, velocities_true_regular, accelerations_true_regular, 0.03, 0.0),
+        ("noise_sweep_medium", times_regular, positions_true_regular, velocities_true_regular, accelerations_true_regular, 0.10, 0.0),
+        ("noise_sweep_high", times_regular, positions_true_regular, velocities_true_regular, accelerations_true_regular, 0.20, 0.0),
+        ("outlier_sweep_none", times_regular, positions_true_regular, velocities_true_regular, accelerations_true_regular, 0.07, 0.0),
+        ("outlier_sweep_heavy", times_regular, positions_true_regular, velocities_true_regular, accelerations_true_regular, 0.07, 0.20),
+        ("irregular_dt_sweep_regular", times_regular, positions_true_regular, velocities_true_regular, accelerations_true_regular, 0.07, 0.0),
+        ("irregular_dt_sweep_irregular", times_irregular, positions_true_irregular, velocities_true_irregular, accelerations_true_irregular, 0.07, 0.0),
+    )
+    scenarios: list[TrajectoryArtifact] = []
+    for index, (scenario_id, times, positions_true, velocities_true, accelerations_true, measurement_std, outlier_probability) in enumerate(specs):
+        rng = random.Random(seed + 20_000 + index)
+        measurements, outlier_indices = _inject_measurement_noise(
+            rng,
+            positions_true,
+            measurement_std,
+            outlier_probability=outlier_probability,
+        )
+        scenarios.append(
+            _make_manual_trajectory(
+                trajectory_id=scenario_id,
+                true_class="constant_velocity",
+                tier="perturbation_sweeps_v1",
+                scenario_family="perturbation_sweep",
+                measurements=measurements,
+                times=times,
+                true_position=positions_true,
+                true_velocity=velocities_true,
+                true_acceleration=accelerations_true,
+                measurement_std=measurement_std,
+                outlier_indices=outlier_indices,
+                seed=seed + 100 + index,
+                generator_parameters={
+                    "coverage_target": "sweep",
+                    "outlier_probability": outlier_probability,
+                    "time_regime": "irregular" if "irregular" in scenario_id else "regular",
+                },
+            )
+        )
+    return tuple(scenarios)
+
+
+def _switching_segment_trajectory(
+    *,
+    initial_position: float,
+    initial_velocity: float,
+    times: tuple[float, ...],
+    accelerations: tuple[float, ...],
+) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+    positions = [initial_position]
+    velocities = [initial_velocity]
+    applied_accelerations = [accelerations[0] if accelerations else 0.0]
+    for index in range(1, len(times)):
+        dt = times[index] - times[index - 1]
+        accel = accelerations[index - 1]
+        next_position = positions[-1] + velocities[-1] * dt + 0.5 * accel * dt * dt
+        next_velocity = velocities[-1] + accel * dt
+        positions.append(next_position)
+        velocities.append(next_velocity)
+        applied_accelerations.append(accel)
+    return tuple(positions), tuple(velocities), tuple(applied_accelerations)
+
+
+def generate_switching_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifact, ...]:
+    rng = random.Random(seed + 30_000)
+    scenarios: list[TrajectoryArtifact] = []
+
+    times_a = tuple(0.5 * index for index in range(10))
+    accels_a = tuple(0.0 if time < 2.0 else 0.0 for time in times_a[:-1])
+    pos_a = [0.0]
+    vel_a = [0.0]
+    accel_series_a = [0.0]
+    for index in range(1, len(times_a)):
+        dt = times_a[index] - times_a[index - 1]
+        if times_a[index - 1] < 2.0:
+            accel = 0.0
+            next_velocity = 0.0
+            next_position = pos_a[-1]
+        else:
+            accel = 0.0
+            next_velocity = 1.15
+            next_position = pos_a[-1] + next_velocity * dt
+        pos_a.append(next_position)
+        vel_a.append(next_velocity)
+        accel_series_a.append(accel)
+    switching_specs = [
+        (
+            "stationary_then_moving",
+            times_a,
+            tuple(pos_a),
+            tuple(vel_a),
+            tuple(accel_series_a),
+            0.05,
+            {"segment_modes": ["stationary", "constant_velocity"], "switch_time": 2.0},
+        ),
+        (
+            "constant_velocity_then_braking",
+            tuple(0.45 * index for index in range(11)),
+            *_switching_segment_trajectory(
+                initial_position=-1.0,
+                initial_velocity=1.6,
+                times=tuple(0.45 * index for index in range(11)),
+                accelerations=tuple(0.0 if index < 5 else -0.85 for index in range(10)),
+            ),
+            0.06,
+            {"segment_modes": ["constant_velocity", "braking"], "switch_time": 2.25},
+        ),
+        (
+            "constant_velocity_then_maneuver",
+            tuple(0.40 * index for index in range(12)),
+            *_switching_segment_trajectory(
+                initial_position=0.5,
+                initial_velocity=1.0,
+                times=tuple(0.40 * index for index in range(12)),
+                accelerations=tuple(0.0 if index < 5 else (0.65 if index < 8 else -0.75) for index in range(11)),
+            ),
+            0.06,
+            {"segment_modes": ["constant_velocity", "maneuver"], "switch_time": 2.0},
+        ),
+    ]
+    for index, (scenario_id, times, positions_true, velocities_true, accelerations_true, measurement_std, extra_params) in enumerate(switching_specs):
+        measurements, outlier_indices = _inject_measurement_noise(
+            rng,
+            positions_true,
+            measurement_std,
+            outlier_probability=0.0,
+        )
+        scenarios.append(
+            _make_manual_trajectory(
+                trajectory_id=scenario_id,
+                true_class="switching",
+                tier="switching_scenarios_v1",
+                scenario_family="switching",
+                measurements=measurements,
+                times=times,
+                true_position=positions_true,
+                true_velocity=velocities_true,
+                true_acceleration=accelerations_true,
+                measurement_std=measurement_std,
+                outlier_indices=outlier_indices,
+                seed=seed + 200 + index,
+                generator_parameters={"coverage_target": "switching", **extra_params},
+            )
+        )
+    return tuple(scenarios)
+
+
 def _trajectory_rows(dataset: GeneratedTrajectoryDataset) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for trajectory in dataset.trajectories:
@@ -710,6 +974,49 @@ def _dataset_manifest(dataset: GeneratedTrajectoryDataset) -> dict[str, object]:
     }
 
 
+def _trajectory_manifest(
+    name: str,
+    trajectories: tuple[TrajectoryArtifact, ...],
+    *,
+    notes: list[str],
+) -> dict[str, object]:
+    step_counts = [len(trajectory.times) for trajectory in trajectories]
+    dt_values = [
+        trajectory.times[index] - trajectory.times[index - 1]
+        for trajectory in trajectories
+        for index in range(1, len(trajectory.times))
+    ]
+    measurement_values = [trajectory.measurement_std for trajectory in trajectories if trajectory.measurement_std is not None]
+    class_counts: dict[str, int] = {}
+    scenario_counts: dict[str, int] = {}
+    for trajectory in trajectories:
+        class_counts[trajectory.true_class] = class_counts.get(trajectory.true_class, 0) + 1
+        scenario_counts[trajectory.scenario_id] = scenario_counts.get(trajectory.scenario_id, 0) + 1
+    return {
+        "name": name,
+        "generator_version": "trajectory_generator_v1",
+        "trajectory_count": len(trajectories),
+        "class_counts": class_counts,
+        "scenario_counts": scenario_counts,
+        "steps": {
+            "min": min(step_counts) if step_counts else 0,
+            "max": max(step_counts) if step_counts else 0,
+            "mean": _mean(step_counts) if step_counts else 0.0,
+        },
+        "dt": {
+            "min": min(dt_values) if dt_values else 0.0,
+            "max": max(dt_values) if dt_values else 0.0,
+            "mean": _mean(dt_values) if dt_values else 0.0,
+        },
+        "measurement_std": {
+            "min": min(measurement_values) if measurement_values else 0.0,
+            "max": max(measurement_values) if measurement_values else 0.0,
+            "mean": _mean(measurement_values) if measurement_values else 0.0,
+        },
+        "notes": notes,
+    }
+
+
 def _render_dataset_plot(dataset: GeneratedTrajectoryDataset):
     plt = _prepare_matplotlib()
     fig, axes = plt.subplots(2, 1, figsize=(11, 8), sharex=False)
@@ -779,6 +1086,12 @@ def render_trajectory_generator_report(datasets: tuple[GeneratedTrajectoryDatase
         lines.append("")
     lines.extend(
         [
+            "## Supplemental Scenario Libraries",
+            "",
+            "- `short_horizon_v1`: explicit short-horizon separability cases with only a few samples.",
+            "- `perturbation_sweeps_v1`: explicit noise, outlier, and irregular-`dt` sweep scenarios.",
+            "- `switching_scenarios_v1`: explicit mode-switching tracks such as stationary-then-moving and velocity-then-braking.",
+            "",
             "## Validation Notes",
             "",
             "- Trajectories are validated with the shared trajectory artifact contract.",
@@ -803,7 +1116,6 @@ def write_trajectory_generator_artifacts(
     class_definitions_path = run_dir / "class_definitions.json"
     config_path = run_dir / "trajectory_generator_config.yaml"
     report_path = run_dir / "trajectory_generator_report.md"
-    plot_svg_path = run_dir / "trajectory_generator_overview.svg"
     plot_png_path = run_dir / "trajectory_generator_overview.png"
 
     class_definitions_path.write_text(
@@ -823,10 +1135,6 @@ def write_trajectory_generator_artifacts(
         encoding="utf-8",
     )
     report_path.write_text(render_trajectory_generator_report(datasets), encoding="utf-8")
-    plot_svg_path.write_text(
-        _render_figure_svg(_render_dataset_plot(datasets[0])),
-        encoding="utf-8",
-    )
     plot_png_path.write_bytes(
         _render_figure_png(_render_dataset_plot(datasets[0]))
     )
@@ -883,6 +1191,112 @@ def write_trajectory_generator_artifacts(
             if errors:
                 raise ValueError(f"invalid generated trajectory {trajectory.trajectory_id}: {errors}")
 
+    supplemental_specs = {
+        "short_horizon_v1": (
+            generate_short_horizon_scenarios(seed=seed),
+            [
+                "Explicit short-horizon cases for CV, CA, braking, and maneuver discrimination.",
+                "These scenarios complement the tiered datasets with named few-sample boundary cases.",
+            ],
+        ),
+        "perturbation_sweeps_v1": (
+            generate_perturbation_sweep_scenarios(seed=seed),
+            [
+                "Explicit noise, outlier, and irregular-`dt` sweep scenarios.",
+                "These scenarios make perturbation response rerunnable without reading tier internals.",
+            ],
+        ),
+        "switching_scenarios_v1": (
+            generate_switching_scenarios(seed=seed),
+            [
+                "Explicit switching-mode trajectories for later M16 transition studies.",
+                "These scenarios close the remaining M9 gap around switching coverage.",
+            ],
+        ),
+    }
+    supplemental_manifest_paths: dict[str, Path] = {}
+    supplemental_generated_paths: dict[str, Path] = {}
+    supplemental_true_state_paths: dict[str, Path] = {}
+    for name, (trajectories, notes) in supplemental_specs.items():
+        manifest_path = run_dir / f"{name}_manifest.json"
+        trajectories_path = run_dir / f"{name}_generated_trajectories.csv"
+        true_states_path = run_dir / f"{name}_true_states.csv"
+        supplemental_manifest_paths[name] = manifest_path
+        supplemental_generated_paths[name] = trajectories_path
+        supplemental_true_state_paths[name] = true_states_path
+        manifest_path.write_text(
+            json.dumps(_trajectory_manifest(name, trajectories, notes=notes), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        _write_csv(
+            trajectories_path,
+            [
+                {
+                    "trajectory_id": trajectory.trajectory_id,
+                    "tier": trajectory.generator_parameters.get("tier", ""),
+                    "scenario_id": trajectory.scenario_id,
+                    "true_class": trajectory.true_class,
+                    "seed": trajectory.seed,
+                    "step": index,
+                    "time": time,
+                    "measurement": trajectory.measurements[index],
+                    "true_position": trajectory.true_position[index] if trajectory.true_position else "",
+                    "true_velocity": trajectory.true_velocity[index] if trajectory.true_velocity else "",
+                    "true_acceleration": trajectory.true_acceleration[index] if trajectory.true_acceleration else "",
+                }
+                for trajectory in trajectories
+                for index, time in enumerate(trajectory.times)
+            ],
+            [
+                "trajectory_id",
+                "tier",
+                "scenario_id",
+                "true_class",
+                "seed",
+                "step",
+                "time",
+                "measurement",
+                "true_position",
+                "true_velocity",
+                "true_acceleration",
+            ],
+        )
+        _write_csv(
+            true_states_path,
+            [
+                {
+                    "trajectory_id": trajectory.trajectory_id,
+                    "tier": trajectory.generator_parameters.get("tier", ""),
+                    "scenario_id": trajectory.scenario_id,
+                    "true_class": trajectory.true_class,
+                    "seed": trajectory.seed,
+                    "step": index,
+                    "time": time,
+                    "true_position": trajectory.true_position[index] if trajectory.true_position else "",
+                    "true_velocity": trajectory.true_velocity[index] if trajectory.true_velocity else "",
+                    "true_acceleration": trajectory.true_acceleration[index] if trajectory.true_acceleration else "",
+                }
+                for trajectory in trajectories
+                for index, time in enumerate(trajectory.times)
+            ],
+            [
+                "trajectory_id",
+                "tier",
+                "scenario_id",
+                "true_class",
+                "seed",
+                "step",
+                "time",
+                "true_position",
+                "true_velocity",
+                "true_acceleration",
+            ],
+        )
+        for trajectory in trajectories:
+            errors = validate_trajectory_artifact(trajectory)
+            if errors:
+                raise ValueError(f"invalid supplemental trajectory {trajectory.trajectory_id}: {errors}")
+
     return TrajectoryGeneratorArtifacts(
         run_dir=run_dir,
         report_path=report_path,
@@ -891,7 +1305,9 @@ def write_trajectory_generator_artifacts(
         dataset_manifest_paths=dataset_manifest_paths,
         generated_trajectories_paths=generated_paths,
         true_states_paths=true_state_paths,
-        plot_svg_path=plot_svg_path,
+        supplemental_manifest_paths=supplemental_manifest_paths,
+        supplemental_generated_paths=supplemental_generated_paths,
+        supplemental_true_states_paths=supplemental_true_state_paths,
         plot_png_path=plot_png_path,
     )
 

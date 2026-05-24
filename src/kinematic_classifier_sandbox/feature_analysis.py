@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 from statistics import median
+from typing import Callable
 
 from .trajectory_generator import (
     GeneratedTrajectoryDataset,
@@ -339,10 +340,46 @@ class FeatureRow:
     scenario_id: str
     true_class: str
     seed: int
+    feature_values: dict[str, float]
+
+    def __getattr__(self, name: str) -> float:
+        try:
+            return self.feature_values[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+    def as_flat_dict(self, feature_names: tuple[str, ...] | None = None) -> dict[str, object]:
+        selected = feature_names or tuple(self.feature_values)
+        return {
+            "trajectory_id": self.trajectory_id,
+            "tier": self.tier,
+            "scenario_id": self.scenario_id,
+            "true_class": self.true_class,
+            "seed": self.seed,
+            **{feature_name: self.feature_values[feature_name] for feature_name in selected},
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class BaseFeatureComputationContext:
+    dataset: GeneratedTrajectoryDataset
+    trajectory_id: str
+    scenario_id: str
+    true_class: str
+    seed: int
+    times: tuple[float, ...]
+    measurements: tuple[float, ...]
     duration: float
+    dt_values: tuple[float, ...]
     mean_dt: float
     std_dt: float
     max_dt: float
+
+
+@dataclass(frozen=True, slots=True)
+class OneDimensionalFeatureComputationContext(BaseFeatureComputationContext):
+    velocities: tuple[float, ...]
+    accelerations: tuple[float, ...]
     position_range: float
     speed_range: float
     acceleration_variance: float
@@ -357,9 +394,19 @@ class FeatureRow:
 
 
 @dataclass(frozen=True, slots=True)
+class FeatureSpec:
+    name: str
+    group: str
+    description: str
+    default_excitation_thresholds: tuple[float, float, float]
+    extractor: Callable[[OneDimensionalFeatureComputationContext], float]
+
+
+@dataclass(frozen=True, slots=True)
 class FeatureAnalysisSummary:
     total_trajectories: int
     class_counts: dict[str, int]
+    feature_set_name: str
     feature_names: tuple[str, ...]
     excitation_totals: dict[str, dict[str, int]]
     top_features: tuple[str, ...]
@@ -391,42 +438,161 @@ class FeatureAnalysisArtifacts:
     pairwise_distance_matrix_path: Path
     pairwise_overlap_matrix_path: Path
     pairwise_auc_matrix_path: Path
-    plot_excitation_svg_path: Path
     plot_excitation_png_path: Path
-    plot_distance_svg_path: Path
     plot_distance_png_path: Path
-    plot_overlap_svg_path: Path
     plot_overlap_png_path: Path
-    plot_scatter_svg_path: Path
     plot_scatter_png_path: Path
-    plot_confusability_svg_path: Path
     plot_confusability_png_path: Path
+    plot_ranking_png_path: Path
 
 
-FEATURE_NAMES = (
-    "duration",
-    "mean_dt",
-    "std_dt",
-    "max_dt",
-    "position_range",
-    "speed_range",
-    "acceleration_variance",
-    "acceleration_range",
-    "velocity_sign_changes",
-    "acceleration_sign_changes",
-    "monotonicity",
-    "linear_fit_residual",
-    "quadratic_fit_residual",
-    "outlier_score",
-    "sampling_irregularity",
+FEATURE_REGISTRY: dict[str, FeatureSpec] = {
+    "duration": FeatureSpec(
+        name="duration",
+        group="timing",
+        description="Total trajectory duration in seconds.",
+        default_excitation_thresholds=(4.0, 8.0, 12.0),
+        extractor=lambda context: context.duration,
+    ),
+    "mean_dt": FeatureSpec(
+        name="mean_dt",
+        group="timing",
+        description="Mean sample interval across the trajectory.",
+        default_excitation_thresholds=(0.45, 0.75, 1.05),
+        extractor=lambda context: context.mean_dt,
+    ),
+    "std_dt": FeatureSpec(
+        name="std_dt",
+        group="timing",
+        description="Standard deviation of sample intervals.",
+        default_excitation_thresholds=(0.05, 0.15, 0.30),
+        extractor=lambda context: context.std_dt,
+    ),
+    "max_dt": FeatureSpec(
+        name="max_dt",
+        group="timing",
+        description="Largest sample interval in the trajectory.",
+        default_excitation_thresholds=(0.75, 1.10, 1.60),
+        extractor=lambda context: context.max_dt,
+    ),
+    "position_range": FeatureSpec(
+        name="position_range",
+        group="position",
+        description="Observed position span from min to max.",
+        default_excitation_thresholds=(2.0, 6.0, 12.0),
+        extractor=lambda context: context.position_range,
+    ),
+    "speed_range": FeatureSpec(
+        name="speed_range",
+        group="finite_difference_velocity",
+        description="True speed span across the trajectory.",
+        default_excitation_thresholds=(0.15, 0.60, 1.25),
+        extractor=lambda context: context.speed_range,
+    ),
+    "acceleration_variance": FeatureSpec(
+        name="acceleration_variance",
+        group="residual",
+        description="Variance of the true acceleration sequence.",
+        default_excitation_thresholds=(0.005, 0.02, 0.08),
+        extractor=lambda context: context.acceleration_variance,
+    ),
+    "acceleration_range": FeatureSpec(
+        name="acceleration_range",
+        group="residual",
+        description="Range of the true acceleration sequence.",
+        default_excitation_thresholds=(0.10, 0.45, 1.00),
+        extractor=lambda context: context.acceleration_range,
+    ),
+    "velocity_sign_changes": FeatureSpec(
+        name="velocity_sign_changes",
+        group="sign_changes",
+        description="Number of sign changes in the velocity sequence.",
+        default_excitation_thresholds=(1.0, 2.0, 4.0),
+        extractor=lambda context: float(context.velocity_sign_changes),
+    ),
+    "acceleration_sign_changes": FeatureSpec(
+        name="acceleration_sign_changes",
+        group="sign_changes",
+        description="Number of sign changes in the acceleration sequence.",
+        default_excitation_thresholds=(1.0, 2.0, 4.0),
+        extractor=lambda context: float(context.acceleration_sign_changes),
+    ),
+    "monotonicity": FeatureSpec(
+        name="monotonicity",
+        group="shape",
+        description="Fraction of nonzero position increments aligned to the dominant sign.",
+        default_excitation_thresholds=(0.65, 0.82, 0.95),
+        extractor=lambda context: context.monotonicity,
+    ),
+    "linear_fit_residual": FeatureSpec(
+        name="linear_fit_residual",
+        group="shape",
+        description="RMS residual under a linear position fit.",
+        default_excitation_thresholds=(0.10, 0.35, 0.90),
+        extractor=lambda context: context.linear_fit_residual,
+    ),
+    "quadratic_fit_residual": FeatureSpec(
+        name="quadratic_fit_residual",
+        group="innovation",
+        description="RMS residual under a quadratic position fit.",
+        default_excitation_thresholds=(0.03, 0.12, 0.35),
+        extractor=lambda context: context.quadratic_fit_residual,
+    ),
+    "outlier_score": FeatureSpec(
+        name="outlier_score",
+        group="innovation",
+        description="Largest normalized residual under the quadratic fit.",
+        default_excitation_thresholds=(1.5, 3.0, 6.0),
+        extractor=lambda context: context.outlier_score,
+    ),
+    "sampling_irregularity": FeatureSpec(
+        name="sampling_irregularity",
+        group="timing",
+        description="Relative variability of sample intervals.",
+        default_excitation_thresholds=(0.05, 0.15, 0.35),
+        extractor=lambda context: context.sampling_irregularity,
+    ),
+}
+
+FEATURE_NAMES = tuple(FEATURE_REGISTRY)
+FEATURE_GROUPS = {name: spec.group for name, spec in FEATURE_REGISTRY.items()}
+
+FEATURE_SET_MANIFEST_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "experiments"
+    / "common_1d_classifier_study"
+    / "feature_sets.json"
 )
 
-FEATURE_ROW_FIELDNAMES = (
+FEATURE_SET_FALLBACKS = {
+    "instantaneous": ("position_range", "speed_range", "acceleration_range"),
+    "raw_extrema": ("duration", "position_range", "speed_range", "acceleration_range"),
+    "robust_extrema": ("acceleration_variance", "quadratic_fit_residual", "outlier_score"),
+    "shape_window": (
+        "velocity_sign_changes",
+        "acceleration_sign_changes",
+        "monotonicity",
+        "linear_fit_residual",
+        "quadratic_fit_residual",
+    ),
+    "model_residuals": (
+        "acceleration_variance",
+        "linear_fit_residual",
+        "quadratic_fit_residual",
+        "outlier_score",
+    ),
+}
+
+FEATURE_ROW_METADATA_FIELDNAMES = (
     "trajectory_id",
     "tier",
     "scenario_id",
     "true_class",
     "seed",
+)
+
+FEATURE_ROW_FIELDNAMES = (
+    *FEATURE_ROW_METADATA_FIELDNAMES,
     "duration",
     "mean_dt",
     "std_dt",
@@ -445,16 +611,92 @@ FEATURE_ROW_FIELDNAMES = (
 )
 
 
-def _feature_row_from_trajectory(dataset: GeneratedTrajectoryDataset, trajectory) -> FeatureRow:
+# Backward-compatible alias while the feature-analysis registry remains 1D-scoped.
+FeatureComputationContext = OneDimensionalFeatureComputationContext
+
+
+def load_feature_set_manifest(manifest_path: str | Path | None = None) -> dict[str, dict[str, object]]:
+    path = Path(manifest_path) if manifest_path is not None else FEATURE_SET_MANIFEST_PATH
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_feature_registry() -> dict[str, FeatureSpec]:
+    return dict(FEATURE_REGISTRY)
+
+
+def resolve_feature_names(
+    *,
+    feature_set: str | None = None,
+    feature_names: tuple[str, ...] | list[str] | None = None,
+    manifest: dict[str, dict[str, object]] | None = None,
+) -> tuple[str, ...]:
+    if feature_names is not None:
+        requested = tuple(dict.fromkeys(str(name) for name in feature_names))
+    else:
+        manifest_data = manifest or load_feature_set_manifest()
+        selected_name = feature_set or "all_engineered"
+        if selected_name not in manifest_data:
+            raise KeyError(f"unknown feature set: {selected_name}")
+
+        def _expand(name: str) -> list[str]:
+            entry = manifest_data[name]
+            if "features" in entry:
+                return [str(item) for item in entry["features"]]
+            if "includes" in entry:
+                expanded: list[str] = []
+                for child in entry["includes"]:
+                    expanded.extend(_expand(str(child)))
+                return expanded
+            if name in FEATURE_SET_FALLBACKS:
+                return list(FEATURE_SET_FALLBACKS[name])
+            raise KeyError(f"feature set '{name}' does not define features or includes")
+
+        requested = tuple(dict.fromkeys(_expand(selected_name)))
+
+    unknown = [name for name in requested if name not in FEATURE_NAMES]
+    if unknown:
+        raise KeyError(f"unknown feature names: {', '.join(unknown)}")
+    if not requested:
+        raise ValueError("feature selection must not be empty")
+    return requested
+
+
+def _base_feature_context_from_trajectory(
+    dataset: GeneratedTrajectoryDataset,
+    trajectory,
+) -> BaseFeatureComputationContext:
     times = list(trajectory.times)
     measurements = list(trajectory.measurements)
-    velocities = list(trajectory.true_velocity or ())
-    accelerations = list(trajectory.true_acceleration or ())
-    durations = times[-1] - times[0] if len(times) >= 2 else 0.0
+    duration = times[-1] - times[0] if len(times) >= 2 else 0.0
     dt_values = [times[index] - times[index - 1] for index in range(1, len(times))]
     mean_dt = _mean(dt_values) if dt_values else 0.0
     std_dt = _std(dt_values)
     max_dt = max(dt_values) if dt_values else 0.0
+    return BaseFeatureComputationContext(
+        dataset=dataset,
+        trajectory_id=trajectory.trajectory_id,
+        scenario_id=trajectory.scenario_id,
+        true_class=trajectory.true_class,
+        seed=trajectory.seed,
+        times=tuple(times),
+        measurements=tuple(measurements),
+        duration=duration,
+        dt_values=tuple(dt_values),
+        mean_dt=mean_dt,
+        std_dt=std_dt,
+        max_dt=max_dt,
+    )
+
+
+def _one_dimensional_feature_context_from_trajectory(
+    dataset: GeneratedTrajectoryDataset,
+    trajectory,
+) -> OneDimensionalFeatureComputationContext:
+    base_context = _base_feature_context_from_trajectory(dataset, trajectory)
+    velocities = list(trajectory.true_velocity or ())
+    accelerations = list(trajectory.true_acceleration or ())
+    times = list(base_context.times)
+    measurements = list(base_context.measurements)
     position_range = max(measurements) - min(measurements) if measurements else 0.0
     speed_range = (max(velocities) - min(velocities)) if velocities else 0.0
     acceleration_variance = _std(accelerations) ** 2
@@ -476,17 +718,22 @@ def _feature_row_from_trajectory(dataset: GeneratedTrajectoryDataset, trajectory
                 power *= time
             residuals.append(value - prediction)
         outlier_score = max(abs(value) for value in residuals) / max(quadratic_fit_residual, 1e-6)
-    sampling_irregularity = std_dt / max(mean_dt, 1e-6)
-    return FeatureRow(
-        trajectory_id=trajectory.trajectory_id,
-        tier=dataset.tier,
-        scenario_id=trajectory.scenario_id,
-        true_class=trajectory.true_class,
-        seed=trajectory.seed,
-        duration=durations,
-        mean_dt=mean_dt,
-        std_dt=std_dt,
-        max_dt=max_dt,
+    sampling_irregularity = base_context.std_dt / max(base_context.mean_dt, 1e-6)
+    return OneDimensionalFeatureComputationContext(
+        dataset=base_context.dataset,
+        trajectory_id=base_context.trajectory_id,
+        scenario_id=base_context.scenario_id,
+        true_class=base_context.true_class,
+        seed=base_context.seed,
+        times=base_context.times,
+        measurements=base_context.measurements,
+        duration=base_context.duration,
+        dt_values=base_context.dt_values,
+        mean_dt=base_context.mean_dt,
+        std_dt=base_context.std_dt,
+        max_dt=base_context.max_dt,
+        velocities=tuple(velocities),
+        accelerations=tuple(accelerations),
         position_range=position_range,
         speed_range=speed_range,
         acceleration_variance=acceleration_variance,
@@ -501,6 +748,22 @@ def _feature_row_from_trajectory(dataset: GeneratedTrajectoryDataset, trajectory
     )
 
 
+def _feature_row_from_trajectory(dataset: GeneratedTrajectoryDataset, trajectory) -> FeatureRow:
+    context = _one_dimensional_feature_context_from_trajectory(dataset, trajectory)
+    feature_values = {
+        feature_name: FEATURE_REGISTRY[feature_name].extractor(context)
+        for feature_name in FEATURE_NAMES
+    }
+    return FeatureRow(
+        trajectory_id=context.trajectory_id,
+        tier=dataset.tier,
+        scenario_id=context.scenario_id,
+        true_class=context.true_class,
+        seed=context.seed,
+        feature_values=feature_values,
+    )
+
+
 def _excitation_level(value: float, thresholds: tuple[float, float, float]) -> str:
     low, medium, high = thresholds
     if value >= high:
@@ -512,8 +775,8 @@ def _excitation_level(value: float, thresholds: tuple[float, float, float]) -> s
     return "not_excited"
 
 
-def _numeric_features(row: FeatureRow) -> dict[str, float]:
-    return {name: getattr(row, name) if isinstance(getattr(row, name), (int, float)) else 0.0 for name in FEATURE_NAMES}
+def _numeric_features(row: FeatureRow, feature_names: tuple[str, ...]) -> dict[str, float]:
+    return {name: getattr(row, name) if isinstance(getattr(row, name), (int, float)) else 0.0 for name in feature_names}
 
 
 def _standardize_rows(rows: list[dict[str, float]], feature_names: tuple[str, ...]) -> list[list[float]]:
@@ -629,35 +892,35 @@ def analyze_feature_datasets(
     *,
     seed: int = 7,
     trajectories_per_class: int = 5,
+    feature_set: str | None = None,
+    feature_names: tuple[str, ...] | list[str] | None = None,
 ) -> FeatureAnalysisResult:
+    selected_feature_names = resolve_feature_names(feature_set=feature_set, feature_names=feature_names)
+    selected_feature_set = feature_set or ("custom" if feature_names is not None else "all_engineered")
     datasets = generate_trajectory_datasets(seed=seed, trajectories_per_class=trajectories_per_class)
     feature_rows: list[FeatureRow] = []
     for dataset in datasets:
         for trajectory in dataset.trajectories:
             feature_rows.append(_feature_row_from_trajectory(dataset, trajectory))
     feature_rows_tuple = tuple(feature_rows)
-    numeric_rows = [dict(true_class=row.true_class, **_numeric_features(row)) for row in feature_rows_tuple]
+    numeric_rows = [dict(true_class=row.true_class, **_numeric_features(row, selected_feature_names)) for row in feature_rows_tuple]
 
-    threshold_map = {
-        name: (
-            _percentile(sorted([row[name] for row in numeric_rows]), 0.25),
-            _percentile(sorted([row[name] for row in numeric_rows]), 0.50),
-            _percentile(sorted([row[name] for row in numeric_rows]), 0.75),
-        )
-        for name in FEATURE_NAMES
-    }
     excitation_rows: list[dict[str, object]] = []
     for row in feature_rows_tuple:
-        row_dict = asdict(row)
-        for feature_name in FEATURE_NAMES:
-            row_dict[f"{feature_name}_level"] = _excitation_level(getattr(row, feature_name), threshold_map[feature_name])
+        row_dict = {field: getattr(row, field) for field in FEATURE_ROW_METADATA_FIELDNAMES}
+        for feature_name in selected_feature_names:
+            row_dict[feature_name] = getattr(row, feature_name)
+            row_dict[f"{feature_name}_level"] = _excitation_level(
+                getattr(row, feature_name),
+                FEATURE_REGISTRY[feature_name].default_excitation_thresholds,
+            )
         excitation_rows.append(row_dict)
 
     summary_rows: list[dict[str, object]] = []
     class_names = sorted({row.true_class for row in feature_rows_tuple})
     for class_name in class_names:
         class_rows = [row for row in feature_rows_tuple if row.true_class == class_name]
-        for feature_name in FEATURE_NAMES:
+        for feature_name in selected_feature_names:
             values = [getattr(row, feature_name) for row in class_rows]
             sorted_values = sorted(values)
             summary_rows.append(
@@ -679,10 +942,10 @@ def analyze_feature_datasets(
     pairwise_rows: list[dict[str, object]] = []
     for index, class_a in enumerate(class_names):
         for class_b in class_names[index + 1 :]:
-            pairwise_rows.append(_pairwise_metrics(numeric_rows, FEATURE_NAMES, class_a, class_b))
+            pairwise_rows.append(_pairwise_metrics(numeric_rows, selected_feature_names, class_a, class_b))
 
     feature_separation_rows: list[dict[str, object]] = []
-    for feature_name in FEATURE_NAMES:
+    for feature_name in selected_feature_names:
         values_by_class = {class_name: [getattr(row, feature_name) for row in feature_rows_tuple if row.true_class == class_name] for class_name in class_names}
         pairwise_auc_values = []
         effect_sizes = []
@@ -706,10 +969,10 @@ def analyze_feature_datasets(
 
     excitation_totals = {
         feature_name: {level: 0 for level in ("not_excited", "weak", "moderate", "strong")}
-        for feature_name in FEATURE_NAMES
+        for feature_name in selected_feature_names
     }
     for row in excitation_rows:
-        for feature_name in FEATURE_NAMES:
+        for feature_name in selected_feature_names:
             excitation_totals[feature_name][row[f"{feature_name}_level"]] += 1
 
     top_features = tuple(
@@ -722,7 +985,8 @@ def analyze_feature_datasets(
     summary = FeatureAnalysisSummary(
         total_trajectories=len(feature_rows_tuple),
         class_counts={class_name: sum(1 for row in feature_rows_tuple if row.true_class == class_name) for class_name in class_names},
-        feature_names=FEATURE_NAMES,
+        feature_set_name=selected_feature_set,
+        feature_names=selected_feature_names,
         excitation_totals=excitation_totals,
         top_features=top_features,
         top_separating_pairs=top_separating_pairs,
@@ -803,6 +1067,43 @@ def _render_confusability_heatmap(class_names: list[str], confusability_matrix: 
     )
 
 
+def _render_feature_ranking_summary(result: FeatureAnalysisResult):
+    plt = _prepare_matplotlib()
+    ordered_rows = sorted(
+        result.feature_separation_rows,
+        key=lambda item: float(item["avg_pairwise_auc"]),
+        reverse=True,
+    )[:10]
+    feature_names = [str(row["feature"]) for row in ordered_rows][::-1]
+    avg_auc = [float(row["avg_pairwise_auc"]) for row in ordered_rows][::-1]
+    min_auc = [float(row["min_pairwise_auc"]) for row in ordered_rows][::-1]
+    max_auc = [float(row["max_pairwise_auc"]) for row in ordered_rows][::-1]
+    mean_d = [float(row["mean_abs_cohens_d"]) for row in ordered_rows][::-1]
+
+    fig, ax = plt.subplots(figsize=(9.0, max(4.8, 0.46 * len(feature_names) + 1.8)))
+    positions = list(range(len(feature_names)))
+    ax.barh(positions, avg_auc, color="#2563eb", alpha=0.86, label="avg pairwise AUC")
+    ax.scatter(min_auc, positions, color="#dc2626", s=34, label="min pairwise AUC", zorder=3)
+    ax.scatter(max_auc, positions, color="#16a34a", s=34, label="max pairwise AUC", zorder=3)
+    for index, value in enumerate(avg_auc):
+        ax.text(min(value + 0.01, 0.995), index, f"{value:.2f}", va="center", fontsize=8)
+    ax.set_title("Top Feature Ranking Summary", loc="left", fontweight="bold")
+    ax.set_xlabel("pairwise AUC")
+    ax.set_ylabel("feature")
+    ax.set_xlim(0.45, 1.02)
+    ax.set_yticks(positions)
+    ax.set_yticklabels(feature_names)
+    ax.grid(True, axis="x", alpha=0.2)
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
+
+    twin = ax.twiny()
+    twin.plot(mean_d, positions, color="#7c3aed", linewidth=1.5, marker="o", markersize=3.5, label="mean |Cohen's d|")
+    twin.set_xlim(0.0, max(mean_d + [1.0]) * 1.08)
+    twin.set_xlabel("mean |Cohen's d|")
+    fig.tight_layout()
+    return fig
+
+
 def _figure_to_svg(fig) -> str:
     plt = _prepare_matplotlib()
     buffer = io.StringIO()
@@ -832,6 +1133,8 @@ def _render_report(result: FeatureAnalysisResult) -> str:
         "## Summary",
         "",
         f"- Trajectories analyzed: {result.summary.total_trajectories}",
+        f"- Feature set: {result.summary.feature_set_name}",
+        f"- Active features: {', '.join(result.summary.feature_names)}",
         f"- Top features: {', '.join(result.summary.top_features)}",
         f"- Top separating pairs: {', '.join(f'{a} vs {b}' for a, b in result.summary.top_separating_pairs)}",
         f"- Top confusing pairs: {', '.join(f'{a} vs {b}' for a, b in result.summary.top_confusing_pairs)}",
@@ -841,7 +1144,7 @@ def _render_report(result: FeatureAnalysisResult) -> str:
         "| feature | not_excited | weak | moderate | strong |",
         "| --- | ---: | ---: | ---: | ---: |",
     ]
-    for feature_name in FEATURE_NAMES:
+    for feature_name in result.summary.feature_names:
         counts = result.summary.excitation_totals[feature_name]
         lines.append(
             f"| {feature_name} | {counts['not_excited']} | {counts['weak']} | {counts['moderate']} | {counts['strong']} |"
@@ -890,10 +1193,22 @@ def write_feature_analysis_artifacts(
     *,
     seed: int = 7,
     trajectories_per_class: int = 5,
+    feature_set: str | None = None,
+    feature_names: tuple[str, ...] | list[str] | None = None,
 ) -> FeatureAnalysisArtifacts:
-    result = analyze_feature_datasets(seed=seed, trajectories_per_class=trajectories_per_class)
+    result = analyze_feature_datasets(
+        seed=seed,
+        trajectories_per_class=trajectories_per_class,
+        feature_set=feature_set,
+        feature_names=feature_names,
+    )
     output_root = Path(output_dir)
-    run_dir = output_root / "feature_analysis_v1"
+    run_dir_name = (
+        "feature_analysis_v1"
+        if result.summary.feature_set_name == "all_engineered"
+        else f"feature_analysis_{result.summary.feature_set_name}_v1"
+    )
+    run_dir = output_root / run_dir_name
     run_dir.mkdir(parents=True, exist_ok=True)
 
     report_path = run_dir / "feature_analysis_report.md"
@@ -906,21 +1221,25 @@ def write_feature_analysis_artifacts(
     pairwise_distance_matrix_path = run_dir / "pairwise_distance_matrix.csv"
     pairwise_overlap_matrix_path = run_dir / "pairwise_overlap_matrix.csv"
     pairwise_auc_matrix_path = run_dir / "pairwise_auc_matrix.csv"
-    plot_excitation_svg_path = run_dir / "feature_excitation_heatmap.svg"
     plot_excitation_png_path = run_dir / "feature_excitation_heatmap.png"
-    plot_distance_svg_path = run_dir / "pairwise_distance_heatmap.svg"
     plot_distance_png_path = run_dir / "pairwise_distance_heatmap.png"
-    plot_overlap_svg_path = run_dir / "pairwise_overlap_heatmap.svg"
     plot_overlap_png_path = run_dir / "pairwise_overlap_heatmap.png"
-    plot_scatter_svg_path = run_dir / "feature_space_confusion_map.svg"
     plot_scatter_png_path = run_dir / "feature_space_confusion_map.png"
-    plot_confusability_svg_path = run_dir / "class_confusability_heatmap.svg"
     plot_confusability_png_path = run_dir / "class_confusability_heatmap.png"
+    plot_ranking_png_path = run_dir / "feature_ranking_summary.png"
 
     report_path.write_text(_render_report(result), encoding="utf-8")
-    _write_csv(feature_matrix_path, [asdict(row) for row in result.feature_rows], list(FEATURE_ROW_FIELDNAMES))
+    _write_csv(
+        feature_matrix_path,
+        [row.as_flat_dict(result.summary.feature_names) for row in result.feature_rows],
+        [*FEATURE_ROW_METADATA_FIELDNAMES, *result.summary.feature_names],
+    )
     _write_csv(feature_summary_path, [dict(row) for row in result.summary_rows], ["true_class", "feature", "mean", "std", "median", "iqr", "min", "max", "p05", "p95", "missing_rate"])
-    _write_csv(feature_excitation_path, [dict(row) for row in result.excitation_rows], list(FEATURE_ROW_FIELDNAMES) + [f"{name}_level" for name in FEATURE_NAMES])
+    _write_csv(
+        feature_excitation_path,
+        [dict(row) for row in result.excitation_rows],
+        [*FEATURE_ROW_METADATA_FIELDNAMES, *result.summary.feature_names, *[f"{name}_level" for name in result.summary.feature_names]],
+    )
     feature_excitation_summary_path.write_text(json.dumps(asdict(result.summary), indent=2, sort_keys=True), encoding="utf-8")
     _write_csv(feature_separation_scores_path, [dict(row) for row in result.feature_separation_rows], ["feature", "mean_abs_cohens_d", "avg_pairwise_auc", "max_pairwise_auc", "min_pairwise_auc"])
     _write_csv(identifiability_matrix_path, [dict(row) for row in result.pairwise_rows], ["class_a", "class_b", "mean_feature_distance", "standardized_mean_difference", "mahalanobis_distance", "bhattacharyya_distance", "js_divergence", "wasserstein_distance", "overlap_estimate", "pairwise_classifier_accuracy", "average_log_likelihood_ratio", "pairwise_auc"])
@@ -958,61 +1277,33 @@ def write_feature_analysis_artifacts(
         ["class", *class_names],
     )
 
-    excitation_matrix = [[float(result.summary.excitation_totals[feature][level]) for feature in FEATURE_NAMES] for level in ("not_excited", "weak", "moderate", "strong")]
-    plot_excitation_svg_path.write_text(
-        _figure_to_svg(
-            _render_heatmap(
-                excitation_matrix,
-                ["not_excited", "weak", "moderate", "strong"],
-                list(FEATURE_NAMES),
-                "Feature Excitation Totals",
-                cmap="viridis",
-            )
-        ),
-        encoding="utf-8",
-    )
+    excitation_matrix = [[float(result.summary.excitation_totals[feature][level]) for feature in result.summary.feature_names] for level in ("not_excited", "weak", "moderate", "strong")]
     plot_excitation_png_path.write_bytes(
         _figure_to_png(
             _render_heatmap(
                 excitation_matrix,
                 ["not_excited", "weak", "moderate", "strong"],
-                list(FEATURE_NAMES),
+                list(result.summary.feature_names),
                 "Feature Excitation Totals",
                 cmap="viridis",
             )
         )
-    )
-    plot_distance_svg_path.write_text(
-        _figure_to_svg(
-            _render_heatmap(distance_matrix, class_names, class_names, "Pairwise Mahalanobis Distance", cmap="Blues")
-        ),
-        encoding="utf-8",
     )
     plot_distance_png_path.write_bytes(
         _figure_to_png(
             _render_heatmap(distance_matrix, class_names, class_names, "Pairwise Mahalanobis Distance", cmap="Blues")
         )
     )
-    plot_overlap_svg_path.write_text(
-        _figure_to_svg(
-            _render_heatmap(overlap_matrix, class_names, class_names, "Pairwise Overlap Estimate", cmap="Oranges")
-        ),
-        encoding="utf-8",
-    )
     plot_overlap_png_path.write_bytes(
         _figure_to_png(
             _render_heatmap(overlap_matrix, class_names, class_names, "Pairwise Overlap Estimate", cmap="Oranges")
         )
     )
-    plot_scatter_svg_path.write_text(_figure_to_svg(_render_feature_scatter(result)), encoding="utf-8")
     plot_scatter_png_path.write_bytes(_figure_to_png(_render_feature_scatter(result)))
-    plot_confusability_svg_path.write_text(
-        _figure_to_svg(_render_confusability_heatmap(class_names, confusability_matrix)),
-        encoding="utf-8",
-    )
     plot_confusability_png_path.write_bytes(
         _figure_to_png(_render_confusability_heatmap(class_names, confusability_matrix))
     )
+    plot_ranking_png_path.write_bytes(_figure_to_png(_render_feature_ranking_summary(result)))
 
     return FeatureAnalysisArtifacts(
         run_dir=run_dir,
@@ -1026,14 +1317,10 @@ def write_feature_analysis_artifacts(
         pairwise_distance_matrix_path=pairwise_distance_matrix_path,
         pairwise_overlap_matrix_path=pairwise_overlap_matrix_path,
         pairwise_auc_matrix_path=pairwise_auc_matrix_path,
-        plot_excitation_svg_path=plot_excitation_svg_path,
         plot_excitation_png_path=plot_excitation_png_path,
-        plot_distance_svg_path=plot_distance_svg_path,
         plot_distance_png_path=plot_distance_png_path,
-        plot_overlap_svg_path=plot_overlap_svg_path,
         plot_overlap_png_path=plot_overlap_png_path,
-        plot_scatter_svg_path=plot_scatter_svg_path,
         plot_scatter_png_path=plot_scatter_png_path,
-        plot_confusability_svg_path=plot_confusability_svg_path,
         plot_confusability_png_path=plot_confusability_png_path,
+        plot_ranking_png_path=plot_ranking_png_path,
     )

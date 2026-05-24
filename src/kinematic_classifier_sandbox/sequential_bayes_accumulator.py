@@ -118,7 +118,6 @@ class AccumulatorBenchmarkArtifacts:
     config_path: Path
     dataset_manifest_path: Path
     class_definitions_path: Path
-    plot_svg_path: Path
     plot_png_path: Path
 
 
@@ -523,11 +522,9 @@ def write_accumulator_artifacts(
     config_path = run_dir / "bayes_accumulator_config.yaml"
     dataset_manifest_path = run_dir / "dataset_manifest.json"
     class_definitions_path = run_dir / "class_definitions.json"
-    plot_svg_path = run_dir / "bayes_accumulator_diagnostics.svg"
     plot_png_path = run_dir / "bayes_accumulator_diagnostics.png"
 
     report_path.write_text(render_accumulator_report(benchmark_result), encoding="utf-8")
-    plot_svg_path.write_text(render_accumulator_svg(benchmark_result), encoding="utf-8")
     plot_png_path.write_bytes(render_accumulator_png_bytes(benchmark_result))
 
     posterior_rows: list[dict[str, object]] = []
@@ -651,6 +648,5 @@ def write_accumulator_artifacts(
         config_path=config_path,
         dataset_manifest_path=dataset_manifest_path,
         class_definitions_path=class_definitions_path,
-        plot_svg_path=plot_svg_path,
         plot_png_path=plot_png_path,
     )

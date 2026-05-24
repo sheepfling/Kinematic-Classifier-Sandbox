@@ -1,0 +1,72 @@
+experiment:
+  name: common_1d_boundary_study
+  study_adapter_id: common_1d_boundary_study
+  seed: 123
+  output_dir: artifacts/common_1d_boundary_study
+
+dataset:
+  generator: trajectory_generator_v1
+  tiers:
+    - boundary_v1
+    - adversarial_v1
+    - stress_v1
+  classes:
+    - constant_acceleration
+    - braking
+    - maneuver
+    - bounded_acceleration
+  class_pairs:
+    - [constant_acceleration, maneuver]
+    - [constant_velocity, braking]
+    - [maneuver, bounded_acceleration]
+  trajectories_per_class: 100
+
+feature_sets:
+  manifest_path: experiments/common_1d_classifier_study/feature_sets.json
+
+class_pairs:
+  manifest_path: experiments/common_1d_boundary_study/class_pair_manifest.json
+
+classifiers:
+  manifest_path: experiments/common_1d_classifier_study/classifier_manifest.json
+
+priors:
+  - id: uniform
+    mode: uniform
+  - id: mild_bias
+    mode: class_pair_bias
+    strength: 0.15
+  - id: strong_bias
+    mode: class_pair_bias
+    strength: 0.35
+
+evaluations:
+  confidence_thresholds: [0.5, 0.7, 0.9]
+  duration_sweeps: true
+  noise_sweeps: true
+  prior_sweeps: true
+  identifiability: true
+  pca: false
+  oracle_separability: true
+  leakage_audit: true
+  feature_excitation: true
+
+outputs:
+  predictions_path: unified_predictions.csv
+  posterior_history_path: unified_posterior_history.csv
+  likelihood_history_path: unified_likelihood_history.csv
+  feature_matrix_path: unified_feature_matrix.csv
+  metrics_by_classifier_path: metrics_by_classifier.csv
+  metrics_by_sensor_regime_path: metrics_by_sensor_regime.csv
+  metrics_by_classifier_and_feature_set_path: metrics_by_classifier_and_feature_set.csv
+  metrics_by_class_pair_path: metrics_by_class_pair.csv
+  prior_sensitivity_by_class_pair_path: prior_sensitivity_by_class_pair.csv
+  feature_set_comparison_path: feature_set_comparison.csv
+  irregular_window_comparison_path: irregular_window_comparison.csv
+  class_pair_duration_study_path: class_pair_duration_study.csv
+  class_pair_scenario_study_path: class_pair_scenario_study.csv
+  covariate_leakage_audit_path: covariate_leakage_audit.csv
+  feature_excitation_matrix_path: feature_excitation_matrix.csv
+  identifiability_matrix_path: identifiability_matrix.csv
+  oracle_classifier_results_path: oracle_classifier_results.csv
+  report_path: common_experiment_report.md

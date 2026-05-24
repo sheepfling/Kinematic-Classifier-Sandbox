@@ -2,95 +2,139 @@
 
 Title: Kinematic Classification Lab Roadmap
 Plan ID: PLN-002
-Status: proposed
+Status: in_progress
 Owner: @rick
 Priority: P1
-Objective: Turn the sandbox into a repeatable kinematic-classification lab with explicit artifact contracts, reproducible synthetic datasets, staged classifiers, identifiability analysis, and decision gates for when to advance to more complex models.
+Objective: Turn the sandbox into a generic kinematic-classification and filtering methodology framework whose corpus, feature, evidence, posterior, filtering, analysis, and visualization layers remain reusable as the repo moves from 1D studies toward 3D studies.
 Scope:
-- Define shared artifact contracts for trajectories, features, classifier outputs, metrics, and run directories.
-- Build a staged classifier ladder: pointwise baseline, windowed features, Bayesian accumulator, Kalman bank, IMM, and particle filter only when justified.
-- Add synthetic trajectory generation tiers that exercise easy, boundary, adversarial, stress, and realistic cases.
-- Add analysis workstreams for feature utility, pairwise identifiability, Monte Carlo behavior, PCA, and prior sensitivity.
-- Standardize visualization and reporting so every run produces comparable plots and a report.
+- Finish the current common experiment harness and feature/class-pair comparison milestones.
+- Prove that classifiers and filters can be expressed through generic evidence and posterior contracts.
+- Prove that feature metadata and feature sets are transferable abstractions rather than one-off 1D feature hacks.
+- Prove that filtering backends can emit standardized state, evidence, and diagnostics artifacts.
+- Audit scalar assumptions explicitly and define what is required before 3D work is credible.
+- Keep IMM, particle filtering, and Rao-Blackwell particle filtering behind explicit decision gates.
 Out of Scope:
-- Production data ingestion pipelines.
-- Multi-target association or full sensor-fusion systems.
-- Learned end-to-end models as the primary solution.
-- Particle filters or IMM for cases where simpler methods already explain the data.
+- Full production 3D tracking and classification.
+- Premature addition of IMM, particle filtering, or RBPF before the generic contracts exist.
+- Production sensor fusion, geodesy, multi-target association, or operational deployment.
+- Learned end-to-end models as the primary backlog focus.
+
+Current State Assessment:
+- The repo has already proven that it can build and test 1D classifiers, feature analyzers, corpus generators, Kalman filters, Monte Carlo packs, PCA reports, and rendered artifacts.
+- The repo has not yet proven that those pieces are generic enough that moving to 3D mostly means new state representations, new feature extractors, new corpus data, and new dynamics/measurement models while reusing the same experiment, evidence, posterior, diagnostics, and reporting machinery.
+- `M10` and `M11` are now best understood as the front of a broader generic-methodology proof phase, not just as more harness work.
+- The core architectural question is now:
+  - can state dimension, feature set, class set, and filter backend be swapped without rewriting the evaluation machinery?
+- If the answer becomes yes, the repo is 3D-ready in methodology terms.
+- If the answer remains no, the repo is still primarily a strong 1D demo and diagnostics lab.
+
+Guiding Architecture:
+- `TrajectoryCorpus`
+  - observations, truth, metadata, class labels, scenario labels
+- `FeatureExtractor`
+  - feature table with provenance and feature taxonomy metadata
+- `EvidenceProvider`
+  - log likelihood by class from features, histories, innovations, or residuals
+- `PosteriorUpdater`
+  - posterior over classes through time
+- `FilterBackend`
+  - state summaries, covariances or particles, innovations, model likelihoods, diagnostics
+- `ExperimentHarness`
+  - runs methods on corpora, feature sets, class pairs, and priors
+- `AnalysisLayer`
+  - confusion, identifiability, PCA, leakage, calibration, prior sensitivity, coverage
+- `VisualizationLayer`
+  - plots and markdown reports from standardized artifacts
+
+Key Design Principle:
+- features and filters produce evidence
+- posterior machinery consumes evidence
+- analysis and visualization consume standardized artifacts
 
 Implementation Steps:
-1. Define the common experiment contract.
-   - Standardize run-directory contents, config persistence, dataset manifests, feature matrices, prediction tables, posterior histories, likelihood histories, metrics, and markdown reports.
-   - Require reproducibility from config plus seed.
-2. Build the pointwise baseline.
-   - Implement a common classifier interface with `reset`, `update`, `posterior`, `predict`, and `history`.
-   - Add a simple Gaussian pointwise classifier and a two-class synthetic acceptance test.
-   - Emit posterior history, confusion matrices, and a baseline report.
-3. Add the windowed-feature classifier.
-   - Implement windowed and running features with explicit history declarations.
-   - Include raw and robust extrema, slope/curvature, monotonicity, sign-change counts, and irregular-time-aware statistics.
-   - Measure duration bias, outlier sensitivity, and fixed-window correctness.
-4. Add the sequential Bayesian accumulator.
-   - Implement log-domain posterior updates, configurable priors, forgetting, confidence thresholds, and an unknown/abstain path.
-   - Add prior-sweep and Bayes-factor diagnostics so prior dominance is visible.
-5. Build the Kalman filter bank.
-   - Define per-class motion models with irregular-`dt` transitions.
-   - Update class posteriors from innovation likelihoods and track state, covariance, and residual diagnostics.
-   - Use this as the main model-based sequential classifier.
-6. Add IMM only for real switching cases.
-   - Introduce mode probabilities, transition matrices, and mixed state estimates only when trajectories switch between valid modes.
-   - Validate against known switching synthetic tracks.
-7. Add particle filtering only when simpler methods fail.
-   - Gate this behind nonlinear, multimodal, censored, or hard-constraint cases that Kalman or IMM cannot represent well.
-   - Track particle degeneracy, resampling, and effective sample size.
-8. Build the synthetic trajectory generator stack.
-   - Define explicit class-generating models for stationary, CV, CA, braking, maneuvering, oscillatory, bounded-acceleration, and similar regimes.
-   - Create dataset tiers for easy, boundary, adversarial, stress, and realistic conditions.
-   - Add DOE coverage and feature-excitation checks.
-9. Add visualization and reporting.
-   - Produce single-trajectory plots, confusion matrices, Monte Carlo curves, calibration plots, prior-sensitivity plots, and artifact-linked markdown reports.
-   - Ensure every classifier emits the same output shape so plots can be reused.
-10. Add identifiability and feature analysis.
-   - Build pairwise class distance, overlap, confusion, and confusability graph reports.
-   - Rank features by separation utility and test whether classes are fundamentally separable from the current feature set.
-11. Add PCA and principal-feature analysis.
-   - Run PCA on engineered features, resampled trajectories, basis coefficients, and smoothed latent states where appropriate.
-   - Use PCA as a diagnostic, not as a replacement for classifier development.
-12. Add prior-sensitivity and bias studies.
-   - Sweep priors, measure decision flips, and separate evidence-driven from prior-driven behavior.
-   - Report pairwise flip thresholds and class-dominance metrics.
-13. Use explicit decision gates.
-   - Advance to IMM only when the static Kalman bank fails on switching-mode trajectories.
-   - Advance to particle filtering only when nonlinear or non-Gaussian cases remain unresolved.
-   - Refine features or trajectory generation before moving to a more complex classifier if the issue is really identifiability or excitation.
+1. Finish `M10` and `M11` as the entry to the generic methodology proof phase.
+   - Complete the config-driven common experiment harness.
+   - Keep feature sets and class pairs as first-class study dimensions.
+   - Ensure these surfaces are stable enough to support the next contract layers.
+2. Add the generic inference contract.
+   - Define common schemas for classifier output, evidence output, posterior history, and filter output.
+   - Require pointwise, windowed, Bayesian accumulator, and Kalman bank to emit the same logical artifact family.
+3. Add the generic feature taxonomy.
+   - Make every feature declare history behavior, sensitivity, geometry assumptions, and dimensional transferability.
+   - Treat feature sets as tagged, queryable bundles rather than only named JSON lists.
+4. Add the generic classification and evidence proof.
+   - Express pointwise, windowed, empirical-feature, residual, and Kalman-innovation methods as `EvidenceProvider` variants.
+   - Keep the posterior updater agnostic to the evidence source.
+5. Add the generic filtering contract.
+   - Standardize what a filter backend must emit for state summaries, evidence summaries, and diagnostics.
+   - Keep Kalman as the first reference backend, and define where PF and RBPF would fit later.
+6. Add the dimensional lift audit.
+   - Identify scalar assumptions module by module.
+   - Label code as dimension-agnostic, 1D-specific but adapter-compatible, or 1D-specific and requiring rewrite.
+   - Run a fake vector-valued corpus through the generic harness far enough to emit standard artifacts.
+7. Add the corpus adequacy and coverage framework.
+   - Make corpus quality measurable independently of classifier choice.
+   - Audit class balance, scenario balance, feature excitation, class-pair boundary coverage, covariate leakage, and sensor regime coverage.
+8. Add switching and transition-model work only after the generic contracts exist.
+   - Add class transitions and switching scenarios as a methodology exercise rather than a one-off algorithm addition.
+9. Add advanced-filter decision reports before any advanced backend implementation.
+   - Document what latent structure would justify IMM, PF, or RBPF.
+   - Add particle or Rao-Blackwell particle filtering only when a failure case and metric justify them.
 
 Validation:
-- Schema checks for trajectory, feature, prediction, and metrics artifacts.
-- Deterministic seed-reproducibility tests for dataset generation and metrics.
-- Posterior normalization tests: all probabilities sum to 1, remain in range, and match argmax predictions.
-- Easy-vs-boundary-vs-adversarial dataset tests showing the expected accuracy and calibration ordering.
-- Hand-computed Bayesian update tests and prior-sweep tests for the accumulator.
-- Running extrema, fixed-window, and outlier-sensitivity tests for feature extraction.
-- Constant-velocity, constant-acceleration, and irregular-`dt` tests for the Kalman bank.
-- Switching-mode tests for IMM and nonlinear/non-Gaussian tests for particle filtering before adoption.
-- Identifiability tests proving the analyzer flags overlapping classes and separates clearly distinct ones.
-- Monte Carlo tests confirming accuracy, confidence, calibration, and abstention behavior evolve sensibly over time.
+- All implemented classifiers emit the same posterior and prediction schema.
+- Posterior probabilities sum to one for every classifier and trajectory.
+- Pointwise, windowed, Bayesian accumulator, and Kalman bank can be compared through the same metrics code.
+- Two evidence providers with identical log-likelihood streams produce identical posterior histories.
+- Every feature declares history behavior, sensitivity, and dimensional transfer status.
+- Every cumulative feature is labeled cumulative.
+- The dimensional lift audit marks each module with an explicit dimensional status.
+- A fake vector-valued corpus can pass through the generic harness far enough to produce standard artifacts.
+- PF and RBPF decision reports document:
+  - what would be sampled
+  - what would be marginalized analytically
+  - what simpler method fails
+  - what metric would justify implementation
 
 Artifacts / Config:
-- `experiments/*.yaml` for experiment configs.
-- `runs/<timestamp>_<name>/config.yaml` for captured configs.
-- `dataset_manifest.json`, `class_definitions.json`, `feature_manifest.json`.
-- `predictions.parquet`, `posterior_history.parquet`, `likelihood_history.parquet`, `feature_matrix.parquet`.
-- `metrics.json`, `confusion_final.csv`, `confusion_by_time.parquet`, `prior_sensitivity.parquet`, `identifiability_matrix.csv`.
-- `plots/` subdirectories for trajectories, posteriors, confusion matrices, Monte Carlo, feature space, priors, and PCA.
-- `report.md` as the human-readable summary for every run.
+- `artifacts/generic_inference_contract/`
+- `artifacts/feature_taxonomy/`
+- `artifacts/classification_evidence_proof/`
+- `artifacts/filtering_contract/`
+- `artifacts/dimensional_lift_audit/`
+- `artifacts/corpus_adequacy_audit_v1/`
+- `experiments/*.yaml`
+- `feature_sets.json`, `class_pair_manifest.json`, `classifier_manifest.json`
+- standardized predictions, posterior histories, likelihood histories, feature matrices, and run reports
 
 Dependencies:
-- Shared artifact and schema definitions.
-- Synthetic trajectory generator and scenario library.
-- Feature extraction utilities with explicit history metadata.
-- Common plotting/reporting helpers.
-- Baseline Bayesian and Kalman filtering utilities.
-- Optional numerical helpers for PCA, overlap metrics, calibration, and pairwise separability.
+- Current `M10` common harness work in `PLN-007`
+- Current `M11` feature-set and class-pair work in `PLN-009`
+- Existing artifact contracts, feature analysis, PCA, adequacy, coverage, and generator modules
+- Existing advanced-filter decision logic as a deferral baseline, not yet as a trigger for implementation
 
-Last Updated: 2026-05-22
+Recommended Milestone Order:
+- `M10`: Common experiment harness
+- `M11`: Feature-set and class-pair comparison
+- `M12`: Generic inference contract
+- `M13`: Generic feature taxonomy and feature-set proof
+- `M14`: Generic classification and evidence-combination proof
+- `M15`: Generic filtering contract
+- `M16`: Dimensional lift audit
+- `M17`: Corpus adequacy and coverage framework
+- `M18`: Switching and transition models
+- `M19`: Advanced filter decision report
+- `M20`: Minimal particle-filter prototype, only if justified
+- `M21`: Minimal Rao-Blackwell particle-filter prototype, only if justified
+
+Decision Rule For Advanced Filters:
+- Do not add IMM, particle filtering, or RBPF merely because they are available techniques.
+- Add IMM only after simpler transition-aware methods fail on documented switching cases.
+- Add PF only after nonlinear or non-Gaussian cases remain unresolved on documented failure cases.
+- Add RBPF only after the repo can state clearly:
+  - what latent variables are sampled
+  - what conditional state is filtered analytically
+  - why a Kalman bank or IMM is not enough
+  - what benchmark proves Rao-Blackwellization helps
+
+Last Updated: 2026-05-24

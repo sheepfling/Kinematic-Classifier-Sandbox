@@ -103,7 +103,6 @@ class PointwiseBenchmarkArtifacts:
     report_path: Path
     posterior_history_path: Path
     confusion_matrix_path: Path
-    plot_svg_path: Path
     plot_png_path: Path
     config_path: Path
     dataset_manifest_path: Path
@@ -388,14 +387,12 @@ def write_pointwise_benchmark_artifacts(
     report_path = run_dir / "pointwise_baseline_report.md"
     posterior_history_path = run_dir / "posterior_history.csv"
     confusion_matrix_path = run_dir / "confusion_final.csv"
-    plot_svg_path = run_dir / "pointwise_baseline_diagnostics.svg"
     plot_png_path = run_dir / "pointwise_baseline_diagnostics.png"
     config_path = run_dir / "pointwise_classifier_config.yaml"
     dataset_manifest_path = run_dir / "dataset_manifest.json"
     class_definitions_path = run_dir / "likelihood_parameters.json"
 
     report_path.write_text(render_pointwise_benchmark_report(benchmark_result), encoding="utf-8")
-    plot_svg_path.write_text(render_pointwise_benchmark_svg(benchmark_result), encoding="utf-8")
     plot_png_path.write_bytes(render_pointwise_benchmark_png_bytes(benchmark_result))
 
     posterior_rows: list[dict[str, object]] = []
@@ -483,7 +480,6 @@ def write_pointwise_benchmark_artifacts(
         report_path=report_path,
         posterior_history_path=posterior_history_path,
         confusion_matrix_path=confusion_matrix_path,
-        plot_svg_path=plot_svg_path,
         plot_png_path=plot_png_path,
         config_path=config_path,
         dataset_manifest_path=dataset_manifest_path,
