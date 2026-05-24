@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{Witness problems used to prove distinct methodology layers.}
+\label{tab:witness_problems}
+\begin{tabularx}{\textwidth}{lXXX}
+\toprule
+toy\_problem\_id & purpose & what\_it\_proves & known\_limitations \\
+\midrule
+pointwise\_easy\_overlap & Lower-bound instantaneous classifier baseline & A minimal likelihood-only baseline exists and can be audited for prior fragility. & Cannot exploit history or dynamics. \\
+windowed\_outlier\_witness & Show robust extrema beating raw extrema under outliers & Feature design changes class stability under corrupted observations. & Feature contributions are not independent Bayes terms. \\
+sequential\_history\_help & Demonstrate that sequential accumulation improves over pointwise evidence & History can improve classification and exposes prior sensitivity explicitly. & Still static-class unless switching logic is added. \\
+kalman\_endpoint\_match & Show model-based filtering on matched-endpoint irregular tracks & Dynamics-aware evidence helps when endpoint-only reasoning fails. & Position-only sensing remains weak on short noisy horizons. \\
+transition\_switching\_bridge & Bridge from static accumulation to explicit switching dynamics & Switching structure can help before IMM is justified. & Not yet a full IMM or nonlinear filter. \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -2,7 +2,7 @@
 
 Title: M17 Corpus Adequacy And Coverage Framework
 Plan ID: PLN-015
-Status: proposed
+Status: done
 Owner: @rick
 Priority: P1
 Objective: Make corpus quality measurable independently of classifier choice by auditing balance, excitation, leakage, duration, scenario coverage, and boundary coverage through a stable methodology layer.

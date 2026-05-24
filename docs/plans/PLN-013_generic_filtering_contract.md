@@ -2,7 +2,7 @@
 
 Title: M15 Generic Filtering Contract
 Plan ID: PLN-013
-Status: proposed
+Status: done
 Owner: @rick
 Priority: P1
 Objective: Define a generic filtering contract that treats Kalman, future particle filters, and future Rao-Blackwell particle filters as interchangeable state-and-evidence backends for the same downstream methodology.

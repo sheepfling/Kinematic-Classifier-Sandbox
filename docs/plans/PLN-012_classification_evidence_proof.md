@@ -2,7 +2,7 @@
 
 Title: M14 Generic Classification And Evidence-Combination Proof
 Plan ID: PLN-012
-Status: proposed
+Status: done
 Owner: @rick
 Priority: P1
 Objective: Prove that the repo's classifiers are instances of a common evidence-provider plus posterior-updater pattern rather than separate algorithm silos.

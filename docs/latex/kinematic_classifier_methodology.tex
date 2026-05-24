@@ -1,0 +1,103 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\graphicspath{{figures/}}
+
+\title{Kinematic Classifier Methodology: Automated Study Design, Corpus Synthesis, and Evidence-Grounded Promotion}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document describes the repository as a methodology stack rather than only as a 1D classifier benchmark. The core contribution is an automated loop over corpus design, feature-set and class-pair analysis, classifier-family evaluation, Bayesian evidence inspection, validation-ladder promotion, and dimensional-transfer auditing. The current 1D studies serve as witness problems proving the methodology layers while also defining the gates that must be satisfied before more advanced filtering or a true 3D transition is justified.
+\end{abstract}
+
+\section{Problem Formulation}
+The active repository goal is not only to maximize one benchmark score, but to prove that a study candidate can be declared, screened, executed, audited, and promoted through a reusable methodology surface. A study candidate combines a corpus, feature set, class set, classifier family, prior specification, and optional filtering backend.
+
+\section{Generic Study Object}
+The machine-readable study candidate schema and validation-ladder schema are implemented in the repository and exercised by the current artifact generation path. The workflow is checklist-driven: static compatibility, corpus adequacy, feature separability, oracle separability, classifier performance, posterior quality, prior sensitivity, robustness, dimensional transfer, and final promotion decision.
+
+\section{Bayesian Evidence Model}
+The repository treats posterior updating as a reusable contract. For class label $c$ and observation history $y_{1:k}$, the recursive update is
+\begin{equation}
+p_k(c) = \frac{p(y_k \mid c)\, p_{k-1}(c)}{\sum_{c'} p(y_k \mid c')\, p_{k-1}(c')}.
+\end{equation}
+In log form,
+\begin{equation}
+\log p_k(c) = \log p_{k-1}(c) + \log p(y_k \mid c) - \log Z_k,
+\end{equation}
+and in the two-class case the log-odds recursion becomes
+\begin{equation}
+\log \frac{p_k(a)}{p_k(b)} = \log \frac{p_{k-1}(a)}{p_{k-1}(b)} + \log \frac{p(y_k \mid a)}{p(y_k \mid b)}.
+\end{equation}
+This is why the walkthrough artifacts emphasize Bayes factors, prior sweeps, and flip thresholds rather than only endpoint accuracy.
+
+\section{Feature Taxonomy}
+The methodology distinguishes instantaneous, windowed, cumulative, robust-summary, derivative-based, and model-residual evidence. Instantaneous features look the most like fresh evidence. Windowed and robust features are summary evidence. Cumulative features can double-count prior signal if they are treated as independent measurements. Model-residual features compare observations against class-conditioned dynamics and are therefore the natural bridge toward filtering backends.
+
+\section{Witness Problems}
+\input{tables/toy_problem_summary_table.tex}
+
+\section{Algorithm Ladder}
+\input{tables/algorithm_ladder_table.tex}
+
+\section{Bayesian Update Walkthrough}
+The current repository emits representative Bayesian walkthroughs from promoted and revised study candidates. These use real common-study trajectories and expose prior odds, class-score increments, posterior odds, prior sweeps, and flip thresholds. The step table below is a compact numeric witness of that process.
+\input{tables/bayesian_update_walkthrough_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{prior_sweep_examples.png}
+\caption{Representative prior-sweep examples from the Bayesian walkthrough suite.}
+\end{figure}
+
+\section{Corpus Adequacy-Driven Corpus Synthesis}
+The corpus layer is treated as an optimization problem over balance, boundary coverage, feature excitation, leakage control, difficulty diversity, and nontriviality. The current automation does not simply audit the default corpus; it generates and ranks alternatives.
+\input{tables/corpus_synthesis_algorithm.tex}
+
+\section{Automated Study Proposal and Promotion}
+The repository now automatically generates study candidates from declared manifests and uses a validation ladder to issue \texttt{promote}, \texttt{revise}, \texttt{reject}, and \texttt{defer} decisions. The algorithmic skeleton used by the current implementation is:
+\input{tables/study_candidate_generation_algorithm.tex}
+
+\section{Corpus Synthesis and Adequacy}
+Corpus design is treated as an optimization problem over balance, boundary coverage, feature excitation, leakage control, difficulty diversity, and nontriviality. Candidate corpora are generated, scored, compared, and filtered through a Pareto-style view instead of being tuned only by anecdotal benchmark inspection.
+
+\section{Feature and Class-Pair Analysis}
+The methodology separates static identifiability from end-to-end classifier success. Feature-space overlap, oracle separability, pair difficulty, and duration/noise sensitivity are all treated as first-class evidence surfaces. This helps distinguish feature failure, corpus failure, and classifier failure.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{class_confusability_heatmap.png}
+\caption{Feature-space confusability remains pair-specific and motivates targeted feature or corpus work instead of one global leaderboard conclusion.}
+\end{figure}
+
+\section{Filtering Taxonomy and Advanced-Method Gates}
+The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, and transition-matrix evidence surfaces. It also records explicit no-go decisions for IMM, PF, and RBPF unless switching-mode or nonlinear evidence demands them. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains decision-gated, PF remains decision-gated, and RBPF is only meaningful if future vector studies expose conditionally tractable mixed discrete/continuous structure.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{transition_matrix_diagnostics.png}
+\caption{Transition-matrix accumulation improves on static accumulation for switching trajectories and acts as the bridge evidence before considering IMM.}
+\end{figure}
+
+\section{Results Summary}
+The current artifact stack proves the methodology process: study candidates can be declared, screened statically, evaluated against generated corpora, explained through posterior and prior-sensitivity surfaces, and assigned promotion decisions. It does not yet prove that the current synthetic corpus is final or fully adequate for every future class family.
+
+\section{3D Transition Status}
+The current methodology layer distinguishes three statuses: \texttt{dimension\_agnostic}, \texttt{adapter\_compatible}, and \texttt{rewrite\_required}. Contracts, shared evaluation, and study promotion are already dimension-aware. Scalar feature extraction and scalar state-space filtering remain rewrite-required, so current 3D readiness is methodological rather than dynamical.
+
+\section{Limitations and Next Work}
+The current common-study evidence still uses a class-score proxy for some walkthroughs, not a pure additive sensor likelihood decomposition for every family. The 1D studies are witness problems rather than a final deployment corpus. The next work after this paper bundle is a proof-oriented showcase refresh that organizes the packet around explicit claims and evidence, followed by true vector corpus, vector feature, and vector filter implementations for a full 3D lift.
+
+\end{document}

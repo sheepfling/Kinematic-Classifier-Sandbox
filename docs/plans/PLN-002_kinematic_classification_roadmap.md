@@ -2,7 +2,7 @@
 
 Title: Kinematic Classification Lab Roadmap
 Plan ID: PLN-002
-Status: in_progress
+Status: done
 Owner: @rick
 Priority: P1
 Objective: Turn the sandbox into a generic kinematic-classification and filtering methodology framework whose corpus, feature, evidence, posterior, filtering, analysis, and visualization layers remain reusable as the repo moves from 1D studies toward 3D studies.

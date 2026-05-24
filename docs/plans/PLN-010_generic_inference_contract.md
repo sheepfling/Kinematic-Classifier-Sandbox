@@ -2,7 +2,7 @@
 
 Title: M12 Generic Inference Contract
 Plan ID: PLN-010
-Status: proposed
+Status: done
 Owner: @rick
 Priority: P1
 Objective: Define and prove a generic inference contract so pointwise, windowed, Bayesian accumulator, and Kalman-bank methods all emit compatible evidence, posterior, prediction, and optional filter artifacts.

@@ -27,7 +27,13 @@ class FeatureAnalysisTests(unittest.TestCase):
 
         self.assertEqual(speed_range.name, "speed_range")
         self.assertEqual(speed_range.group, "finite_difference_velocity")
+        self.assertEqual(speed_range.role, "kinematics")
         self.assertTrue(speed_range.description)
+        self.assertEqual(speed_range.history_behavior, "windowed")
+        self.assertTrue(speed_range.geometry_assumption)
+        self.assertTrue(speed_range.dimensional_transfer)
+        self.assertTrue(speed_range.dependency_tags)
+        self.assertTrue(speed_range.sensitivity_tags)
         self.assertEqual(len(speed_range.default_excitation_thresholds), 3)
         self.assertLess(
             speed_range.default_excitation_thresholds[0],
@@ -53,6 +59,15 @@ class FeatureAnalysisTests(unittest.TestCase):
                 "quadratic_fit_residual",
             ),
         )
+
+    def test_feature_names_can_be_selected_by_tags(self) -> None:
+        sampling_features = resolve_feature_names(required_tags=("sampling",))
+        outlier_features = resolve_feature_names(required_tags=("outlier_sensitive",))
+        vector_timing_features = resolve_feature_names(required_tags=("vector_compatible", "timing"))
+
+        self.assertIn("mean_dt", sampling_features)
+        self.assertIn("outlier_score", outlier_features)
+        self.assertIn("sampling_irregularity", vector_timing_features)
 
     def test_feature_analysis_reports_excitation_and_separability(self) -> None:
         result = analyze_feature_datasets(seed=7, trajectories_per_class=5)

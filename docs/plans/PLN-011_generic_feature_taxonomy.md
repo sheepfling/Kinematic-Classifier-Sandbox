@@ -2,7 +2,7 @@
 
 Title: M13 Generic Feature Taxonomy And Feature-Set Proof
 Plan ID: PLN-011
-Status: proposed
+Status: done
 Owner: @rick
 Priority: P1
 Objective: Prove that the repo's feature machinery is based on generic feature principles rather than one-off 1D feature hacks by attaching role, sensitivity, history, and dimensional-transfer metadata to every feature.

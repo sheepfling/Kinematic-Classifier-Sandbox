@@ -1,0 +1,34 @@
+class_balance:
+  target: uniform
+  tolerance: 0.10
+
+scenario_balance:
+  required_tiers:
+    - easy
+    - boundary
+    - adversarial
+    - stress
+    - realistic
+
+class_pair_boundary_coverage:
+  minimum_boundary_fraction: 0.20
+
+feature_excitation:
+  minimum_excitation_per_feature_group: medium
+
+covariate_leakage:
+  max_duration_class_correlation: 0.20
+  max_sample_count_class_correlation: 0.20
+  max_noise_class_correlation: 0.20
+
+difficulty_distribution:
+  easy_fraction: 0.30
+  boundary_fraction: 0.30
+  adversarial_fraction: 0.20
+  stress_fraction: 0.10
+  realistic_fraction: 0.10
+
+posterior_entropy_targets:
+  easy: low
+  boundary: medium_high
+  adversarial: mixed

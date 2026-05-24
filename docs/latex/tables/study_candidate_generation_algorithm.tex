@@ -1,0 +1,7 @@
+\begin{enumerate}
+  \item Load the current class-pair manifest, feature-set manifest, classifier manifest, and corpus objectives.
+  \item Enumerate study candidates over $(\text{class pair}, \text{feature set}, \text{classifier}, \text{prior})$.
+  \item Score each candidate statically for feature-class compatibility, oracle separability, corpus coverage, dimensional transfer, and double-counting risk.
+  \item Reuse executed common-study evidence where available to attach classifier accuracy, prior sensitivity, and robustness signals.
+  \item Emit \texttt{promote}, \texttt{revise}, \texttt{reject}, or \texttt{defer} according to the validation ladder rather than ad hoc manual judgment.
+\end{enumerate}

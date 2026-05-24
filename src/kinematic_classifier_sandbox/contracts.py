@@ -67,7 +67,7 @@ class TrajectoryArtifact:
     scenario_id: str
     seed: int
     times: tuple[float, ...]
-    measurements: tuple[float, ...]
+    measurements: tuple[Any, ...]
     measurement_dim: int = 1
     measurement_axes: tuple[str, ...] = ("position",)
     coordinate_frame: str = "scalar_line"
@@ -145,8 +145,20 @@ def validate_trajectory_artifact(artifact: TrajectoryArtifact) -> list[str]:
             errors.append("times must be strictly increasing")
             break
     for index, value in enumerate(artifact.measurements):
-        if not _is_finite(value):
-            errors.append(f"measurement[{index}] is not finite")
+        if artifact.measurement_dim == 1:
+            if not _is_finite(float(value)):
+                errors.append(f"measurement[{index}] is not finite")
+        else:
+            if not isinstance(value, (tuple, list)):
+                errors.append(f"measurement[{index}] must be a sequence for measurement_dim > 1")
+                continue
+            if len(value) != artifact.measurement_dim:
+                errors.append(f"measurement[{index}] must match measurement_dim")
+                continue
+            for component_index, component in enumerate(value):
+                if not _is_finite(float(component)):
+                    errors.append(f"measurement[{index}][{component_index}] is not finite")
+                    break
     optional_series = {
         "true_position": artifact.true_position,
         "true_velocity": artifact.true_velocity,

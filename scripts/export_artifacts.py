@@ -34,6 +34,7 @@ from kinematic_classifier_sandbox import (
     write_kalman_bank_artifacts,
     write_kalman_variant_comparison_artifacts,
     write_kalman_observable_comparison_artifacts,
+    write_pca_dimensionality_audit_artifacts,
     write_short_horizon_identifiability_artifacts,
     write_irregular_window_artifacts,
     write_transition_benchmark_artifacts,
@@ -45,6 +46,17 @@ from kinematic_classifier_sandbox import (
     write_technique_comparison_artifacts,
     write_common_dataset_comparison_artifacts,
     write_common_experiment_artifacts,
+    write_generic_inference_contract_artifacts,
+    write_generic_feature_taxonomy_artifacts,
+    write_generic_classification_evidence_proof_artifacts,
+    write_generic_filtering_contract_artifacts,
+    write_dimensional_lift_audit_artifacts,
+    write_study_candidate_protocol_artifacts,
+    write_corpus_autodevelopment_artifacts,
+    write_study_candidate_generation_artifacts,
+    write_validation_ladder_artifacts,
+    write_bayesian_walkthrough_artifacts,
+    write_methodology_latex_artifacts,
     write_trajectory_generator_artifacts,
     write_abstract_inspection_artifacts,
     write_accumulator_artifacts,
@@ -68,6 +80,7 @@ from kinematic_classifier_sandbox import (
     write_posterior_margin_trace_artifacts,
     write_pointwise_benchmark_artifacts,
     write_windowed_benchmark_artifacts,
+    build_showcase_artifacts,
     write_toy_benchmark_plot_artifacts,
     write_toy_feature_confusion_artifacts,
     write_toy_benchmark_trace_csv,
@@ -111,6 +124,16 @@ def main() -> int:
         ROOT / "artifacts",
         config_path=ROOT / "experiments" / "common_1d_boundary_study" / "common_experiment_config.yaml",
     )
+    generic_inference_contract_artifacts = write_generic_inference_contract_artifacts(ROOT / "artifacts")
+    generic_feature_taxonomy_artifacts = write_generic_feature_taxonomy_artifacts(ROOT / "artifacts")
+    generic_classification_evidence_proof_artifacts = write_generic_classification_evidence_proof_artifacts(ROOT / "artifacts")
+    generic_filtering_contract_artifacts = write_generic_filtering_contract_artifacts(ROOT / "artifacts")
+    dimensional_lift_audit_artifacts = write_dimensional_lift_audit_artifacts(ROOT / "artifacts")
+    study_candidate_protocol_artifacts = write_study_candidate_protocol_artifacts(ROOT / "artifacts")
+    corpus_autodevelopment_artifacts = write_corpus_autodevelopment_artifacts(ROOT / "artifacts")
+    study_candidate_generation_artifacts = write_study_candidate_generation_artifacts(ROOT / "artifacts")
+    validation_ladder_artifacts = write_validation_ladder_artifacts(ROOT / "artifacts")
+    bayesian_walkthrough_artifacts = write_bayesian_walkthrough_artifacts(ROOT / "artifacts")
     trajectory_generator_artifacts = write_trajectory_generator_artifacts(ROOT / "artifacts")
     abstract_inspection_artifacts = write_abstract_inspection_artifacts(
         ROOT / "artifacts",
@@ -122,6 +145,14 @@ def main() -> int:
     corpus_adequacy_artifacts = write_corpus_adequacy_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
     coverage_report_artifacts = write_coverage_report_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
     pca_analysis_artifacts = write_pca_analysis_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5, n_components=3)
+    methodology_latex_artifacts = write_methodology_latex_artifacts(ROOT / "artifacts")
+    pca_dimensionality_artifacts = write_pca_dimensionality_audit_artifacts(
+        ROOT / "artifacts",
+        seed=7,
+        trajectories_per_class=5,
+        max_components=5,
+    )
+    showcase_artifacts = build_showcase_artifacts(ROOT / "artifacts", refresh=False, create_zip=False)
     posterior_math_markdown_path, posterior_math_png_path = write_posterior_math_artifacts(
         ROOT / "artifacts"
     )
@@ -230,6 +261,31 @@ def main() -> int:
     print(common_experiment_artifacts.report_path)
     print(boundary_common_experiment_artifacts.run_dir)
     print(boundary_common_experiment_artifacts.report_path)
+    print(generic_inference_contract_artifacts.run_dir)
+    print(generic_inference_contract_artifacts.report_path)
+    print(generic_feature_taxonomy_artifacts.run_dir)
+    print(generic_feature_taxonomy_artifacts.transfer_report_path)
+    print(generic_classification_evidence_proof_artifacts.run_dir)
+    print(generic_classification_evidence_proof_artifacts.classification_principles_report_path)
+    print(generic_filtering_contract_artifacts.run_dir)
+    print(generic_filtering_contract_artifacts.filtering_principles_report_path)
+    print(dimensional_lift_audit_artifacts.run_dir)
+    print(dimensional_lift_audit_artifacts.audit_report_path)
+    print(study_candidate_protocol_artifacts.run_dir)
+    print(study_candidate_protocol_artifacts.protocol_path)
+    print(study_candidate_protocol_artifacts.validation_ladder_schema_path)
+    print(corpus_autodevelopment_artifacts.run_dir)
+    print(corpus_autodevelopment_artifacts.report_path)
+    print(study_candidate_generation_artifacts.run_dir)
+    print(study_candidate_generation_artifacts.decision_report_path)
+    print(validation_ladder_artifacts.run_dir)
+    print(validation_ladder_artifacts.report_path)
+    print(bayesian_walkthrough_artifacts.run_dir)
+    print(bayesian_walkthrough_artifacts.report_path)
+    print(methodology_latex_artifacts.run_dir)
+    print(methodology_latex_artifacts.artifact_tex_path)
+    if methodology_latex_artifacts.pdf_path is not None:
+        print(methodology_latex_artifacts.pdf_path)
     print(trajectory_generator_artifacts.run_dir)
     print(trajectory_generator_artifacts.report_path)
     print(abstract_inspection_artifacts.run_dir)
@@ -238,10 +294,16 @@ def main() -> int:
     print(feature_analysis_artifacts.report_path)
     print(corpus_adequacy_artifacts.run_dir)
     print(corpus_adequacy_artifacts.report_path)
+    print(pca_dimensionality_artifacts.run_dir)
+    print(pca_dimensionality_artifacts.report_path)
     print(coverage_report_artifacts.run_dir)
     print(coverage_report_artifacts.report_path)
     print(pca_analysis_artifacts.run_dir)
     print(pca_analysis_artifacts.report_path)
+    print(showcase_artifacts.showcase_dir)
+    print(showcase_artifacts.index_path)
+    print(showcase_artifacts.team_packet_dir)
+    print(showcase_artifacts.validation_path)
     print(posterior_math_markdown_path)
     print(posterior_math_png_path)
     print(probability_primitives_markdown_path)

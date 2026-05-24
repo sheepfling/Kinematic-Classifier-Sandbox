@@ -3,10 +3,56 @@
 .pytest_cache
 .ruff_cache
 .mypy_cache
+.pyre/
+.hypothesis/
+.tox/
+.nox/
 cache
 archive
 artifacts/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.so
+*.dylib
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+build/
+dist/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+site/
 tmp/
 .DS_Store
+Thumbs.db
+
+# Local editor / IDE noise
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Test and debug leftovers
+pytestdebug.log
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+# Local env / notebook noise
+.env
+.env.*
+.ipynb_checkpoints/
+
+# Local database / cache files
+*.db
+*.sqlite
+*.sqlite3

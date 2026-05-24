@@ -2,7 +2,7 @@
 
 Title: Build a Real Multi-Study Common Experiment Harness
 Plan ID: PLN-007
-Status: in_progress
+Status: done
 Owner: @codex
 Priority: P1
 Objective: Replace the current common-1D-specialized harness path with a real multi-study experiment harness that runs from manifest/config inputs, emits one shared artifact contract, and serves as the execution backbone for the generic methodology proof phase rather than only the current scalar toy problem.

@@ -486,11 +486,14 @@ def analyze_corpus_adequacy(
     seed: int = 7,
     trajectories_per_class: int = 5,
     thresholds: CorpusAdequacyThresholds | None = None,
+    datasets: tuple[object, ...] | None = None,
+    feature_analysis_result: FeatureAnalysisResult | None = None,
 ) -> CorpusAdequacyResult:
     selected_thresholds = thresholds or CorpusAdequacyThresholds()
-    feature_analysis = analyze_feature_datasets(
+    feature_analysis = feature_analysis_result or analyze_feature_datasets(
         seed=seed,
         trajectories_per_class=trajectories_per_class,
+        datasets=datasets,
     )
     feature_set_rows, feature_recommendations = _feature_set_coverage_rows(feature_analysis, selected_thresholds)
     class_pair_rows, pair_recommendations = _class_pair_rows(feature_analysis, selected_thresholds)

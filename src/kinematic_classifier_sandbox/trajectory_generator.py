@@ -604,35 +604,37 @@ def generate_trajectory_dataset(
     *,
     seed: int = 7,
     trajectories_per_class: int | None = None,
+    tier_definition: DatasetTierDefinition | None = None,
+    class_definitions: tuple[TrajectoryClassDefinition, ...] | None = None,
 ) -> GeneratedTrajectoryDataset:
-    tier_definition = _tier_by_name(tier_name)
-    class_definitions = default_trajectory_class_definitions()
+    resolved_tier_definition = tier_definition or _tier_by_name(tier_name)
+    resolved_class_definitions = class_definitions or default_trajectory_class_definitions()
     rng = random.Random(seed)
     trajectories: list[TrajectoryArtifact] = []
-    for class_index, class_definition in enumerate(class_definitions):
-        count = trajectories_per_class if trajectories_per_class is not None else tier_definition.trajectories_per_class
+    for class_index, class_definition in enumerate(resolved_class_definitions):
+        count = trajectories_per_class if trajectories_per_class is not None else resolved_tier_definition.trajectories_per_class
         for trajectory_index in range(count):
             trajectory_seed = rng.randrange(1 << 30) + class_index * 10_000 + trajectory_index
             local_rng = random.Random(trajectory_seed)
-            steps, dt, measurement_std = _sample_steps_and_dt(local_rng, class_definition, tier_definition)
-            params = _sample_parameters(local_rng, class_definition, tier_definition)
+            steps, dt, measurement_std = _sample_steps_and_dt(local_rng, class_definition, resolved_tier_definition)
+            params = _sample_parameters(local_rng, class_definition, resolved_tier_definition)
             times = _generate_times(
                 local_rng,
                 steps,
                 dt,
-                tier_definition.irregular_sampling_strength + class_definition.irregular_sampling_strength,
+                resolved_tier_definition.irregular_sampling_strength + class_definition.irregular_sampling_strength,
             )
             positions_true, velocities_true, accelerations_true = _generate_states(class_definition, times, params)
             measurements, outlier_indices = _inject_measurement_noise(
                 local_rng,
                 positions_true,
                 measurement_std,
-                tier_definition.outlier_probability + class_definition.outlier_probability,
+                resolved_tier_definition.outlier_probability + class_definition.outlier_probability,
             )
-            scenario_id = f"{tier_definition.name}_{class_definition.name}_{trajectory_index}"
+            scenario_id = f"{resolved_tier_definition.name}_{class_definition.name}_{trajectory_index}"
             trajectory = _make_trajectory(
                 class_definition=class_definition,
-                tier_definition=tier_definition,
+                tier_definition=resolved_tier_definition,
                 steps=steps,
                 dt=dt,
                 measurement_std=measurement_std,
@@ -648,10 +650,10 @@ def generate_trajectory_dataset(
             )
             trajectories.append(trajectory)
     return GeneratedTrajectoryDataset(
-        tier=tier_definition.name,
+        tier=resolved_tier_definition.name,
         seed=seed,
-        class_definitions=class_definitions,
-        tier_definition=tier_definition,
+        class_definitions=resolved_class_definitions,
+        tier_definition=resolved_tier_definition,
         trajectories=tuple(trajectories),
     )
 
@@ -660,14 +662,19 @@ def generate_trajectory_datasets(
     *,
     seed: int = 7,
     trajectories_per_class: int | None = None,
+    tier_definitions: tuple[DatasetTierDefinition, ...] | None = None,
+    class_definitions: tuple[TrajectoryClassDefinition, ...] | None = None,
 ) -> tuple[GeneratedTrajectoryDataset, ...]:
+    resolved_tier_definitions = tier_definitions or default_dataset_tiers()
     return tuple(
         generate_trajectory_dataset(
             tier_definition.name,
             seed=seed + index * 101,
             trajectories_per_class=trajectories_per_class,
+            tier_definition=tier_definition,
+            class_definitions=class_definitions,
         )
-        for index, tier_definition in enumerate(default_dataset_tiers())
+        for index, tier_definition in enumerate(resolved_tier_definitions)
     )
 
 

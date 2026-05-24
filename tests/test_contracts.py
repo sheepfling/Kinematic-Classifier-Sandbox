@@ -33,7 +33,11 @@ class ContractTests(unittest.TestCase):
             scenario_id="scenario",
             seed=1,
             times=(0.0, 1.0, 2.0),
-            measurements=(0.1, 0.2, 0.3),
+            measurements=(
+                (0.1, 0.0, 0.0),
+                (0.2, 0.1, 0.0),
+                (0.3, 0.1, 0.1),
+            ),
             measurement_dim=3,
             measurement_axes=("x", "y", "z"),
             coordinate_frame="enu",

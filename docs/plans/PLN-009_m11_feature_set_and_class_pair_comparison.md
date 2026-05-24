@@ -2,7 +2,7 @@
 
 Title: M11 Feature-Set And Class-Pair Comparison
 Plan ID: PLN-009
-Status: in_progress
+Status: done
 Owner: @codex
 Priority: P1
 Objective: Extend the common experiment harness so feature-set studies and class-pair studies are emitted as first-class executable artifacts, and so `M12` through `M17` can treat feature bundles and hard boundaries as explicit methodology-level study dimensions rather than hidden byproducts of the broader `M10` run surface.

@@ -1,0 +1,15 @@
+\begin{table}[htbp]
+\centering
+\caption{Representative Bayesian walkthrough steps from a promoted study candidate.}
+\label{tab:bayes_walkthrough}
+\begin{tabularx}{\textwidth}{cccclc}
+\toprule
+time & prior\_class\_a & incremental\_log\_bayes\_factor\_ab\_proxy & posterior\_class\_a & predicted\_class & confidence \\
+\midrule
+0.0 & 0.5 & 0.0 & 0.5 & constant\_velocity & 0.5 \\
+0.5 & 0.5 & -0.143 & 0.464 & constant\_acceleration & 0.536 \\
+1.0 & 0.464 & -0.074 & 0.446 & constant\_acceleration & 0.554 \\
+1.5 & 0.446 & -0.696 & 0.286 & constant\_acceleration & 0.714 \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -397,7 +397,13 @@ class OneDimensionalFeatureComputationContext(BaseFeatureComputationContext):
 class FeatureSpec:
     name: str
     group: str
+    role: str
     description: str
+    history_behavior: str
+    geometry_assumption: str
+    dimensional_transfer: str
+    dependency_tags: tuple[str, ...]
+    sensitivity_tags: tuple[str, ...]
     default_excitation_thresholds: tuple[float, float, float]
     extractor: Callable[[OneDimensionalFeatureComputationContext], float]
 
@@ -450,105 +456,195 @@ FEATURE_REGISTRY: dict[str, FeatureSpec] = {
     "duration": FeatureSpec(
         name="duration",
         group="timing",
+        role="coverage",
         description="Total trajectory duration in seconds.",
+        history_behavior="cumulative",
+        geometry_assumption="dimension_agnostic",
+        dimensional_transfer="vector_compatible",
+        dependency_tags=("time", "coverage", "window_length"),
+        sensitivity_tags=("duration_sensitive", "sample_count_sensitive"),
         default_excitation_thresholds=(4.0, 8.0, 12.0),
         extractor=lambda context: context.duration,
     ),
     "mean_dt": FeatureSpec(
         name="mean_dt",
         group="timing",
+        role="sampling",
         description="Mean sample interval across the trajectory.",
+        history_behavior="cumulative",
+        geometry_assumption="dimension_agnostic",
+        dimensional_transfer="vector_compatible",
+        dependency_tags=("time", "sampling", "dt_statistics"),
+        sensitivity_tags=("sampling_rate_sensitive",),
         default_excitation_thresholds=(0.45, 0.75, 1.05),
         extractor=lambda context: context.mean_dt,
     ),
     "std_dt": FeatureSpec(
         name="std_dt",
         group="timing",
+        role="sampling",
         description="Standard deviation of sample intervals.",
+        history_behavior="cumulative",
+        geometry_assumption="dimension_agnostic",
+        dimensional_transfer="vector_compatible",
+        dependency_tags=("time", "sampling", "dt_statistics"),
+        sensitivity_tags=("sampling_irregularity_sensitive",),
         default_excitation_thresholds=(0.05, 0.15, 0.30),
         extractor=lambda context: context.std_dt,
     ),
     "max_dt": FeatureSpec(
         name="max_dt",
         group="timing",
+        role="sampling",
         description="Largest sample interval in the trajectory.",
+        history_behavior="cumulative",
+        geometry_assumption="dimension_agnostic",
+        dimensional_transfer="vector_compatible",
+        dependency_tags=("time", "sampling", "dt_statistics"),
+        sensitivity_tags=("sampling_gap_sensitive",),
         default_excitation_thresholds=(0.75, 1.10, 1.60),
         extractor=lambda context: context.max_dt,
     ),
     "position_range": FeatureSpec(
         name="position_range",
         group="position",
+        role="extent",
         description="Observed position span from min to max.",
+        history_behavior="cumulative",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="requires_vector_norm_or_axis_policy",
+        dependency_tags=("measurement", "extrema", "range"),
+        sensitivity_tags=("duration_sensitive", "outlier_sensitive"),
         default_excitation_thresholds=(2.0, 6.0, 12.0),
         extractor=lambda context: context.position_range,
     ),
     "speed_range": FeatureSpec(
         name="speed_range",
         group="finite_difference_velocity",
+        role="kinematics",
         description="True speed span across the trajectory.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="vector_compatible_with_speed_norm",
+        dependency_tags=("finite_difference", "velocity", "range"),
+        sensitivity_tags=("noise_sensitive", "dt_sensitive"),
         default_excitation_thresholds=(0.15, 0.60, 1.25),
         extractor=lambda context: context.speed_range,
     ),
     "acceleration_variance": FeatureSpec(
         name="acceleration_variance",
         group="residual",
+        role="kinematics",
         description="Variance of the true acceleration sequence.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="vector_compatible_with_component_or_norm_policy",
+        dependency_tags=("finite_difference", "acceleration", "variance"),
+        sensitivity_tags=("noise_sensitive", "dt_sensitive"),
         default_excitation_thresholds=(0.005, 0.02, 0.08),
         extractor=lambda context: context.acceleration_variance,
     ),
     "acceleration_range": FeatureSpec(
         name="acceleration_range",
         group="residual",
+        role="kinematics",
         description="Range of the true acceleration sequence.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="vector_compatible_with_component_or_norm_policy",
+        dependency_tags=("finite_difference", "acceleration", "range"),
+        sensitivity_tags=("noise_sensitive", "dt_sensitive", "outlier_sensitive"),
         default_excitation_thresholds=(0.10, 0.45, 1.00),
         extractor=lambda context: context.acceleration_range,
     ),
     "velocity_sign_changes": FeatureSpec(
         name="velocity_sign_changes",
         group="sign_changes",
+        role="shape",
         description="Number of sign changes in the velocity sequence.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="requires_direction_change_policy",
+        dependency_tags=("velocity", "sign", "shape"),
+        sensitivity_tags=("noise_sensitive", "window_definition_sensitive"),
         default_excitation_thresholds=(1.0, 2.0, 4.0),
         extractor=lambda context: float(context.velocity_sign_changes),
     ),
     "acceleration_sign_changes": FeatureSpec(
         name="acceleration_sign_changes",
         group="sign_changes",
+        role="shape",
         description="Number of sign changes in the acceleration sequence.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="requires_direction_change_policy",
+        dependency_tags=("acceleration", "sign", "shape"),
+        sensitivity_tags=("noise_sensitive", "window_definition_sensitive"),
         default_excitation_thresholds=(1.0, 2.0, 4.0),
         extractor=lambda context: float(context.acceleration_sign_changes),
     ),
     "monotonicity": FeatureSpec(
         name="monotonicity",
         group="shape",
+        role="shape",
         description="Fraction of nonzero position increments aligned to the dominant sign.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="requires_projection_or_path_policy",
+        dependency_tags=("measurement", "shape", "ordering"),
+        sensitivity_tags=("noise_sensitive", "window_definition_sensitive"),
         default_excitation_thresholds=(0.65, 0.82, 0.95),
         extractor=lambda context: context.monotonicity,
     ),
     "linear_fit_residual": FeatureSpec(
         name="linear_fit_residual",
         group="shape",
+        role="model_residual",
         description="RMS residual under a linear position fit.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="vector_compatible_with_multiaxis_fit_policy",
+        dependency_tags=("fit", "linear_model", "residual"),
+        sensitivity_tags=("noise_sensitive", "outlier_sensitive"),
         default_excitation_thresholds=(0.10, 0.35, 0.90),
         extractor=lambda context: context.linear_fit_residual,
     ),
     "quadratic_fit_residual": FeatureSpec(
         name="quadratic_fit_residual",
         group="innovation",
+        role="model_residual",
         description="RMS residual under a quadratic position fit.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="vector_compatible_with_multiaxis_fit_policy",
+        dependency_tags=("fit", "quadratic_model", "residual"),
+        sensitivity_tags=("noise_sensitive", "outlier_sensitive"),
         default_excitation_thresholds=(0.03, 0.12, 0.35),
         extractor=lambda context: context.quadratic_fit_residual,
     ),
     "outlier_score": FeatureSpec(
         name="outlier_score",
         group="innovation",
+        role="robustness",
         description="Largest normalized residual under the quadratic fit.",
+        history_behavior="windowed",
+        geometry_assumption="scalar_axis",
+        dimensional_transfer="vector_compatible_with_residual_norm_policy",
+        dependency_tags=("fit", "residual", "outlier"),
+        sensitivity_tags=("outlier_sensitive", "noise_sensitive"),
         default_excitation_thresholds=(1.5, 3.0, 6.0),
         extractor=lambda context: context.outlier_score,
     ),
     "sampling_irregularity": FeatureSpec(
         name="sampling_irregularity",
         group="timing",
+        role="sampling",
         description="Relative variability of sample intervals.",
+        history_behavior="cumulative",
+        geometry_assumption="dimension_agnostic",
+        dimensional_transfer="vector_compatible",
+        dependency_tags=("time", "sampling", "dt_statistics"),
+        sensitivity_tags=("sampling_irregularity_sensitive",),
         default_excitation_thresholds=(0.05, 0.15, 0.35),
         extractor=lambda context: context.sampling_irregularity,
     ),
@@ -628,10 +724,27 @@ def resolve_feature_names(
     *,
     feature_set: str | None = None,
     feature_names: tuple[str, ...] | list[str] | None = None,
+    required_tags: tuple[str, ...] | list[str] | None = None,
     manifest: dict[str, dict[str, object]] | None = None,
 ) -> tuple[str, ...]:
     if feature_names is not None:
         requested = tuple(dict.fromkeys(str(name) for name in feature_names))
+    elif required_tags is not None:
+        requested_list: list[str] = []
+        tags = {str(tag) for tag in required_tags}
+        for name, spec in FEATURE_REGISTRY.items():
+            spec_tags = {
+                spec.group,
+                spec.role,
+                spec.history_behavior,
+                spec.geometry_assumption,
+                spec.dimensional_transfer,
+                *spec.dependency_tags,
+                *spec.sensitivity_tags,
+            }
+            if tags.issubset(spec_tags):
+                requested_list.append(name)
+        requested = tuple(dict.fromkeys(requested_list))
     else:
         manifest_data = manifest or load_feature_set_manifest()
         selected_name = feature_set or "all_engineered"
@@ -894,12 +1007,13 @@ def analyze_feature_datasets(
     trajectories_per_class: int = 5,
     feature_set: str | None = None,
     feature_names: tuple[str, ...] | list[str] | None = None,
+    datasets: tuple[GeneratedTrajectoryDataset, ...] | None = None,
 ) -> FeatureAnalysisResult:
     selected_feature_names = resolve_feature_names(feature_set=feature_set, feature_names=feature_names)
     selected_feature_set = feature_set or ("custom" if feature_names is not None else "all_engineered")
-    datasets = generate_trajectory_datasets(seed=seed, trajectories_per_class=trajectories_per_class)
+    resolved_datasets = datasets or generate_trajectory_datasets(seed=seed, trajectories_per_class=trajectories_per_class)
     feature_rows: list[FeatureRow] = []
-    for dataset in datasets:
+    for dataset in resolved_datasets:
         for trajectory in dataset.trajectories:
             feature_rows.append(_feature_row_from_trajectory(dataset, trajectory))
     feature_rows_tuple = tuple(feature_rows)
@@ -993,7 +1107,7 @@ def analyze_feature_datasets(
         top_confusing_pairs=top_confusing_pairs,
     )
     return FeatureAnalysisResult(
-        datasets=datasets,
+        datasets=resolved_datasets,
         feature_rows=feature_rows_tuple,
         excitation_rows=tuple(excitation_rows),
         summary_rows=tuple(summary_rows),
