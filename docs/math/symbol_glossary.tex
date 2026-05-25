@@ -1,0 +1,37 @@
+\begin{center}
+\small
+\begin{longtable}{p{0.12\textwidth}p{0.32\textwidth}p{0.17\textwidth}p{0.17\textwidth}p{0.14\textwidth}}
+\toprule
+Symbol & Meaning & Shape / type & Example & Source \\
+\midrule
+\endfirsthead
+\toprule
+Symbol & Meaning & Shape / type & Example & Source \\
+\midrule
+\endhead
+\(\tau_i\) & trajectory \(i\) as one sampled truth-and-observation sequence & sequence & \(\{(t_k, z_k)\}_{k=1}^{n_i}\) & trajectory artifacts \\
+\(t_k\) & timestamp at step \(k\) & scalar & \(0.5\ \mathrm{s}\) & trajectory tables \\
+\(x_k\) & latent kinematic state & vector & \([p_k, v_k, a_k]^\top\) & Kalman bank \\
+\(z_k\) & raw observation at step \(k\) & scalar now, vector later & measured position & observations.csv \\
+\(\phi_k\) & feature or evidence summary derived from history up to \(k\) & vector & range, slope, residual & feature matrix \\
+\(\nu_{k,c}\) & innovation under class-conditioned model \(c\) & vector & \(z_k - H_c \hat{x}_{k|k-1,c}\) & Kalman bank \\
+\(y_k\) & generic evidence input consumed by a classifier & scalar/vector & \(z_k\), \(\phi_k\), or \(\nu_{k,c}\) & evidence provider contract \\
+\(c\) & class label & categorical & constant\_velocity & class manifest \\
+\(\mathcal{C}\) & class set or class pair & finite set & \(\{\mathrm{CV}, \mathrm{CA}\}\) & study candidate \\
+\(\pi(c)\) & prior probability on class \(c\) & probability & \(0.5\) & prior config \\
+\(p_k(c)\) & posterior after processing evidence through step \(k\) & probability & \(0.714\) & posterior history \\
+\(\ell_k(c)\) & log evidence increment for class \(c\) at step \(k\) & scalar & \(\log p(y_k \mid c, \mathcal{H}_{k-1})\) & classifier outputs \\
+\(\mathcal{H}_{k-1}\) & evidence history before step \(k\) & set / sequence & \(\{y_1,\dots,y_{k-1}\}\) & recursive update \\
+\(\lambda_k^{ab}\) & log odds for class \(a\) versus \(b\) & scalar & \(\log \frac{p_k(a)}{p_k(b)}\) & prior-flip analysis \\
+\(T_{c'c}\) & transition probability from previous class \(c'\) to current class \(c\) & probability & \(p(c_k=c \mid c_{k-1}=c')\) & transition accumulator \\
+\(S_k\) & scalar corpus score for candidate \(k\) & scalar & \(0.72\) & corpus autodevelopment \\
+\(\mathbf{o}_k\) & Pareto objective vector for corpus candidate \(k\) & vector & \((B_k, C_k, F_k, D_k, -L_k, -T_k, -G_k)\) & corpus autodevelopment \\
+\(U_{\text{gym}}\) & CorpusGym total reward utility & scalar in \([0,1]\) & \(0.63\) & \texttt{corpus\_gym.py} \\
+\(U_{\text{archive}}\) & QD archive elite utility & scalar & \(0.58\) & objective-driven QD archive \\
+\(Q_{\text{static}}\) & pre-execution study screening score & scalar & \(0.47\) & static candidate scores \\
+\(Q_{\text{mc}}\) & post-execution study confirmation score & scalar & \(0.93\) & study benchmark rows \\
+\(v_c(\tau)\) & validity score of trajectory \(\tau\) under class \(c\) & scalar in \([0,1]\) & \(0.81\) & class validity \\
+\(d\) & validation-ladder terminal decision & enum & promote / revise / reject / defer & validation ladder \\
+\bottomrule
+\end{longtable}
+\end{center}

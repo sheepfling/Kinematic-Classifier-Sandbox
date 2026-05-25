@@ -77,6 +77,7 @@ from .corpus_gym import (
     CorpusGymTarget,
     analyze_corpus_gym_contract,
     default_corpus_gym_targets,
+    render_corpus_gym_numeric_walkthrough_markdown,
     write_corpus_gym_artifacts,
 )
 from .trajectory_backend_contract import (
@@ -96,6 +97,91 @@ from .trajectory_backend_contract import (
     validate_backend_contract_definition,
     validate_trajectory_run,
     write_trajectory_backend_contract_artifacts,
+)
+from .backend_adapter_proof import (
+    AdapterExecutionRecord,
+    BackendAdapterProofArtifacts,
+    BackendAdapterProofResult,
+    BackendCandidateSpec,
+    analyze_backend_adapter_proof,
+    write_backend_adapter_proof_artifacts,
+)
+from .environment_aware_corpus import (
+    EnvironmentAwareCorpusArtifacts,
+    EnvironmentAwareCorpusResult,
+    analyze_environment_aware_corpus,
+    write_environment_aware_corpus_artifacts,
+)
+from .capability_aware_search import (
+    CapabilityAwareSearchArtifacts,
+    CapabilityAwareSearchResult,
+    analyze_capability_aware_search,
+    write_capability_aware_search_artifacts,
+)
+from .generic_corpus_exploration import (
+    GenericCorpusExplorationArtifacts,
+    GenericCorpusExplorationResult,
+    analyze_generic_corpus_exploration,
+    render_generic_corpus_exploration_numeric_walkthrough_markdown,
+    write_generic_corpus_exploration_artifacts,
+)
+from .corpus_objectives import (
+    CorpusObjectiveArtifacts,
+    CorpusObjectiveResult,
+    CorpusObjectiveSpec,
+    LeakageConstraintSpec,
+    analyze_corpus_objectives,
+    default_corpus_objectives,
+    load_corpus_objectives_from_yaml,
+    validate_corpus_objective,
+    write_corpus_objective_artifacts,
+)
+from .candidate_generation import (
+    CandidateGenerationArtifacts,
+    CandidateGenerationResult,
+    analyze_candidate_generation,
+    generate_candidates_from_objective_file,
+    generate_candidates_from_objectives,
+    write_candidate_generation_artifacts,
+)
+from .class_validity import (
+    ClassValidityArtifacts,
+    ClassValidityResult,
+    analyze_class_validity,
+    write_class_validity_artifacts,
+)
+from .generated_corpus_features import (
+    GeneratedCorpusFeaturesArtifacts,
+    GeneratedCorpusFeaturesResult,
+    analyze_generated_corpus_features,
+    collect_generated_corpus_records,
+    generated_corpus_datasets,
+    select_generated_corpus_records,
+    write_generated_corpus_feature_artifacts,
+)
+from .corpus_classifier_scoring import (
+    CorpusClassifierScoringArtifacts,
+    CorpusClassifierScoringResult,
+    analyze_corpus_classifier_scoring,
+    write_corpus_classifier_scoring_artifacts,
+)
+from .objective_corpus_gym_runner import (
+    ObjectiveCorpusGymRecord,
+    candidate_to_corpus_gym_action,
+    execute_objective_candidates_via_corpus_gym,
+    objective_to_corpus_gym_target,
+)
+from .objective_driven_qd_archive import (
+    ObjectiveDrivenQdArchiveArtifacts,
+    ObjectiveDrivenQdArchiveResult,
+    analyze_objective_driven_qd_archive,
+    write_objective_driven_qd_archive_artifacts,
+)
+from .selected_generated_corpus import (
+    SelectedGeneratedCorpusArtifacts,
+    SelectedGeneratedCorpusResult,
+    analyze_selected_generated_corpus,
+    write_selected_generated_corpus_artifacts,
 )
 from .corpus_search_baseline import (
     CorpusSearchBaselineArtifacts,
@@ -244,6 +330,7 @@ from .transition_matrix_accumulator import (
     default_transition_matrix,
     generate_transition_switching_scenarios,
     render_transition_benchmark_report,
+    render_transition_numeric_walkthrough_markdown,
     run_transition_benchmark,
     write_transition_benchmark_artifacts,
 )
@@ -252,6 +339,7 @@ from .advanced_filter_decision import (
     AdvancedFilterDecisionResult,
     analyze_advanced_filter_decision,
     render_advanced_filter_decision_report,
+    render_advanced_filter_decision_numeric_walkthrough_markdown,
     write_advanced_filter_decision_artifacts,
 )
 from .velocity_aided_kalman_comparison import (
@@ -377,6 +465,7 @@ from .common_dataset_comparison import (
     write_common_dataset_comparison_artifacts,
 )
 from .common_experiment_harness import (
+    analyze_common_trajectory_corpus,
     CommonExperimentArtifacts,
     CommonExperimentConfig,
     CommonExperimentResult,
@@ -442,6 +531,7 @@ from .corpus_autodevelopment import (
     CorpusAutodevelopmentResult,
     analyze_corpus_autodevelopment,
     load_corpus_objectives,
+    render_corpus_autodevelopment_numeric_walkthrough_markdown,
     write_corpus_autodevelopment_artifacts,
 )
 from .study_candidate_generation import (
@@ -467,6 +557,12 @@ from .methodology_latex import (
     MethodologyLatexResult,
     analyze_methodology_latex,
     write_methodology_latex_artifacts,
+)
+from .methodology_compendium import (
+    MethodologyCompendiumArtifacts,
+    MethodologyCompendiumResult,
+    analyze_methodology_compendium,
+    write_methodology_compendium_artifacts,
 )
 from .shared_evaluation import (
     CallableSharedClassifierAdapter,
@@ -783,12 +879,14 @@ __all__ = [
     "default_transition_matrix",
     "generate_transition_switching_scenarios",
     "render_transition_benchmark_report",
+    "render_transition_numeric_walkthrough_markdown",
     "run_transition_benchmark",
     "write_transition_benchmark_artifacts",
     "AdvancedFilterDecisionArtifacts",
     "AdvancedFilterDecisionResult",
     "analyze_advanced_filter_decision",
     "render_advanced_filter_decision_report",
+    "render_advanced_filter_decision_numeric_walkthrough_markdown",
     "write_advanced_filter_decision_artifacts",
     "WindowedBenchmarkArtifacts",
     "WindowedBenchmarkResult",
@@ -865,6 +963,7 @@ __all__ = [
     "CorpusAutodevelopmentResult",
     "analyze_corpus_autodevelopment",
     "load_corpus_objectives",
+    "render_corpus_autodevelopment_numeric_walkthrough_markdown",
     "write_corpus_autodevelopment_artifacts",
     "CorpusGymAction",
     "CorpusGymArtifacts",
@@ -875,6 +974,7 @@ __all__ = [
     "CorpusGymTarget",
     "analyze_corpus_gym_contract",
     "default_corpus_gym_targets",
+    "render_corpus_gym_numeric_walkthrough_markdown",
     "write_corpus_gym_artifacts",
     "BackendContractDefinition",
     "ControlChannelSpec",
@@ -892,6 +992,68 @@ __all__ = [
     "validate_backend_contract_definition",
     "validate_trajectory_run",
     "write_trajectory_backend_contract_artifacts",
+    "AdapterExecutionRecord",
+    "BackendAdapterProofArtifacts",
+    "BackendAdapterProofResult",
+    "BackendCandidateSpec",
+    "analyze_backend_adapter_proof",
+    "write_backend_adapter_proof_artifacts",
+    "EnvironmentAwareCorpusArtifacts",
+    "EnvironmentAwareCorpusResult",
+    "analyze_environment_aware_corpus",
+    "write_environment_aware_corpus_artifacts",
+    "CapabilityAwareSearchArtifacts",
+    "CapabilityAwareSearchResult",
+    "analyze_capability_aware_search",
+    "write_capability_aware_search_artifacts",
+    "GenericCorpusExplorationArtifacts",
+    "GenericCorpusExplorationResult",
+    "analyze_generic_corpus_exploration",
+    "render_generic_corpus_exploration_numeric_walkthrough_markdown",
+    "write_generic_corpus_exploration_artifacts",
+    "CorpusObjectiveArtifacts",
+    "CorpusObjectiveResult",
+    "CorpusObjectiveSpec",
+    "LeakageConstraintSpec",
+    "analyze_corpus_objectives",
+    "default_corpus_objectives",
+    "load_corpus_objectives_from_yaml",
+    "validate_corpus_objective",
+    "write_corpus_objective_artifacts",
+    "CandidateGenerationArtifacts",
+    "CandidateGenerationResult",
+    "analyze_candidate_generation",
+    "generate_candidates_from_objective_file",
+    "generate_candidates_from_objectives",
+    "write_candidate_generation_artifacts",
+    "ClassValidityArtifacts",
+    "ClassValidityResult",
+    "analyze_class_validity",
+    "write_class_validity_artifacts",
+    "GeneratedCorpusFeaturesArtifacts",
+    "GeneratedCorpusFeaturesResult",
+    "analyze_generated_corpus_features",
+    "collect_generated_corpus_records",
+    "generated_corpus_datasets",
+    "select_generated_corpus_records",
+    "write_generated_corpus_feature_artifacts",
+    "CorpusClassifierScoringArtifacts",
+    "CorpusClassifierScoringResult",
+    "analyze_corpus_classifier_scoring",
+    "write_corpus_classifier_scoring_artifacts",
+    "ObjectiveCorpusGymRecord",
+    "candidate_to_corpus_gym_action",
+    "execute_objective_candidates_via_corpus_gym",
+    "objective_to_corpus_gym_target",
+    "ObjectiveDrivenQdArchiveArtifacts",
+    "ObjectiveDrivenQdArchiveResult",
+    "analyze_objective_driven_qd_archive",
+    "write_objective_driven_qd_archive_artifacts",
+    "SelectedGeneratedCorpusArtifacts",
+    "SelectedGeneratedCorpusResult",
+    "analyze_selected_generated_corpus",
+    "write_selected_generated_corpus_artifacts",
+    "analyze_common_trajectory_corpus",
     "CorpusSearchBaselineArtifacts",
     "CorpusSearchBaselineResult",
     "analyze_corpus_search_baseline",
@@ -927,8 +1089,12 @@ __all__ = [
     "write_bayesian_walkthrough_artifacts",
     "MethodologyLatexArtifacts",
     "MethodologyLatexResult",
+    "MethodologyCompendiumArtifacts",
+    "MethodologyCompendiumResult",
     "analyze_methodology_latex",
+    "analyze_methodology_compendium",
     "write_methodology_latex_artifacts",
+    "write_methodology_compendium_artifacts",
     "default_shared_classifier_adapters",
     "IDENTITY_FEATURE_NAMES",
     "render_identity_posterior_comparison_markdown",

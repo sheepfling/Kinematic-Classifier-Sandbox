@@ -125,6 +125,7 @@ class CorpusAutodevelopmentArtifacts:
     feature_excitation_comparison_path: Path
     leakage_comparison_path: Path
     report_path: Path
+    numeric_walkthrough_path: Path
     corpus_score_pareto_path: Path
     feature_excitation_heatmap_path: Path
     leakage_by_candidate_path: Path
@@ -422,6 +423,178 @@ def _render_report(result: CorpusAutodevelopmentResult) -> str:
     )
 
 
+def _selected_corpus_evaluation(result: CorpusAutodevelopmentResult) -> CorpusCandidateEvaluation:
+    return next(
+        evaluation for evaluation in result.candidate_evaluations if evaluation.spec.candidate_id == result.selected_candidate_id
+    )
+
+
+def _reference_rejected_evaluation(result: CorpusAutodevelopmentResult) -> CorpusCandidateEvaluation | None:
+    selected_id = result.selected_candidate_id
+    for evaluation in sorted(result.candidate_evaluations, key=lambda item: float(item.score_row["overall_score"]), reverse=True):
+        if evaluation.spec.candidate_id != selected_id:
+            return evaluation
+    return None
+
+
+def render_corpus_autodevelopment_numeric_walkthrough_markdown(result: CorpusAutodevelopmentResult) -> str:
+    selected = _selected_corpus_evaluation(result)
+    rejected = _reference_rejected_evaluation(result)
+    objectives = result.objectives
+    difficulty_targets = dict(objectives.get("difficulty_distribution", {}))
+    leakage_targets = dict(objectives.get("covariate_leakage", {}))
+    selected_difficulty = {
+        key: value
+        for key, value in selected.manifest_row.items()
+        if key.endswith("_fraction")
+    }
+    objective_rows = [
+        ("balance_score", float(selected.score_row["balance_score"]), "Higher is better; mean class-balance status score."),
+        (
+            "boundary_coverage_score",
+            float(selected.score_row["boundary_coverage_score"]),
+            "Higher is better; mean hard-pair coverage status score.",
+        ),
+        (
+            "feature_excitation_score",
+            float(selected.score_row["feature_excitation_score"]),
+            "Higher is better; combines excitation fraction and adequacy status.",
+        ),
+        (
+            "difficulty_diversity_score",
+            float(selected.score_row["difficulty_diversity_score"]),
+            "Higher is better; closeness to the configured tier-fraction target.",
+        ),
+        ("leakage_penalty", float(selected.score_row["leakage_penalty"]), "Lower is better; covariate-only separability and spread."),
+        ("triviality_penalty", float(selected.score_row["triviality_penalty"]), "Lower is better; penalizes hard pairs that become too easy."),
+        ("degeneracy_penalty", float(selected.score_row["degeneracy_penalty"]), "Lower is better; penalizes red or weakly excited feature sets."),
+    ]
+    selected_is_pareto = any(str(row["candidate_id"]) == selected.spec.candidate_id for row in result.pareto_front_rows)
+    lines = [
+        "# Corpus Autodevelopment Numeric Walkthrough",
+        "",
+        "This worked example decomposes the selected corpus candidate's real score using the exact terms",
+        "implemented in `corpus_autodevelopment.py`.",
+        "",
+        "## Selected Candidate",
+        "",
+        f"- Candidate: `{selected.spec.candidate_id}`",
+        f"- Sampling method: `{selected.spec.sampling_method}`",
+        f"- Adequacy status: `{selected.score_row['adequacy_status']}`",
+        f"- Overall score: `{float(selected.score_row['overall_score']):.3f}`",
+        f"- Pareto-front member: `{'yes' if selected_is_pareto else 'no'}`",
+        "",
+        "## Score Equation",
+        "",
+        "```tex",
+        "S_k = B_k + C_k + F_k + D_k - L_k - T_k - G_k",
+        "```",
+        "",
+        "where the implemented selected-candidate values are:",
+        "",
+        "| term | value | interpretation |",
+        "| --- | ---: | --- |",
+    ]
+    for name, value, interpretation in objective_rows:
+        lines.append(f"| `{name}` | `{value:.3f}` | {interpretation} |")
+    lines.extend(
+        [
+            "",
+            "Substituting those values gives:",
+            "",
+            "```tex",
+            f"S_{{{selected.spec.candidate_id}}} = "
+            f"{float(selected.score_row['balance_score']):.3f}"
+            f" + {float(selected.score_row['boundary_coverage_score']):.3f}"
+            f" + {float(selected.score_row['feature_excitation_score']):.3f}"
+            f" + {float(selected.score_row['difficulty_diversity_score']):.3f}"
+            f" - {float(selected.score_row['leakage_penalty']):.3f}"
+            f" - {float(selected.score_row['triviality_penalty']):.3f}"
+            f" - {float(selected.score_row['degeneracy_penalty']):.3f}"
+            f" = {float(selected.score_row['overall_score']):.3f}",
+            "```",
+            "",
+            "## Difficulty-Diversity Subscore",
+            "",
+            "The difficulty term compares the selected corpus distribution with the configured target fractions",
+            "from `experiments/corpus_objectives/common_1d_corpus_objectives.yaml`.",
+            "",
+            "| tier | target fraction | selected fraction | absolute error |",
+            "| --- | ---: | ---: | ---: |",
+        ]
+    )
+    total_abs_error = 0.0
+    for base_tier in ("easy", "boundary", "adversarial", "stress", "realistic"):
+        target = float(difficulty_targets.get(f"{base_tier}_fraction", 0.0))
+        selected_fraction = float(selected_difficulty.get(f"{base_tier}_v1_fraction", 0.0))
+        error = abs(selected_fraction - target)
+        total_abs_error += error
+        lines.append(f"| `{base_tier}` | `{target:.3f}` | `{selected_fraction:.3f}` | `{error:.3f}` |")
+    lines.extend(
+        [
+            "",
+            "```tex",
+            f"D_k = 1 - \\frac{{{total_abs_error:.3f}}}{{2}} = {float(selected.score_row['difficulty_diversity_score']):.3f}",
+            "```",
+            "",
+            "## Leakage Objective Thresholds",
+            "",
+            "The leakage term is compared against the configured covariate limits before spread penalties are added.",
+            "",
+            f"- max duration-class correlation proxy: `{float(leakage_targets.get('max_duration_class_correlation', 0.0)):.3f}`",
+            f"- max sample-count correlation proxy: `{float(leakage_targets.get('max_sample_count_class_correlation', 0.0)):.3f}`",
+            f"- max noise correlation proxy: `{float(leakage_targets.get('max_noise_class_correlation', 0.0)):.3f}`",
+            "",
+            "| covariate | max pairwise AUC | spread ratio | status |",
+            "| --- | ---: | ---: | --- |",
+        ]
+    )
+    for row in selected.leakage_rows:
+        lines.append(
+            f"| `{row['covariate']}` | `{float(row['max_pairwise_auc']):.3f}` | `{float(row['spread_ratio']):.3f}` | `{row['status']}` |"
+        )
+    if rejected is not None:
+        lines.extend(
+            [
+                "",
+                "## Why This Candidate Beats A Rejected One",
+                "",
+                f"The highest-scoring rejected candidate in this run is `{rejected.spec.candidate_id}`.",
+                "",
+                "| term | selected | rejected | selected - rejected |",
+                "| --- | ---: | ---: | ---: |",
+            ]
+        )
+        for key in (
+            "balance_score",
+            "boundary_coverage_score",
+            "feature_excitation_score",
+            "difficulty_diversity_score",
+            "leakage_penalty",
+            "triviality_penalty",
+            "degeneracy_penalty",
+            "overall_score",
+        ):
+            left = float(selected.score_row[key])
+            right = float(rejected.score_row[key])
+            lines.append(f"| `{key}` | `{left:.3f}` | `{right:.3f}` | `{left - right:+.3f}` |")
+        lines.extend(
+            [
+                "",
+                "The selected candidate wins because the positive adequacy terms outweigh its penalties more effectively,",
+                "not because every objective is strictly better. That is why the module keeps both a single selected",
+                "candidate and a Pareto-front set of non-dominated alternatives.",
+                "",
+                "## Pareto Interpretation",
+                "",
+                "A candidate stays on the Pareto front when no other candidate is at least as good on every objective",
+                "and strictly better on at least one. The selected candidate is the highest scalar score among those",
+                "tradeoffs, not a proof that all competing corpora are inferior in every dimension.",
+            ]
+        )
+    return "\n".join(lines)
+
+
 def analyze_corpus_autodevelopment(
     *,
     objectives_path: str | Path = DEFAULT_OBJECTIVES_PATH,
@@ -661,6 +834,7 @@ def write_corpus_autodevelopment_artifacts(
     feature_excitation_comparison_path = run_dir / "feature_excitation_comparison.csv"
     leakage_comparison_path = run_dir / "leakage_comparison.csv"
     report_path = run_dir / "corpus_autodevelopment_report.md"
+    numeric_walkthrough_path = run_dir / "corpus_autodevelopment_numeric_walkthrough.md"
     corpus_score_pareto_path = plots_dir / "corpus_score_pareto.png"
     feature_excitation_heatmap_path = plots_dir / "feature_excitation_heatmap.png"
     leakage_by_candidate_path = plots_dir / "leakage_by_candidate.png"
@@ -687,6 +861,7 @@ def write_corpus_autodevelopment_artifacts(
     }
     selected_manifest_path.write_text(json.dumps(selected_manifest_payload, indent=2), encoding="utf-8")
     report_path.write_text(autodevelopment.report_markdown, encoding="utf-8")
+    numeric_walkthrough_path.write_text(render_corpus_autodevelopment_numeric_walkthrough_markdown(autodevelopment), encoding="utf-8")
 
     corpus_score_pareto_path.write_bytes(_figure_to_png(_render_corpus_score_pareto(autodevelopment)))
     feature_excitation_heatmap_path.write_bytes(_figure_to_png(_render_feature_excitation_heatmap(autodevelopment)))
@@ -705,6 +880,7 @@ def write_corpus_autodevelopment_artifacts(
         feature_excitation_comparison_path=feature_excitation_comparison_path,
         leakage_comparison_path=leakage_comparison_path,
         report_path=report_path,
+        numeric_walkthrough_path=numeric_walkthrough_path,
         corpus_score_pareto_path=corpus_score_pareto_path,
         feature_excitation_heatmap_path=feature_excitation_heatmap_path,
         leakage_by_candidate_path=leakage_by_candidate_path,

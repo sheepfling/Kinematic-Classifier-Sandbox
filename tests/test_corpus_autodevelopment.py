@@ -7,6 +7,7 @@ from pathlib import Path
 
 from kinematic_classifier_sandbox import (
     analyze_corpus_autodevelopment,
+    render_corpus_autodevelopment_numeric_walkthrough_markdown,
     write_corpus_autodevelopment_artifacts,
 )
 
@@ -27,6 +28,10 @@ class CorpusAutodevelopmentTests(unittest.TestCase):
         rejected_scores = [float(row["overall_score"]) for row in result.rejected_candidate_rows]
         self.assertTrue(any(selected_score > value for value in rejected_scores))
         self.assertIn("Corpus Autodevelopment", result.report_markdown)
+        walkthrough = render_corpus_autodevelopment_numeric_walkthrough_markdown(result)
+        self.assertIn("Corpus Autodevelopment Numeric Walkthrough", walkthrough)
+        self.assertIn("Difficulty-Diversity Subscore", walkthrough)
+        self.assertIn("Why This Candidate Beats A Rejected One", walkthrough)
 
     def test_corpus_autodevelopment_writes_expected_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -42,6 +47,7 @@ class CorpusAutodevelopmentTests(unittest.TestCase):
             self.assertTrue(artifacts.feature_excitation_comparison_path.exists())
             self.assertTrue(artifacts.leakage_comparison_path.exists())
             self.assertTrue(artifacts.report_path.exists())
+            self.assertTrue(artifacts.numeric_walkthrough_path.exists())
             self.assertTrue(artifacts.corpus_score_pareto_path.exists())
             self.assertTrue(artifacts.feature_excitation_heatmap_path.exists())
             self.assertTrue(artifacts.leakage_by_candidate_path.exists())
@@ -51,6 +57,9 @@ class CorpusAutodevelopmentTests(unittest.TestCase):
             self.assertIn("selected_candidate_id", selected_payload)
             self.assertIn("selected_score", selected_payload)
             self.assertIn("selected_adequacy_summary", selected_payload)
+            walkthrough = artifacts.numeric_walkthrough_path.read_text(encoding="utf-8")
+            self.assertIn("Corpus Autodevelopment Numeric Walkthrough", walkthrough)
+            self.assertIn("Overall score", walkthrough)
 
 
 if __name__ == "__main__":

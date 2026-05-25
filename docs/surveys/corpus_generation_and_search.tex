@@ -1,0 +1,624 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\title{Corpus Generation and Search}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Purpose}
+
+This document explains the corpus-side methodology modules: how witness
+trajectories are parameterized, how candidate corpora are searched and scored,
+and how study candidates are promoted from those corpus surfaces.
+
+\section{Problem And Notation}
+
+The corpus-side methodology is trying to solve:
+\begin{equation}
+    \text{How do we generate and select datasets that are informative enough to test classifiers without making the task accidentally trivial or biased?}
+\end{equation}
+
+The most important objects are:
+\begin{itemize}[leftmargin=1.5em]
+    \item \(\tau\): one generated trajectory,
+    \item \(\mathcal{D}\): a corpus candidate,
+    \item \(\theta_{\text{class}}\): class-specific motion parameters,
+    \item \(\theta_{\text{tier}}\): difficulty-tier controls,
+    \item \(\theta_{\text{noise}}\): corruption parameters,
+    \item \(\theta_{\text{sampling}}\): timing and sample-count parameters,
+    \item \(S_k\): scalar score for corpus candidate \(k\),
+    \item \(\mathbf{o}_k\): Pareto objective vector for candidate \(k\).
+\end{itemize}
+
+\section{Trajectory Parameterization And Witness Problems}
+
+The base synthetic witness-problem logic lives in:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{trajectory\_generator.py}
+    \item \texttt{corpus\_objectives.py}
+\end{itemize}
+
+The trajectory generator is the repo's explicit map from class semantics to
+parameterized synthetic observations. In abstract form, each generated
+trajectory is
+\begin{equation}
+    \tau = \tau(\theta_{\text{class}}, \theta_{\text{tier}}, \theta_{\text{noise}}, \theta_{\text{sampling}}, \xi),
+\end{equation}
+where the class parameters encode the nominal motion family, the tier
+parameters encode difficulty and corruption, and \(\xi\) is random seed
+realization.
+
+This is why the corpus layer matters mathematically: later classifier and
+adequacy studies are only as meaningful as the induced distribution over
+\(\tau\).
+
+\texttt{corpus\_objectives.py} provides the declarative objective layer that
+tells the generator what kind of corpus pressure to create, including class-pair
+targets, feature-excitation targets, leakage constraints, and runtime budgets.
+
+\section{Adaptive Stress And Environment-Aware Corpus Layers}
+
+The current corpus-shaping surfaces include:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{adaptive\_stress\_corpus.py}
+    \item \texttt{environment\_aware\_corpus.py}
+    \item \texttt{quality\_diversity\_corpus.py}
+    \item \texttt{objective\_driven\_qd\_archive.py}
+\end{itemize}
+
+These modules vary difficulty, environment assumptions, and stress conditions
+rather than treating one synthetic corpus as fixed forever. Their shared role is
+to perturb the corpus distribution along interpretable axes:
+\begin{equation}
+    \mathcal{D}
+    \rightarrow
+    \mathcal{D}'(\text{noise}, \text{irregularity}, \text{outliers}, \text{stress}).
+\end{equation}
+
+\section{Corpus Autodevelopment And Pareto Selection}
+
+The automated corpus-development layer is implemented through:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{corpus\_autodevelopment.py}
+    \item \texttt{corpus\_gym.py}
+\end{itemize}
+
+This layer treats corpus design as an optimization problem over:
+\begin{itemize}[leftmargin=1.5em]
+    \item balance,
+    \item feature excitation,
+    \item class-pair boundary coverage,
+    \item leakage penalties,
+    \item adequacy score.
+\end{itemize}
+
+Candidate \(k\) receives a score of the form
+\begin{equation}
+    S_k
+    =
+    w_b B_k
+    + w_c C_k
+    + w_f F_k
+    + w_d D_k
+    - w_\ell L_k
+    - w_t T_k
+    - w_g G_k,
+\end{equation}
+where:
+\begin{itemize}[leftmargin=1.5em]
+    \item \(B_k\) is balance score,
+    \item \(C_k\) is boundary coverage score,
+    \item \(F_k\) is feature excitation score,
+    \item \(D_k\) is difficulty diversity score,
+    \item \(L_k\) is leakage penalty,
+    \item \(T_k\) is triviality penalty,
+    \item \(G_k\) is degeneracy penalty.
+\end{itemize}
+That is the logic implemented across
+\texttt{\_feature\_excitation\_score},
+\texttt{\_boundary\_coverage\_score},
+\texttt{\_balance\_score},
+\texttt{\_leakage\_penalty},
+\texttt{\_triviality\_penalty}, and
+\texttt{\_degeneracy\_penalty}.
+The scalar score is useful for selection, but the accompanying Pareto surface
+ensures that non-dominated tradeoffs are not erased.
+
+The same module also computes a Pareto objective vector
+\begin{equation}
+    \mathbf{o}_k =
+    \big[
+        B_k,\,
+        C_k,\,
+        F_k,\,
+        D_k,\,
+        -L_k,\,
+        -T_k,\,
+        -G_k
+    \big],
+\end{equation}
+and marks a candidate as dominated when another candidate is no worse in every
+coordinate and strictly better in at least one.
+
+The artifact
+\texttt{artifacts/corpus\_autodevelopment\_v1/corpus\_autodevelopment\_numeric\_walkthrough.md}
+now works through one real selected candidate numerically. It substitutes the
+implemented score terms into the scalar objective, expands the
+difficulty-distribution subscore against the configured target fractions, and
+then compares the selected candidate against the highest-scoring rejected one.
+That artifact is the concrete bridge from the symbolic objective above to
+\texttt{render\_corpus\_autodevelopment\_numeric\_walkthrough\_markdown(...)}.
+
+\section{Assumptions Behind Corpus Selection}
+
+The corpus autodevelopment layer assumes:
+\begin{itemize}[leftmargin=1.5em]
+    \item positive adequacy terms should be maximized,
+    \item leakage, triviality, and degeneracy terms should be penalized,
+    \item a single scalar score is useful for default selection,
+    \item but Pareto non-dominance should still be preserved for auditability.
+\end{itemize}
+
+\section{Corpus Search And Baseline Ranking}
+
+The broader search/comparison layer is implemented through:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{corpus\_search\_baseline.py}
+    \item \texttt{corpus\_synthesis\_comparison.py}
+    \item \texttt{generic\_corpus\_exploration.py}
+    \item \texttt{selected\_generated\_corpus.py}
+\end{itemize}
+
+These modules are the ``search shell'' around the witness-problem generator and
+adequacy machinery. The core methodological claim is:
+\begin{equation}
+    \text{corpus search}
+    \neq
+    \text{randomly generate more trajectories}.
+\end{equation}
+Instead, the repo is moving toward objective-driven search over corpus
+properties that matter to identifiability and evaluation credibility.
+
+\subsection*{Generic Corpus Explorer}
+
+\texttt{generic\_corpus\_exploration.py} is the clearest implementation of the
+repo's Corpus Explorer idea. It starts from a heterogeneous pool of
+backend-specific candidate trajectories and scores each executed run by a mixed
+utility rather than by one raw classifier metric:
+\begin{equation}
+    U_{\text{explore}}
+    =
+    0.22 \cdot \text{validity}
+    + 0.18 \cdot \text{coverage novelty}
+    + 0.18 \cdot \text{boundary score}
+    + 0.18 \cdot \text{classifier stress}
+    + 0.12 \cdot \text{environment score}
+    + 0.12 \cdot \text{provenance completeness}.
+\end{equation}
+This is a deliberately mixed objective: it rewards not only hard or informative
+examples, but also archive-cell novelty, environment structure, and audit
+traceability.
+
+\subsection*{Explorer Archive Logic}
+
+The explorer also constructs archive cells over backend, scenario family,
+target class, and difficulty tier, then preserves the elite with maximal
+\texttt{total\_utility} in each cell. The selected corpus is judged against a
+same-size random baseline by coverage:
+\begin{equation}
+    \Delta_{\text{coverage}}
+    =
+    \#\{\text{selected archive cells}\}
+    -
+    \#\{\text{random-baseline archive cells}\}.
+\end{equation}
+That is why the explorer can claim more than ``high utility'': it can ask
+whether its selected set covers more meaningful behavioral cells than a naïve
+random draw.
+
+\subsection*{Worked Example}
+
+The artifact
+\texttt{artifacts/generic\_corpus\_exploration/generic\_corpus\_explorer\_numeric\_walkthrough.md}
+now expands one selected corpus row into its utility decomposition, archive-cell
+role, elite interpretation, and selected-versus-random coverage comparison.
+That artifact is the Explorer-side proof that corpus selection is not only a
+visual dashboard but a numeric utility and coverage argument on one concrete
+selected row.
+
+\section{Corpus Gym}
+
+\texttt{corpus\_gym.py} reframes corpus generation as a targeted environment.
+Its question is:
+\begin{equation}
+    \text{Can we specify desired failure pressure or feature geometry and reward trajectories that approach it?}
+\end{equation}
+
+The main objects are:
+\begin{itemize}[leftmargin=1.5em]
+    \item a target specification,
+    \item an action that perturbs tier, measurement, irregularity, outlier, or
+    step settings,
+    \item a structured reward decomposition,
+    \item and an episode object containing target, action, trajectory,
+    diagnostics, and reward.
+\end{itemize}
+
+The reward in \texttt{CorpusGymReward} is multi-term:
+\begin{equation}
+    U_{\text{gym}}
+    =
+    0.22 \cdot V
+    + 0.14 \cdot E
+    + 0.14 \cdot G
+    + 0.14 \cdot B
+    + 0.14 \cdot S
+    + 0.12 \cdot P
+    - 0.10 \cdot L
+    - 0.14 \cdot I,
+\end{equation}
+where \(V\) is class validity, \(E\) is feature excitation match, \(G\) is
+coverage gain, \(B\) is boundary closeness, \(S\) is classifier-stress
+pressure, \(P\) is prior-sensitivity pressure, \(L\) is leakage penalty, and
+\(I\) is physical invalidity penalty. The component terms are computed through
+\texttt{\_class\_validity\_score(...)},
+\texttt{\_feature\_excitation\_score(...)},
+\texttt{\_coverage\_gain\_score(...)},
+\texttt{\_boundary\_closeness\_score(...)},
+\texttt{\_classifier\_stress\_score(...)},
+\texttt{\_prior\_sensitivity\_score(...)},
+\texttt{\_leakage\_penalty(...)}, and
+\texttt{\_physical\_invalidity\_penalty(...)}.
+
+\subsection*{Coverage, Leakage, and Invalidity Terms}
+
+Three Gym subterms are especially important because they stop the search from
+rewarding obviously biased or pathological cases. The implemented coverage-gain
+term is
+\begin{equation}
+    G
+    =
+    0.40 \cdot \text{tier match}
+    + 0.30 \cdot \text{class match}
+    + 0.30 \cdot \text{novelty}(a),
+\end{equation}
+where the novelty term averages capped measurement, irregularity, outlier, and
+step scales induced by the action. The leakage penalty is
+\begin{equation}
+    L
+    =
+    0.30 \cdot \text{duration risk}
+    + 0.30 \cdot \text{sample-count risk}
+    + 0.40 \cdot \text{noise risk},
+\end{equation}
+which prevents the Gym from rewarding trajectories merely because duration,
+sample count, or noise level become class-identifying shortcuts. The physical
+invalidity penalty guards against non-increasing time grids and implausibly
+large absolute accelerations.
+
+\subsection*{Environment Contract}
+
+\texttt{CorpusGymEnvironment} makes the search loop explicit. It provides
+\texttt{reset(target)}, \texttt{simulate(action)}, \texttt{step(action)},
+\texttt{trajectory()}, \texttt{score(trajectory)}, and
+\texttt{render\_diagnostics(trajectory)}. Methodologically, this is
+\begin{equation}
+    \text{target}
+    \xrightarrow{\text{reset}}
+    \text{state}
+    \xrightarrow{\text{action}}
+    \text{trajectory, reward, diagnostics}.
+\end{equation}
+That is why the Gym should be read as a reusable corpus-search interface rather
+than a one-off artifact helper.
+
+\subsection*{Objective-To-Gym Execution Bridge}
+
+\texttt{objective\_corpus\_gym\_runner.py} connects the declarative
+corpus-objective layer to the Gym layer. It defines
+\begin{equation}
+    \Psi_{\text{target}}(\text{objective}) \rightarrow \text{CorpusGymTarget},
+    \qquad
+    \Psi_{\text{action}}(\text{candidate}) \rightarrow \text{CorpusGymAction},
+\end{equation}
+and then executes
+\begin{equation}
+    \text{objective}
+    \rightarrow
+    \text{candidate}
+    \rightarrow
+    \text{target, action}
+    \rightarrow
+    \text{episode}
+    \rightarrow
+    \text{validated trajectory run}.
+\end{equation}
+This is the critical bridge from declarative study design to executed explorer
+or Gym records. Without it, the Gym would remain an isolated search surface.
+
+\subsection*{Worked Example}
+
+The artifact
+\texttt{artifacts/corpus\_gym/corpus\_gym\_numeric\_walkthrough.md}
+now works through one real Gym episode numerically. It records the selected
+target, the action scales, the resulting trajectory diagnostics, and the
+implemented reward substitution term by term. That artifact is the Gym-side
+proof that the search reward is not only qualitative prose but a concrete score
+decomposition on one executed trajectory.
+
+\section{Objective-Driven Quality-Diversity Archive}
+
+\texttt{objective\_driven\_qd\_archive.py} preserves diverse elites instead of
+only selecting one scalar winner. For one successful archive cell, the current
+elite utility is
+\begin{equation}
+    U_{\text{archive}}
+    =
+    0.30 \cdot \text{validity}
+    + 0.25 \cdot \text{acceleration-range pressure}
+    + 0.25 \cdot \text{classifier stress}
+    + 0.20 \cdot (1 - \text{mean margin}).
+\end{equation}
+The cell identity itself depends on discretized buckets over class, tier,
+backend, duration, acceleration range, entropy, and prior-flip threshold. This
+means the archive is tracking both elite quality and structural coverage.
+
+\section{Study Candidate Generation And Search Surfaces}
+
+The study proposal layer is implemented through:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{candidate\_generation.py}
+    \item \texttt{study\_candidate\_generation.py}
+    \item \texttt{study\_candidate\_protocol.py}
+    \item \texttt{capability\_aware\_search.py}
+\end{itemize}
+
+These modules connect corpus generation to feature/classifier proposal logic.
+\texttt{candidate\_generation.py} is the lower-level sampler layer underneath
+that study-selection logic. It mutates and combines backend-compatible candidate
+specifications before the higher-level protocol decides which ones should be
+promoted.
+For a candidate study built from class pair \(p\), classifier \(m\), feature set
+\(f\), and prior regime \(r\), the current static score is effectively
+\begin{align}
+    Q_{\text{static}}(p,m,f,r)
+    &=
+    a_1 \cdot \text{feature-class compatibility}
+    + a_2 \cdot \text{expected separability}
+    + a_3 \cdot \text{classifier fit} \notag \\
+    &\quad
+    + a_4 \cdot \text{corpus coverage}
+    + a_5 \cdot \text{dimensional transfer}
+    + a_6 \cdot \text{implementation readiness} \notag \\
+    &\quad
+    + a_7 \cdot (1 - \text{dependency risk})
+    - a_8 \cdot \text{cumulative-history risk}
+    - a_9 \cdot \text{prior-sensitivity risk}.
+\end{align}
+The current implementation in \texttt{study\_candidate\_generation.py} uses the
+explicit weights
+\[
+(a_1,a_2,a_3,a_4,a_5,a_6,a_7,a_8,a_9)
+=
+(0.18,0.18,0.14,0.14,0.12,0.12,0.12,0.10,0.10).
+\]
+This is why study candidate generation is a methodology module rather than just
+a report writer: it is already combining feature, corpus, classifier, and prior
+information into a promotion surface.
+
+In the current code, that high-level score is instantiated through subterms such
+as \texttt{feature\_class\_compatibility\_score},
+\texttt{expected\_separability\_score},
+\texttt{classifier\_assumption\_fit},
+\texttt{corpus\_coverage\_score},
+\texttt{dimensional\_transfer\_score},
+\texttt{implementation\_readiness\_score},
+\texttt{feature\_dependency\_risk},
+\texttt{cumulative\_double\_counting\_risk}, and
+\texttt{prior\_sensitivity\_risk}.
+These are also the actual score columns written to
+\texttt{static\_candidate\_scores.csv}.
+
+\subsection*{Assumptions}
+
+The static score assumes that feature/class compatibility and oracle
+separability should dominate early screening, that corpus coverage and
+classifier-family fit are second-order but still important, and that 3D
+transferability plus implementation readiness should matter before the repo is
+fully generalized. It also assumes a two-stage selection process:
+\begin{equation}
+    \text{static screening}
+    \rightarrow
+    \text{Monte Carlo confirmation}
+    \rightarrow
+    \text{promotion decision}.
+\end{equation}
+
+\subsection*{Monte Carlo Confirmation Layer}
+
+After static screening, the same module uses common-harness benchmark outputs to
+compute
+\begin{equation}
+    Q_{\text{mc}}
+    =
+    0.60 \cdot \text{accuracy}
+    + 0.25 \cdot (1 - \text{prior flip fraction})
+    + 0.15 \cdot (1 - \max(0, \text{oracle gap})).
+\end{equation}
+The current promote gate is approximately
+\begin{align}
+    \text{compatible}
+    &\land
+    Q_{\text{static}} \ge 0.45
+    \land
+    Q_{\text{mc}} \ge 0.90
+    \notag \\
+    &\land
+    \text{accuracy} \ge 0.83
+    \land
+    \text{prior flip fraction} \le 0.12.
+\end{align}
+If these conditions are not met but the candidate still has acceptable
+compatibility and classifier performance, the decision typically drops to
+\texttt{revise}; otherwise it falls to \texttt{reject} or \texttt{defer}. That
+is the real evidence gate between proposal generation and study promotion.
+
+\section{Candidate Generation As A Sampler Family}
+
+\texttt{candidate\_generation.py} does not emit one candidate per objective. For
+objective \(o\) and backend \(b\), it effectively builds
+\begin{equation}
+    \mathcal{C}(o,b)
+    =
+    \mathcal{C}_{\text{random}}
+    \cup
+    \mathcal{C}_{\text{grid}}
+    \cup
+    \mathcal{C}_{\text{lhs}}
+    \cup
+    \mathcal{C}_{\text{boundary mutation}}
+    \cup
+    \mathcal{C}_{\text{archive mutation}}
+    \cup
+    \mathcal{C}_{\text{stress mutation}}.
+\end{equation}
+This is why the module is already a search policy rather than a single
+constructor.
+In probabilistic language it behaves like a mixture proposal family
+\begin{equation}
+    q(c \mid o,b)
+    =
+    \sum_s \pi_s q_s(c \mid o,b),
+\end{equation}
+where \(s\) ranges over sampler families and the mixture weights are realized
+through fixed per-family generation budgets rather than learned online.
+
+\section{Capability-Aware Search Planning}
+
+\texttt{capability\_aware\_search.py} maps backend capabilities into search
+policies. At the methodology level, the planner can be viewed as
+\begin{equation}
+    \Pi(\text{backend capabilities})
+    \rightarrow
+    \{\text{recommended search methods}, \text{budget class}, \text{planner rationale}\}.
+\end{equation}
+The planner conditions on runtime class, dimensionality, environment support,
+sequential-control support, and stochastic versus deterministic execution.
+More concretely, if \(\kappa\) denotes the backend capability vector, the rule
+set behaves like
+\begin{equation}
+    \Pi(\kappa)
+    =
+    \big(
+        M_{\text{runtime}}(\kappa),
+        M_{\text{environment}}(\kappa),
+        M_{\text{control}}(\kappa),
+        M_{\text{stochastic}}(\kappa)
+    \big),
+\end{equation}
+followed by deduplication into one backend plan row. Cheap stochastic backends
+receive broad search budgets, while expensive deterministic backends are pushed
+toward smaller DOE, surrogate-assisted search, and cache-priority execution.
+
+\section{Study Candidate Protocol And Validation Ladder}
+
+\texttt{study\_candidate\_protocol.py} defines the contract under the
+generated-candidate story. It specifies the \texttt{StudyCandidate} schema, the
+\texttt{ValidationLadder} schema, and the terminal decision vocabulary
+\{\texttt{promote}, \texttt{revise}, \texttt{reject}, \texttt{defer}\}. The
+promotion story is therefore
+\begin{equation}
+    \text{candidate specification}
+    \rightarrow
+    \text{validation ladder evidence}
+    \rightarrow
+    \text{terminal decision in a constrained vocabulary}.
+\end{equation}
+The protocol also defines ordered validation levels, including static
+compatibility, corpus adequacy, feature separability, oracle separability,
+classifier performance, posterior and calibration quality, prior sensitivity,
+stress robustness, dimensional transfer assessment, and final promotion
+decision. In compact form:
+\begin{equation}
+    \text{proposal}
+    \rightarrow
+    \{\ell_1,\ell_2,\dots,\ell_{10}\}
+    \rightarrow
+    d,
+    \qquad
+    d \in \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}.
+\end{equation}
+This is what makes the study layer auditable rather than ad hoc.
+
+\section{Generated Class And Feature Exploration}
+
+\texttt{generated\_corpus\_features.py} routes objective-driven generated
+trajectories back through the real feature pipeline. The methodological flow is
+\begin{equation}
+    \text{generated candidate}
+    \rightarrow
+    \text{executed trajectory}
+    \rightarrow
+    \text{validity-adjusted label}
+    \rightarrow
+    \text{feature row}
+    \rightarrow
+    \text{excitation and separability analysis}.
+\end{equation}
+
+\texttt{corpus\_classifier\_scoring.py} then evaluates how the current
+classifier ladder behaves on those generated trajectories. Its stress proxy is
+approximately
+\begin{equation}
+    \text{stress}
+    \approx
+    0.5 \cdot (1 - \text{margin})
+    + 0.5 \cdot \text{entropy}
+    + 0.35 \cdot \mathbf{1}\{\text{final prediction wrong}\}.
+\end{equation}
+This is what turns generated-corpus exploration into an interpretable source of
+classifier pressure rather than just another batch of synthetic rows.
+
+\section{Methodological Flow}
+
+The important transition is:
+\begin{align}
+    \text{trajectory generator}
+    &\rightarrow
+    \text{corpus candidate}
+    \rightarrow
+    \text{adequacy-scored corpus}
+    \notag \\
+    &\rightarrow
+    \text{backend-aware candidate population}
+    \rightarrow
+    \text{study candidate}
+    \rightarrow
+    \text{validation ladder}
+    \rightarrow
+    \text{promotion / revise / reject / defer}.
+\end{align}
+
+The critical point is that synthetic witness problems are not the end product.
+They are reusable inputs to a study-selection and methodology-audit loop.
+
+\section{Artifact Map}
+
+Primary artifacts for this layer:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{artifacts/corpus\_autodevelopment\_v1/}
+    \item \texttt{artifacts/corpus\_synthesis\_comparison/}
+    \item \texttt{artifacts/study\_candidate\_generation/}
+    \item \texttt{artifacts/adaptive\_stress\_corpus/}
+    \item \texttt{artifacts/environment\_aware\_corpus/}
+\end{itemize}
+
+\end{document}

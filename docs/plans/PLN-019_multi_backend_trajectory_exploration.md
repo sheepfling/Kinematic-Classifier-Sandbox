@@ -2,7 +2,7 @@
 
 Title: Generic Multi-Backend Trajectory Exploration Architecture
 Plan ID: PLN-019
-Status: in_progress
+Status: done
 Owner: @rick
 Priority: P1
 Last Updated: 2026-05-24
@@ -558,3 +558,13 @@ Success Criteria:
 - Search-method choice becomes capability-aware instead of hard-coded.
 - The system is demonstrably ready for a future 3D backend adapter without redesigning the exploration layer.
 - The plan proves that the corpus/search/classifier machinery does not care which compatible backend produced the trajectory.
+
+Follow-On:
+- PLN-019 proves the backend-agnostic exploration architecture.
+- The next maturity layer is [PLN-021_objective_driven_corpus_explorer_v1.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/plans/PLN-021_objective_driven_corpus_explorer_v1.md), which covers:
+  - objective-driven candidate generation
+  - class-validity scoring
+  - real feature extraction integration
+  - classifier-in-the-loop scoring
+  - iterative quality-diversity archive growth
+  - materialized selected corpus output

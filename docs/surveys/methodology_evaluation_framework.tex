@@ -1,0 +1,481 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\graphicspath{{../../artifacts/}}
+
+\title{Methodology Evaluation Framework for Classification Studies}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Purpose}
+
+This document complements the posterior update note. The posterior note explains
+how class evidence is accumulated. This document explains how the repository
+evaluates whether that machinery is trustworthy, informative, and methodologically
+useful.
+
+The main questions are:
+\begin{itemize}[leftmargin=1.5em]
+    \item How prior-sensitive are the decisions?
+    \item How separable are the classes in the current feature space?
+    \item How should confusion matrices be interpreted?
+    \item How do we decide whether a corpus is too easy, too biased, or
+    under-exercised?
+\end{itemize}
+
+Primary implementation surfaces covered explicitly by this note:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{prior\_sensitivity\_analysis.py}
+    \item \texttt{feature\_analysis.py}
+    \item \texttt{pca\_analysis.py}
+    \item \texttt{short\_horizon\_identifiability.py}
+    \item \texttt{corpus\_adequacy\_audit.py}
+    \item \texttt{coverage\_report.py}
+    \item \texttt{inspection\_bundle.py}
+    \item \texttt{generic\_feature\_taxonomy.py}
+    \item \texttt{class\_validity.py}
+    \item \texttt{generated\_corpus\_features.py}
+    \item \texttt{corpus\_classifier\_scoring.py}
+\end{itemize}
+
+\section{Problem And Notation}
+
+The central evaluation question is:
+\begin{equation}
+    \text{Given a classifier, feature family, and corpus, what evidence shows whether apparent success or failure is real?}
+\end{equation}
+
+The most important symbols are:
+\begin{itemize}[leftmargin=1.5em]
+    \item \(p(A)\): prior probability of class \(A\),
+    \item \(L_t(c)\): likelihood term for class \(c\) at time \(t\),
+    \item \(C_{a,b}\): confusion count for true class \(a\) predicted as \(b\),
+    \item \(\phi_t\): feature vector at time \(t\),
+    \item \(\mathrm{AUC}(a,b)\): pairwise AUC for classes \(a\) and \(b\),
+    \item \(O(a,b)\): overlap estimate for classes \(a\) and \(b\).
+\end{itemize}
+
+\section{Evaluation Layers}
+
+The repo is increasingly using the following evaluation stack:
+\begin{equation}
+    \text{corpus}
+    \rightarrow
+    \text{features or filters}
+    \rightarrow
+    \text{evidence}
+    \rightarrow
+    \text{posterior}
+    \rightarrow
+    \text{metrics}
+    \rightarrow
+    \text{artifact bundles}.
+\end{equation}
+
+Different artifact families probe different layers:
+\begin{itemize}[leftmargin=1.5em]
+    \item prior sensitivity probes the posterior layer,
+    \item AUC, overlap, and identifiability probe the feature-evidence layer,
+    \item confusion matrices probe end-to-end decision behavior,
+    \item corpus adequacy probes the data-generation layer.
+\end{itemize}
+
+That separation matters. A poor confusion matrix does not automatically imply a
+bad posterior updater. It may indicate weak features or a biased corpus instead.
+
+\section{Assumptions Behind The Evaluation Stack}
+
+The evaluation layer assumes:
+\begin{itemize}[leftmargin=1.5em]
+    \item no single metric is sufficient for methodological judgment,
+    \item priors, AUC, confusion, and adequacy measure different things,
+    \item feature-space geometry should be inspected before blaming the posterior updater,
+    \item corpus leakage can invalidate apparently good classifier results.
+\end{itemize}
+
+\section{How We Evaluate Priors}
+
+\subsection{Prior Sweep}
+
+For a binary decision between classes $A$ and $B$, the prior-sensitivity study
+sweeps:
+\begin{equation}
+    p(A) \in [0.05, 0.95],
+    \qquad
+    p(B) = 1 - p(A).
+\end{equation}
+
+At each prior setting, the classifier is rerun and the final posterior and hard
+decision are recorded.
+
+\subsection{Flip Thresholds and Fragility}
+
+The key outputs are:
+\begin{itemize}[leftmargin=1.5em]
+    \item the smallest prior shift needed to flip the final class,
+    \item the smallest log-prior shift needed to flip the final class,
+    \item the fraction of trajectories that flip under a moderate perturbation.
+\end{itemize}
+
+Interpretation is straightforward:
+\begin{itemize}[leftmargin=1.5em]
+    \item large required shifts imply evidence-dominated decisions,
+    \item small required shifts imply prior-fragile decisions.
+\end{itemize}
+
+\subsection{Odds Decomposition}
+
+For accumulator-style models, the useful identity is:
+\begin{equation}
+    \log \frac{p(A \mid z)}{p(B \mid z)}
+    =
+    \log \frac{p(A)}{p(B)}
+    +
+    \sum_t \log \frac{L_A(z_t)}{L_B(z_t)}.
+\end{equation}
+
+This makes the interpretation cleaner:
+\begin{itemize}[leftmargin=1.5em]
+    \item strong cumulative likelihood separation reduces prior influence,
+    \item weak cumulative separation allows the prior to dominate.
+\end{itemize}
+
+\subsection{Current Repo Interpretation}
+
+The current prior-sensitivity artifacts show the desired split:
+\begin{itemize}[leftmargin=1.5em]
+    \item easy trajectories are stable under moderate prior changes,
+    \item ambiguous trajectories expose prior-dominant regions,
+    \item the fragility view is more informative than a simple flip/not-flip
+    label because it shows how close a trajectory is to changing class.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{prior_sensitivity_v1/trajectory_prior_fragility_overview.png}
+    \hfill
+    \includegraphics[width=0.48\textwidth]{prior_sensitivity_v1/pairwise_flip_threshold_heatmap.png}
+    \caption{Two complementary prior-sensitivity views: trajectory-level
+    fragility and pairwise flip-threshold structure.}
+\end{figure}
+
+\section{How We Evaluate Separability}
+
+\subsection{Pairwise AUC}
+
+For a class pair $(a,b)$, pairwise AUC measures ranking separation:
+\begin{equation}
+    \mathrm{AUC}(a,b) \in [0.5, 1.0].
+\end{equation}
+
+Interpretation:
+\begin{itemize}[leftmargin=1.5em]
+    \item values near $1.0$ indicate strong ordering separation,
+    \item values near $0.5$ indicate little or no ranking separation.
+\end{itemize}
+
+But AUC alone is not enough. AUC can be high because the corpus is unrealistically
+easy.
+
+\subsection{Overlap and Distance}
+
+The repo also tracks overlap and pairwise distance summaries. Their methodological
+roles are:
+\begin{itemize}[leftmargin=1.5em]
+    \item low overlap suggests distinct feature-space geometry,
+    \item high overlap suggests intrinsic ambiguity unless richer features or
+    longer histories are introduced,
+    \item distance measures provide a geometry-aware complement to raw confusion.
+\end{itemize}
+
+\subsection{Oracle Versus Classifier Interpretation}
+
+The important diagnostic split is:
+\begin{itemize}[leftmargin=1.5em]
+    \item low AUC and high overlap suggest a feature problem,
+    \item good AUC but poor final confusion suggests a posterior, calibration,
+    or model problem,
+    \item perfect AUC on a supposedly hard pair suggests a corpus-design
+    problem.
+\end{itemize}
+
+\subsection{Current Repo Interpretation}
+
+The current abstract inspection bundle reports:
+\begin{itemize}[leftmargin=1.5em]
+    \item recommended feature set: \texttt{all\_engineered},
+    \item hardest current class pair:
+    \texttt{bounded\_acceleration vs maneuver}.
+\end{itemize}
+
+This is useful because the bundle combines:
+\begin{itemize}[leftmargin=1.5em]
+    \item average pairwise AUC,
+    \item worst-case pairwise AUC,
+    \item average overlap,
+    \item worst-case overlap,
+    \item and adequacy gates.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{abstract_inspection_v1/feature_set_inspection_summary.png}
+    \hfill
+    \includegraphics[width=0.48\textwidth]{abstract_inspection_v1/hardest_class_pairs.png}
+    \caption{Cross-feature-set inspection summary and hardest current class
+    boundaries in the abstract inspection bundle.}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{feature_analysis_v1/class_confusability_heatmap.png}
+    \hfill
+    \includegraphics[width=0.48\textwidth]{feature_analysis_v1/pairwise_overlap_heatmap.png}
+    \caption{Confusability and overlap views from the feature-space analysis
+    layer.}
+\end{figure}
+
+\subsection{Generated Corpus Feature Integration}
+
+\texttt{generated\_corpus\_features.py} is the bridge that takes
+objective-driven, backend-generated trajectories and routes them through the
+real feature extraction pipeline using class-validity-adjusted labels.
+
+The methodological flow is
+\begin{equation}
+    \text{generated candidate}
+    \rightarrow
+    \text{executed trajectory}
+    \rightarrow
+    \text{validity-adjusted label}
+    \rightarrow
+    \text{feature extraction}
+    \rightarrow
+    \text{excitation and separability artifacts}.
+\end{equation}
+
+Methodologically, that matters because it closes the loop:
+\begin{itemize}[leftmargin=1.5em]
+    \item generated candidates are not only judged by proxy score rows,
+    \item relabeled or ambiguous trajectories can still be inspected in feature
+    space,
+    \item corpus-generation work can be audited with the same feature and
+    excitation machinery used elsewhere.
+\end{itemize}
+
+\subsection{Corpus-Conditioned Classifier Scoring}
+
+\texttt{corpus\_classifier\_scoring.py} sits one layer downstream from
+generated-corpus feature integration. It rebuilds pointwise, accumulator,
+windowed, and Kalman-style scoring surfaces directly on generated-corpus
+records so the repo can inspect disagreement, posterior entropy, confidence
+margin, and prior sensitivity on the generated corpus itself.
+
+Its stress proxy is approximately
+\begin{equation}
+    \text{stress}
+    \approx
+    0.5 \cdot (1 - \text{margin})
+    + 0.5 \cdot \text{entropy}
+    + 0.35 \cdot \mathbf{1}\{\text{final prediction wrong}\},
+\end{equation}
+which makes this layer a deliberate classifier-pressure surface rather than
+just another export table.
+
+\section{How We Interpret Confusion Matrices}
+
+Confusion is an end-to-end decision artifact:
+\begin{equation}
+    C_{a,b} = \#\{\text{true class } a, \text{ predicted class } b\}.
+\end{equation}
+
+It is valuable because it shows what the decision system actually does. But it
+is not a sufficient explanation by itself.
+
+\subsection{Why Confusion Can Mislead}
+
+The same off-diagonal confusion may come from:
+\begin{itemize}[leftmargin=1.5em]
+    \item feature insufficiency,
+    \item poor likelihood shape,
+    \item over-aggressive prior structure,
+    \item weak within-class mode logic,
+    \item or biased corpus construction.
+\end{itemize}
+
+That is why the repo pairs confusion with:
+\begin{itemize}[leftmargin=1.5em]
+    \item feature-vs-class matrices,
+    \item entropy traces,
+    \item pairwise AUC and overlap,
+    \item prior-sensitivity studies.
+\end{itemize}
+
+\subsection{Multi-View Confusion}
+
+The richer benchmark families already distinguish:
+\begin{itemize}[leftmargin=1.5em]
+    \item full-trajectory confusion,
+    \item transient confusion,
+    \item terminal confusion,
+    \item phase confusion,
+    \item feature-vs-class confusion.
+\end{itemize}
+
+This is methodologically stronger than a single final confusion matrix because
+it localizes \emph{where} in time the error appears and whether it is tied to
+missing feature anchors.
+
+\subsection{Class Validity And Relabel Pressure}
+
+\texttt{class\_validity.py} sits between corpus design and classifier
+evaluation. It is not scoring posterior behavior directly. It is scoring whether
+generated examples still resemble the class they were intended to instantiate.
+
+The module computes telemetry-derived similarity scores for candidate classes
+and then assigns label states such as:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{valid\_target\_class},
+    \item \texttt{ambiguous},
+    \item \texttt{invalid},
+    \item \texttt{relabel\_candidate}.
+\end{itemize}
+
+Methodologically, this matters because some downstream confusion should be
+blamed on weak or ambiguous class definitions rather than on the classifier
+itself.
+
+\section{How We Evaluate Corpus Quality}
+
+\subsection{Balance Checks}
+
+The corpus should be checked for:
+\begin{itemize}[leftmargin=1.5em]
+    \item class balance,
+    \item scenario balance,
+    \item duration balance,
+    \item sample-count balance,
+    \item noise and irregular-sampling coverage.
+\end{itemize}
+
+If those are class-linked, the classifier can appear stronger than it really is.
+
+\subsection{Feature Excitation Coverage}
+
+Each feature set should be excited across multiple tiers and classes. The
+important question is not only whether a feature exists, but whether the corpus
+actually exercises it often enough to judge its utility.
+
+\subsection{Class-Pair Boundary Coverage}
+
+Declared hard pairs should appear in the tiers where they are supposed to be
+challenging:
+\begin{itemize}[leftmargin=1.5em]
+    \item boundary,
+    \item adversarial,
+    \item realistic,
+    \item stress.
+\end{itemize}
+
+If a hard pair is missing or over-separated, then the study is not proving the
+right thing.
+
+\subsection{Leakage Audit}
+
+The corpus should also be checked for covariate-only shortcuts such as:
+\begin{itemize}[leftmargin=1.5em]
+    \item duration,
+    \item sample count,
+    \item sampling irregularity,
+    \item noise level,
+    \item outlier fraction.
+\end{itemize}
+
+If a covariate alone predicts class membership too well, the classifier may be
+benefiting from corpus bias instead of motion structure.
+
+\subsection{Current Repo Interpretation}
+
+The current corpus adequacy audit is already enforceable rather than merely
+descriptive:
+\begin{itemize}[leftmargin=1.5em]
+    \item overall status is currently \texttt{fail},
+    \item the main red finding is that
+    \texttt{constant\_acceleration vs maneuver} is over-separated even though it
+    was declared hard,
+    \item two yellow findings indicate class-linked \texttt{std\_dt} and
+    \texttt{sampling\_irregularity} imbalance.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{corpus_adequacy_audit_v1/class_pair_coverage_heatmap.png}
+    \hfill
+    \includegraphics[width=0.48\textwidth]{corpus_adequacy_audit_v1/covariate_leakage_audit.png}
+    \caption{Corpus quality views: class-pair boundary coverage and covariate
+    leakage structure.}
+\end{figure}
+
+\section{How These Evaluations Connect}
+
+The intended interpretation order is:
+\begin{enumerate}[leftmargin=1.8em]
+    \item check corpus adequacy first,
+    \item then inspect feature excitation and pairwise separability,
+    \item then inspect posterior behavior and prior sensitivity,
+    \item then interpret confusion matrices.
+\end{enumerate}
+
+That ordering matters because otherwise:
+\begin{itemize}[leftmargin=1.5em]
+    \item a good confusion matrix can hide a bad corpus,
+    \item and a bad confusion matrix can be misdiagnosed as a classifier problem
+    when it is really a feature or data problem.
+\end{itemize}
+
+\section{Current Working Standard for ``Good Enough''}
+
+Within this repo, a study component is behaving well when:
+\begin{itemize}[leftmargin=1.5em]
+    \item priors do not dominate easy decisions,
+    \item hard class pairs are actually present and remain challenging,
+    \item feature sets can be compared with stable AUC and overlap summaries,
+    \item confusion can be explained by supporting diagnostics,
+    \item the corpus does not leak labels through easy covariates.
+\end{itemize}
+
+That is a stronger standard than simply asking whether one top-line accuracy
+number is high.
+
+\section{Artifact Map}
+
+The main artifact families for this evaluation framework are:
+\begin{itemize}[leftmargin=1.5em]
+    \item priors:
+    \texttt{artifacts/prior\_sensitivity\_v1/}
+    \item feature-space separability:
+    \texttt{artifacts/feature\_analysis\_v1/} and
+    \texttt{artifacts/abstract\_inspection\_v1/}
+    \item corpus quality:
+    \texttt{artifacts/corpus\_adequacy\_audit\_v1/} and
+    \texttt{artifacts/coverage\_report\_v1/}
+\end{itemize}
+
+This document should be read alongside the posterior note:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{docs/surveys/posterior\_update\_math.tex}
+\end{itemize}
+
+That keeps posterior mechanics separate from evaluation methodology.
+
+\end{document}

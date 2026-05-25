@@ -55,6 +55,17 @@ from kinematic_classifier_sandbox import (
     write_corpus_autodevelopment_artifacts,
     write_corpus_gym_artifacts,
     write_trajectory_backend_contract_artifacts,
+    write_backend_adapter_proof_artifacts,
+    write_environment_aware_corpus_artifacts,
+    write_capability_aware_search_artifacts,
+    write_generic_corpus_exploration_artifacts,
+    write_corpus_objective_artifacts,
+    write_candidate_generation_artifacts,
+    write_class_validity_artifacts,
+    write_generated_corpus_feature_artifacts,
+    write_corpus_classifier_scoring_artifacts,
+    write_objective_driven_qd_archive_artifacts,
+    write_selected_generated_corpus_artifacts,
     write_corpus_search_baseline_artifacts,
     write_adaptive_stress_corpus_artifacts,
     write_rl_backend_decision_artifacts,
@@ -140,6 +151,17 @@ def main() -> int:
     corpus_autodevelopment_artifacts = write_corpus_autodevelopment_artifacts(ROOT / "artifacts")
     corpus_gym_artifacts = write_corpus_gym_artifacts(ROOT / "artifacts")
     trajectory_backend_contract_artifacts = write_trajectory_backend_contract_artifacts(ROOT / "artifacts")
+    backend_adapter_proof_artifacts = write_backend_adapter_proof_artifacts(ROOT / "artifacts")
+    environment_aware_corpus_artifacts = write_environment_aware_corpus_artifacts(ROOT / "artifacts")
+    capability_aware_search_artifacts = write_capability_aware_search_artifacts(ROOT / "artifacts")
+    generic_corpus_exploration_artifacts = write_generic_corpus_exploration_artifacts(ROOT / "artifacts")
+    corpus_objective_artifacts = write_corpus_objective_artifacts(ROOT / "artifacts")
+    candidate_generation_artifacts = write_candidate_generation_artifacts(ROOT / "artifacts")
+    class_validity_artifacts = write_class_validity_artifacts(ROOT / "artifacts")
+    generated_corpus_feature_artifacts = write_generated_corpus_feature_artifacts(ROOT / "artifacts")
+    corpus_classifier_scoring_artifacts = write_corpus_classifier_scoring_artifacts(ROOT / "artifacts")
+    objective_driven_qd_archive_artifacts = write_objective_driven_qd_archive_artifacts(ROOT / "artifacts")
+    selected_generated_corpus_artifacts = write_selected_generated_corpus_artifacts(ROOT / "artifacts")
     corpus_search_baseline_artifacts = write_corpus_search_baseline_artifacts(ROOT / "artifacts")
     quality_diversity_corpus_artifacts = write_quality_diversity_corpus_artifacts(ROOT / "artifacts")
     adaptive_stress_corpus_artifacts = write_adaptive_stress_corpus_artifacts(ROOT / "artifacts")
@@ -294,6 +316,28 @@ def main() -> int:
     print(corpus_gym_artifacts.report_path)
     print(trajectory_backend_contract_artifacts.run_dir)
     print(trajectory_backend_contract_artifacts.report_path)
+    print(backend_adapter_proof_artifacts.run_dir)
+    print(backend_adapter_proof_artifacts.backend_output_equivalence_report_path)
+    print(environment_aware_corpus_artifacts.run_dir)
+    print(environment_aware_corpus_artifacts.report_path)
+    print(capability_aware_search_artifacts.run_dir)
+    print(capability_aware_search_artifacts.report_path)
+    print(generic_corpus_exploration_artifacts.run_dir)
+    print(generic_corpus_exploration_artifacts.report_path)
+    print(corpus_objective_artifacts.run_dir)
+    print(corpus_objective_artifacts.report_path)
+    print(candidate_generation_artifacts.run_dir)
+    print(candidate_generation_artifacts.report_path)
+    print(class_validity_artifacts.run_dir)
+    print(class_validity_artifacts.report_path)
+    print(generated_corpus_feature_artifacts.run_dir)
+    print(generated_corpus_feature_artifacts.report_path)
+    print(corpus_classifier_scoring_artifacts.run_dir)
+    print(corpus_classifier_scoring_artifacts.report_path)
+    print(objective_driven_qd_archive_artifacts.run_dir)
+    print(objective_driven_qd_archive_artifacts.report_path)
+    print(selected_generated_corpus_artifacts.run_dir)
+    print(selected_generated_corpus_artifacts.report_path)
     print(corpus_search_baseline_artifacts.run_dir)
     print(corpus_search_baseline_artifacts.report_path)
     print(quality_diversity_corpus_artifacts.run_dir)

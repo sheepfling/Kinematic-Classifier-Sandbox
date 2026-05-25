@@ -1,0 +1,121 @@
+- id: bayes_logsumexp_update
+  latex: "\\tilde{r}_k(c)=\\log p_{k-1}(c)+\\ell_k(c),\\ \\log Z_k=\\log\\sum_{c'\\in\\mathcal{C}}\\exp(\\tilde{r}_k(c')),\\ \\log p_k(c)=\\tilde{r}_k(c)-\\log Z_k"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/sequential_bayes_accumulator.py
+    function: run_accumulator
+  artifacts:
+    - artifacts/corpus_classifier_scoring/posterior_history.csv
+    - artifacts/bayesian_walkthroughs/bayesian_step_tables.csv
+  tests:
+    - tests/test_corpus_classifier_scoring.py
+- id: two_class_log_odds
+  latex: "\\lambda_k^{ab}=\\log\\frac{p_k(a)}{p_k(b)}=\\log\\frac{\\pi(a)}{\\pi(b)}+\\sum_{i=1}^k \\log\\frac{p(y_i\\mid a)}{p(y_i\\mid b)}"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/bayesian_walkthroughs.py
+    function: analyze_bayesian_walkthroughs
+  artifacts:
+    - artifacts/bayesian_walkthroughs/posterior_flip_thresholds.csv
+  tests:
+    - tests/test_bayesian_walkthroughs.py
+- id: transition_matrix_update
+  latex: "\\bar{p}_k(c)=\\sum_{c'\\in\\mathcal{C}}T_{c'c}p_{k-1}(c'),\\ p_k(c)=\\frac{p(y_k\\mid c)\\bar{p}_k(c)}{\\sum_j p(y_k\\mid j)\\bar{p}_k(j)}"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/transition_matrix_accumulator.py
+    function: run_transition_benchmark
+  artifacts:
+    - artifacts/transition_matrix_accumulator_v1/transition_matrix_accumulator_report.md
+  tests:
+    - tests/test_transition_matrix_accumulator.py
+- id: kalman_innovation_likelihood
+  latex: "\\ell_k(c)=-\\tfrac{1}{2}[\\nu_{k,c}^T S_{k,c}^{-1}\\nu_{k,c}+\\log |S_{k,c}|+d_z\\log(2\\pi)]"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/kalman_filter_bank.py
+    function: run_kalman_filter_bank
+  artifacts:
+    - artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv
+  tests:
+    - tests/test_corpus_classifier_scoring.py
+- id: corpus_autodevelopment_score
+  latex: "S_k=w_bB_k+w_cC_k+w_fF_k+w_dD_k-w_\\ell L_k-w_tT_k-w_gG_k"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/corpus_autodevelopment.py
+    function: analyze_corpus_autodevelopment
+  artifacts:
+    - artifacts/corpus_autodevelopment_v1/candidate_scores.csv
+    - artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md
+  tests:
+    - tests/test_corpus_autodevelopment.py
+- id: pareto_dominance
+  latex: "i \\succ j \\iff o_i^{(r)}\\ge o_j^{(r)}\\ \\forall r\\ \\text{and}\\ \\exists r: o_i^{(r)}>o_j^{(r)}"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/corpus_autodevelopment.py
+    function: analyze_corpus_autodevelopment
+  artifacts:
+    - artifacts/corpus_autodevelopment_v1/pareto_front.csv
+  tests:
+    - tests/test_corpus_autodevelopment.py
+- id: corpus_gym_reward
+  latex: "U_{\\text{gym}}=0.22V+0.14E+0.14G+0.14B+0.14S+0.12P-0.10L-0.14I"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/corpus_gym.py
+    function: _reward_from_components
+  artifacts:
+    - artifacts/corpus_gym/corpus_gym_report.md
+  tests:
+    - tests/test_corpus_gym.py
+- id: qd_archive_utility
+  latex: "U_{\\text{archive}}=0.30\\,\\text{validity}+0.25\\,\\text{acceleration pressure}+0.25\\,\\text{stress}+0.20(1-\\text{mean margin})"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/objective_driven_qd_archive.py
+    function: analyze_objective_driven_qd_archive
+  artifacts:
+    - artifacts/quality_diversity_corpus_v1/archive_elites.csv
+  tests:
+    - tests/test_objective_driven_qd_archive.py
+- id: qd_cell_mapping
+  latex: "h(\\tau)=(c(\\tau),\\text{tier}(\\tau),\\text{backend}(\\tau),b_{\\text{dur}}(\\tau),b_{\\text{acc}}(\\tau),b_{\\text{entropy}}(\\tau),b_{\\text{prior}}(\\tau))"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/objective_driven_qd_archive.py
+    function: analyze_objective_driven_qd_archive
+  artifacts:
+    - artifacts/quality_diversity_corpus_v1/archive_cells.csv
+  tests:
+    - tests/test_objective_driven_qd_archive.py
+- id: sampler_mixture
+  latex: "q(c\\mid o,b)=\\sum_s \\pi_s q_s(c\\mid o,b),\\ \\pi_s=\\frac{n_s}{\\sum_{s'} n_{s'}}"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/candidate_generation.py
+    function: generate_candidates_from_objectives
+  artifacts:
+    - artifacts/candidate_generation/generated_candidates.csv
+  tests:
+    - tests/test_candidate_generation.py
+- id: class_validity_status
+  latex: "\\text{label\\_status}(\\tau)=\\begin{cases}\\text{valid target}, & v_{c_{\\text{target}}}(\\tau)\\ge \\alpha \\\\ \\text{ambiguous}, & \\max_c v_c(\\tau)-\\max_{c\\neq c^*} v_c(\\tau)<\\delta \\\\ \\text{relabel candidate}, & \\hat{c}_{\\text{valid}}\\neq c_{\\text{target}} \\\\ \\text{invalid}, & \\max_c v_c(\\tau)<\\beta \\end{cases}"
+  conceptual: false
+  implementation:
+    module: src/kinematic_classifier_sandbox/class_validity.py
+    function: classify_validity_status
+  artifacts:
+    - artifacts/class_validity/class_validity_scores.csv
+  tests:
+    - tests/test_class_validity.py
+- id: calibration_metrics
+  latex: "\\text{Brier}=\\frac{1}{N}\\sum_{i=1}^N\\sum_{c\\in\\mathcal{C}}(p_i(c)-\\mathbf{1}[y_i=c])^2,\\ \\text{ECE}=\\sum_{b=1}^B\\frac{|I_b|}{N}|\\text{acc}(I_b)-\\text{conf}(I_b)|"
+  conceptual: true
+  implementation:
+    module: docs/latex/kinematic_classifier_methodology.tex
+    function: documentation_only
+  artifacts:
+    - artifacts/latex/kinematic_classifier_methodology.pdf
+  tests: []

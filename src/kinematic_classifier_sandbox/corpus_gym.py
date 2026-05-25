@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 import json
 from pathlib import Path
 import random
@@ -48,6 +48,7 @@ class CorpusGymAction:
     irregularity_scale: float = 1.0
     outlier_scale: float = 1.0
     step_scale: float = 1.0
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,6 +87,7 @@ class CorpusGymArtifacts:
     environment_contract_path: Path
     example_targets_path: Path
     report_path: Path
+    numeric_walkthrough_path: Path
 
 
 def default_corpus_gym_targets() -> tuple[CorpusGymTarget, ...]:
@@ -381,7 +383,7 @@ def _simulate_trajectory(target: CorpusGymTarget, action: CorpusGymAction) -> Tr
         tier_definition.outlier_probability + class_definition.outlier_probability,
     )
     scenario_id = f"{target.target_id}_{class_name}_{action.seed}"
-    return _make_trajectory(
+    trajectory = _make_trajectory(
         class_definition=class_definition,
         tier_definition=tier_definition,
         steps=steps,
@@ -397,6 +399,12 @@ def _simulate_trajectory(target: CorpusGymTarget, action: CorpusGymAction) -> Tr
         measurements=measurements,
         outlier_indices=outlier_indices,
     )
+    generator_parameters = dict(trajectory.generator_parameters)
+    generator_parameters.update(action.metadata)
+    generator_parameters["corpus_gym_target_id"] = target.target_id
+    generator_parameters["corpus_gym_target_type"] = target.target_type
+    generator_parameters["tier"] = tier_definition.name
+    return replace(trajectory, generator_parameters=generator_parameters)
 
 
 class CorpusGymEnvironment:
@@ -600,6 +608,106 @@ def analyze_corpus_gym_contract() -> CorpusGymContractResult:
     )
 
 
+def render_corpus_gym_numeric_walkthrough_markdown(
+    result: CorpusGymContractResult | None = None,
+) -> str:
+    contract = result or analyze_corpus_gym_contract()
+    episode = contract.example_episode
+    reward = episode.reward
+    diagnostics = episode.diagnostics
+    target = episode.target
+    action = episode.action
+
+    lines = [
+        "# Corpus Gym Numeric Walkthrough",
+        "",
+        "This walkthrough expands one real `CorpusGymEnvironment` episode into",
+        "its target, action, diagnostics, and reward components.",
+        "",
+        "## Target",
+        "",
+        f"- `target_id`: `{target.target_id}`",
+        f"- `target_type`: `{target.target_type}`",
+        f"- `description`: `{target.description}`",
+        f"- `target_tier`: `{target.target_tier}`",
+        "",
+        "## Action",
+        "",
+        f"- `seed`: `{action.seed}`",
+        f"- `tier_name`: `{action.tier_name}`",
+        f"- `duration_scale`: `{action.duration_scale:.3f}`",
+        f"- `measurement_scale`: `{action.measurement_scale:.3f}`",
+        f"- `irregularity_scale`: `{action.irregularity_scale:.3f}`",
+        f"- `outlier_scale`: `{action.outlier_scale:.3f}`",
+        f"- `step_scale`: `{action.step_scale:.3f}`",
+        "",
+        "## Trajectory Diagnostics",
+        "",
+        f"- `trajectory_id`: `{diagnostics['trajectory_id']}`",
+        f"- `true_class`: `{diagnostics['true_class']}`",
+        f"- `tier`: `{diagnostics['tier']}`",
+        f"- `duration`: `{float(diagnostics['duration']):.3f}`",
+        f"- `position_range`: `{float(diagnostics['position_range']):.3f}`",
+        f"- `speed_range`: `{float(diagnostics['speed_range']):.3f}`",
+        f"- `acceleration_range`: `{float(diagnostics['acceleration_range']):.3f}`",
+        f"- `acceleration_variance`: `{float(diagnostics['acceleration_variance']):.3f}`",
+        f"- `monotonicity`: `{float(diagnostics['monotonicity']):.3f}`",
+        f"- `outlier_score`: `{float(diagnostics['outlier_score']):.3f}`",
+        f"- `sampling_irregularity`: `{float(diagnostics['sampling_irregularity']):.3f}`",
+        f"- `num_samples`: `{int(diagnostics['num_samples'])}`",
+        "",
+        "## Implemented Reward Equation",
+        "",
+        "```tex",
+        "U_{\\text{gym}}",
+        "= 0.22 \\cdot V",
+        "+ 0.14 \\cdot E",
+        "+ 0.14 \\cdot G",
+        "+ 0.14 \\cdot B",
+        "+ 0.14 \\cdot S",
+        "+ 0.12 \\cdot P",
+        "- 0.10 \\cdot L",
+        "- 0.14 \\cdot I.",
+        "```",
+        "",
+        "## Numeric Substitution",
+        "",
+        "```tex",
+        "U_{\\text{gym}}",
+        f"= 0.22 \\cdot {reward.class_validity:.3f}",
+        f"+ 0.14 \\cdot {reward.feature_excitation:.3f}",
+        f"+ 0.14 \\cdot {reward.coverage_gain:.3f}",
+        f"+ 0.14 \\cdot {reward.boundary_closeness:.3f}",
+        f"+ 0.14 \\cdot {reward.classifier_stress:.3f}",
+        f"+ 0.12 \\cdot {reward.prior_sensitivity:.3f}",
+        f"- 0.10 \\cdot {reward.leakage_penalty:.3f}",
+        f"- 0.14 \\cdot {reward.physical_invalidity_penalty:.3f}",
+        f"= {reward.total_utility:.3f}.",
+        "```",
+        "",
+        "## Reward Breakdown",
+        "",
+        f"- `class_validity (V)`: `{reward.class_validity:.3f}`",
+        f"- `feature_excitation (E)`: `{reward.feature_excitation:.3f}`",
+        f"- `coverage_gain (G)`: `{reward.coverage_gain:.3f}`",
+        f"- `boundary_closeness (B)`: `{reward.boundary_closeness:.3f}`",
+        f"- `classifier_stress (S)`: `{reward.classifier_stress:.3f}`",
+        f"- `prior_sensitivity (P)`: `{reward.prior_sensitivity:.3f}`",
+        f"- `leakage_penalty (L)`: `{reward.leakage_penalty:.3f}`",
+        f"- `physical_invalidity_penalty (I)`: `{reward.physical_invalidity_penalty:.3f}`",
+        f"- `total_utility`: `{reward.total_utility:.3f}`",
+        "",
+        "## Interpretation",
+        "",
+        "- This example is high utility because it is valid, feature-matching, and",
+        "  moderately stressful without paying much leakage or invalidity cost.",
+        "- The walkthrough is the Gym-side analogue of the transition and corpus",
+        "  autodevelopment numeric examples: it exposes how a search-facing reward",
+        "  is actually computed on one concrete episode.",
+    ]
+    return "\n".join(lines)
+
+
 def write_corpus_gym_artifacts(
     output_dir: str | Path,
     *,
@@ -611,12 +719,15 @@ def write_corpus_gym_artifacts(
     environment_contract_path = run_dir / "environment_contract.json"
     example_targets_path = run_dir / "example_targets.json"
     report_path = run_dir / "corpus_gym_report.md"
+    numeric_walkthrough_path = run_dir / "corpus_gym_numeric_walkthrough.md"
     environment_contract_path.write_text(json.dumps(contract.environment_contract, indent=2), encoding="utf-8")
     example_targets_path.write_text(json.dumps({"targets": list(contract.example_targets)}, indent=2), encoding="utf-8")
     report_path.write_text(contract.report_markdown, encoding="utf-8")
+    numeric_walkthrough_path.write_text(render_corpus_gym_numeric_walkthrough_markdown(contract), encoding="utf-8")
     return CorpusGymArtifacts(
         run_dir=run_dir,
         environment_contract_path=environment_contract_path,
         example_targets_path=example_targets_path,
         report_path=report_path,
+        numeric_walkthrough_path=numeric_walkthrough_path,
     )

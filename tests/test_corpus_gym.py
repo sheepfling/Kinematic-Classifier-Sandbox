@@ -10,6 +10,7 @@ from kinematic_classifier_sandbox import (
     CorpusGymEnvironment,
     analyze_corpus_gym_contract,
     default_corpus_gym_targets,
+    render_corpus_gym_numeric_walkthrough_markdown,
     write_corpus_gym_artifacts,
 )
 
@@ -62,6 +63,10 @@ class CorpusGymTests(unittest.TestCase):
         self.assertIn("target_types", result.environment_contract)
         self.assertGreater(len(result.example_targets), 0)
         self.assertIn("Reward Breakdown", result.report_markdown)
+        walkthrough = render_corpus_gym_numeric_walkthrough_markdown(result)
+        self.assertIn("Corpus Gym Numeric Walkthrough", walkthrough)
+        self.assertIn("Numeric Substitution", walkthrough)
+        self.assertIn("total_utility", walkthrough)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_corpus_gym_artifacts(temp_dir, result=result)
@@ -69,11 +74,15 @@ class CorpusGymTests(unittest.TestCase):
             self.assertTrue(artifacts.environment_contract_path.exists())
             self.assertTrue(artifacts.example_targets_path.exists())
             self.assertTrue(artifacts.report_path.exists())
+            self.assertTrue(artifacts.numeric_walkthrough_path.exists())
 
             contract = json.loads(artifacts.environment_contract_path.read_text(encoding="utf-8"))
             self.assertIn("reward_components", contract)
             targets = json.loads(artifacts.example_targets_path.read_text(encoding="utf-8"))
             self.assertGreater(len(targets["targets"]), 0)
+            walkthrough_text = artifacts.numeric_walkthrough_path.read_text(encoding="utf-8")
+            self.assertIn("Corpus Gym Numeric Walkthrough", walkthrough_text)
+            self.assertIn("Implemented Reward Equation", walkthrough_text)
 
 
 if __name__ == "__main__":

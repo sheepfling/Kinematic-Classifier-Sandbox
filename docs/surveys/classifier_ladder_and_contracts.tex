@@ -1,0 +1,409 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\graphicspath{{../../artifacts/}}
+
+\title{Classifier Ladder and Contracts}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Purpose}
+
+This document explains the implementation-linked classifier ladder in the
+repository and the contract surfaces that let different method families share a
+common evaluation path. The point of the ladder is not that every method should
+win every benchmark. The point is that each level adds a distinct form of
+evidence and makes a distinct claim about what the repo is proving.
+
+\section{Problem And Notation}
+
+Across the ladder, the common problem is to infer a class or mode label from a
+measurement history \(z_{1:t}\). The most important shared symbols are:
+\begin{itemize}[leftmargin=1.5em]
+    \item \(z_t\): observation at time \(t\),
+    \item \(c\): class label in non-switching methods,
+    \item \(s\): mode label in switching methods,
+    \item \(p_t(c)\): posterior over classes after time \(t\),
+    \item \(L_t(c)\): class-conditioned likelihood term,
+    \item \(\phi_t\): feature vector extracted from a trajectory prefix or window,
+    \item \(\ell_t(c)\): unnormalized log score before normalization.
+\end{itemize}
+
+Every method in the ladder is therefore an answer to:
+\begin{equation}
+    \text{How should } \ell_t(\cdot) \text{ be constructed from } z_{1:t}\text{?}
+\end{equation}
+Once that log-score vector is available, the shared normalization surface is
+\begin{equation}
+    p_t(c) = \frac{\exp(\ell_t(c))}{\sum_j \exp(\ell_t(j))}.
+\end{equation}
+
+\section{Common Assumptions}
+
+The ladder shares a few numerical and methodological assumptions:
+\begin{itemize}[leftmargin=1.5em]
+    \item additive log evidence is preferred to direct probability products,
+    \item posterior state from the previous step is the recursive memory surface,
+    \item higher-complexity methods must be justified by a failure mode of
+    lower-complexity methods,
+    \item shared evaluation consumes standardized output rows rather than
+    method-specific internal states.
+\end{itemize}
+
+\section{Ladder Structure}
+
+The current ladder is:
+\begin{enumerate}[leftmargin=1.8em]
+    \item \texttt{pointwise\_baseline.py}
+    \item \texttt{windowed\_baseline.py}
+    \item \texttt{sequential\_bayes\_accumulator.py}
+    \item \texttt{kalman\_filter\_bank.py}
+    \item \texttt{transition\_matrix\_accumulator.py}
+\end{enumerate}
+
+Each level adds a specific capability:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{pointwise}: one-step evidence from direct observations
+    \item \texttt{windowed}: short-history summary evidence
+    \item \texttt{accumulator}: recursive cumulative evidence
+    \item \texttt{kalman}: state-space prediction plus innovation likelihoods
+    \item \texttt{transition\_matrix}: explicit switching pressure across modes
+\end{itemize}
+
+\section{Pointwise Evidence Baseline}
+
+\texttt{pointwise\_baseline.py} is the direct-evidence baseline. It answers the
+question:
+\begin{equation}
+    \text{How far can pure observation evidence go without temporal memory?}
+\end{equation}
+
+For class \(c\) with mean \(\mu_c\), standard deviation \(\sigma_c\), and
+recursive prior \(p_{t-1}(c)\), the implementation computes
+\begin{align}
+    \ell_t(c)
+    &= \log p_{t-1}(c)
+    - \frac{1}{2}\left[
+        \log\!\left(2\pi \sigma_c^2\right)
+        + \frac{(z_t - \mu_c)^2}{\sigma_c^2}
+    \right], \\
+    p_t(c)
+    &= \frac{\exp(\ell_t(c))}{\sum_j \exp(\ell_t(j))}.
+\end{align}
+This is the exact update used by
+\texttt{GaussianPointwiseClassifier.update}. The model carries no explicit
+latent state; its entire memory is the posterior vector \(p_{t-1}\).
+
+\section{Windowed Evidence Baseline}
+
+\texttt{windowed\_baseline.py} adds short-history feature rows and summary
+statistics. This is the bridge from single-sample scoring to structured feature
+evidence.
+
+Related implementation surfaces:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{irregular\_window\_comparison.py}
+    \item \texttt{common\_experiment\_classifier\_registry.py}
+\end{itemize}
+
+For each time \(t\), the code constructs a feature row
+\begin{align}
+    \phi_t
+    &=
+    \big[
+        \texttt{running\_min},
+        \texttt{running\_max},
+        \texttt{running\_range},
+        \notag \\
+    &\qquad
+        \texttt{robust\_min},
+        \texttt{robust\_max},
+        \texttt{trimmed\_range},
+        \texttt{slope},
+        \dots
+    \big]_t
+\end{align}
+from the trajectory prefix or local window. The selected evidence family is
+\begin{itemize}[leftmargin=1.5em]
+    \item raw: \(\{\texttt{running\_min}, \texttt{running\_max}, \texttt{running\_range}, \texttt{slope}\}\),
+    \item robust: \(\{\texttt{robust\_min}, \texttt{robust\_max}, \texttt{trimmed\_range}, \texttt{slope}\}\).
+\end{itemize}
+For each class \(c\),
+\begin{equation}
+    \ell_t(c)
+    = \log p_{t-1}(c)
+    + \sum_{f \in \mathcal{F}}
+    \log \mathcal{N}\!\left(\phi_{t,f}; \mu_{c,f}, \sigma_{c,f}^2\right),
+\end{equation}
+where \(\mathcal{F}\) is the selected feature subset. The current code assumes
+conditional independence between feature coordinates inside a row.
+That conditional-independence approximation is the key modeling assumption of
+the windowed rung.
+
+\section{Sequential Bayes Accumulator}
+
+\texttt{sequential\_bayes\_accumulator.py} turns class evidence into recursive
+posterior updates and is the cleanest additive log-likelihood ladder step before
+latent-state filtering.
+
+When a likelihood stream \(L_t(c)\) is supplied directly, the accumulator uses
+\begin{align}
+    \ell_t(c)
+    &= \lambda \log p_{t-1}(c) + \log L_t(c), \\
+    p_t(c)
+    &= \frac{\exp(\ell_t(c))}{\sum_j \exp(\ell_t(j))},
+\end{align}
+where \(\lambda > 0\) is the forgetting factor in
+\texttt{SequentialBayesAccumulator.update\_with\_likelihoods}. When the
+accumulator is used in its direct Gaussian form, the likelihood itself is
+\begin{equation}
+    L_t(c) = \mathcal{N}(z_t; \mu_c, \sigma_c^2).
+\end{equation}
+
+The implementation also exposes a confidence gate. Let
+\(c^\star_t = \arg\max_c p_t(c)\). The reported label is
+\begin{equation}
+    \hat{y}_t =
+    \begin{cases}
+        c^\star_t, & p_t(c^\star_t) \ge \tau, \\
+        \texttt{unknown}, & p_t(c^\star_t) < \tau,
+    \end{cases}
+\end{equation}
+with threshold \(\tau\) supplied as \texttt{confidence\_threshold}. That
+abstention rule is why the accumulator artifacts can separate evidence weakness
+from plain misclassification.
+
+\section{Kalman Innovation Bank}
+
+\texttt{kalman\_filter\_bank.py} is the first full model-based recursive
+classifier in the ladder. Its key ingredients are:
+\begin{itemize}[leftmargin=1.5em]
+    \item state prediction
+    \item measurement innovation
+    \item innovation likelihood
+    \item model comparison across motion hypotheses
+\end{itemize}
+
+Related modules:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{kalman\_variant\_comparison.py}
+    \item \texttt{kalman\_observable\_comparison.py}
+    \item \texttt{velocity\_aided\_kalman\_comparison.py}
+\end{itemize}
+
+For each model \(m\), the code performs the standard linear-Gaussian predict and
+update steps
+\begin{align}
+    \hat{x}_{t|t-1}^{(m)} &= F_t^{(m)} x_{t-1|t-1}^{(m)}, \\
+    P_{t|t-1}^{(m)} &= F_t^{(m)} P_{t-1|t-1}^{(m)} {F_t^{(m)}}^\top + Q_t^{(m)}, \\
+    \nu_t^{(m)} &= z_t - H_t^{(m)} \hat{x}_{t|t-1}^{(m)}, \\
+    S_t^{(m)} &= H_t^{(m)} P_{t|t-1}^{(m)} {H_t^{(m)}}^\top + R_t^{(m)}.
+\end{align}
+The classification evidence is the innovation likelihood
+\begin{equation}
+    \log L_t(m)
+    = -\frac{1}{2}\left[
+        \log\!\left(2\pi S_t^{(m)}\right)
+        + \frac{(\nu_t^{(m)})^2}{S_t^{(m)}}
+    \right],
+\end{equation}
+which is exactly what \texttt{\_innovation\_log\_likelihood} computes. The
+posterior over models is then updated by
+\begin{equation}
+    \log \tilde{p}_t(m) = \log p_{t-1}(m) + \log L_t(m),
+\end{equation}
+followed by log-sum-exp normalization.
+
+The implementation also includes two robustness mechanisms that materially
+change benchmark behavior:
+\begin{itemize}[leftmargin=1.5em]
+    \item adaptive measurement inflation when normalized innovation squared is
+    above a gate,
+    \item smoothed process-noise scaling when the innovation remains unusually
+    large.
+\end{itemize}
+Those policies are what the variant-comparison artifacts are actually testing.
+
+\section{Transition-Aware Accumulation}
+
+\texttt{transition\_matrix\_accumulator.py} adds explicit switching structure to
+the recursive evidence story and acts as the bridge toward stronger switching
+models.
+
+The transition-aware accumulator first extracts finite-difference kinematics
+\((\hat{v}_t, \hat{a}_t)\) from the measurement history and scores each mode by
+Gaussian emission terms over speed, signed acceleration, and absolute
+acceleration:
+\begin{equation}
+    \log E_t(s)
+    =
+    \log \mathcal{N}(\hat{v}_t; \mu^{(v)}_s, {\sigma^{(v)}_s}^2)
+    +
+    \log \mathcal{N}(\hat{a}_t; \mu^{(a)}_s, {\sigma^{(a)}_s}^2)
+    +
+    \log \mathcal{N}(|\hat{a}_t|; \mu^{(|a|)}_s, {\sigma^{(|a|)}_s}^2).
+\end{equation}
+
+Without transition structure, the prior remains \(p_{t-1}(s)\). With a
+transition matrix \(T\), the code propagates
+\begin{equation}
+    \bar{p}_t(s') = \sum_s p_{t-1}(s)\,T_{s,s'}.
+\end{equation}
+The mode posterior then becomes
+\begin{equation}
+    \log \tilde{p}_t(s) = \log \bar{p}_t(s) + \log E_t(s).
+\end{equation}
+This is the current pre-IMM rung: the repo is already testing whether explicit
+mode persistence and switching probabilities explain the observed failure mode
+before paying the complexity cost of a full interacting multiple-model design.
+
+There is now a worked numeric example for this update path in
+\texttt{artifacts/transition\_matrix\_accumulator\_v1/transition\_matrix\_numeric\_walkthrough.md}.
+That walkthrough uses a real switching trajectory and shows:
+\begin{itemize}[leftmargin=1.5em]
+    \item the propagated prior at the first switched step,
+    \item the per-mode emission terms,
+    \item the resulting log numerators,
+    \item and the posterior normalization over modes for several steps around
+    the switch.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{transition_matrix_accumulator_v1/transition_matrix_diagnostics.png}
+    \caption{Transition-aware accumulation diagnostics.}
+\end{figure}
+
+\section{Implementation Contract}
+
+The ladder only becomes a methodology framework when different methods can be
+evaluated through a common output surface. The practical repo contract is:
+\begin{equation}
+    \text{method-specific state and evidence}
+    \rightarrow
+    \text{shared prediction rows}
+    \rightarrow
+    \text{shared metrics and artifact writers}.
+\end{equation}
+This contract is implemented across
+\texttt{common\_experiment\_harness.py},
+\texttt{common\_experiment\_classifier\_registry.py},
+\texttt{shared\_evaluation.py},
+\texttt{contracts.py}, and the generic contract proof modules.
+
+\section{Shared Ladder Benchmark And Dataset Comparison}
+
+The comparison layer is implemented through:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{common\_dataset\_comparison.py}
+    \item \texttt{technique\_comparison.py}
+    \item \texttt{common\_1d\_study\_adapter.py}
+\end{itemize}
+
+These modules normalize different methods onto one benchmark surface. The
+practical contract is:
+\begin{equation}
+    \text{method-specific evidence/history}
+    \rightarrow
+    \text{shared prediction rows}
+    \rightarrow
+    \text{shared metrics and artifact writers}.
+\end{equation}
+The comparison layer therefore does not assume that every method has the same
+internal state. It only assumes that each method can emit compatible posterior,
+prediction, and metric rows.
+
+\section{Common Experiment Harness And Adapter Layer}
+
+The shared study layer is implemented through:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{common\_experiment\_harness.py}
+    \item \texttt{common\_experiment\_classifier\_registry.py}
+    \item \texttt{shared\_evaluation.py}
+\end{itemize}
+
+These modules are the practical answer to:
+\begin{equation}
+    \text{different classifier family}
+    \rightarrow
+    \text{shared metrics and artifact layout}.
+\end{equation}
+
+At the schema level, the harness expects a method family to provide at least:
+\begin{itemize}[leftmargin=1.5em]
+    \item trajectory and scenario identifiers,
+    \item true and predicted class labels,
+    \item posterior probabilities,
+    \item confidence values,
+    \item optional evidence or filter diagnostics.
+\end{itemize}
+Everything downstream --- confusion matrices, prior-sensitivity views, feature
+set studies, and class-pair studies --- is built on that shared surface.
+
+\section{Common Output Schema And Contracts}
+
+The explicit contract logic lives in:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{contracts.py}
+    \item \texttt{generic\_inference\_contract.py}
+    \item \texttt{generic\_classification\_evidence\_proof.py}
+    \item \texttt{validation\_ladder.py}
+\end{itemize}
+
+These modules are the main proof that the repo is becoming a generic study
+framework rather than a collection of disconnected method-specific writers.
+
+The generic inference proof can be summarized as
+\begin{equation}
+    \{\log L_t(c)\}_{c \in \mathcal{C}}
+    \xrightarrow{\text{posterior updater}}
+    \{p_t(c)\}_{c \in \mathcal{C}},
+\end{equation}
+independent of whether \(\log L_t(c)\) came from direct measurement scoring,
+windowed features, a recursive accumulator, or an innovation likelihood.
+
+\section{Backend Adapter Proof}
+
+The backend compatibility surfaces live in:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{generic\_filtering\_contract.py}
+    \item \texttt{trajectory\_backend\_contract.py}
+    \item \texttt{backend\_adapter\_proof.py}
+\end{itemize}
+
+The backend-adapter claim is deliberately narrower than ``all filters are the
+same.'' The actual claim is:
+\begin{align}
+    \text{backend}
+    \rightarrow
+    \big(
+        \text{state summary},
+        \text{evidence summary},
+        \text{diagnostics}
+    \big)
+    \rightarrow
+    \text{shared posterior / evaluation contract}.
+\end{align}
+That is the contract future IMM, PF, and RBPF implementations must satisfy if
+they are added later.
+
+\section{Artifact Map}
+
+Primary artifacts for this layer:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{artifacts/common\_dataset\_comparison\_v1/}
+    \item \texttt{artifacts/technique\_comparison\_v1/}
+    \item \texttt{artifacts/generic\_inference\_contract/}
+    \item \texttt{artifacts/filtering\_contract/}
+    \item \texttt{artifacts/transition\_matrix\_accumulator\_v1/}
+\end{itemize}
+
+\end{document}

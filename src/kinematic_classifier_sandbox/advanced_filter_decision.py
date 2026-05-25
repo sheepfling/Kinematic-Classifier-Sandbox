@@ -31,6 +31,7 @@ class AdvancedFilterDecisionArtifacts:
     report_path: Path
     summary_path: Path
     evidence_path: Path
+    numeric_walkthrough_path: Path
 
 
 def analyze_advanced_filter_decision() -> AdvancedFilterDecisionResult:
@@ -176,6 +177,164 @@ def render_advanced_filter_decision_report(result: AdvancedFilterDecisionResult)
     )
 
 
+def render_advanced_filter_decision_numeric_walkthrough_markdown(result: AdvancedFilterDecisionResult) -> str:
+    imm_rows = [row for row in result.evidence_rows if row["gate"] == "IMM"]
+    pf_rows = [row for row in result.evidence_rows if row["gate"] == "Particle Filter"]
+    lines = [
+        "# Advanced Filter Decision Numeric Walkthrough",
+        "",
+        "This worked example uses the exact evidence values from `analyze_advanced_filter_decision()`",
+        "to show why the repo currently defers IMM and particle filtering.",
+        "",
+        "## IMM Gate",
+        "",
+        "The implemented IMM decision logic is currently conservative:",
+        "",
+        "```tex",
+        r"\text{IMM justified now} = \text{False}",
+        "```",
+        "",
+        "but it is based on measured switching gains:",
+        "",
+        "```tex",
+        r"\Delta_{\mathrm{post-switch}}^{\mathrm{TM-static}}"
+        f" = {result.transition_post_switch_gain:.3f}",
+        "```",
+        "",
+        "```tex",
+        r"\Delta_{\mathrm{overall}}^{\mathrm{TM-static}}"
+        f" = {result.transition_overall_gain:.3f}",
+        "```",
+        "",
+        "```tex",
+        r"\Delta_{\mathrm{post-switch}}^{\mathrm{TM-kalman}}"
+        f" = {result.transition_vs_kalman_post_switch_gain:.3f}",
+        "```",
+        "",
+        "```tex",
+        r"\Delta_{\mathrm{overall}}^{\mathrm{TM-kalman}}"
+        f" = {result.transition_vs_kalman_overall_gain:.3f}",
+        "```",
+        "",
+        "Interpretation:",
+        "",
+        "| criterion | status | value | implication |",
+        "| --- | --- | ---: | --- |",
+    ]
+    for row in imm_rows:
+        implication = (
+            "supports deferral because the simpler transition layer still adds value"
+            if row["status"] == "met"
+            else "would push the repo toward a stronger switching backend"
+        )
+        lines.append(f"| `{row['criterion']}` | `{row['status']}` | `{row['value']}` | {implication} |")
+    lines.extend(
+        [
+            "",
+            "The crucial number is the post-switch comparison against the current switching Kalman bank.",
+            "Because the value stays positive, the simpler transition-matrix accumulator still outperforms",
+            "the current model-based switching alternative on the exact regime where IMM would need to justify itself.",
+            "",
+            "## Particle-Filter Gate",
+            "",
+            "The particle-filter gate is also evidence-driven rather than aspirational.",
+            "",
+            "At nominal noise, the position-only identifiability gap is:",
+            "",
+            "```tex",
+            r"\text{mean normalized gap} = " + f"{result.short_horizon_mean_gap_sigma:.3f}\\sigma",
+            "```",
+            "",
+            "and the final-step gap is:",
+            "",
+            "```tex",
+            r"\text{final normalized gap} = " + f"{result.short_horizon_final_gap_sigma:.3f}\\sigma",
+            "```",
+            "",
+            "The direct-velocity measurement gain on the `short_noisy` case is:",
+            "",
+            "```tex",
+            r"\Delta_{\mathrm{short\_noisy}}^{\mathrm{vel-aided}}"
+            f" = {result.velocity_aided_short_noisy_gain:.3f}",
+            "```",
+            "",
+            "The best outlier accuracy among current Kalman variants is:",
+            "",
+            "```tex",
+            r"A_{\mathrm{outlier}}^{\mathrm{best\ Kalman}}"
+            f" = {result.best_kalman_outlier_accuracy:.3f}",
+            "```",
+            "",
+            "| criterion | status | value | implication |",
+            "| --- | --- | ---: | --- |",
+        ]
+    )
+    for row in pf_rows:
+        implication = (
+            "blocks PF because the required failure evidence is still missing"
+            if row["status"] in {"missing", "failed"}
+            else "would support PF if other gates aligned"
+        )
+        lines.append(f"| `{row['criterion']}` | `{row['status']}` | `{row['value']}` | {implication} |")
+    lines.extend(
+        [
+            "",
+            "## Why The Decision Is `defer`",
+            "",
+            "The strongest hard case remains sensing-limited rather than inference-limited. Direct velocity",
+            "helps materially on `short_noisy`, which means the current bottleneck is still evidence quality.",
+            "At the same time, the robust Kalman variants already recover substantial outlier performance, so",
+            "the repo does not yet have a clean nonlinear or non-Gaussian witness problem that simpler methods fail.",
+            "",
+            "That is why the current implemented decisions are:",
+            "",
+            f"- IMM justified now: `{result.imm_justified}`",
+            f"- Particle filter justified now: `{result.particle_filter_justified}`",
+            "",
+            "The correct next proof burden is therefore not “add PF anyway,” but “construct a benchmark where",
+            "switching or non-Gaussian structure defeats the current ladder for reasons that sensing improvements",
+            "and robust Kalman variants cannot explain away.”",
+        ]
+    )
+    return "\n".join(lines)
+    return "\n".join(
+        [
+            "# Advanced Filter Decision Report",
+            "",
+            "Milestone 17 decision gate for whether the repo should advance from the current ladder to IMM or particle filtering.",
+            "",
+            "## Decision",
+            "",
+            f"- IMM justified now: `{result.imm_justified}`",
+            f"- Particle filter justified now: `{result.particle_filter_justified}`",
+            "",
+            "## Key Evidence",
+            "",
+            f"- Transition-matrix post-switch gain over static accumulator: `{result.transition_post_switch_gain:.3f}`",
+            f"- Transition-matrix overall gain over static accumulator: `{result.transition_overall_gain:.3f}`",
+            f"- Transition-matrix post-switch gain over Kalman mode bank: `{result.transition_vs_kalman_post_switch_gain:.3f}`",
+            f"- Transition-matrix overall gain over Kalman mode bank: `{result.transition_vs_kalman_overall_gain:.3f}`",
+            f"- Short-horizon mean normalized gap at nominal noise: `{result.short_horizon_mean_gap_sigma:.3f}` sigma",
+            f"- Short-horizon final normalized gap at nominal noise: `{result.short_horizon_final_gap_sigma:.3f}` sigma",
+            f"- Velocity-aided short-noisy gain over position-only Kalman: `{result.velocity_aided_short_noisy_gain:.3f}`",
+            f"- Best outlier accuracy among current Kalman variants: `{result.best_kalman_outlier_accuracy:.3f}`",
+            "",
+            "## Gate Table",
+            "",
+            "| gate | criterion | status | value | note |",
+            "| --- | --- | --- | --- | --- |",
+            evidence_lines,
+            "",
+            "## Recommendation",
+            "",
+            "- Defer IMM for now. The transition-matrix accumulator already improves switching behavior and currently beats the switching-mode Kalman bank on post-switch accuracy, so the repo still lacks evidence that the simpler transition model is insufficient.",
+            "- Defer particle filtering for now. The strongest current hard case is `short_noisy`, and that case is evidence-limited: direct velocity sensing helps materially, while the identifiability study shows position-only separation stays near or below one sigma for much of the horizon.",
+            "- Revisit IMM only after a switching-mode Kalman or multiple-model variant matches or beats the transition-matrix accumulator and still leaves the switching scenarios inadequately explained.",
+            "- Revisit particle filtering only after adding a documented nonlinear or non-Gaussian benchmark where robust Kalman-style methods still fail for reasons other than sensing limits or feature excitation.",
+        ]
+    )
+
+
 def write_advanced_filter_decision_artifacts(
     output_dir: str | Path,
     *,
@@ -187,8 +346,10 @@ def write_advanced_filter_decision_artifacts(
     report_path = run_dir / "advanced_filter_decision_report.md"
     summary_path = run_dir / "advanced_filter_decision_summary.json"
     evidence_path = run_dir / "advanced_filter_decision_evidence.json"
+    numeric_walkthrough_path = run_dir / "advanced_filter_decision_numeric_walkthrough.md"
 
     report_path.write_text(render_advanced_filter_decision_report(analysis), encoding="utf-8")
+    numeric_walkthrough_path.write_text(render_advanced_filter_decision_numeric_walkthrough_markdown(analysis), encoding="utf-8")
     summary_path.write_text(
         json.dumps(
             {
@@ -214,4 +375,5 @@ def write_advanced_filter_decision_artifacts(
         report_path=report_path,
         summary_path=summary_path,
         evidence_path=evidence_path,
+        numeric_walkthrough_path=numeric_walkthrough_path,
     )

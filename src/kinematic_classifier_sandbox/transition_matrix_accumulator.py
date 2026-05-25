@@ -116,6 +116,7 @@ class TransitionBenchmarkResult:
 class TransitionBenchmarkArtifacts:
     run_dir: Path
     report_path: Path
+    numeric_walkthrough_path: Path
     posterior_history_path: Path
     scenario_summary_path: Path
     config_path: Path
@@ -194,6 +195,24 @@ def _emission_log_scores(
             + _gaussian_logpdf(abs_accel, spec.mean_abs_accel, spec.sigma_abs_accel)
         )
     return scores
+
+
+def _emission_term_breakdown(
+    spec: SwitchingModeSpec,
+    *,
+    speed: float,
+    accel: float,
+) -> dict[str, float]:
+    abs_accel = abs(accel)
+    speed_term = _gaussian_logpdf(speed, spec.mean_speed, spec.sigma_speed)
+    accel_term = _gaussian_logpdf(accel, spec.mean_accel, spec.sigma_accel)
+    abs_accel_term = _gaussian_logpdf(abs_accel, spec.mean_abs_accel, spec.sigma_abs_accel)
+    return {
+        "speed_term": speed_term,
+        "accel_term": accel_term,
+        "abs_accel_term": abs_accel_term,
+        "emission_total": speed_term + accel_term + abs_accel_term,
+    }
 
 
 def _run_mode_accumulator(
@@ -490,6 +509,132 @@ def render_transition_benchmark_report(result: TransitionBenchmarkResult) -> str
     )
 
 
+def _select_transition_walkthrough(
+    result: TransitionBenchmarkResult,
+) -> tuple[SwitchingScenario, TransitionRun, TransitionRun]:
+    preferred_names = (
+        "constant_velocity_then_braking",
+        "constant_velocity_then_maneuver",
+        "stationary_then_moving",
+    )
+    for preferred_name in preferred_names:
+        for scenario, static_run, transition_run in zip(result.scenarios, result.static_runs, result.transition_runs):
+            if scenario.scenario_name == preferred_name:
+                return scenario, static_run, transition_run
+    return result.scenarios[0], result.static_runs[0], result.transition_runs[0]
+
+
+def render_transition_numeric_walkthrough_markdown(
+    result: TransitionBenchmarkResult,
+    *,
+    specs: tuple[SwitchingModeSpec, ...] | None = None,
+    transition_matrix: dict[str, dict[str, float]] | None = None,
+) -> str:
+    selected_specs = specs or default_switching_mode_specs()
+    transition = transition_matrix or default_transition_matrix()
+    scenario, static_run, transition_run = _select_transition_walkthrough(result)
+    switch_index = next(
+        (index for index, step in enumerate(transition_run.steps) if step.true_mode != transition_run.steps[0].true_mode),
+        len(transition_run.steps) - 1,
+    )
+    start_index = max(0, switch_index - 1)
+    end_index = min(len(transition_run.steps), switch_index + 2)
+    selected_steps = transition_run.steps[start_index:end_index]
+
+    switch_step = transition_run.steps[switch_index]
+    previous_posterior = (
+        transition_run.steps[switch_index - 1].posterior_weights
+        if switch_index > 0
+        else transition_run.steps[switch_index].prior_weights
+    )
+    switched_mode = switch_step.true_mode
+    contribution_rows = []
+    total_prior = 0.0
+    for source_mode, source_weight in previous_posterior.items():
+        contribution = source_weight * transition[source_mode][switched_mode]
+        total_prior += contribution
+        contribution_rows.append(
+            f"| `{source_mode}` | {source_weight:.3f} | {transition[source_mode][switched_mode]:.3f} | {contribution:.3f} |"
+        )
+
+    lines = [
+        "# Transition-Matrix Numeric Walkthrough",
+        "",
+        "This worked example uses a real benchmark run from `transition_matrix_accumulator.py` and shows the full transition-aware recursion on a short switching trajectory.",
+        "",
+        "## Selected trajectory",
+        "",
+        f"- Scenario: `{scenario.scenario_name}`",
+        f"- Trajectory: `{scenario.trajectory_id}`",
+        f"- True mode sequence starts as `{transition_run.steps[0].true_mode}` and switches to `{switched_mode}` at step `{switch_index}`",
+        f"- Static post-switch accuracy: `{static_run.post_switch_accuracy:.3f}`",
+        f"- Transition-matrix post-switch accuracy: `{transition_run.post_switch_accuracy:.3f}`",
+        "",
+        "## Transition propagation at the first switched step",
+        "",
+        f"For the switched target mode `{switched_mode}`, the propagated prior is",
+        "",
+        "```tex",
+        rf"\bar{{p}}_t({switched_mode}) = \sum_s p_{{t-1}}(s)\,T_{{s,{switched_mode}}}",
+        "```",
+        "",
+        "| source mode | previous posterior | transition probability | contribution |",
+        "| --- | ---: | ---: | ---: |",
+        *contribution_rows,
+        f"| **total** |  |  | **{total_prior:.3f}** |",
+        "",
+    ]
+
+    for step in selected_steps:
+        lines.extend(
+            [
+                f"## Step `{step.step}` at time `{step.time:.3f}`",
+                "",
+                f"- Measurement: `{step.measurement:.3f}`",
+                f"- Estimated speed: `{step.estimated_speed:.3f}`",
+                f"- Estimated acceleration: `{step.estimated_accel:.3f}`",
+                f"- True mode: `{step.true_mode}`",
+                f"- Predicted mode: `{step.predicted_mode}` with confidence `{step.confidence:.3f}`",
+                "",
+                "| mode | propagated prior | log prior | speed term | accel term | abs-accel term | emission total | log numerator | posterior |",
+                "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for spec in selected_specs:
+            terms = _emission_term_breakdown(spec, speed=step.estimated_speed, accel=step.estimated_accel)
+            prior = step.prior_weights[spec.name]
+            log_prior = log(max(prior, 1e-12))
+            log_numerator = log_prior + terms["emission_total"]
+            posterior = step.posterior_weights[spec.name]
+            lines.append(
+                f"| `{spec.name}` | {prior:.3f} | {log_prior:.3f} | {terms['speed_term']:.3f} | {terms['accel_term']:.3f} | {terms['abs_accel_term']:.3f} | {terms['emission_total']:.3f} | {log_numerator:.3f} | {posterior:.3f} |"
+            )
+        lines.extend(
+            [
+                "",
+                "The transition-aware update at this step is",
+                "",
+                "```tex",
+                r"\log \tilde{p}_t(s) = \log \bar{p}_t(s) + \log E_t(s),",
+                r"\qquad",
+                r"p_t(s) = \frac{\exp(\log \tilde{p}_t(s))}{\sum_j \exp(\log \tilde{p}_t(j))}.",
+                "```",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Interpretation",
+            "",
+            "- The static accumulator and transition-matrix accumulator use the same emission model; the difference is only the prior propagation step.",
+            f"- On this trajectory, the switched target mode `{switched_mode}` gets nontrivial prior mass before the emission term is applied because the transition matrix allows probability to move from the pre-switch mode family.",
+            "- That is the concrete mechanism by which the transition-aware accumulator improves post-switch behavior before the repo needs a full IMM implementation.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _build_figure(result: TransitionBenchmarkResult):
     plt = _prepare_matplotlib()
     fig, axes = plt.subplots(2, 2, figsize=(13, 8.0))
@@ -548,6 +693,7 @@ def write_transition_benchmark_artifacts(
     run_dir = Path(output_dir) / "transition_matrix_accumulator_v1"
     run_dir.mkdir(parents=True, exist_ok=True)
     report_path = run_dir / "transition_matrix_accumulator_report.md"
+    numeric_walkthrough_path = run_dir / "transition_matrix_numeric_walkthrough.md"
     posterior_history_path = run_dir / "transition_matrix_posterior_history.csv"
     scenario_summary_path = run_dir / "transition_matrix_scenario_summary.csv"
     config_path = run_dir / "transition_matrix_config.yaml"
@@ -555,6 +701,10 @@ def write_transition_benchmark_artifacts(
     plot_png_path = run_dir / "transition_matrix_diagnostics.png"
 
     report_path.write_text(render_transition_benchmark_report(analysis), encoding="utf-8")
+    numeric_walkthrough_path.write_text(
+        render_transition_numeric_walkthrough_markdown(analysis),
+        encoding="utf-8",
+    )
     config_path.write_text(
         "\n".join(
             [
@@ -660,6 +810,7 @@ def write_transition_benchmark_artifacts(
     return TransitionBenchmarkArtifacts(
         run_dir=run_dir,
         report_path=report_path,
+        numeric_walkthrough_path=numeric_walkthrough_path,
         posterior_history_path=posterior_history_path,
         scenario_summary_path=scenario_summary_path,
         config_path=config_path,

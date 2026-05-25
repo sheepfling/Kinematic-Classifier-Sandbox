@@ -9,6 +9,54 @@ families in the sandbox:
 The goal is not to present an abstract Bayesian classifier. It is to show the
 specific scoring structure the repo is actually using today.
 
+It also serves as a methodology note. The repo is using 1D benchmarks to prove
+an exploratory classification workflow:
+
+- corpus generation and stress cases
+- feature or filter based evidence extraction
+- posterior accumulation through time
+- confusion, entropy, adequacy, and separability analysis
+- artifact generation that can later be reused in richer settings
+
+So the relevant question is not only "what is the equation?" It is also "what
+does this benchmark prove about the larger methodology?"
+
+Primary implementation surfaces covered explicitly by this note:
+
+- `toy_1d.py`
+- `identity_1d.py`
+- `posterior_explainer.py`
+- `identity_posterior_explainer.py`
+- `bayesian_walkthroughs.py`
+- posterior-oriented artifact writers in `artifacts.py`
+
+## 0.1 Layered methodology view
+
+The current architecture is best read as:
+
+```tex
+\text{corpus}
+\rightarrow
+\text{features or filters}
+\rightarrow
+\text{evidence}
+\rightarrow
+\text{posterior}
+\rightarrow
+\text{metrics and artifacts}.
+```
+
+That is why the same repo now contains:
+
+- feature studies
+- prior-sensitivity studies
+- confusion and identifiability studies
+- posterior walkthrough artifacts
+- filtering comparisons
+
+The 1D work matters because it exercises those layers cleanly before trying to
+lift them into 3D.
+
 ## 1. Generic class-posterior update
 
 For both benchmarks, the class posterior is updated recursively:
@@ -36,6 +84,44 @@ w_{i,t} = \frac{\exp(\log \tilde{w}_{i,t})}
 
 That is the common structure across both files. The difference is what
 `L_i(...)` contains.
+
+## 1.0 Evidence-provider interpretation
+
+At the meta level, each classifier family can be seen as an evidence provider:
+
+```tex
+\mathcal{E}(\text{history}) \rightarrow \{\log L_i\}_{i=1}^K.
+```
+
+What changes across methods is how the evidence is produced:
+
+- pointwise methods score one observation or feature vector
+- windowed methods score short temporal structure
+- accumulators score cumulative feature evidence
+- Kalman-style methods score innovations and residual structure
+
+The posterior updater should not care which of those produced the
+log-likelihoods, as long as the output has a common per-class form.
+
+## 1.1 Implementation mapping
+
+The math in this note maps to a few concrete implementation surfaces:
+
+- `toy_1d.gaussian_interval_probability(...)`
+  - symmetric Gaussian region mass for toy speed and acceleration envelopes
+- `toy_1d._innovation_log_likelihood(...)`
+  - Gaussian innovation log density
+- `toy_1d.run_class_bank(...)`
+  - toy recursive filter-bank classification loop
+- `identity_1d.run_identity_benchmark(...)`
+  - identity recursive direct-speed classification loop
+- `posterior_explainer.py`
+  - toy success/failure/comparison/margin-trace posterior diagnostics
+- `identity_posterior_explainer.py`
+  - identity boundary-failure posterior diagnostics
+
+So this is not just theory. It is intended to stay close to the actual code
+paths that generate the benchmark and artifact outputs.
 
 ## 1.1 What Is Random In These Benchmarks
 
@@ -116,6 +202,39 @@ So the toy benchmark is not:
 - or a static feature classifier over a finished trajectory
 
 It is a joint recursive filter-bank style classifier.
+
+## 2.1a Toy 1D class semantics
+
+The toy classes are behavioral, not identity-like:
+
+- `brake`: deceleration and stopping pressure
+- `coast`: low-drive, weakly structured motion
+- `drift`: sustained reverse or backtracking motion
+- `maneuver`: oscillatory or regime-switching motion
+- `powered`: persistent positive drive and higher speed
+- `unknown`: intentionally hard-to-anchor behavior
+
+That is why the benchmark also tracks phases, transient summaries, terminal
+summaries, and feature-vs-class confusion. These are not just end labels.
+
+## 2.1b Toy implementation loop
+
+`run_class_bank(...)` effectively does this for each step:
+
+1. predict latent state moments for each class
+2. compute the innovation log likelihood
+3. compute soft speed and acceleration region terms
+4. compute behavior, observed-kinematics, and within-class mode terms
+5. add the previous log prior
+6. normalize across classes
+7. record posterior, entropy, detected phase, and feature probabilities
+
+That last part is why the repo can generate rich posterior walkthroughs instead
+of only final confusion matrices.
+
+Primary recursive implementation surface:
+
+- `run_class_bank(...)` in `toy_1d.py`
 
 ### 2.2 Innovation likelihood
 
@@ -304,6 +423,30 @@ This is why the toy posterior walkthrough artifacts show per-class columns for:
 - total
 - posterior
 
+## 2.5a How well the toy benchmark works inside the framework
+
+The current toy benchmark is useful precisely because it is mixed:
+
+- overall accuracy is `0.625`
+- transient accuracy is `0.458`
+- terminal accuracy is `0.542`
+- `drift`, `powered`, and `unknown` are strong
+- `brake` is weak
+- `coast` is currently the clearest miss
+
+Methodologically, that is still productive. The toy path now tells us whether
+errors come from:
+
+- poor feature excitation
+- bad class geometry
+- weak within-class mode design
+- phase-label mismatch
+- or posterior terms that become decisive for the wrong reason
+
+The entropy trace is also informative: mean posterior entropy drops from about
+`1.48` at step 1 to about `0.19` by step 20. So the posterior is becoming
+decisive, even when some decisions are decisively wrong.
+
 ## 2.6 What The Toy Posterior Really Represents
 
 The toy posterior after each step is:
@@ -363,6 +506,37 @@ Then it adjusts those instantaneous fits with:
 
 So identity is not estimating a latent PVA state. It is recursively updating
 class weights from direct speed evidence.
+
+## 3.1a Identity 1D class semantics
+
+The identity benchmark is simpler and closer to static regime identity:
+
+- `bike`: lower-speed envelope with some surge behavior
+- `horse`: middle-speed envelope, especially near horse limits
+- `car`: higher-speed envelope with persistent push or overspeed relative to horse
+
+This is useful because it isolates direct observation-space evidence before
+latent-state filtering is introduced.
+
+## 3.1b Identity implementation loop
+
+`run_identity_benchmark(...)` is the lighter-weight analogue:
+
+1. read the current observed speed
+2. compute the direct speed-shape log density for each class
+3. compute the one-sided speed-validity mass term
+4. compute running-history, mode-shape, and recent-dynamics terms
+5. add the previous log prior
+6. normalize across classes
+7. record posterior, entropy, and detected features
+
+That shared structure is the important methodological point. Toy and identity
+use different evidence models, but the recursive class-posterior story is the
+same.
+
+Primary recursive implementation surface:
+
+- `run_identity_benchmark(...)` in `identity_1d.py`
 
 ### 3.2 Base speed-shape likelihood
 
@@ -486,6 +660,20 @@ This is why the identity posterior artifacts show:
 - total
 - posterior
 
+## 3.5a How well the identity benchmark works inside the framework
+
+The current identity benchmark is stronger and simpler than toy:
+
+- overall accuracy is `0.875`
+- transient accuracy is `0.861`
+- terminal accuracy is `0.889`
+- `car` and `horse` are strong
+- the main remaining boundary pressure is `bike` versus `horse`
+
+This benchmark answers a different methodological question from toy. It asks
+how far recursive class evidence can go using direct observation-space fits,
+soft limits, and short-window shape terms, without a full latent-state filter.
+
 ## 3.6 What The Identity Posterior Really Represents
 
 The identity posterior is directly:
@@ -572,6 +760,53 @@ produce:
 They help explain why a class won or lost, but they are not themselves the
 normalized class posterior.
 
+## 5.1 Feature families and transfer principles
+
+The repo is moving toward a feature taxonomy where features are understood by
+role, not just by name:
+
+- instantaneous features
+- windowed or shape features
+- cumulative-style features
+- derivative features
+- model-residual features
+
+This matters for transfer. A 1D feature is not expected to survive to 3D by
+naive copy-paste. It survives when its structural role survives:
+
+- scalar speed features become magnitude or projection features
+- scalar acceleration features become norms or frame-aware components
+- scalar innovation features become Mahalanobis residual summaries
+
+That is the beginning of a generic feature methodology rather than a bag of 1D
+tricks.
+
+## 5.2 From features to artifacts
+
+The repo is increasingly treating features as study objects, not only classifier
+inputs:
+
+```tex
+\text{feature extractor}
+\rightarrow
+\text{feature table}
+\rightarrow
+\text{evidence behavior}
+\rightarrow
+\text{confusion / overlap / PCA / adequacy artifacts}.
+```
+
+That is why feature information appears in several places:
+
+- feature-vs-class confusion heatmaps
+- feature precision / recall / lift summaries
+- feature-set inspection bundles
+- PCA scatter and loading plots
+- corpus adequacy and excitation reports
+
+This separation is important for future 3D work. The feature layer should be
+swappable without rewriting the rest of the study machinery.
+
 ## 6. Why the confusion matrices matter
 
 The confusion artifacts are downstream summaries of these posterior updates.
@@ -624,3 +859,45 @@ p(s_i \mid z) \propto p(z \mid s_i) p(s_i),
 
 but in both benchmark families, `p(z \mid s_i)` is implemented as a composite,
 engineered likelihood rather than a single simple closed-form density.
+
+## 8. What the current 1D work proves
+
+The present 1D work supports a few concrete claims:
+
+1. The repo can express both direct-evidence classifiers and latent-state
+   filter-bank classifiers through the same recursive posterior story.
+2. The artifact layer is rich enough to diagnose feature failure, phase
+   failure, prior sensitivity, and confusion structure, not just top-line
+   accuracy.
+3. The toy and identity paths are complementary:
+   - `toy_1d` stresses latent-state, mode-mixture, and phase reasoning
+   - `identity_1d` stresses direct evidence and boundary calibration
+4. The repo is already more than a 1D demo, but it is still using 1D as an
+   exploratory proving ground rather than claiming a finished 3D-ready system.
+
+## 8.1 Posterior walkthrough generation
+
+The posterior walkthrough artifacts are built primarily through:
+
+- `posterior_explainer.py`
+- `identity_posterior_explainer.py`
+- `bayesian_walkthroughs.py`
+
+Those modules bridge recursive posterior math, implementation-level evidence
+terms, and team-readable success and failure artifacts.
+
+## 9. How to keep this documentation useful
+
+The most useful future extensions of this guide should keep three things linked:
+
+1. the mathematical object
+2. the implementation surface that computes it
+3. the artifact family that exposes its behavior
+
+That pattern is what keeps the repo understandable as it grows from:
+
+- 1D feature studies
+- 1D posterior studies
+- filtering comparisons
+
+toward more generic methodology and later 3D-specific adapters.

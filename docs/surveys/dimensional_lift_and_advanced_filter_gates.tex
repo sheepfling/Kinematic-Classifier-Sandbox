@@ -1,0 +1,207 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\title{Dimensional Lift and Advanced Filter Gates}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Purpose}
+
+This document explains the transition logic from 1D witness problems toward
+higher-dimensional work and documents why IMM, PF, and RBPF remain
+decision-gated rather than automatically implemented.
+
+\section{Problem And Notation}
+
+This note has two proof obligations:
+\begin{equation}
+    \text{Can the framework survive a lift from scalar 1D trajectories to vector-valued trajectories?}
+\end{equation}
+and
+\begin{equation}
+    \text{What measured failure evidence would justify IMM, PF, or RBPF?}
+\end{equation}
+
+The most important symbols are:
+\begin{itemize}[leftmargin=1.5em]
+    \item \(a_i\): one scalar-assumption audit row,
+    \item \(z_t \in \mathbb{R}^d\): vector observation at time \(t\),
+    \item \(\Delta\): measured gain between two ladder rungs,
+    \item \(x_t = (u_t, v_t)\): sampled-plus-analytic latent split for RBPF reasoning.
+\end{itemize}
+
+\section{Dimensional Lift Audit}
+
+The main dimensional-readiness surfaces are:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{dimensional\_lift\_audit.py}
+    \item \texttt{pca\_dimensionality\_audit.py}
+\end{itemize}
+
+These modules classify code as:
+\begin{itemize}[leftmargin=1.5em]
+    \item dimension-agnostic,
+    \item adapter-compatible,
+    \item rewrite-required.
+\end{itemize}
+
+The operational meaning is:
+\begin{equation}
+    \text{module status}
+    \in
+    \{
+        \text{agnostic},
+        \text{adapter-compatible},
+        \text{rewrite-required}
+    \},
+\end{equation}
+where the label is determined by whether the implementation depends on scalar
+measurement semantics, scalar state layout, or scalar-derived feature logic.
+
+\section{Scalar-Assumption Inventory Logic}
+
+The audit looks for assumptions such as:
+\begin{itemize}[leftmargin=1.5em]
+    \item scalar measurements,
+    \item scalar state dimensions,
+    \item scalar derivative construction,
+    \item scalar-only covariance or plotting expectations.
+\end{itemize}
+
+In practice, each assumption is recorded as a row
+\begin{equation}
+    a_i =
+    (
+        \text{module},
+        \text{assumption id},
+        \text{severity},
+        \text{blocking-for-3D},
+        \text{current assumption},
+        \text{3D requirement}
+    ),
+\end{equation}
+which is exactly the structure emitted by
+\texttt{\_scalar\_assumption\_rows()}.
+
+The fake vector-valued corpus in \texttt{dimensional\_lift\_audit.py} is not a
+full 3D physics benchmark. It is a contract smoke test. The code constructs
+vector measurements \(z_t \in \mathbb{R}^3\), computes vector-compatible summary
+features such as path length and displacement norm,
+\begin{align}
+    \text{path length} &= \sum_{t=2}^{T} \lVert z_t - z_{t-1} \rVert_2, \\
+    \text{displacement norm} &= \lVert z_T - z_1 \rVert_2,
+\end{align}
+and then verifies that the shared prediction/posterior artifact schema still
+holds.
+
+\section{Assumptions Behind The Gate Logic}
+
+The advanced-filter decision layer assumes:
+\begin{itemize}[leftmargin=1.5em]
+    \item simpler methods should be exhausted before more complex ones are added,
+    \item switching evidence should be measured rather than asserted,
+    \item sensing-limited failures should not be mistaken for inference-limited failures,
+    \item RBPF requires a genuine sampled latent structure plus a conditionally
+    tractable continuous substate.
+\end{itemize}
+
+\section{Advanced Filter Decision Gates}
+
+The main decision surfaces are:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{advanced\_filter\_decision.py}
+    \item \texttt{rl\_backend\_decision.py}
+    \item advanced-gate portions of \texttt{generic\_filtering\_contract.py}
+\end{itemize}
+
+These modules ask what failure evidence would justify:
+\begin{itemize}[leftmargin=1.5em]
+    \item IMM,
+    \item PF,
+    \item RBPF.
+\end{itemize}
+
+\section{Why IMM, PF, and RBPF Remain Decision-Gated}
+
+The current rule is not merely verbal. The implemented gate logic is based on
+measured gains from simpler rungs. For IMM-like switching logic, the current
+decision report computes quantities such as
+\begin{align}
+    \Delta_{\text{post-switch}}^{\text{TM-static}}
+    &= A_{\text{post-switch}}^{\text{transition matrix}}
+    - A_{\text{post-switch}}^{\text{static accumulator}}, \\
+    \Delta_{\text{post-switch}}^{\text{TM-kalman}}
+    &= A_{\text{post-switch}}^{\text{transition matrix}}
+    - A_{\text{post-switch}}^{\text{switching Kalman bank}}.
+\end{align}
+As long as the transition-matrix accumulator still buys positive switching
+improvement and the switching Kalman bank has not clearly displaced it, the repo
+does not yet have evidence that IMM complexity is necessary.
+
+For particle filtering, the current decision surface is driven by the absence of
+a demonstrated nonlinear or non-Gaussian benchmark and by the fact that the
+strongest hard case remains sensing-limited. The implemented evidence rows in
+\texttt{advanced\_filter\_decision.py} are therefore evaluating a logic of the
+form
+\begin{align}
+    \text{PF justified}
+    &\Longrightarrow
+    \text{nonlinear benchmark exists}
+    \land
+    \text{robust Kalman still fails}
+    \notag \\
+    &\qquad \land
+    \text{failure is not primarily sensing-limited}.
+\end{align}
+The artifact
+\texttt{artifacts/advanced\_filter\_decision\_v1/advanced\_filter\_decision\_numeric\_walkthrough.md}
+now expands one real decision pass numerically. It substitutes the measured
+transition gains, identifiability gaps, velocity-aided improvement, and best
+Kalman outlier accuracy into the gate interpretation so the current
+``defer IMM / defer PF'' result is justified by actual evidence values rather
+than only a prose rule.
+
+For RBPF, the required latent structure is stricter still. The intended
+decision criterion is:
+\begin{equation}
+    \text{RBPF justified}
+    \Longrightarrow
+    x_t = (u_t, v_t),
+\end{equation}
+with \(u_t\) representing a sampled nonlinear or discrete latent structure and
+\(v_t\) representing a conditionally linear-Gaussian substate that can still be
+filtered analytically.
+
+\section{Interpretation Of The Current Gate}
+
+The current rule is therefore:
+\begin{itemize}[leftmargin=1.5em]
+    \item IMM is deferred until switching evidence clearly exceeds what the
+    current transition-aware ladder handles.
+    \item PF is deferred until nonlinear or non-Gaussian behavior defeats the
+    current recursive methods for reasons other than sensing limits.
+    \item RBPF is deferred until there is a real sampled-latent plus
+    conditionally tractable continuous-state split.
+\end{itemize}
+
+That is why the advanced-filter decision reports are architecture artifacts, not
+mere TODO notes. They encode the proof obligation for adding more complexity.
+
+\section{Artifact Map}
+
+Primary artifacts for this layer:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{artifacts/dimensional\_lift\_audit/}
+    \item \texttt{artifacts/advanced\_filter\_decision\_v1/}
+    \item \texttt{artifacts/filtering\_contract/}
+\end{itemize}
+
+\end{document}

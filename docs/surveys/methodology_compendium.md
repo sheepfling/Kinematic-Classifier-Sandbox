@@ -1,0 +1,2940 @@
+# Kinematic Classifier Methodology Compendium
+
+This document combines the current survey notes into one reference file.
+Use it when you want the full methodology stack in one place rather
+than reading the survey notes separately.
+
+For a shorter narrative entry point, start with
+[`artifacts/latex/kinematic_classifier_methodology.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/latex/kinematic_classifier_methodology.pdf).
+This compendium is the long-form reference companion to that paper.
+
+## Included Documents
+
+1. [Posterior Update Math](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/posterior_update_math.md) with rendered companion [`artifacts/posterior_update_math.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/posterior_update_math.pdf).
+2. [Methodology Evaluation Framework](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/methodology_evaluation_framework.md) with rendered companion [`artifacts/methodology_evaluation_framework.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/methodology_evaluation_framework.pdf).
+3. [Classifier Ladder and Contracts](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/classifier_ladder_and_contracts.md) with rendered companion [`artifacts/classifier_ladder_and_contracts.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/classifier_ladder_and_contracts.pdf).
+4. [Corpus Generation and Search](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/corpus_generation_and_search.md) with rendered companion [`artifacts/corpus_generation_and_search.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_generation_and_search.pdf).
+5. [Dimensional Lift and Advanced Filter Gates](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/dimensional_lift_and_advanced_filter_gates.md) with rendered companion [`artifacts/dimensional_lift_and_advanced_filter_gates.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/dimensional_lift_and_advanced_filter_gates.pdf).
+
+## Part 1. Posterior Update Math
+
+Source: [posterior_update_math.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/posterior_update_math.md)
+
+This note documents the posterior update math used by the two active benchmark
+families in the sandbox:
+
+- `toy_1d.py`: class-matched latent-state filter bank
+- `identity_1d.py`: direct speed-identity classifier over `bike`, `horse`, `car`
+
+The goal is not to present an abstract Bayesian classifier. It is to show the
+specific scoring structure the repo is actually using today.
+
+It also serves as a methodology note. The repo is using 1D benchmarks to prove
+an exploratory classification workflow:
+
+- corpus generation and stress cases
+- feature or filter based evidence extraction
+- posterior accumulation through time
+- confusion, entropy, adequacy, and separability analysis
+- artifact generation that can later be reused in richer settings
+
+So the relevant question is not only "what is the equation?" It is also "what
+does this benchmark prove about the larger methodology?"
+
+Primary implementation surfaces covered explicitly by this note:
+
+- `toy_1d.py`
+- `identity_1d.py`
+- `posterior_explainer.py`
+- `identity_posterior_explainer.py`
+- `bayesian_walkthroughs.py`
+- posterior-oriented artifact writers in `artifacts.py`
+
+## 0.1 Layered methodology view
+
+The current architecture is best read as:
+
+```tex
+\text{corpus}
+\rightarrow
+\text{features or filters}
+\rightarrow
+\text{evidence}
+\rightarrow
+\text{posterior}
+\rightarrow
+\text{metrics and artifacts}.
+```
+
+That is why the same repo now contains:
+
+- feature studies
+- prior-sensitivity studies
+- confusion and identifiability studies
+- posterior walkthrough artifacts
+- filtering comparisons
+
+The 1D work matters because it exercises those layers cleanly before trying to
+lift them into 3D.
+
+## 1. Generic class-posterior update
+
+For both benchmarks, the class posterior is updated recursively:
+
+```tex
+p(s_i \mid z_{1:t}) \propto p(s_i \mid z_{1:t-1}) \, L_i(z_t, z_{1:t-1})
+```
+
+with normalization
+
+```tex
+p(s_i \mid z_{1:t}) =
+\frac{p(s_i \mid z_{1:t-1}) \, L_i(z_t, z_{1:t-1})}
+{\sum_j p(s_j \mid z_{1:t-1}) \, L_j(z_t, z_{1:t-1})}.
+```
+
+In log space:
+
+```tex
+\log \tilde{w}_{i,t} = \log w_{i,t-1} + \log L_i(z_t, z_{1:t-1}),
+\qquad
+w_{i,t} = \frac{\exp(\log \tilde{w}_{i,t})}
+{\sum_j \exp(\log \tilde{w}_{j,t})}.
+```
+
+That is the common structure across both files. The difference is what
+`L_i(...)` contains.
+
+## 1.0 Evidence-provider interpretation
+
+At the meta level, each classifier family can be seen as an evidence provider:
+
+```tex
+\mathcal{E}(\text{history}) \rightarrow \{\log L_i\}_{i=1}^K.
+```
+
+What changes across methods is how the evidence is produced:
+
+- pointwise methods score one observation or feature vector
+- windowed methods score short temporal structure
+- accumulators score cumulative feature evidence
+- Kalman-style methods score innovations and residual structure
+
+The posterior updater should not care which of those produced the
+log-likelihoods, as long as the output has a common per-class form.
+
+## 1.1 Implementation mapping
+
+The math in this note maps to a few concrete implementation surfaces:
+
+- `toy_1d.gaussian_interval_probability(...)`
+  - symmetric Gaussian region mass for toy speed and acceleration envelopes
+- `toy_1d._innovation_log_likelihood(...)`
+  - Gaussian innovation log density
+- `toy_1d.run_class_bank(...)`
+  - toy recursive filter-bank classification loop
+- `identity_1d.run_identity_benchmark(...)`
+  - identity recursive direct-speed classification loop
+- `posterior_explainer.py`
+  - toy success/failure/comparison/margin-trace posterior diagnostics
+- `identity_posterior_explainer.py`
+  - identity boundary-failure posterior diagnostics
+
+So this is not just theory. It is intended to stay close to the actual code
+paths that generate the benchmark and artifact outputs.
+
+## 1.1 What Is Random In These Benchmarks
+
+The cleanest way to read the repo is:
+
+- `s_i` is the class label
+- `z_t` is the measurement at time `t`
+- `x_t` is a latent state only in the toy benchmark
+- `p(s_i | z_{1:t})` is the posterior class probability after seeing data up to step `t`
+
+The important split is:
+
+- `toy_1d` is a latent-state model with class-conditioned filters
+- `identity_1d` is a direct measurement classifier with no latent Kalman state
+
+So the two 1D classifiers are not using the same probabilistic object.
+
+## 1.2 Are We Chopping The Gaussian Probability Space?
+
+Mostly no. The main measurement-fit terms are standard Gaussian log densities.
+
+Where the code does integrate or "cut" probability space is in the soft
+validity terms. Those terms ask questions like:
+
+```tex
+P(|v_t| \le c), \qquad P(|a_t| \le c), \qquad P(z_t \le c)
+```
+
+Those are not pointwise PDF values. They are integrated Gaussian mass over a
+region:
+
+- interval mass for `|v_t| <= c` or `|a_t| <= c`
+- upper-tail or lower-tail mass for one-sided checks
+
+So the repo currently uses both:
+
+- Gaussian PDF or log-PDF terms for "how well does this exact measurement fit?"
+- Gaussian CDF-derived terms for "how much class probability mass lies inside a valid region?"
+
+## 2. Toy 1D benchmark
+
+### 2.1 Latent state and measurement model
+
+The toy benchmark uses a latent kinematic state
+
+```tex
+x_t = \begin{bmatrix} p_t \\ v_t \\ a_t \end{bmatrix}
+```
+
+with a scalar position measurement
+
+```tex
+z_t = H x_t + \nu_t,
+\qquad
+H = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix},
+\qquad
+\nu_t \sim \mathcal{N}(0, R).
+```
+
+Each class `s_i` maintains its own predicted and updated state moments
+`(\mu_{i,t}, P_{i,t})`.
+
+## 2.1 How The Toy 1D Classifier Is Set Up
+
+The toy classifier is a class bank.
+
+For each class:
+
+1. keep a separate latent state mean and covariance
+2. predict that state forward using class-specific dynamics
+3. score the new position measurement under that class
+4. add class-specific soft plausibility terms
+5. update the class posterior weight
+
+So the toy benchmark is not:
+
+- one shared tracker followed by a classifier
+- or a static feature classifier over a finished trajectory
+
+It is a joint recursive filter-bank style classifier.
+
+## 2.1a Toy 1D class semantics
+
+The toy classes are behavioral, not identity-like:
+
+- `brake`: deceleration and stopping pressure
+- `coast`: low-drive, weakly structured motion
+- `drift`: sustained reverse or backtracking motion
+- `maneuver`: oscillatory or regime-switching motion
+- `powered`: persistent positive drive and higher speed
+- `unknown`: intentionally hard-to-anchor behavior
+
+That is why the benchmark also tracks phases, transient summaries, terminal
+summaries, and feature-vs-class confusion. These are not just end labels.
+
+## 2.1b Toy implementation loop
+
+`run_class_bank(...)` effectively does this for each step:
+
+1. predict latent state moments for each class
+2. compute the innovation log likelihood
+3. compute soft speed and acceleration region terms
+4. compute behavior, observed-kinematics, and within-class mode terms
+5. add the previous log prior
+6. normalize across classes
+7. record posterior, entropy, detected phase, and feature probabilities
+
+That last part is why the repo can generate rich posterior walkthroughs instead
+of only final confusion matrices.
+
+Primary recursive implementation surface:
+
+- `run_class_bank(...)` in `toy_1d.py`
+
+### 2.2 Innovation likelihood
+
+For class `s_i`, after prediction:
+
+```tex
+\hat{x}_{i,t}^{-} = F_i \hat{x}_{i,t-1}^{+} + u_i,
+\qquad
+P_{i,t}^{-} = F_i P_{i,t-1}^{+} F_i^\top + Q_i.
+```
+
+The measurement innovation is
+
+```tex
+r_{i,t} = z_t - H \hat{x}_{i,t}^{-},
+\qquad
+S_{i,t} = H P_{i,t}^{-} H^\top + R.
+```
+
+The core measurement likelihood is Gaussian:
+
+```tex
+p(z_t \mid s_i, z_{1:t-1}) =
+\mathcal{N}(r_{i,t}; 0, S_{i,t}).
+```
+
+In log form:
+
+```tex
+\log L^{\text{dyn}}_{i,t}
+= -\frac{1}{2}
+\left[
+\log(2 \pi S_{i,t}) + \frac{r_{i,t}^2}{S_{i,t}}
+\right].
+```
+
+This is the `dyn` term in the toy posterior artifacts.
+
+This is the part that corresponds most directly to the textbook
+
+```tex
+p(z_t \mid s_i)
+```
+
+term. It is a Gaussian density on the innovation, not a thresholded region
+probability.
+
+### 2.3 Soft envelope terms
+
+The toy model does not hard-threshold velocity or acceleration. It uses
+interval probabilities under the class-conditioned posterior state:
+
+```tex
+P(|v_t| \le v_{\max,i} \mid s_i),
+\qquad
+P(|a_t| \le a_{\max,i} \mid s_i).
+```
+
+These are Gaussian CDF differences. For a scalar Gaussian
+`y \sim \mathcal{N}(\mu, \sigma^2)`, the symmetric interval probability is
+
+```tex
+P(|y| \le c) = \Phi\!\left(\frac{c-\mu}{\sigma}\right)
+-
+\Phi\!\left(\frac{-c-\mu}{\sigma}\right).
+```
+
+The corresponding log terms are
+
+```tex
+\log L^{\text{speed}}_{i,t}
+= \lambda_v \log(\epsilon + P(|v_t| \le v_{\max,i} \mid s_i)),
+```
+
+```tex
+\log L^{\text{accel}}_{i,t}
+= \lambda_a \log(\epsilon + P(|a_t| \le a_{\max,i} \mid s_i)).
+```
+
+These are the `speed` and `accel` terms in the toy artifacts.
+
+### 2.3 What "Cutting Probability Space" Means In Toy 1D
+
+This is the main place where the toy classifier "cuts" the Gaussian
+probability space.
+
+For example, if class `s_i` says velocity should stay inside `[-v_max, v_max]`,
+the code does not ask only for the density at the current mean velocity. It
+asks for the total posterior Gaussian mass that lies inside that interval.
+
+So instead of using only:
+
+```tex
+\mathcal{N}(v_t; \mu_v, \sigma_v^2),
+```
+
+it also uses:
+
+```tex
+P(-v_{\max,i} \le v_t \le v_{\max,i} \mid s_i).
+```
+
+That is a soft geometric cut on the probability space. It says:
+
+- classes are rewarded when much of their uncertainty lies in the valid region
+- classes are penalized when much of their uncertainty lies outside it
+
+The same logic applies to acceleration limits.
+
+### 2.4 Behavior, observed-kinematics, and mode terms
+
+The remaining toy likelihood is composite rather than a single closed-form
+physical model.
+
+Behavior terms compare latent posterior moments to class signatures:
+
+```tex
+\log L^{\text{behavior}}_{i,t}
+= \log L^{\text{vel-center}}_{i,t}
++ \log L^{\text{accel-center}}_{i,t}
++ \log L^{\text{direction}}_{i,t}
++ \log L^{\text{oscillation}}_{i,t}.
+```
+
+Observed-kinematics terms use finite differences of the measurement history:
+
+```tex
+\hat{v}^{\text{obs}}_t = \frac{z_t - z_{t-1}}{\Delta t},
+\qquad
+\hat{a}^{\text{obs}}_t = \frac{z_t - 2 z_{t-1} + z_{t-2}}{\Delta t^2},
+```
+
+then score them against class signatures with Gaussian log densities:
+
+```tex
+\log L^{\text{obs}}_{i,t}
+= \log L^{\text{obs-vel}}_{i,t}
++ \log L^{\text{obs-accel}}_{i,t}.
+```
+
+For `brake` and `maneuver`, there is also a small within-class mode mixture:
+
+```tex
+\log L^{\text{mode}}_{i,t}
+\approx
+\log\!\left(
+\frac{1}{M_i}
+\sum_{m=1}^{M_i} \exp(\ell_{i,t,m})
+\right)
+```
+
+followed by a class-specific affine rescaling. This is the `mode_mix` term in
+the toy benchmark.
+
+### 2.5 Full toy class score
+
+The implemented toy class score is:
+
+```tex
+\log L_{i,t}
+= \log L^{\text{dyn}}_{i,t}
++ \log L^{\text{speed}}_{i,t}
++ \log L^{\text{accel}}_{i,t}
++ \log L^{\text{behavior}}_{i,t}
++ \log L^{\text{obs}}_{i,t}
++ \log L^{\text{mode}}_{i,t}
+- \mathbf{1}\{s_i=\text{unknown}\}\,\gamma_{\text{unknown}}.
+```
+
+The posterior update is therefore
+
+```tex
+\log \tilde{w}_{i,t}
+= \log w_{i,t-1} + \log L_{i,t}.
+```
+
+This is why the toy posterior walkthrough artifacts show per-class columns for:
+
+- prior weight
+- `dyn`
+- `speed`
+- `accel`
+- behavior subterms
+- observed-kinematics subterms
+- `mode_mix`
+- total
+- posterior
+
+## 2.5a How well the toy benchmark works inside the framework
+
+The current toy benchmark is useful precisely because it is mixed:
+
+- overall accuracy is `0.625`
+- transient accuracy is `0.458`
+- terminal accuracy is `0.542`
+- `drift`, `powered`, and `unknown` are strong
+- `brake` is weak
+- `coast` is currently the clearest miss
+
+Methodologically, that is still productive. The toy path now tells us whether
+errors come from:
+
+- poor feature excitation
+- bad class geometry
+- weak within-class mode design
+- phase-label mismatch
+- or posterior terms that become decisive for the wrong reason
+
+The entropy trace is also informative: mean posterior entropy drops from about
+`1.48` at step 1 to about `0.19` by step 20. So the posterior is becoming
+decisive, even when some decisions are decisively wrong.
+
+## 2.6 What The Toy Posterior Really Represents
+
+The toy posterior after each step is:
+
+```tex
+p(s_i \mid z_{1:t})
+```
+
+not
+
+```tex
+p(x_t \mid z_{1:t})
+```
+
+The state posterior exists separately inside each class-conditioned filter.
+
+So a more complete mental model is:
+
+- inside each class: estimate `p(x_t | s_i, z_{1:t})`
+- across classes: compare class scores and update `p(s_i | z_{1:t})`
+
+That is why the benchmark can say:
+
+- class `drift` currently has posterior `0.63`
+- while the `drift` filter also has its own mean and covariance for `[p, v, a]`
+
+## 3. Identity benchmark
+
+### 3.1 Measurement model
+
+The identity benchmark is simpler. The measurement at step `t` is a directly
+observed scalar speed:
+
+```tex
+z_t = \text{observed speed in mph}.
+```
+
+There is no latent Kalman state here. Each class `s_i` is represented by a
+speed-shape prior and a few history terms.
+
+## 3.1 How The Identity 1D Classifier Is Set Up
+
+The identity classifier is much simpler than toy.
+
+At each step it takes one observed speed sample and asks:
+
+- how likely is this speed under the `bike` speed model?
+- how likely is it under the `horse` speed model?
+- how likely is it under the `car` speed model?
+
+Then it adjusts those instantaneous fits with:
+
+- a soft upper-speed validity term
+- a running-history term
+- a short-window mode term
+- a recent-dynamics term
+
+So identity is not estimating a latent PVA state. It is recursively updating
+class weights from direct speed evidence.
+
+## 3.1a Identity 1D class semantics
+
+The identity benchmark is simpler and closer to static regime identity:
+
+- `bike`: lower-speed envelope with some surge behavior
+- `horse`: middle-speed envelope, especially near horse limits
+- `car`: higher-speed envelope with persistent push or overspeed relative to horse
+
+This is useful because it isolates direct observation-space evidence before
+latent-state filtering is introduced.
+
+## 3.1b Identity implementation loop
+
+`run_identity_benchmark(...)` is the lighter-weight analogue:
+
+1. read the current observed speed
+2. compute the direct speed-shape log density for each class
+3. compute the one-sided speed-validity mass term
+4. compute running-history, mode-shape, and recent-dynamics terms
+5. add the previous log prior
+6. normalize across classes
+7. record posterior, entropy, and detected features
+
+That shared structure is the important methodological point. Toy and identity
+use different evidence models, but the recursive class-posterior story is the
+same.
+
+Primary recursive implementation surface:
+
+- `run_identity_benchmark(...)` in `identity_1d.py`
+
+### 3.2 Base speed-shape likelihood
+
+For class `s_i` with cruise mean `\mu_i` and class spread `\sigma_i`, the
+instantaneous speed fit is
+
+```tex
+\log L^{\text{speed-shape}}_{i,t}
+= \log \mathcal{N}(z_t; \mu_i, \sigma_i^2 + \sigma_{\text{obs}}^2).
+```
+
+This is the dominant `speed_shape` term shown in the identity artifacts.
+
+This is again a Gaussian density term, not a chopped region probability.
+
+### 3.3 Soft speed-validity term
+
+Each class also has a maximum plausible speed. Instead of a hard gate, the code
+uses the Gaussian probability that the current observed speed is below the
+class limit plus a small class-specific margin:
+
+```tex
+P(z_t \le v_{\max,i} + \delta_i).
+```
+
+The log contribution is
+
+```tex
+\log L^{\text{valid}}_{i,t}
+= 1.4 \, \log\!\big(P(z_t \le v_{\max,i} + \delta_i)\big).
+```
+
+This is the `speed_validity` term in the identity posterior artifacts.
+
+### 3.3 What "Cutting Probability Space" Means In Identity 1D
+
+This is the identity-side version of a soft cut.
+
+The model uses a one-sided Gaussian mass term:
+
+```tex
+P(z_t \le v_{\max,i} + \delta_i)
+```
+
+instead of a hard statement like:
+
+- valid if `z_t <= v_max`
+- invalid otherwise
+
+That matters because a noisy measurement slightly above the nominal limit does
+not instantly collapse the class to zero. It only receives a softer penalty.
+
+### 3.4 History, mode, and dynamics terms
+
+The identity model also scores short-window behavior:
+
+History-shape term:
+
+```tex
+\log L^{\text{history}}_{i,t}
+= 0.45 \,
+\log \mathcal{N}(\bar{z}_{1:t}; \mu_i, \sigma_i^2 + \sigma_{\text{hist},t}^2)
+```
+
+where `\bar{z}_{1:t}` is the running mean speed and `\sigma_{\text{hist},t}^2`
+is inflated by observation noise and recent spread.
+
+Mode-shape term:
+
+```tex
+\log L^{\text{mode}}_{i,t}
+\approx
+\alpha_i + \beta_i
+\left[
+\log\!\left(
+\frac{1}{M_i}
+\sum_{m=1}^{M_i} \exp(\ell^{\text{mode}}_{i,t,m})
+\right)
+\right].
+```
+
+This gives each class several short-window regimes instead of a single cruise
+template.
+
+Dynamics-shape term:
+
+```tex
+\log L^{\text{dyn-shape}}_{i,t}
+= f_i(\text{mean delta}, \text{mean abs delta}, \text{flip rate}, \text{cadence-like score}),
+```
+
+where `f_i` is a weighted sum of Gaussian log densities and small log bonuses.
+
+### 3.5 Full identity class score
+
+The implemented identity score is:
+
+```tex
+\log L_{i,t}
+=
+\log L^{\text{speed-shape}}_{i,t}
+\log L^{\text{valid}}_{i,t}
+\log L^{\text{history}}_{i,t}
+\log L^{\text{mode}}_{i,t}
+\log L^{\text{dyn-shape}}_{i,t}.
+```
+
+Then the posterior update is the same recursive form:
+
+```tex
+\log \tilde{w}_{i,t} = \log w_{i,t-1} + \log L_{i,t}.
+```
+
+This is why the identity posterior artifacts show:
+
+- `speed_shape`
+- `speed_validity`
+- `history_shape`
+- `mode_shape`
+- `dynamics_shape`
+- total
+- posterior
+
+## 3.5a How well the identity benchmark works inside the framework
+
+The current identity benchmark is stronger and simpler than toy:
+
+- overall accuracy is `0.875`
+- transient accuracy is `0.861`
+- terminal accuracy is `0.889`
+- `car` and `horse` are strong
+- the main remaining boundary pressure is `bike` versus `horse`
+
+This benchmark answers a different methodological question from toy. It asks
+how far recursive class evidence can go using direct observation-space fits,
+soft limits, and short-window shape terms, without a full latent-state filter.
+
+## 3.6 What The Identity Posterior Really Represents
+
+The identity posterior is directly:
+
+```tex
+p(s_i \mid z_{1:t})
+```
+
+with `z_t` equal to observed speed. There is no separate latent state posterior
+inside the identity classifier.
+
+So compared with toy:
+
+- toy has class posterior plus per-class state posteriors
+- identity has class posterior only
+
+## 4. PDF Terms Versus CDF Terms
+
+The repo currently mixes two different probabilistic objects.
+
+### 4.1 Density terms
+
+These answer:
+
+```tex
+\text{How well does this exact observed value fit the class model?}
+```
+
+Examples:
+
+- toy innovation likelihood
+- toy latent center terms
+- identity `speed_shape`
+- identity `history_shape`
+
+These use Gaussian PDF or log-PDF forms.
+
+### 4.2 Region-probability terms
+
+These answer:
+
+```tex
+\text{How much class probability mass lies in a valid region?}
+```
+
+Examples:
+
+- toy `speed`
+- toy `accel`
+- identity `speed_validity`
+
+These use Gaussian CDF or tail-probability forms.
+
+That distinction is the clean answer to the user's question about "cutting" the
+probability space:
+
+- PDF terms do not cut the space; they score a point
+- CDF terms do cut the space; they integrate over a region
+
+## 5. Feature probabilities are not the class posterior
+
+Both benchmark families also compute feature probabilities, but those are
+derived diagnostic quantities, not the class posterior itself.
+
+Examples:
+
+- toy: `reverse_motion`, `hard_brake`, `oscillatory`, `near_envelope`
+- identity: `bike_envelope`, `horse_envelope`, `persistent_push`, `surging_trace`
+
+Conceptually:
+
+```tex
+p(f_k \mid z_{1:t})
+```
+
+is being estimated from the current state estimate or recent observed history.
+Those feature probabilities are then thresholded or aggregated over time to
+produce:
+
+- detected feature sets
+- feature confusion counts
+- feature-vs-class matrices
+
+They help explain why a class won or lost, but they are not themselves the
+normalized class posterior.
+
+## 5.1 Feature families and transfer principles
+
+The repo is moving toward a feature taxonomy where features are understood by
+role, not just by name:
+
+- instantaneous features
+- windowed or shape features
+- cumulative-style features
+- derivative features
+- model-residual features
+
+This matters for transfer. A 1D feature is not expected to survive to 3D by
+naive copy-paste. It survives when its structural role survives:
+
+- scalar speed features become magnitude or projection features
+- scalar acceleration features become norms or frame-aware components
+- scalar innovation features become Mahalanobis residual summaries
+
+That is the beginning of a generic feature methodology rather than a bag of 1D
+tricks.
+
+## 5.2 From features to artifacts
+
+The repo is increasingly treating features as study objects, not only classifier
+inputs:
+
+```tex
+\text{feature extractor}
+\rightarrow
+\text{feature table}
+\rightarrow
+\text{evidence behavior}
+\rightarrow
+\text{confusion / overlap / PCA / adequacy artifacts}.
+```
+
+That is why feature information appears in several places:
+
+- feature-vs-class confusion heatmaps
+- feature precision / recall / lift summaries
+- feature-set inspection bundles
+- PCA scatter and loading plots
+- corpus adequacy and excitation reports
+
+This separation is important for future 3D work. The feature layer should be
+swappable without rewriting the rest of the study machinery.
+
+## 6. Why the confusion matrices matter
+
+The confusion artifacts are downstream summaries of these posterior updates.
+
+Class confusion matrix:
+
+```tex
+C_{a,b} = \#\{\text{runs with true class } a \text{ and predicted class } b\}.
+```
+
+Feature-vs-class matrices:
+
+```tex
+F^{\text{true}}_{k,b}
+= \#\{\text{runs where true feature } f_k \text{ is present and class } b \text{ is predicted}\},
+```
+
+```tex
+F^{\text{det}}_{k,b}
+= \#\{\text{runs where detected feature } f_k \text{ is present and class } b \text{ is predicted}\}.
+```
+
+Posterior entropy by step:
+
+```tex
+H_t = - \sum_i p(s_i \mid z_{1:t}) \log p(s_i \mid z_{1:t}).
+```
+
+That entropy trace is useful because it shows whether the classifier is:
+
+- becoming confidently correct
+- becoming confidently wrong
+- or staying ambiguous over time
+
+## 7. Practical interpretation
+
+The clean mental model for the repo is:
+
+1. Each class proposes a probabilistic explanation for the new measurement.
+2. That explanation is not just one Gaussian. It is a composite score.
+3. Prior class mass is multiplied by that composite likelihood.
+4. The result is normalized into the next posterior over classes.
+5. Features, confusion matrices, and entropy are diagnostics of that update.
+
+So the code is absolutely following the Bayesian pattern
+
+```tex
+p(s_i \mid z) \propto p(z \mid s_i) p(s_i),
+```
+
+but in both benchmark families, `p(z \mid s_i)` is implemented as a composite,
+engineered likelihood rather than a single simple closed-form density.
+
+## 8. What the current 1D work proves
+
+The present 1D work supports a few concrete claims:
+
+1. The repo can express both direct-evidence classifiers and latent-state
+   filter-bank classifiers through the same recursive posterior story.
+2. The artifact layer is rich enough to diagnose feature failure, phase
+   failure, prior sensitivity, and confusion structure, not just top-line
+   accuracy.
+3. The toy and identity paths are complementary:
+   - `toy_1d` stresses latent-state, mode-mixture, and phase reasoning
+   - `identity_1d` stresses direct evidence and boundary calibration
+4. The repo is already more than a 1D demo, but it is still using 1D as an
+   exploratory proving ground rather than claiming a finished 3D-ready system.
+
+## 8.1 Posterior walkthrough generation
+
+The posterior walkthrough artifacts are built primarily through:
+
+- `posterior_explainer.py`
+- `identity_posterior_explainer.py`
+- `bayesian_walkthroughs.py`
+
+Those modules bridge recursive posterior math, implementation-level evidence
+terms, and team-readable success and failure artifacts.
+
+## 9. How to keep this documentation useful
+
+The most useful future extensions of this guide should keep three things linked:
+
+1. the mathematical object
+2. the implementation surface that computes it
+3. the artifact family that exposes its behavior
+
+That pattern is what keeps the repo understandable as it grows from:
+
+- 1D feature studies
+- 1D posterior studies
+- filtering comparisons
+
+toward more generic methodology and later 3D-specific adapters.
+
+## Part 2. Methodology Evaluation Framework
+
+Source: [methodology_evaluation_framework.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/methodology_evaluation_framework.md)
+
+This note covers the evaluation side of the repo. The posterior document
+explains how recursive inference works. This document explains how the repo
+decides whether that inference is:
+
+- informative
+- trustworthy
+- sufficiently exercised
+- generalizable
+
+The goal is not to list artifacts. The goal is to state the evaluation
+quantities, the assumptions behind them, and how they connect to code.
+
+## 1. Problem Statement
+
+The central evaluation question is:
+
+```tex
+\text{Given a classifier, feature family, and corpus, what evidence shows whether success or failure is real?}
+```
+
+The repo addresses that question with multiple layers because one metric is not
+enough:
+
+- priors probe decision fragility
+- AUC and overlap probe evidence-space separability
+- confusion probes end-to-end decision behavior
+- adequacy and leakage probe whether the corpus itself is credible
+
+## 2. Global Notation
+
+The main symbols in this document are:
+
+- `p(A)`: prior probability of class `A`
+- `L_t(c)`: likelihood term for class `c` at time `t`
+- `C_{a,b}`: confusion count for true class `a` predicted as `b`
+- `phi_t`: feature vector at time `t`
+- `AUC(a,b)`: pairwise area-under-curve for classes `a` and `b`
+- `O(a,b)`: overlap estimate for classes `a` and `b`
+- `S_k`: corpus or inspection summary score
+
+The common evaluation chain is:
+
+```tex
+\text{corpus}
+\rightarrow
+\text{features or filters}
+\rightarrow
+\text{evidence}
+\rightarrow
+\text{posterior}
+\rightarrow
+\text{metrics}
+\rightarrow
+\text{artifact bundle}.
+```
+
+That layering matters because a failure can happen at any stage.
+
+## 3. Prior Sensitivity
+
+### 3.1 Problem
+
+`prior_sensitivity_analysis.py` asks whether a decision is being driven by data
+or by the prior regime.
+
+### 3.2 Derivation
+
+For a binary comparison between classes `A` and `B`, the posterior log-odds can
+be written as:
+
+```tex
+\log \frac{p(A \mid z)}{p(B \mid z)}
+=
+\log \frac{p(A)}{p(B)}
++
+\sum_t \log \frac{L_A(z_t)}{L_B(z_t)}.
+```
+
+This identity is the right interpretation tool:
+
+- if the accumulated likelihood ratio is large, the prior matters less
+- if the likelihood ratio is weak, small prior changes can flip the result
+
+### 3.3 Sweep Logic
+
+The studies sweep a binary prior regime:
+
+```tex
+p(A) \in [0.05, 0.95], \qquad p(B)=1-p(A),
+```
+
+rerun the classifier, and record:
+
+- the smallest prior shift that changes the decision
+- the smallest log-prior shift that changes the decision
+- the fraction of trajectories that flip under a moderate perturbation
+
+### 3.4 Implementation Mapping
+
+- `prior_sensitivity_analysis.py`
+- `inspection_bundle.py` for bundle-level summary surfacing
+
+### 3.5 Methodological Use
+
+Prior sensitivity is not a replacement for accuracy. It is a fragility measure.
+It tells us how much posterior confidence is actually coming from evidence.
+
+## 4. Feature Separability and Pairwise Difficulty
+
+### 4.1 Problem
+
+Before blaming a classifier, the repo asks whether the classes are even
+separable in the current feature space.
+
+### 4.2 Pairwise AUC
+
+For class pair `(a,b)`,
+
+```tex
+\mathrm{AUC}(a,b) \in [0.5, 1.0].
+```
+
+Interpretation:
+
+- `1.0` means strong rank separation
+- `0.5` means no useful rank separation
+
+But AUC is not enough on its own because a corpus can make a pair trivially
+rank-separable for the wrong reasons.
+
+### 4.3 Overlap and Distance
+
+The repo also computes overlap-style and distance-style quantities such as:
+
+- overlap estimate
+- Mahalanobis-like distance
+- Bhattacharyya-like distance
+- identifiability matrices
+
+These numbers answer a different question from confusion: how much of the
+feature geometry itself is shared?
+
+### 4.4 Implementation Mapping
+
+- `feature_analysis.py`
+- `short_horizon_identifiability.py`
+- `pca_analysis.py`
+- `generic_feature_taxonomy.py`
+
+### 4.5 Diagnostic Interpretation
+
+The most important methodological use is:
+
+- low AUC and high overlap imply a feature problem
+- good AUC with bad final confusion implies a posterior, calibration, or model
+  problem
+- near-perfect AUC on a pair declared “hard” implies a corpus problem
+
+## 5. Confusion Matrices
+
+### 5.1 Definition
+
+Confusion is an end-to-end decision summary:
+
+```tex
+C_{a,b} = \#\{\text{true class } a, \text{ predicted class } b\}.
+```
+
+### 5.2 Why Confusion Alone Is Weak
+
+The same off-diagonal confusion can arise from:
+
+- feature insufficiency
+- poor likelihood shape
+- prior dominance
+- weak within-class mode logic
+- corpus bias
+
+So confusion is necessary but not sufficient.
+
+### 5.3 Multi-View Confusion
+
+The richer benchmarks already distinguish:
+
+- transient confusion
+- terminal confusion
+- phase confusion
+- feature-vs-class confusion
+
+This is methodologically stronger than a single final confusion matrix because
+it localizes where the failure begins.
+
+## 6. Class Validity and Relabel Pressure
+
+`class_validity.py` evaluates whether a generated example still looks like the
+class it was meant to instantiate.
+
+This is conceptually upstream of classifier scoring. The main statuses are:
+
+- `valid_target_class`
+- `ambiguous`
+- `invalid`
+- `relabel_candidate`
+
+Methodologically, this matters because some apparent classifier “failures” are
+actually failures of class schema or synthetic realization.
+
+## 7. Corpus Adequacy and Leakage
+
+### 7.1 Problem
+
+`corpus_adequacy_audit.py` asks whether the study data is broad, balanced, and
+hard in the intended ways.
+
+### 7.2 Evaluation Axes
+
+The audit checks:
+
+- class balance
+- scenario balance
+- duration and sample-count balance
+- noise and irregular-sampling coverage
+- feature excitation
+- class-pair boundary coverage
+- covariate leakage
+
+### 7.3 Leakage Interpretation
+
+The corpus should not allow nuisance variables such as duration, sample count,
+or sampling irregularity to predict class too well on their own. If those
+covariates become highly class-linked, the classifier may be learning the corpus
+rather than the motion class.
+
+### 7.4 Implementation Mapping
+
+- `corpus_adequacy_audit.py`
+- `coverage_report.py`
+- `generated_corpus_features.py`
+- `corpus_classifier_scoring.py`
+
+### 7.5 Current Methodological Use
+
+The adequacy audit is already acting as a real gate. It can say not just “pass”
+or “fail,” but **why**:
+
+- over-separated hard pairs
+- class-linked irregular-sampling variables
+- weak feature excitation for certain feature bundles
+
+That is the right shape for a credible methodology audit.
+
+## 8. PCA and Inspection Bundles
+
+### 8.1 Problem
+
+The repo also needs compact summary surfaces across many feature sets and class
+pairs.
+
+### 8.2 PCA Role
+
+`pca_analysis.py` is not a classifier. It is a dimensional diagnostic. It asks
+whether a lower-dimensional projection already reveals clean class geometry or
+obvious overlap.
+
+### 8.3 Inspection Bundle Role
+
+`inspection_bundle.py` aggregates feature-set and class-pair summaries into one
+bundle so the repo can recommend:
+
+- the strongest current feature set
+- the hardest current class boundary
+
+This layer is useful because it turns many raw study outputs into one decision
+surface.
+
+## 9. Generated Class and Feature Exploration
+
+### 9.1 Problem
+
+The repo now has a second feature-analysis path beyond the hand-authored
+synthetic corpus: objective-driven generated corpus records that may be
+relabelled, filtered, or promoted after backend execution.
+
+### 9.2 Generated Feature Integration
+
+`generated_corpus_features.py` creates the bridge:
+
+```tex
+\text{generated candidate}
+\rightarrow
+\text{executed trajectory}
+\rightarrow
+\text{validity-adjusted label}
+\rightarrow
+\text{feature extraction}
+\rightarrow
+\text{excitation and separability artifacts}.
+```
+
+This matters because feature analysis is no longer tied only to the original
+trajectory generator. It can now inspect generated candidates from search and
+archive mechanisms using the same feature registry and excitation logic.
+
+### 9.3 Corpus-Conditioned Classifier Scoring
+
+`corpus_classifier_scoring.py` evaluates how the existing classifier ladder
+behaves on those generated trajectories. Its per-method stress proxy is
+approximately:
+
+```tex
+\text{stress}
+\approx
+0.5 \cdot (1 - \text{margin})
++ 0.5 \cdot \text{entropy}
++ 0.35 \cdot \mathbf{1}\{\text{final prediction wrong}\}.
+```
+
+This is not a formal posterior quantity. It is a composite diagnostic that says:
+
+- small margin is stressful
+- high entropy is stressful
+- a final error is extra stressful
+
+The point is to rank generated trajectories by how much pressure they place on
+the current classifier ladder.
+
+### 9.4 Class Validity as a Bridge
+
+`class_validity.py` is the key bridge here. Without it, generated trajectories
+would be scored only against their intended class rather than the class they
+most resemble after execution and corruption. That would make the entire
+generated-corpus evaluation layer much less trustworthy.
+
+## 10. Failure Modes
+
+This evaluation framework can still fail if:
+
+- a metric is interpreted outside its intended layer
+- the corpus is too biased for AUC or confusion to mean what they seem to mean
+- feature geometry is poor but the blame is assigned to the posterior update
+- prior sensitivity is ignored on supposedly “accurate” but fragile cases
+
+That is why the evaluation stack is intentionally multi-view.
+
+## 11. What This Document Proves
+
+This note is complete only if it supports the following claims:
+
+- the repo distinguishes evidence quality, posterior behavior, and corpus
+  quality
+- priors, AUC, overlap, confusion, and adequacy are defined for different
+  methodological purposes
+- each major metric family has an implementation surface in the code
+- the artifact families are interpretable as measurements of those quantities,
+  not just dashboards
+
+## Part 3. Classifier Ladder and Contracts
+
+Source: [classifier_ladder_and_contracts.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/classifier_ladder_and_contracts.md)
+
+This note documents the repo's classifier ladder as a sequence of increasingly
+structured evidence models. The point is not only to list which methods exist.
+The point is to show:
+
+- what random variables each method assumes
+- what likelihood or score it computes
+- how that score becomes a posterior
+- where that rule lives in the code
+- what concrete artifact demonstrates the rule on a real run
+
+## 1. Problem Statement
+
+The common classification problem in this repo is:
+
+- observations arrive through time as `z_1, ..., z_t`
+- the hidden class or motion mode is `c_t` or `s_t`
+- the method must produce either:
+  - a posterior over classes, `p_t(c)`, or
+  - a posterior over modes, `p_t(s)`
+
+Across the ladder, the downstream contract is intentionally stable:
+
+```tex
+\text{evidence provider}
+\rightarrow
+\text{log score by class or mode}
+\rightarrow
+\text{normalized posterior}
+\rightarrow
+\text{prediction row and metrics}
+```
+
+That is the architectural reason these methods can share evaluation and
+artifact-generation code even though their internal state is very different.
+
+## 2. Global Notation
+
+The same symbols will be reused across methods:
+
+- `z_t`: observation at time `t`
+- `c`: class label in non-switching classifiers
+- `s`: mode label in switching classifiers
+- `p_t(c)`: posterior over classes after processing time `t`
+- `p_t(s)`: posterior over modes after processing time `t`
+- `L_t(c)`: class-conditioned likelihood term at time `t`
+- `phi_t`: feature vector extracted from a trajectory prefix or window
+- `ell_t(c)`: unnormalized log score before softmax normalization
+- `x_{t|t}`: filtered latent state estimate in a state-space method
+- `nu_t`: innovation residual in the Kalman-family methods
+
+The recurrent posterior normalization step is always some form of:
+
+```tex
+p_t(c) = \frac{\exp(\ell_t(c))}{\sum_j \exp(\ell_t(j))}.
+```
+
+The important variation across methods is therefore not the final softmax. It is
+how `ell_t(c)` is constructed.
+
+## 3. Common Assumptions
+
+The ladder reuses a small number of methodological assumptions:
+
+- additive log evidence is numerically preferable to multiplying tiny
+  probabilities directly
+- posterior state from the previous step is the natural recursive summary for
+  class memory
+- higher ladder levels should only be justified by a failure mode that lower
+  levels cannot explain
+- shared evaluation should consume standardized outputs, not method-specific
+  internal states
+
+The methods differ in their stronger assumptions:
+
+- `pointwise_baseline.py`: observation at time `t` is sufficient evidence
+- `windowed_baseline.py`: a short feature window is a sufficient summary
+- `sequential_bayes_accumulator.py`: likelihood streams can be accumulated with
+  optional forgetting
+- `kalman_filter_bank.py`: each class or motion hypothesis induces a
+  linear-Gaussian state-space model
+- `transition_matrix_accumulator.py`: mode persistence and switching can be
+  represented with a finite transition matrix and emission model
+
+## 4. Ladder Overview
+
+The current ladder is:
+
+1. `pointwise_baseline.py`
+2. `windowed_baseline.py`
+3. `sequential_bayes_accumulator.py`
+4. `kalman_filter_bank.py`
+5. `transition_matrix_accumulator.py`
+
+The upgrade path is deliberate:
+
+- `pointwise`: no temporal compression beyond the posterior itself
+- `windowed`: compress recent history into engineered features
+- `accumulator`: make recursive evidence accumulation explicit
+- `kalman`: let a dynamics model predict the next observation and score the
+  innovation
+- `transition_matrix`: inject explicit switching structure before paying the
+  complexity cost of IMM-like models
+
+## 5. Pointwise Evidence Baseline
+
+### 5.1 Problem
+
+`pointwise_baseline.py` asks the simplest possible question:
+
+```tex
+\text{How far can direct observation evidence go without explicit memory?}
+```
+
+### 5.2 Model
+
+For each class `c`, the observation model is Gaussian with mean `mu_c` and
+standard deviation `sigma_c`:
+
+```tex
+z_t \mid c \sim \mathcal{N}(\mu_c, \sigma_c^2).
+```
+
+### 5.3 Derivation
+
+Bayes rule gives
+
+```tex
+p_t(c) \propto p_{t-1}(c)\,p(z_t \mid c).
+```
+
+Taking logs yields
+
+```tex
+\ell_t(c)
+= \log p_{t-1}(c)
+- \frac{1}{2}\left[
+    \log(2\pi \sigma_c^2)
+    + \frac{(z_t - \mu_c)^2}{\sigma_c^2}
+  \right].
+```
+
+This matters because the method is already recursive even though it has no
+explicit trajectory state. The memory is only in the posterior vector.
+
+### 5.4 Implementation Mapping
+
+- `GaussianPointwiseClassifier.update(...)`
+- `_gaussian_logpdf(...)`
+- `_normalize_log_scores(...)`
+
+### 5.5 Failure Mode
+
+This method fails whenever the class distinction is mostly temporal rather than
+instantaneous. It cannot represent trend, persistence, or switching.
+
+## 6. Windowed Evidence Baseline
+
+### 6.1 Problem
+
+`windowed_baseline.py` addresses the first weakness of pointwise scoring:
+classes may separate only after short-history statistics are computed.
+
+### 6.2 Variables
+
+The method constructs a feature vector
+
+```tex
+\phi_t = g(z_{1:t}) \quad \text{or} \quad \phi_t = g(z_{t-w+1:t}),
+```
+
+where `g` is the engineered feature extractor and `w` is the effective window.
+
+Examples in the current code include:
+
+- `running_min`
+- `running_max`
+- `running_range`
+- `robust_min`
+- `robust_max`
+- `trimmed_range`
+- `slope`
+- `monotonicity`
+- `sign_changes`
+
+### 6.3 Assumptions
+
+The key modeling assumption is conditional independence of selected feature
+coordinates within a class:
+
+```tex
+p(\phi_t \mid c) \approx \prod_{f \in \mathcal{F}} p(\phi_{t,f} \mid c).
+```
+
+That is a naive-Bayes approximation over feature coordinates.
+
+### 6.4 Derivation
+
+With Gaussian feature marginals,
+
+```tex
+\ell_t(c)
+= \log p_{t-1}(c)
++ \sum_{f \in \mathcal{F}}
+  \log \mathcal{N}(\phi_{t,f}; \mu_{c,f}, \sigma_{c,f}^2).
+```
+
+This is the first rung where the evidence is no longer a raw observation but a
+compressed summary of recent trajectory geometry.
+
+### 6.5 Implementation Mapping
+
+- `windowed_baseline.py`
+- `irregular_window_comparison.py`
+- `common_experiment_classifier_registry.py`
+
+### 6.6 Failure Mode
+
+The main risk is that the engineered feature family is either:
+
+- under-expressive for the true class geometry, or
+- spuriously expressive because the corpus makes the task too easy
+
+That is why this rung must be read together with the feature-analysis and
+corpus-adequacy documents.
+
+## 7. Sequential Bayes Accumulator
+
+### 7.1 Problem
+
+`sequential_bayes_accumulator.py` turns the evidence-combination rule itself
+into a first-class module.
+
+### 7.2 Derivation
+
+If the method is given direct likelihoods `L_t(c)`, the update is:
+
+```tex
+\ell_t(c) = \lambda \log p_{t-1}(c) + \log L_t(c),
+```
+
+followed by the standard normalization. The parameter `lambda` is the
+`forgetting_factor`.
+
+In direct Gaussian mode,
+
+```tex
+L_t(c) = \mathcal{N}(z_t; \mu_c, \sigma_c^2).
+```
+
+So the accumulator can be understood as the pure recursive shell that sits
+between pointwise scoring and richer evidence providers.
+
+### 7.3 Confidence Gate
+
+Let
+
+```tex
+c_t^\star = \arg\max_c p_t(c).
+```
+
+The output label is
+
+```tex
+\hat{y}_t =
+\begin{cases}
+c_t^\star, & p_t(c_t^\star) \ge \tau \\
+\texttt{unknown}, & p_t(c_t^\star) < \tau
+\end{cases}
+```
+
+with `tau = confidence_threshold`.
+
+This matters methodologically because the system is allowed to distinguish
+ambiguity from error.
+
+### 7.4 Implementation Mapping
+
+- `SequentialBayesAccumulator.update_with_likelihoods(...)`
+- `SequentialBayesAccumulator.update_with_gaussian_observation(...)`
+- `monte_carlo_benchmark.py`
+
+### 7.5 Failure Mode
+
+If the supplied evidence is poorly calibrated, recursive accumulation can make
+the wrong answer more confident over time. This rung therefore sharpens both
+the strengths and weaknesses of the upstream evidence provider.
+
+## 8. Kalman Innovation Bank
+
+### 8.1 Problem
+
+`kalman_filter_bank.py` handles the case where the class distinction is not
+just about feature statistics but about consistency with a dynamics model.
+
+### 8.2 State-Space Assumptions
+
+For each model `m`, the code assumes a linear-Gaussian state-space model with
+state `x_t^(m)`:
+
+```tex
+x_t^{(m)} = F_t^{(m)} x_{t-1}^{(m)} + w_t^{(m)}, \qquad
+z_t = H_t^{(m)} x_t^{(m)} + v_t^{(m)},
+```
+
+with Gaussian process and measurement noise.
+
+### 8.3 Derivation
+
+The prediction step computes
+
+```tex
+\hat{x}_{t|t-1}^{(m)} = F_t^{(m)} x_{t-1|t-1}^{(m)},
+\qquad
+P_{t|t-1}^{(m)} = F_t^{(m)} P_{t-1|t-1}^{(m)} {F_t^{(m)}}^\top + Q_t^{(m)}.
+```
+
+The innovation residual and covariance are
+
+```tex
+\nu_t^{(m)} = z_t - H_t^{(m)} \hat{x}_{t|t-1}^{(m)},
+\qquad
+S_t^{(m)} = H_t^{(m)} P_{t|t-1}^{(m)} {H_t^{(m)}}^\top + R_t^{(m)}.
+```
+
+The class evidence is then the innovation likelihood:
+
+```tex
+\log L_t(m)
+= -\frac{1}{2}\left[
+    \log(2\pi S_t^{(m)})
+    + \frac{(\nu_t^{(m)})^2}{S_t^{(m)}}
+  \right].
+```
+
+So the posterior preference for a model is driven by how unsurprising the next
+measurement is under that model's predicted state.
+
+### 8.4 Implementation Mapping
+
+- `_innovation_log_likelihood(...)`
+- model-bank normalization logic in `kalman_filter_bank.py`
+- `kalman_variant_comparison.py`
+- `kalman_observable_comparison.py`
+- `velocity_aided_kalman_comparison.py`
+
+### 8.5 Failure Mode
+
+This rung still assumes that the model family is expressive enough. If the true
+behavior is switching, strongly nonlinear, or non-Gaussian, the innovation
+likelihood can become systematically misleading even when numerically stable.
+
+## 9. Transition-Aware Accumulation
+
+### 9.1 Problem
+
+`transition_matrix_accumulator.py` addresses mode persistence and switching
+before the repo commits to a full IMM-style design.
+
+### 9.2 Variables
+
+The method derives finite-difference kinematics from the measurement history:
+
+- `hat v_t`: speed proxy
+- `hat a_t`: acceleration proxy
+
+Each mode `s` has Gaussian emission templates for:
+
+- speed
+- signed acceleration
+- absolute acceleration
+
+### 9.3 Derivation
+
+The emission score is
+
+```tex
+\log E_t(s)
+= \log \mathcal{N}(\hat{v}_t; \mu_s^{(v)}, {\sigma_s^{(v)}}^2)
++ \log \mathcal{N}(\hat{a}_t; \mu_s^{(a)}, {\sigma_s^{(a)}}^2)
++ \log \mathcal{N}(|\hat{a}_t|; \mu_s^{(|a|)}, {\sigma_s^{(|a|)}}^2).
+```
+
+If a transition matrix `T` is enabled, the propagated prior is
+
+```tex
+\bar{p}_t(s') = \sum_s p_{t-1}(s)\,T_{s,s'}.
+```
+
+Then the mode posterior update is
+
+```tex
+\log \tilde{p}_t(s) = \log \bar{p}_t(s) + \log E_t(s).
+```
+
+### 9.4 Implementation Mapping
+
+- finite-difference feature derivation in `transition_matrix_accumulator.py`
+- transition propagation through the configured `T`
+- normalization over modes after adding emission terms
+
+### 9.5 Worked Example
+
+The numeric artifact
+[transition_matrix_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md)
+shows a real switching trajectory around the first switch point, including:
+
+- propagated prior by mode
+- speed / acceleration / absolute-acceleration emission terms
+- log numerators
+- normalized posteriors
+
+This is the current best compact example of the ladder's switching recursion.
+
+### 9.6 Failure Mode
+
+This method still uses a hand-specified transition structure and simple
+emissions. It is a proof rung for “explicit switching pressure helps,” not a
+final multiple-model solution.
+
+## 10. Shared Contracts and Evaluation Surface
+
+The ladder is only useful as a methodology if all methods can be compared
+through one artifact schema.
+
+### 10.1 Contract Statement
+
+The practical repo contract is:
+
+```tex
+\text{method-specific state and evidence}
+\rightarrow
+\text{shared prediction rows}
+\rightarrow
+\text{shared metrics and artifact writers}.
+```
+
+### 10.2 Implementation Mapping
+
+- `common_dataset_comparison.py`
+- `technique_comparison.py`
+- `common_1d_study_adapter.py`
+- `common_experiment_harness.py`
+- `common_experiment_classifier_registry.py`
+- `shared_evaluation.py`
+- `contracts.py`
+- `generic_inference_contract.py`
+- `generic_classification_evidence_proof.py`
+- `generic_filtering_contract.py`
+- `trajectory_backend_contract.py`
+- `backend_adapter_proof.py`
+
+### 10.3 Why This Matters
+
+The comparison layer does **not** require every method to share the same
+internal representation. It only requires each method to emit compatible:
+
+- identifiers
+- predictions
+- posterior values
+- confidence values
+- optional evidence or diagnostics
+
+That is the core proof that the repo is becoming a methodology framework rather
+than a set of unrelated scripts.
+
+## 11. What This Document Proves
+
+This note is complete only if it supports the following claims:
+
+- the classifier ladder is a sequence of distinct evidence constructions, not
+  merely a list of files
+- each ladder rung has a formal update rule
+- each update rule has an explicit code location
+- the transition-matrix rung has a real numeric worked example
+- the common-harness layer consumes standardized outputs rather than special
+  cases
+
+The next methodological question after this document is therefore not “what
+method exists?” but “which rung fails, and what stronger assumption would be
+justified next?”.
+
+## Part 4. Corpus Generation and Search
+
+Source: [corpus_generation_and_search.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/corpus_generation_and_search.md)
+
+This note documents the corpus side of the methodology stack. It is not just a
+description of how trajectories are synthesized. It is meant to answer:
+
+- what variables define a corpus candidate
+- what objective function is being optimized
+- how adequacy pressure is turned into a scalar score and Pareto surface
+- how corpus candidates become promoted studies
+- which artifacts demonstrate those claims numerically
+
+## 1. Problem Statement
+
+The corpus layer exists to solve a methodological problem, not only a data
+generation problem:
+
+```tex
+\text{How do we generate and select datasets that are informative enough to test
+classification methods without making the task accidentally trivial or biased?}
+```
+
+That means corpus generation must be tied to explicit objectives rather than
+only to “more synthetic trajectories.”
+
+## 2. Global Notation
+
+The main objects are:
+
+- `tau`: a generated trajectory
+- `D`: a corpus, यानी a set of trajectories and labels
+- `theta_class`: class-specific motion parameters
+- `theta_tier`: difficulty-tier controls
+- `theta_noise`: corruption parameters
+- `theta_sampling`: timing and sample-count parameters
+- `S_k`: scalar score for corpus candidate `k`
+- `o_k`: Pareto objective vector for candidate `k`
+
+At the trajectory level, the repo is effectively generating:
+
+```tex
+\tau = \tau(\theta_{\text{class}}, \theta_{\text{tier}}, \theta_{\text{noise}}, \theta_{\text{sampling}}, \xi),
+```
+
+where `xi` is the random seed realization.
+
+## 3. Trajectory Parameterization and Witness Problems
+
+### 3.1 Problem
+
+`trajectory_generator.py` and `corpus_objectives.py` define the base witness
+problems used by the rest of the repo.
+
+### 3.2 Assumptions
+
+The core assumptions are:
+
+- class semantics can be represented by parameterized families of trajectories
+- difficulty tiers can be represented by controlled changes in noise,
+  irregularity, outliers, and step counts
+- the induced synthetic geometry is meaningful enough to support feature,
+  posterior, and adequacy studies
+
+### 3.3 Implementation Mapping
+
+- `trajectory_generator.py`
+- `corpus_objectives.py`
+- objective YAML in
+  `experiments/corpus_objectives/common_1d_corpus_objectives.yaml`
+
+### 3.4 Why This Matters
+
+Every later artifact inherits the geometry defined here. If the synthetic class
+definitions are weak or biased, no downstream classifier result is trustworthy.
+
+## 4. Corpus-Shaping Layers
+
+The repo has several modules that perturb or search the corpus distribution:
+
+- `adaptive_stress_corpus.py`
+- `environment_aware_corpus.py`
+- `quality_diversity_corpus.py`
+- `objective_driven_qd_archive.py`
+
+At a high level, they move from one corpus distribution to another:
+
+```tex
+\mathcal{D}
+\rightarrow
+\mathcal{D}'(\text{noise}, \text{irregularity}, \text{outliers}, \text{stress}, \text{diversity}).
+```
+
+These are not separate data silos. They are search directions over corpus
+properties that may reveal different classifier or feature failures.
+
+## 5. Corpus Autodevelopment
+
+### 5.1 Problem
+
+`corpus_autodevelopment.py` asks:
+
+```tex
+\text{Can the repo score and select between multiple candidate corpora using declared adequacy goals?}
+```
+
+### 5.2 Score Construction
+
+For candidate `k`, the implemented scalar score is:
+
+```tex
+S_k
+= B_k + C_k + F_k + D_k - L_k - T_k - G_k,
+```
+
+where:
+
+- `B_k`: class-balance score
+- `C_k`: class-pair boundary coverage score
+- `F_k`: feature-excitation score
+- `D_k`: difficulty-diversity score
+- `L_k`: leakage penalty
+- `T_k`: triviality penalty
+- `G_k`: degeneracy penalty
+
+This is not merely conceptual. These terms are computed explicitly by:
+
+- `_balance_score(...)`
+- `_boundary_coverage_score(...)`
+- `_feature_excitation_score(...)`
+- `_difficulty_diversity_score(...)`
+- `_leakage_penalty(...)`
+- `_triviality_penalty(...)`
+- `_degeneracy_penalty(...)`
+
+### 5.3 Pareto Surface
+
+The same module also defines a vector objective:
+
+```tex
+\mathbf{o}_k =
+\big[
+  B_k,\,
+  C_k,\,
+  F_k,\,
+  D_k,\,
+  -L_k,\,
+  -T_k,\,
+  -G_k
+\big].
+```
+
+A candidate is dominated when another candidate is no worse in every coordinate
+and strictly better in at least one. This is the actual meaning of the Pareto
+front in the code.
+
+### 5.4 Assumptions
+
+The score assumes:
+
+- the positive terms should be maximized
+- the penalties should be minimized
+- a single scalar score is useful for selection
+- but the Pareto front should still be preserved so non-dominated tradeoffs are
+  not erased
+
+### 5.5 Worked Example
+
+The numeric artifact
+[corpus_autodevelopment_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md)
+is the current concrete proof for this section. It shows one real selected
+candidate and:
+
+- substitutes the actual score-term values into `S_k`
+- expands the difficulty-diversity subscore against the configured target
+  fractions
+- shows leakage-threshold rows
+- compares the selected candidate against the highest-scoring rejected one
+- explains why selection and Pareto non-dominance are not the same claim
+
+That artifact is the proper bridge from symbolic objective to implementation.
+
+## 6. Corpus Search and Baseline Ranking
+
+The broader search layer is implemented through:
+
+- `corpus_search_baseline.py`
+- `corpus_synthesis_comparison.py`
+- `generic_corpus_exploration.py`
+- `selected_generated_corpus.py`
+
+The methodological statement here is:
+
+```tex
+\text{corpus search}
+\neq
+\text{generate more random trajectories}.
+```
+
+Instead, the repo is moving toward objective-driven exploration over corpus
+properties that affect identifiability, calibration, leakage, and robustness.
+
+### 6.1 Generic Corpus Explorer
+
+`generic_corpus_exploration.py` is the clearest implementation of the repo’s
+Corpus Explorer idea. It starts from a heterogeneous candidate pool of
+backend-specific trajectory specifications and scores each executed run by a
+normalized utility rather than by one raw classification metric.
+
+For one executed run, the implemented explorer utility is:
+
+```tex
+U_{\text{explore}}
+= 0.22 \cdot \text{validity}
++ 0.18 \cdot \text{coverage novelty}
++ 0.18 \cdot \text{boundary score}
++ 0.18 \cdot \text{classifier stress}
++ 0.12 \cdot \text{environment score}
++ 0.12 \cdot \text{provenance completeness}.
+```
+
+This score is intentionally mixed. It rewards:
+
+- validity of the executed run
+- novelty of the candidate’s coverage cell
+- pressure on known class boundaries
+- stress placed on current classifier families
+- usefulness of environment-regime structure
+- preservation of provenance metadata for later audit
+
+So the explorer is not only asking “which trajectory is hardest?” It is asking
+“which executed trajectories make the corpus more useful as a study object?”
+
+### 6.2 Explorer Archive and Selection Logic
+
+The explorer also constructs archive cells over:
+
+- backend
+- scenario family
+- target class
+- difficulty tier
+
+For each cell, the elite is the run with maximal `total_utility`. The selected
+corpus is then compared against a same-size random baseline by coverage:
+
+```tex
+\Delta_{\text{coverage}}
+=
+\#\{\text{selected archive cells}\}
+-
+\#\{\text{random-baseline archive cells}\}.
+```
+
+That gives the explorer a meaningful audit question: does the selected corpus
+cover more useful behavioral cells than a naïve random sample of equal size?
+
+### 6.3 Worked Example
+
+The numeric artifact
+[generic_corpus_explorer_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md)
+now expands one selected corpus row into:
+
+- its `U_explore` utility decomposition
+- its archive-cell role
+- its elite interpretation
+- its contribution to the selected-versus-random coverage comparison
+
+That artifact is the Explorer-side proof that corpus selection is not only a
+visual dashboard. It is a numeric utility and coverage argument on one concrete
+selected row.
+
+## 7. Corpus Gym
+
+### 7.1 Problem
+
+`corpus_gym.py` reframes corpus generation as a targeted environment rather than
+just a batch sampler. The question is:
+
+```tex
+\text{Can we specify desired failure pressure or feature geometry and then reward trajectories that approach it?}
+```
+
+### 7.2 Variables
+
+The main objects are:
+
+- `target`: a desired class, class pair, feature cell, failure mode, or prior-sensitive regime
+- `action`: a parameterized perturbation of the base tier, including measurement
+  scale, irregularity scale, outlier scale, and step scale
+- `reward`: a structured utility decomposition
+- `episode`: `(target, action, trajectory, diagnostics, reward)`
+
+### 7.3 Reward Construction
+
+The reward in `CorpusGymReward` is multi-term rather than monolithic:
+
+- `class_validity`
+- `feature_excitation`
+- `coverage_gain`
+- `boundary_closeness`
+- `classifier_stress`
+- `prior_sensitivity`
+- `leakage_penalty`
+- `physical_invalidity_penalty`
+
+The actual implemented utility is:
+
+```tex
+U_{\text{gym}}
+= 0.22 \cdot V
++ 0.14 \cdot E
++ 0.14 \cdot G
++ 0.14 \cdot B
++ 0.14 \cdot S
++ 0.12 \cdot P
+- 0.10 \cdot L
+- 0.14 \cdot I,
+```
+
+where:
+
+- `V`: class validity
+- `E`: feature excitation match
+- `G`: coverage gain
+- `B`: boundary closeness
+- `S`: classifier-stress pressure
+- `P`: prior-sensitivity pressure
+- `L`: leakage penalty
+- `I`: physical invalidity penalty
+
+The current code computes the component terms explicitly through:
+
+- `_class_validity_score(...)`
+- `_feature_excitation_score(...)`
+- `_coverage_gain_score(...)`
+- `_boundary_closeness_score(...)`
+- `_classifier_stress_score(...)`
+- `_prior_sensitivity_score(...)`
+- `_leakage_penalty(...)`
+- `_physical_invalidity_penalty(...)`
+
+So the Gym is already a concrete objective function, not just an idea for one.
+
+### 7.4 Coverage, Leakage, and Invalidity Terms
+
+Three subterms are especially important because they prevent the Gym from
+rewarding obviously biased or pathological cases.
+
+The coverage-gain term is:
+
+```tex
+G
+= 0.40 \cdot \text{tier match}
++ 0.30 \cdot \text{class match}
++ 0.30 \cdot \text{novelty}(a),
+```
+
+where the novelty term is the average of capped measurement, irregularity,
+outlier, and step scales induced by the action.
+
+The leakage penalty is:
+
+```tex
+L
+= 0.30 \cdot \text{duration risk}
++ 0.30 \cdot \text{sample-count risk}
++ 0.40 \cdot \text{noise risk}.
+```
+
+This is how the Gym avoids rewarding trajectories merely because duration,
+sample count, or noise level become class-identifying shortcuts.
+
+The physical-invalidity penalty guards against:
+
+- non-increasing time grids
+- implausibly large absolute accelerations
+
+So the Gym can search aggressively without silently drifting into invalid
+trajectory geometry.
+
+### 7.5 Environment Contract
+
+`CorpusGymEnvironment` makes the corpus-search loop explicit. It provides:
+
+- `reset(target)`
+- `simulate(action)`
+- `step(action)`
+- `trajectory()`
+- `score(trajectory)`
+- `render_diagnostics(trajectory)`
+
+Methodologically, the Gym can therefore be written as:
+
+```tex
+\text{target}
+\xrightarrow{\text{reset}}
+\text{state}
+\xrightarrow{\text{action}}
+\text{trajectory, reward, diagnostics}.
+```
+
+That matters because it makes targeted corpus search a reusable interface rather
+than one hard-coded artifact generator.
+
+### 7.6 Objective-to-Gym Execution Bridge
+
+`objective_corpus_gym_runner.py` ties the declarative corpus-objective layer to
+the Gym layer. It defines the maps:
+
+```tex
+\Psi_{\text{target}}(\text{objective}) \rightarrow \text{CorpusGymTarget},
+\qquad
+\Psi_{\text{action}}(\text{candidate}) \rightarrow \text{CorpusGymAction}.
+```
+
+Then the actual execution chain becomes:
+
+```tex
+\text{objective}
+\rightarrow
+\text{candidate}
+\rightarrow
+\text{target, action}
+\rightarrow
+\text{episode}
+\rightarrow
+\text{validated trajectory run}.
+```
+
+This is the critical bridge from declarative study design to executed explorer
+or gym records. Without it, the Gym would be an isolated search environment.
+
+### 7.7 Why This Matters
+
+This turns “find me a hard example” into a measurable optimization target. The
+corpus gym is therefore the bridge from declarative corpus goals to targeted
+trajectory proposals.
+
+### 7.8 Worked Example
+
+The numeric artifact
+[corpus_gym_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md)
+now works through one real Gym episode. It shows:
+
+- the selected target
+- the actual action scales
+- the resulting trajectory diagnostics
+- the implemented reward equation
+- the numeric substitution for each reward component
+
+That artifact is the Gym-side proof that the search reward is not just
+qualitative prose. It is a concrete score decomposition on one executed
+trajectory.
+
+## 8. Objective-Driven Quality-Diversity Archive
+
+### 8.1 Problem
+
+`objective_driven_qd_archive.py` asks a different question from the scalar
+autodevelopment score:
+
+```tex
+\text{How do we preserve diverse elites across multiple difficulty and evidence cells instead of selecting only one best corpus?}
+```
+
+### 8.2 Archive Utility
+
+For one successful archive cell, the current elite utility is assembled from:
+
+```tex
+U_{\text{archive}}
+= 0.30 \cdot \text{validity}
++ 0.25 \cdot \text{acceleration-range pressure}
++ 0.25 \cdot \text{classifier stress}
++ 0.20 \cdot (1 - \text{mean margin}).
+```
+
+The cell definition itself also depends on discretized buckets over:
+
+- assigned class
+- difficulty tier
+- backend
+- duration
+- acceleration range
+- entropy
+- prior-flip threshold
+
+So the archive is not only ranking trajectories. It is preserving structured
+coverage over behaviorally distinct cells.
+
+### 8.3 Implementation Mapping
+
+- `objective_driven_qd_archive.py`
+- `generated_corpus_features.py`
+- `corpus_classifier_scoring.py`
+
+### 8.4 Methodological Use
+
+This layer matters because it separates:
+
+- “best current elite in a cell”
+- “which cells have been covered at all”
+- “which mutation lineages produce useful diversity”
+
+That is a stronger corpus-search story than one scalar winner alone.
+
+## 9. Study Candidate Generation
+
+### 9.1 Problem
+
+Once corpus candidates exist, the next question is not “which dataset is best
+in the abstract?” but “which study should the team run next?”
+
+The study-candidate layer is implemented across:
+
+- `candidate_generation.py`
+- `capability_aware_search.py`
+- `study_candidate_generation.py`
+- `study_candidate_protocol.py`
+
+### 9.2 Variables
+
+For a candidate study built from:
+
+- class pair `p`
+- classifier `m`
+- feature set `f`
+- prior regime `r`
+
+the current study-selection logic defines a static screening score
+`Q_static(p,m,f,r)` before any Monte Carlo acceptance score is considered:
+
+```tex
+Q_{\text{static}}(p,m,f,r)
+= 0.18 \cdot \text{feature-class compatibility}
++ 0.18 \cdot \text{expected separability}
++ 0.14 \cdot \text{classifier fit}
++ 0.14 \cdot \text{corpus coverage}
++ 0.12 \cdot \text{dimensional transfer}
++ 0.12 \cdot \text{implementation readiness}
++ 0.12 \cdot (1 - \text{dependency risk})
+- 0.10 \cdot \text{cumulative-history risk}
+- 0.10 \cdot \text{prior-sensitivity risk}.
+```
+
+In the current code, that high-level score is instantiated through named
+subterms such as:
+
+- `feature_class_compatibility_score`
+- `expected_separability_score`
+- `classifier_assumption_fit`
+- `corpus_coverage_score`
+- `dimensional_transfer_score`
+- `implementation_readiness_score`
+- `feature_dependency_risk`
+- `cumulative_double_counting_risk`
+- `prior_sensitivity_risk`
+
+The important point is that these are not placeholders. They are the actual
+named columns written into the `static_candidate_scores.csv` artifact by
+`study_candidate_generation.py`.
+
+### 9.3 Assumptions
+
+The current static score assumes:
+
+- feature/class compatibility and oracle separability are the strongest early
+  evidence for whether a study is worth running
+- corpus coverage and classifier-family fit should matter, but not dominate
+- 3D transferability and implementation readiness should influence prioritization
+  before the repo is fully 3D-ready
+- dependency growth, cumulative-history reuse, and prior fragility are real
+  methodological risks and should subtract from the screening score
+
+It also assumes a two-stage process:
+
+```tex
+\text{static screening} \rightarrow \text{Monte Carlo confirmation} \rightarrow \text{promotion decision}.
+```
+
+That is a stronger claim than “rank everything once.” It means the repo is
+already distinguishing between proposal quality before execution and evidence
+quality after execution.
+
+### 9.4 Monte Carlo Confirmation Layer
+
+After static screening, the module uses cross-method metrics from
+`analyze_common_experiment(...)` to compute a second score:
+
+```tex
+Q_{\text{mc}}
+= 0.60 \cdot \text{accuracy}
++ 0.25 \cdot (1 - \text{prior flip fraction})
++ 0.15 \cdot (1 - \max(0, \text{oracle gap})).
+```
+
+This is the acceptance surface that the current code actually uses to decide
+whether a study is promoted, revised, or rejected once benchmark evidence
+exists.
+
+The current promote gate is approximately:
+
+```tex
+\text{compatible}
+\land
+Q_{\text{static}} \ge 0.45
+\land
+Q_{\text{mc}} \ge 0.90
+\land
+\text{accuracy} \ge 0.83
+\land
+\text{prior flip fraction} \le 0.12.
+```
+
+If the feature set is compatible and the accuracy is merely decent, the
+decision is usually `revise`; otherwise the decision falls to `reject` or
+`defer`. This is the point where the repo stops being a proposal generator and
+starts acting like an evidence-gated study selector.
+
+### 9.5 Implementation Mapping
+
+- `candidate_generation.py`
+  - sampler families: random, grid, LHS, boundary mutation, archive mutation,
+    stress mutation
+- `capability_aware_search.py`
+  - backend-aware search-method planning and runtime-budget logic
+- `study_candidate_generation.py`
+  - static score assembly, Monte Carlo lookup, and decision bucketing
+- `study_candidate_protocol.py`
+  - schema and validation-ladder contract for promoted studies
+
+The lower-level sampler lives in `candidate_generation.py`; the promotion logic
+lives in the higher-level study-candidate modules.
+
+The current generated tables for this layer are not generic placeholders. They
+include:
+
+- `generated_study_candidates.json`
+- `static_candidate_scores.csv`
+- `monte_carlo_candidate_scores.csv`
+- `promoted_candidates.csv`
+- `rejected_candidates.csv`
+
+That means the score decomposition and the decision vocabulary can already be
+audited without reading source code.
+
+### 9.6 Why This Matters
+
+This is the point where corpus logic, feature logic, classifier logic, and
+readiness logic start to interact. That is why this layer belongs in the
+methodology docs, not only in artifact indexes.
+
+## 10. Candidate Generation as a Sampler Family
+
+`candidate_generation.py` does not emit one candidate per objective. For an
+objective `o` and backend `b`, it effectively builds a candidate population
+
+```tex
+\mathcal{C}(o,b)
+=
+\mathcal{C}_{\text{random}}
+\cup
+\mathcal{C}_{\text{grid}}
+\cup
+\mathcal{C}_{\text{lhs}}
+\cup
+\mathcal{C}_{\text{boundary mutation}}
+\cup
+\mathcal{C}_{\text{archive mutation}}
+\cup
+\mathcal{C}_{\text{stress mutation}}.
+```
+
+That means candidate generation is already a search policy:
+
+- `random` provides broad stochastic perturbation
+- `grid` provides deterministic baseline coverage
+- `lhs` provides space-filling parameter coverage
+- `boundary_mutation` pushes toward harder near-boundary proposals
+- `archive_mutation` performs local search around previously promising cells
+- `stress_mutation` deliberately increases corruption or compression pressure
+
+In probabilistic language, the module is not using one proposal distribution. It
+is using a mixture over search heuristics:
+
+```tex
+q(c \mid o,b)
+= \sum_s \pi_s \, q_s(c \mid o,b),
+```
+
+where `s` ranges over sampler families and the mixture weights are implemented
+implicitly through per-family candidate budgets rather than estimated online.
+
+This matters because the search surface is already hybrid:
+
+- broad coverage samplers explore
+- mutation samplers exploit
+- stress samplers deliberately push toward failure regimes
+
+## 11. Capability-Aware Search Planning
+
+`capability_aware_search.py` determines which search methods should be used for
+which backend family. The planner conditions on backend capability attributes
+such as:
+
+- runtime class
+- dimensionality
+- environment support
+- sequential-control support
+- stochastic versus deterministic execution
+
+At the methodology level, that planner is a map
+
+```tex
+\Pi(\text{backend capabilities})
+\rightarrow
+\{\text{recommended search methods}, \text{budget class}, \text{planner rationale}\}.
+```
+
+This is important because the repo is no longer assuming that all backends
+should be searched the same way.
+
+The implemented rule set is not abstract. It contains explicit branches for:
+
+- runtime class: `cheap`, `medium`, `expensive`
+- environment support
+- sequential-control support
+- stochastic versus deterministic execution
+
+So the actual planner is closer to:
+
+```tex
+\Pi(\kappa)
+=
+\big(
+M_{\text{runtime}}(\kappa),
+M_{\text{environment}}(\kappa),
+M_{\text{control}}(\kappa),
+M_{\text{stochastic}}(\kappa)
+\big),
+```
+
+where `kappa` is the backend capability vector and the resulting method set is
+deduplicated into one backend plan row. Cheap stochastic backends receive broad
+search budgets; expensive deterministic backends are pushed toward smaller DOE,
+surrogate assistance, and cache-priority execution.
+
+## 12. Study Candidate Protocol and Validation Ladder
+
+`study_candidate_protocol.py` defines the contract that the generated-candidate
+layer must satisfy. It specifies:
+
+- the `StudyCandidate` schema
+- the `ValidationLadder` schema
+- the required terminal decision vocabulary: `promote`, `revise`, `reject`, `defer`
+
+The promotion story is therefore not just:
+
+```tex
+\text{good score} \Rightarrow \text{promote}.
+```
+
+It is:
+
+```tex
+\text{candidate specification}
+\rightarrow
+\text{validation ladder evidence}
+\rightarrow
+\text{terminal decision in a constrained vocabulary}.
+```
+
+That is what makes the study layer auditable rather than ad hoc.
+
+The protocol is also stronger than a single schema file. It defines two linked
+objects:
+
+- `StudyCandidate`
+- `ValidationLadder`
+
+The validation ladder itself has ordered levels, including:
+
+- static compatibility
+- corpus adequacy
+- feature separability
+- oracle separability
+- classifier performance
+- posterior and calibration quality
+- prior sensitivity
+- stress and adversarial robustness
+- dimensional transfer assessment
+- promotion decision
+
+So the real promotion contract is:
+
+```tex
+\text{proposal}
+\rightarrow
+\{\ell_1, \ell_2, \dots, \ell_{10}\}
+\rightarrow
+d,
+\qquad
+d \in \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}.
+```
+
+This matters because it prevents a high static score from bypassing evidence,
+and it prevents a visually interesting candidate from being promoted without an
+explicit decision trail.
+
+## 13. Generated Class/Feature Exploration
+
+### 13.1 Generated Corpus Features
+
+`generated_corpus_features.py` routes objective-driven generated trajectories
+back through the real feature pipeline. This is important because generated
+candidates are not only evaluated by proxy score columns. They are turned into
+real `TrajectoryArtifact` rows, relabeled through class-validity logic, grouped
+into tier datasets, and fed to `analyze_feature_datasets(...)`.
+
+Methodologically, the feature pipeline therefore becomes:
+
+```tex
+\text{generated candidate}
+\rightarrow
+\text{executed trajectory}
+\rightarrow
+\text{validity-adjusted label}
+\rightarrow
+\text{feature row}
+\rightarrow
+\text{excitation and separability analysis}.
+```
+
+### 13.2 Corpus-Conditioned Classifier Scoring
+
+`corpus_classifier_scoring.py` then asks how the current classifier ladder
+behaves on those generated and relabeled trajectories. It rebuilds pointwise,
+accumulator, windowed, and Kalman-family scoring surfaces and tracks:
+
+- posterior entropy
+- top-two posterior margin
+- confident errors
+- time to confidence
+- measured classifier stress
+- prior-flip sensitivity
+
+The classifier-stress proxy can be read as:
+
+```tex
+\text{stress}
+\approx
+0.5 \cdot (1 - \text{margin})
++ 0.5 \cdot \text{entropy}
++ 0.35 \cdot \mathbf{1}\{\text{final prediction wrong}\}.
+```
+
+That makes this layer the bridge from corpus search to actual classifier
+pressure. A generated corpus candidate is valuable only if it changes the
+downstream evidence and decision landscape in an interpretable way.
+
+## 14. End-to-End Corpus Methodology Flow
+
+The current intended flow is:
+
+```tex
+\text{trajectory generator}
+\rightarrow
+\text{corpus candidate}
+\rightarrow
+\text{adequacy-scored corpus}
+\rightarrow
+\text{backend-aware candidate population}
+\rightarrow
+\text{study candidate}
+\rightarrow
+\text{validation ladder}
+\rightarrow
+\text{promotion / revise / reject / defer}.
+```
+
+This is the most important interpretation point in the file: synthetic witness
+problems are not the final product. They are inputs to a reusable study-design
+loop.
+
+## 15. Failure Modes
+
+The corpus-side methodology can still fail in several ways:
+
+- the synthetic class families may be too stylized
+- the difficulty tiers may not match the claimed hard boundaries
+- the scalar score may hide a meaningful Pareto tradeoff
+- study promotion may overvalue convenience and undervalue scientific pressure
+
+That is why the worked example, the adequacy audit, and the search artifacts
+must be read together.
+
+## 16. What This Document Proves
+
+This note is complete only if it supports the following claims:
+
+- corpus generation is tied to explicit variables and objectives
+- corpus autodevelopment has a formal score and Pareto definition
+- the score terms have code-level implementations
+- at least one real candidate score has been decomposed numerically
+- study promotion is treated as a methodology problem, not only as a report
+  listing
+
+## Part 5. Dimensional Lift and Advanced Filter Gates
+
+Source: [dimensional_lift_and_advanced_filter_gates.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/dimensional_lift_and_advanced_filter_gates.md)
+
+This note documents two related proof obligations in the repo:
+
+- can the current methodology survive a lift from scalar 1D to vector-valued
+  trajectories?
+- when, exactly, would IMM, particle filtering, or RBPF become justified?
+
+The goal is to turn those questions into explicit contracts and evidence gates,
+not informal roadmap phrases.
+
+## 1. Problem Statement
+
+The central questions are:
+
+```tex
+\text{Is the current framework dimension-agnostic enough to survive a 3D lift?}
+```
+
+and
+
+```tex
+\text{What measured failure evidence would justify more advanced filter backends?}
+```
+
+Both questions are architectural. Neither should be answered only by intuition.
+
+## 2. Global Notation
+
+The main objects in this document are:
+
+- `a_i`: one scalar-assumption audit row
+- `z_t in R^d`: vector observation at time `t`
+- `x_t = (u_t, v_t)`: split latent state for RBPF reasoning
+- `Delta`: performance gain between two ladder rungs
+
+## 3. Dimensional Lift Audit
+
+### 3.1 Problem
+
+`dimensional_lift_audit.py` and `pca_dimensionality_audit.py` ask whether the
+current code assumes scalar 1D structure in ways that would block 3D reuse.
+
+### 3.2 Status Classes
+
+Each module is classified as one of:
+
+- `dimension-agnostic`
+- `adapter-compatible`
+- `rewrite-required`
+
+Formally, the audit is assigning
+
+```tex
+\text{module status}
+\in
+\{\text{agnostic}, \text{adapter-compatible}, \text{rewrite-required}\}.
+```
+
+### 3.3 Scalar-Assumption Inventory
+
+Each recorded assumption row is effectively:
+
+```tex
+a_i =
+(
+  \text{module},
+  \text{assumption id},
+  \text{severity},
+  \text{blocking-for-3D},
+  \text{current assumption},
+  \text{3D requirement}
+).
+```
+
+The point is not merely to say “this file is 1D.” The point is to say **why**
+it is 1D and what adapter or rewrite would remove that limitation.
+
+### 3.4 Contract Smoke Test
+
+The fake vector corpus in `dimensional_lift_audit.py` is a schema test, not a
+full 3D physics benchmark. It constructs vector-compatible features such as:
+
+```tex
+\text{path length} = \sum_{t=2}^{T} \lVert z_t - z_{t-1} \rVert_2
+```
+
+and
+
+```tex
+\text{displacement norm} = \lVert z_T - z_1 \rVert_2.
+```
+
+The methodological claim is modest but important: the shared artifact surfaces
+already tolerate vector-valued trajectories if the feature layer and adapters do
+their job.
+
+### 3.5 Implementation Mapping
+
+- `dimensional_lift_audit.py`
+- `pca_dimensionality_audit.py`
+
+## 4. Advanced Filter Decision Gates
+
+### 4.1 Problem
+
+The advanced-filter decision layer asks whether the current ladder has failed in
+a way that actually justifies more complex filtering.
+
+Primary surfaces:
+
+- `advanced_filter_decision.py`
+- `rl_backend_decision.py`
+- advanced-gate portions of `generic_filtering_contract.py`
+
+### 4.2 Methodological Principle
+
+The repo is currently enforcing:
+
+- use the simplest method that explains the failure case
+- do not add IMM, PF, or RBPF before the existing ladder demonstrably fails
+
+That principle is only credible if the failure evidence is measured.
+
+## 5. IMM Gate
+
+### 5.1 Variables
+
+The current switching evidence compares the transition-matrix accumulator
+against:
+
+- the static accumulator
+- the switching Kalman bank
+
+### 5.2 Derivation
+
+The key gains are:
+
+```tex
+\Delta_{\text{post-switch}}^{\text{TM-static}}
+= A_{\text{post-switch}}^{\text{transition matrix}}
+- A_{\text{post-switch}}^{\text{static accumulator}},
+```
+
+```tex
+\Delta_{\text{overall}}^{\text{TM-static}}
+= A_{\text{overall}}^{\text{transition matrix}}
+- A_{\text{overall}}^{\text{static accumulator}},
+```
+
+```tex
+\Delta_{\text{post-switch}}^{\text{TM-kalman}}
+= A_{\text{post-switch}}^{\text{transition matrix}}
+- A_{\text{post-switch}}^{\text{switching Kalman bank}}.
+```
+
+As long as the transition-matrix accumulator still buys measurable post-switch
+gain, and the switching Kalman bank has not displaced it, the repo does not yet
+have evidence that IMM complexity is required.
+
+### 5.3 Implementation Mapping
+
+- `analyze_advanced_filter_decision()`
+- `run_transition_benchmark(...)`
+
+## 6. Particle-Filter Gate
+
+### 6.1 Problem
+
+Particle filtering should not be justified only because it is more general. It
+should be justified because the problem has become nonlinear, non-Gaussian, or
+multimodal in a way that the current ladder cannot absorb.
+
+### 6.2 Decision Logic
+
+The intended gate is:
+
+```tex
+\text{PF justified}
+\Longrightarrow
+\text{nonlinear benchmark exists}
+\land
+\text{robust Kalman still fails}
+\land
+\text{failure is not primarily sensing-limited}.
+```
+
+This matters because the current hard case is still largely evidence-limited.
+If direct velocity sensing resolves a large fraction of the failure, then the
+bottleneck is not yet “we need a particle filter.”
+
+### 6.3 Implementation Mapping
+
+- short-horizon identifiability metrics from
+  `short_horizon_identifiability.py`
+- velocity-aided comparison from `velocity_aided_kalman_comparison.py`
+- robust Kalman comparison from `kalman_variant_comparison.py`
+- gate assembly in `advanced_filter_decision.py`
+
+## 7. RBPF Gate
+
+### 7.1 Structural Requirement
+
+RBPF has a stricter justification condition. The state must decompose as:
+
+```tex
+x_t = (u_t, v_t),
+```
+
+where:
+
+- `u_t` is a sampled discrete or nonlinear latent structure
+- `v_t` is a conditionally linear-Gaussian substate that remains analytically
+  filterable
+
+### 7.2 Interpretation
+
+RBPF is therefore justified only when:
+
+- part of the problem truly needs particles
+- another part of the problem is still tractable enough to Rao-Blackwellize
+
+Without that split, “RBPF” is only a fancy name for unnecessary complexity.
+
+## 8. Worked Example
+
+The numeric artifact
+[advanced_filter_decision_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md)
+is the current concrete proof for this document. It works through one real
+decision pass and shows:
+
+- the actual transition gains
+- the nominal-noise identifiability gaps
+- the velocity-aided `short_noisy` gain
+- the best current Kalman outlier accuracy
+- the status of each IMM and PF evidence row
+- why those values lead to `defer IMM` and `defer PF`
+
+This is the proper bridge from gate logic to code.
+
+## 9. Failure Modes
+
+This methodology layer can still fail if:
+
+- the dimensional audit misses a hidden scalar assumption
+- the advanced-filter decision study lacks the right witness benchmark
+- a sensing-limited failure is mistaken for an inference-limited failure
+- a nonlinear or switching witness case is added but not compared fairly against
+  the simpler ladder
+
+That is why this document is paired with concrete gate artifacts rather than
+only prose recommendations.
+
+## 10. What This Document Proves
+
+This note is complete only if it supports the following claims:
+
+- dimensional lift is being audited through explicit contracts and assumption
+  rows
+- 3D readiness is defined by adapters and interfaces, not slogans
+- IMM, PF, and RBPF are decision-gated by measured evidence
+- the current go/no-go outcome is numerically justified by a real walkthrough

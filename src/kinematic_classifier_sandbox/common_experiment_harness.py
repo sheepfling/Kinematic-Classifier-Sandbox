@@ -1367,10 +1367,27 @@ def analyze_common_experiment(
 ) -> CommonExperimentResult:
     config = load_common_experiment_config(config_path)
     study_adapter = resolve_common_study_adapter(config)
-    feature_manifest = load_feature_set_manifest(config.feature_sets_path)
     comparison = analyze_common_dataset_comparison(seed=seed, trajectories_per_case=trajectories_per_case)
     pair_specs = study_adapter.pair_spec_builder(config)
     trajectories = study_adapter.trajectory_generator(pair_specs, seed, trajectories_per_case)
+    return _analyze_common_trajectory_corpus(
+        config=config,
+        comparison=comparison,
+        pair_specs=pair_specs,
+        trajectories=trajectories,
+        trajectories_per_case=trajectories_per_case,
+    )
+
+
+def _analyze_common_trajectory_corpus(
+    *,
+    config: CommonExperimentConfig,
+    comparison: CommonComparisonResult,
+    pair_specs: tuple[ExecutablePairSpec, ...],
+    trajectories: tuple[ExecutableTrajectory, ...],
+    trajectories_per_case: int,
+) -> CommonExperimentResult:
+    feature_manifest = load_feature_set_manifest(config.feature_sets_path)
     (
         pair_prediction_rows,
         posterior_history_rows,
@@ -1427,6 +1444,28 @@ def analyze_common_experiment(
         feature_excitation_rows=feature_excitation_rows,
         identifiability_rows=identifiability_rows,
         oracle_rows=oracle_rows,
+    )
+
+
+def analyze_common_trajectory_corpus(
+    *,
+    pair_specs: tuple[ExecutablePairSpec, ...],
+    trajectories: tuple[ExecutableTrajectory, ...],
+    config_path: str | Path | None = None,
+    seed: int = 7,
+    trajectories_per_case: int | None = None,
+) -> CommonExperimentResult:
+    config = load_common_experiment_config(config_path)
+    comparison = analyze_common_dataset_comparison(
+        seed=seed,
+        trajectories_per_case=trajectories_per_case or max(len(trajectories), 1),
+    )
+    return _analyze_common_trajectory_corpus(
+        config=config,
+        comparison=comparison,
+        pair_specs=pair_specs,
+        trajectories=trajectories,
+        trajectories_per_case=trajectories_per_case or max(len(trajectories), 1),
     )
 
 

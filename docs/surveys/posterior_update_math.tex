@@ -31,6 +31,104 @@ The aim is to connect the implemented code paths to explicit posterior update
 equations and to show how those updates produce the downstream confusion
 matrices, feature summaries, and entropy traces.
 
+This document also serves a second purpose. It is a methodology note for how
+the repository is being used as a classification study system. That means the
+write-up needs to cover not only equations, but also the exploratory structure
+around those equations:
+\begin{itemize}[leftmargin=1.5em]
+    \item how corpora are generated and stressed,
+    \item how features and filters are interpreted as evidence providers,
+    \item how posterior histories are turned into diagnostic artifacts,
+    \item and what the current 1D benchmarks do and do not yet prove.
+\end{itemize}
+
+Primary implementation surfaces covered explicitly by this note:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{toy\_1d.py}
+    \item \texttt{identity\_1d.py}
+    \item \texttt{posterior\_explainer.py}
+    \item \texttt{identity\_posterior\_explainer.py}
+    \item \texttt{bayesian\_walkthroughs.py}
+    \item posterior-oriented artifact writers in \texttt{artifacts.py}
+\end{itemize}
+
+\section{Methodology Framing}
+
+The mathematical story in this repository is not just ``a classifier exists.''
+The more important claim is methodological:
+\begin{itemize}[leftmargin=1.5em]
+    \item a corpus layer produces observations, truth, class labels, and
+    scenario labels
+    \item a feature or filter layer turns those observations into evidence
+    \item a posterior layer accumulates that evidence over time
+    \item an analysis layer measures confusion, separability, prior
+    sensitivity, and entropy
+    \item a reporting layer turns those standard artifacts into tables and
+    plots
+\end{itemize}
+
+So the 1D benchmarks are being used as a proving ground for a broader
+classification-and-filtering methodology. The key structural question is not
+only whether the current 1D benchmarks work, but whether the interfaces
+between:
+\begin{equation}
+    \text{corpus} \rightarrow \text{features or filters} \rightarrow
+    \text{evidence} \rightarrow \text{posterior} \rightarrow \text{metrics}
+\end{equation}
+are generic enough that later 3D work mostly means changing the state
+representation, the feature extractors, and the dynamics or measurement models,
+not rewriting the whole experiment and analysis machinery.
+
+\subsection{Layered Methodology View}
+
+The repository is converging toward a layered interpretation:
+\begin{align}
+    \text{corpus layer}
+    &\rightarrow \text{feature or filter layer}
+    \rightarrow \text{evidence layer} \\
+    &\rightarrow \text{posterior layer}
+    \rightarrow \text{analysis layer}
+    \rightarrow \text{reporting layer}. \nonumber
+\end{align}
+
+Those layers play different roles:
+\begin{itemize}[leftmargin=1.5em]
+    \item The corpus layer defines what is observed and what truth is
+    available.
+    \item The feature or filter layer transforms raw trajectories into
+    evidence-bearing summaries, innovations, or residuals.
+    \item The posterior layer accumulates evidence over time.
+    \item The analysis layer measures confusion, identifiability, prior
+    sensitivity, adequacy, and calibration.
+    \item The reporting layer renders the results as plots, tables, and
+    reproducible artifact bundles.
+\end{itemize}
+
+The 1D studies are valuable because they let those layers be stress-tested in
+a controlled setting before the geometry becomes more complicated in 3D.
+
+\subsection{Exploratory Versus Operational Roles}
+
+The current 1D algorithms should be read as exploratory methodology tools,
+not as final operational trackers. They are designed to answer questions such
+as:
+\begin{itemize}[leftmargin=1.5em]
+    \item Which classes are separable from the available evidence?
+    \item Which confusions are feature problems versus posterior-update
+    problems?
+    \item How much of a decision is driven by likelihood versus prior?
+    \item When does a model-based filter add value over static features?
+\end{itemize}
+
+That distinction matters because a benchmark can be useful even when it is not
+yet highly accurate. A weak benchmark may still reveal:
+\begin{itemize}[leftmargin=1.5em]
+    \item an inadequate feature family,
+    \item a biased corpus,
+    \item an over-separable or under-separable class pair,
+    \item or a posterior mechanism that is too brittle.
+\end{itemize}
+
 \section{What Is Random and What Is Being Inferred}
 
 The cleanest reading of the repository is:
@@ -73,6 +171,74 @@ so that
     p(s_i \mid z_{1:t}) =
     \frac{\exp(\ell_{i,t})}{\sum_j \exp(\ell_{j,t})}.
 \end{equation}
+
+\subsection{Generic Interpretation of the Update}
+
+The clean abstraction behind the repository is:
+\begin{equation}
+    \underbrace{\text{prior over classes}}_{\text{posterior at } t-1}
+    +
+    \underbrace{\text{new evidence}}_{\log L_i}
+    \Longrightarrow
+    \underbrace{\text{posterior at } t}_{\text{normalized score}}.
+\end{equation}
+
+This means very different method families can still be compared through the
+same posterior machinery:
+\begin{itemize}[leftmargin=1.5em]
+    \item pointwise methods produce direct class evidence from a single
+    measurement or feature vector
+    \item windowed methods produce class evidence from short histories
+    \item sequential Bayesian accumulators produce cumulative evidence
+    \item Kalman banks produce evidence from innovations and state residuals
+\end{itemize}
+
+The posterior updater should not need to know where the evidence came from,
+only that it is compatible log-likelihood information.
+
+\subsection{Evidence-Provider Interpretation}
+
+One meta-level point of the current work is that the method families can be
+viewed through a shared evidence-provider abstraction. In schematic form,
+\begin{equation}
+    \mathcal{E}(\text{observation history}, \text{features}, \text{model state})
+    \rightarrow
+    \{\log L_i\}_{i=1}^K,
+\end{equation}
+where $\mathcal{E}$ may be:
+\begin{itemize}[leftmargin=1.5em]
+    \item a pointwise measurement scorer,
+    \item a windowed feature scorer,
+    \item a cumulative Bayesian accumulator,
+    \item or a Kalman-style innovation and residual scorer.
+\end{itemize}
+
+This is one of the central methodological claims of the repo: different
+classifiers and filters can be compared as long as they emit compatible class
+evidence histories and posterior histories.
+
+\subsection{Implementation Mapping}
+
+The mathematical objects in this note correspond to explicit code surfaces in
+the current repository.
+
+\begin{center}
+\begin{tabular}{p{0.28\textwidth} p{0.28\textwidth} p{0.34\textwidth}}
+\toprule
+\textbf{Concept} & \textbf{Primary implementation surface} & \textbf{Role} \\
+\midrule
+Gaussian interval mass & \texttt{toy\_1d.gaussian\_interval\_probability} & Soft symmetric envelope probability for speed and acceleration \\
+Innovation log likelihood & \texttt{toy\_1d.\_innovation\_log\_likelihood} & Textbook Gaussian measurement-fit term \\
+Toy recursive class bank & \texttt{toy\_1d.run\_class\_bank} & Per-class prediction, composite scoring, posterior update, and feature probabilities \\
+Identity recursive benchmark & \texttt{identity\_1d.run\_identity\_benchmark} & Direct speed evidence, soft validity, short-window mode logic, and posterior update \\
+Toy posterior artifact generation & \texttt{posterior\_explainer.py} & Step-level success, failure, comparison, and margin-trace diagnostics \\
+Identity posterior artifact generation & \texttt{identity\_posterior\_explainer.py} & Boundary-failure and posterior-term diagnostics for the identity benchmark \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+So the document should be read as implementation-linked mathematics rather than
+as a free-standing theoretical note.
 
 \subsection{PDF Terms Versus Probability-Mass Terms}
 
@@ -146,6 +312,63 @@ The toy benchmark is a class bank. For each class, the code:
 
 So this is not a single shared tracker followed by an external classifier. It
 is a joint recursive filter-bank style classifier.
+
+\subsection{Toy 1D Class Semantics}
+
+Inside the current 1D framework, the toy class bank is meant to separate
+different motion behaviors rather than static identities:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{brake}: deceleration and stopping pressure
+    \item \texttt{coast}: low-drive, low-structure motion
+    \item \texttt{drift}: sustained reverse or backtracking behavior
+    \item \texttt{maneuver}: oscillatory or regime-switching behavior
+    \item \texttt{powered}: persistent positive drive and higher-speed motion
+    \item \texttt{unknown}: motions that are intentionally hard to anchor to a
+    cleaner named class
+\end{itemize}
+
+The important point is that these are not only end labels. They correspond to
+different expected evidence patterns over time, which is why the benchmark also
+tracks phases, transient summaries, terminal summaries, and feature-vs-class
+diagnostics.
+
+\subsection{How Well the Toy 1D Algorithms Work Inside This Framework}
+
+The toy benchmark should be evaluated as a methodology probe, not just a final
+scoreboard. In the current artifact set:
+\begin{itemize}[leftmargin=1.5em]
+    \item overall trajectory accuracy is about $0.63$
+    \item transient accuracy is about $0.46$
+    \item terminal accuracy is about $0.54$
+    \item \texttt{drift}, \texttt{powered}, and \texttt{unknown} are strong
+    classes
+    \item \texttt{brake} and especially \texttt{coast} remain weak
+    \item transient and terminal summaries are materially different, which
+    confirms that a whole-track label is hiding regime changes
+\end{itemize}
+
+This is useful because the benchmark is doing more than producing one final
+confusion matrix. It exposes:
+\begin{itemize}[leftmargin=1.5em]
+    \item class confusion across full trajectories,
+    \item transient and terminal confusion separately,
+    \item phase confusion,
+    \item feature-versus-class confusion,
+    \item and posterior entropy collapse over time.
+\end{itemize}
+
+The entropy traces are especially useful. The mean class entropy falls from
+roughly $1.48$ at the first step to about $0.19$ by step $20$. That does not
+mean every decision is correct, but it does mean the posterior machinery is
+accumulating decisive evidence rather than remaining uniformly ambiguous.
+
+The toy benchmark is therefore proving that the framework can distinguish:
+\begin{itemize}[leftmargin=1.5em]
+    \item feature failures,
+    \item likelihood-shape failures,
+    \item prior or mode-mixture failures,
+    \item and class-definition or corpus-design failures.
+\end{itemize}
 
 \subsection{Innovation Likelihood}
 
@@ -237,6 +460,33 @@ Here:
     especially for \texttt{brake} and \texttt{maneuver}.
 \end{itemize}
 
+\subsection{Toy Update Loop in Implementation Terms}
+
+Inside the implementation, \texttt{run\_class\_bank} performs the toy update
+loop in the following order:
+\begin{enumerate}[leftmargin=1.8em]
+    \item predict latent state moments for each class,
+    \item evaluate the innovation likelihood,
+    \item evaluate soft speed and acceleration region terms,
+    \item evaluate behavior, observed-kinematics, and within-class mode terms,
+    \item add the previous log class prior,
+    \item normalize across classes with a log-sum-exp step,
+    \item record posterior weights, feature probabilities, phase labels, and
+    entropy.
+\end{enumerate}
+
+That final recording step matters. The benchmark is designed so that the same
+recursive pass which produces a class posterior also produces:
+\begin{itemize}[leftmargin=1.5em]
+    \item per-step likelihood-term breakdowns,
+    \item per-step posterior entropy,
+    \item per-step feature probabilities,
+    \item and per-step phase diagnostics.
+\end{itemize}
+
+This is why the downstream artifact layer can render not only final confusion
+matrices but also success and failure walkthroughs with term-level explanations.
+
 \subsection{What the Toy Posterior Represents}
 
 The toy classifier is carrying two layers of inference:
@@ -284,6 +534,51 @@ It then adjusts those instantaneous fits with:
 So the identity model is a recursive class-evidence updater, not a latent-state
 tracker.
 
+\subsection{Identity 1D Class Semantics}
+
+The identity benchmark is deliberately simpler. Its class semantics are closer
+to static speed-regime identities:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{bike}: lower-speed envelope with occasional surging behavior
+    \item \texttt{horse}: mid-speed envelope, especially near the upper horse
+    limit
+    \item \texttt{car}: higher-speed envelope with persistent push or overspeed
+    relative to horse
+\end{itemize}
+
+That simpler setup is methodologically useful because it isolates what direct
+observation-space evidence can do before latent-state filtering enters the
+picture.
+
+\subsection{How Well the Identity Benchmark Works Inside This Framework}
+
+The identity benchmark plays a different methodological role from the toy
+benchmark. It is simpler dynamically, but it is valuable because it isolates
+class evidence from direct speed observations and short-window history terms.
+
+In the current artifact set:
+\begin{itemize}[leftmargin=1.5em]
+    \item overall accuracy is about $0.88$
+    \item transient accuracy is about $0.86$
+    \item terminal accuracy is about $0.89$
+    \item \texttt{car} and \texttt{horse} are strong
+    \item the main boundary pressure remains near the
+    \texttt{bike}--\texttt{horse} overlap
+    \item posterior entropy collapses quickly, which is expected for a simpler
+    direct-speed identity problem
+\end{itemize}
+
+Methodologically, this benchmark helps answer a different question from toy:
+\begin{itemize}[leftmargin=1.5em]
+    \item how much separation is available from direct observation-space
+    evidence alone?
+    \item when is a class boundary mostly an envelope problem?
+    \item when is it a short-history shape problem?
+\end{itemize}
+
+That is why the identity path is useful as a contrast case. It shows how far a
+recursive evidence model can go without a full latent-state filter bank.
+
 \subsection{Composite Identity Score}
 
 For class $s_i$, the current code is well approximated by
@@ -309,6 +604,24 @@ The main pieces are:
 
 The mode and dynamics terms capture recent-window structure such as cruise
 regimes, border modes, surge behavior, or persistent push.
+
+\subsection{Identity Update Loop in Implementation Terms}
+
+Inside \texttt{run\_identity\_benchmark}, the identity benchmark performs a
+lighter-weight recursive pass:
+\begin{enumerate}[leftmargin=1.8em]
+    \item read the current observed speed,
+    \item evaluate the direct speed-shape log density for each class,
+    \item evaluate the one-sided validity mass term,
+    \item evaluate running-history, mode-shape, and recent-dynamics terms,
+    \item add the previous class prior in log space,
+    \item normalize across classes,
+    \item record posterior, detected features, and entropy.
+\end{enumerate}
+
+So the identity benchmark shares the same posterior structure as toy while
+removing the latent-state machinery. That makes it a useful control case for
+the broader methodology.
 
 \subsection{How the Identity Model Cuts Probability Space}
 
@@ -364,9 +677,100 @@ This sequence corresponds exactly to the rendered artifact
 
 \section{Features, Confusion, and Entropy}
 
+\subsection{Features as Evidence-Carrying Objects}
+
+In this repository, features are not the final prediction by themselves. Their
+role is to carry evidence. A useful feature therefore needs to be understood
+through at least four questions:
+\begin{itemize}[leftmargin=1.5em]
+    \item What geometric or temporal behavior does it summarize?
+    \item Is it instantaneous, windowed, cumulative, or model-residual based?
+    \item How sensitive is it to duration, sample count, and noise?
+    \item Does it transfer to higher-dimensional settings directly, through a
+    norm, or only through a frame-specific projection?
+\end{itemize}
+
+This is why the repository now emphasizes feature confusion matrices and
+feature-taxonomy work. The important methodological point is:
+\begin{equation}
+    \text{feature} \longrightarrow \text{evidence term}
+    \longrightarrow \text{posterior behavior}
+    \longrightarrow \text{metric and confusion artifact}.
+\end{equation}
+
+If a class is weak, the failure might arise from:
+\begin{itemize}[leftmargin=1.5em]
+    \item poor feature excitation,
+    \item poor feature selectivity,
+    \item a bad evidence model on otherwise useful features,
+    \item or a corpus that is too easy or too hard for the declared class pair.
+\end{itemize}
+
 The feature probabilities are diagnostic quantities rather than the class
 posterior itself. They are used to build feature-vs-class matrices and feature
 confusion counts.
+
+\subsection{Feature Families and Meta-Level Interpretation}
+
+Within the current 1D studies, features can be grouped by role rather than only
+by name:
+\begin{itemize}[leftmargin=1.5em]
+    \item instantaneous features summarize one step or a local state estimate
+    \item windowed or shape features summarize short temporal structure
+    \item cumulative-style features summarize what has happened over a larger
+    prefix of the track
+    \item model-residual features summarize mismatch between observation and a
+    dynamics model
+    \item derivative features summarize change rates and regime switches
+\end{itemize}
+
+That grouping matters because the feature studies in the repo are not only
+asking ``which feature is strongest?'' They are asking:
+\begin{itemize}[leftmargin=1.5em]
+    \item which family carries the most separability,
+    \item which family is brittle to noise or duration,
+    \item which family overlaps too strongly across classes,
+    \item and which family is most likely to transfer to 3D through norms,
+    projections, residuals, or frame-aware geometry.
+\end{itemize}
+
+For example, many scalar 1D feature ideas should not be copied to 3D verbatim,
+but lifted through structurally similar objects:
+\begin{itemize}[leftmargin=1.5em]
+    \item scalar speed features become speed-magnitude or component-projection
+    features,
+    \item scalar acceleration features become acceleration norms or
+    frame-projected accelerations,
+    \item and scalar innovation features become Mahalanobis innovation norms or
+    direction-aware residual summaries.
+\end{itemize}
+
+\subsection{From Feature Evidence to Study Artifacts}
+
+The repository is increasingly treating feature work as a study pipeline rather
+than a one-off classifier detail:
+\begin{equation}
+    \text{feature extractor}
+    \rightarrow
+    \text{feature table}
+    \rightarrow
+    \text{evidence behavior}
+    \rightarrow
+    \text{confusion, overlap, PCA, and adequacy artifacts}.
+\end{equation}
+
+That is why feature information now appears in several distinct artifact
+families:
+\begin{itemize}[leftmargin=1.5em]
+    \item feature-vs-class confusion heatmaps,
+    \item feature precision, recall, and lift summaries,
+    \item feature-set inspection bundles,
+    \item PCA summaries and loading plots,
+    \item and corpus adequacy or excitation reports.
+\end{itemize}
+
+In other words, a feature is not only something the classifier consumes. It is
+also something the study framework audits and compares.
 
 Class entropy at step $t$ is
 \begin{equation}
@@ -379,6 +783,88 @@ This quantity is useful for distinguishing:
     \item confident incorrect classification,
     \item persistent ambiguity across classes.
 \end{itemize}
+
+\subsection{What the Current 1D Feature Studies Prove}
+
+The current 1D feature studies already support several meta-level claims:
+\begin{itemize}[leftmargin=1.5em]
+    \item feature sets can be compared independently of any one classifier
+    family,
+    \item pairwise class difficulty can be separated from posterior-update
+    mechanics,
+    \item and the same feature-space summaries support adequacy audits, PCA,
+    prior sensitivity, and recommendation tooling.
+\end{itemize}
+
+This matters because it is the beginning of a generic methodology layer. In a
+future 3D setting, the specific scalar features will change, but the study
+questions should remain the same:
+\begin{itemize}[leftmargin=1.5em]
+    \item Which feature families excite the intended classes?
+    \item Which class pairs remain intrinsically hard?
+    \item Which confusions are evidence-limited versus model-limited?
+\end{itemize}
+
+\section{Methodological Conclusions From the Current 1D Work}
+
+The current 1D benchmark family supports the following conclusions:
+\begin{enumerate}[leftmargin=1.8em]
+    \item The posterior machinery is already rich enough to compare
+    pointwise-style evidence, windowed evidence, and model-based evidence under
+    a common Bayesian update story.
+    \item The feature and confusion artifacts are strong enough to diagnose why
+    a class fails, not just that it fails.
+    \item The toy filter-bank benchmark and the identity direct-evidence
+    benchmark are complementary:
+    \begin{itemize}[leftmargin=1.5em]
+        \item toy stresses latent-state and mode-mixture reasoning,
+        \item identity stresses direct observation-space evidence and boundary
+        calibration.
+    \end{itemize}
+    \item The current numbers are strong enough to support exploratory claims,
+    but not yet strong enough to claim finished operational 1D solutions:
+    \begin{itemize}[leftmargin=1.5em]
+        \item toy still has weak \texttt{brake} and \texttt{coast} behavior,
+        \item identity still has informative \texttt{bike}--\texttt{horse}
+        and \texttt{horse}--\texttt{car} boundary pressure.
+    \end{itemize}
+    \item The repo is already more than a single toy classifier, but it is
+    still using 1D studies as a methodology proving ground rather than claiming
+    a finished dimension-agnostic framework.
+\end{enumerate}
+
+\subsection{What ``Working Well'' Means in This Framework}
+
+Inside this repository, a method is not judged only by top-line accuracy. It is
+working well when it supports the broader study loop:
+\begin{itemize}[leftmargin=1.5em]
+    \item the evidence terms are interpretable,
+    \item posterior histories can be inspected step by step,
+    \item entropy and confidence behave coherently,
+    \item class and feature confusions point to actionable model or corpus
+    changes,
+    \item and the outputs fit the common analysis and artifact machinery.
+\end{itemize}
+
+By that standard, the current 1D systems are already productive methodology
+instruments. They are not yet the end-state algorithms, but they are
+successfully exercising the classification, evidence, posterior, and reporting
+framework that later 3D work is expected to reuse.
+
+\subsection{Implementation Consequence for Future Documentation}
+
+Because the repository now has a clearer separation between feature studies,
+posterior studies, filtering studies, and showcase packaging, future
+documentation should continue to connect three levels explicitly:
+\begin{itemize}[leftmargin=1.5em]
+    \item the mathematical object,
+    \item the implementation surface that computes it,
+    \item and the artifact family that exposes its behavior.
+\end{itemize}
+
+That is the simplest way to keep the methodology legible as the project moves
+from 1D exploratory work toward more generic and later higher-dimensional
+studies.
 
 \begin{figure}[htbp]
     \centering
@@ -395,8 +881,12 @@ This starter document is intentionally narrow. Good next additions would be:
 \begin{itemize}[leftmargin=1.5em]
     \item explicit notation for every toy behavior subterm,
     \item explicit notation for the identity mode-mixture terms,
+    \item a short feature-taxonomy appendix aligned to the repository registry,
+    \item a dimensional-lift appendix describing how these 1D feature ideas
+    transfer to 3D through norms, projections, and residuals,
     \item one worked numerical example copied directly from a benchmark run,
-    \item figures inserted from the generated SVG or PNG artifacts.
+    \item and a short evidence-provider section connecting pointwise,
+    windowed, accumulator, and Kalman methods under one posterior contract.
 \end{itemize}
 
 \end{document}
