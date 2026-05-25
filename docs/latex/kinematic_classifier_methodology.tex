@@ -46,6 +46,76 @@ The implementation-linked derivations live in the survey stack. This paper integ
 \section{Problem Formulation}
 The active repository goal is not only to maximize one benchmark score, but to prove that a study candidate can be declared, screened, executed, audited, and promoted through a reusable methodology surface. A study candidate combines a corpus, feature set, class set, classifier family, prior specification, and optional filtering backend.
 
+\section{Canonical Repo Story}
+The repository now has one intended front-door story:
+\begin{quote}
+\textit{This repository is a methodology workbench for kinematic classification studies. It declares a study candidate, generates or selects a corpus, validates class labels and feature excitation, runs evidence providers, updates posteriors under explicit priors, evaluates separability/calibration/confusion/adequacy, and assigns a promotion decision. The current 1D witness problems are controlled proofs of that machinery before 3D lift.}
+\end{quote}
+The central study object is
+\begin{equation}
+s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b),
+\end{equation}
+where \(\mathcal{D}\) is the selected corpus, \(f\) is the feature set, \(\mathcal{C}\) is the class set or class pair, \(m\) is the evidence-provider family, \(\pi\) is the prior regime, and \(b\) is an optional dynamics or filtering backend. The two generic engines are then
+\begin{align}
+\text{Corpus Explorer} &: (o, b) \mapsto \mathcal{D}^{\star}, \\
+\text{Study Candidate Evaluator} &: (\mathcal{D}^{\star}, f, \mathcal{C}, m, \pi, b) \mapsto d,
+\end{align}
+with
+\begin{equation}
+d \in \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}.
+\end{equation}
+This split is the coherence rule for the repository: the corpus side is responsible for producing a credible and auditable dataset, while the study-evaluator side is responsible for deciding whether a particular feature/class/classifier/prior combination is methodologically supported.
+
+\section{Five Methodology Pillars}
+The current repository should be read through five stable pillars:
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Study Candidate Evaluator}: the generic engine for \(s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b)\), static screening, Monte Carlo confirmation, prior sensitivity, separability, classifier quality, and final promotion;
+  \item \textbf{Corpus Explorer}: the generic engine for corpus objectives, backend adapters, candidate samplers, adequacy/leakage/class-validity scoring, and selected-corpus generation;
+  \item \textbf{Classifier / Filter Ladder}: the evidence-provider ladder from pointwise likelihoods through transition-aware accumulation and advanced-filter gates;
+  \item \textbf{Evaluation / Promotion Layer}: the shared interpretation contract for adequacy, separability, calibration, prior sensitivity, confusion, and validation-ladder decisions;
+  \item \textbf{1D Witness Suite}: the current small controlled problems that prove methodology layers before the framework is lifted to 3D geometry and richer dynamics.
+\end{enumerate}
+These pillars are not parallel essays. They are compositional surfaces that all feed the same study decision.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Compact front-door summary of the five methodology pillars.}
+\label{tab:five_pillars_summary}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+Pillar & Core object & Main question answered \\
+\midrule
+Study Candidate Evaluator & \(s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b)\) & Is this declared study compatible, adequately supported, and promotable? \\
+Corpus Explorer & \((o, b, q, G_b) \mapsto \mathcal{D}^{\star}\) & Can we generate or select a corpus that tests the claim honestly? \\
+Classifier / Filter Ladder & \(y_k \mapsto \ell_k(\cdot)\) & What evidence atom should be scored, and what failure mode does the next rung fix? \\
+Evaluation / Promotion Layer & posterior and adequacy scorecards & Are success, failure, fragility, and confusion being interpreted correctly? \\
+1D Witness Suite & controlled 1D studies & Which methodology layer is actually proved before 3D lift? \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The same structure can be read as a compact inline diagram:
+\begin{align}
+\text{Corpus Objective}
+&\rightarrow
+\text{Corpus Explorer}
+\rightarrow
+\mathcal{D}^{\star}
+\notag \\
+&\rightarrow
+\text{Study Candidate } s
+\rightarrow
+\text{Classifier Ladder Evidence}
+\notag \\
+&\rightarrow
+\text{Posterior / Evaluation}
+\rightarrow
+d.
+\end{align}
+This diagram is the shortest complete description of what the repository
+currently claims to implement.
+
 \section{Global Methodology Flow}
 The repository is best understood as one compositional flow rather than separate notebooks. In compact form,
 \begin{align}
@@ -66,6 +136,21 @@ The repository is best understood as one compositional flow rather than separate
 \text{validation ladder}
 \rightarrow
 \text{promote / revise / reject / defer}.
+\end{align}
+The same flow can be restated in pillar language:
+\begin{align}
+\text{Corpus Explorer}
+&\rightarrow
+\text{Validated Selected Corpus}
+\rightarrow
+\text{Study Candidate Evaluator}
+\notag \\
+&\rightarrow
+\text{Classifier Ladder Evidence}
+\rightarrow
+\text{Posterior and Evaluation Layers}
+\rightarrow
+\text{Promotion Decision}.
 \end{align}
 This is the central claim of the repository: classifiers, filters, and feature families are valuable insofar as they can plug into this shared flow without rewriting the downstream evaluation and reporting machinery.
 
@@ -114,7 +199,7 @@ The current feature pipeline then exposes
 \end{equation}
 where \(\Phi\) may produce instantaneous, fixed-window, cumulative, robust-summary, derivative-based, or model-residual evidence.
 
-\section{Generic Study Object}
+\section{Study Candidate Evaluator}
 The machine-readable study candidate schema and validation-ladder schema are implemented in the repository and exercised by the current artifact generation path. The workflow is checklist-driven: static compatibility, corpus adequacy, feature separability, oracle separability, classifier performance, posterior quality, prior sensitivity, robustness, dimensional transfer, and final promotion decision.
 In abstract form, a study candidate is a tuple
 \begin{equation}
@@ -124,7 +209,14 @@ where \(\mathcal{D}\) is a corpus, \(f\) is a feature set, \(\mathcal{C}\) is a 
 \begin{equation}
 s \rightarrow \{\ell_1, \ell_2, \dots, \ell_n\} \rightarrow d.
 \end{equation}
-This means the repo is not just running benchmarks. It is trying to prove that a declared study object can be audited in a standard way.
+The important interpretation is that the repository is not just running benchmarks. It is trying to prove that a declared study object can be audited in a standard way. In narrative form, the Study Candidate Evaluator answers:
+\begin{enumerate}[leftmargin=1.5em]
+  \item is the selected corpus adequate for the claim,
+  \item are the classes separable in the active feature space,
+  \item does the classifier underperform the available evidence geometry,
+  \item are the posteriors calibrated and prior-robust enough,
+  \item what promotion decision is justified?
+\end{enumerate}
 
 \section{Bayesian Evidence Model}
 The repository treats posterior updating as a reusable evidence-provider contract. Let
@@ -290,6 +382,31 @@ If \(\phi(\tau)\) denotes a feature extractor applied to trajectory \(\tau\), th
 \section{Witness Problems}
 The repository uses small 1D witness problems as methodological proofs. Their purpose is to isolate one layer of reasoning at a time rather than to claim a finished deployment-grade taxonomy.
 \input{tables/toy_problem_summary_table.tex}
+The witness problems therefore act as explicit claim checks rather than
+illustrative demos. Table~\ref{tab:witness_claim_matrix} is the compact mapping
+from witness to methodology claim.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Witness-to-claim matrix for the current 1D methodology layer.}
+\label{tab:witness_claim_matrix}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+Witness & Main claim supported & What it does not yet prove \\
+\midrule
+pointwise overlap & local likelihoods, prior odds, and posterior flips are implemented and auditable & no claim about temporal memory or dynamics \\
+windowed outlier/extrema & feature design can change posterior stability under outlier corruption & no claim that cumulative or correlated features are independent Bayes evidence \\
+sequential history & recursive accumulation can outperform purely local evidence when history matters & no explicit switching or state-dynamics claim \\
+Kalman endpoint match & innovation likelihoods add useful dynamics evidence when endpoint summaries are ambiguous & no general proof that filtering dominates all feature methods \\
+transition switching & explicit transition priors can justify switching-aware updates before IMM escalation & no proof yet for full mixed-mode or nonlinear filtering \\
+generated corpus stress & the corpus side can generate hard, fragile, and auditable studies rather than only fixed datasets & no claim yet that corpus search is fully closed-loop optimal or 3D-complete \\
+\bottomrule
+\end{tabularx}
+\end{table}
+This is why the repo uses the term \textit{witness problem} rather than
+\textit{toy problem}: each case exists to prove one narrow layer of the generic
+methodology stack before the project claims a broader lift.
 
 \section{Algorithm Ladder}
 The classifier ladder is the main experimental spine. Each rung adds one capability and is supposed to address one previously identified failure mode rather than add complexity for its own sake.
@@ -453,19 +570,78 @@ d.
 This is the architectural reason the disparate corpus, feature, and study docs belong together. They are not separate research threads anymore; they are stages of one methodology pipeline.
 
 \section{Filtering Taxonomy and Advanced-Method Gates}
-The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, and transition-matrix evidence surfaces. It also records explicit no-go decisions for IMM, PF, and RBPF unless switching-mode or nonlinear evidence demands them. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains decision-gated, PF remains decision-gated, and RBPF is only meaningful if future vector studies expose conditionally tractable mixed discrete/continuous structure.
+The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, transition-matrix, and now an explicit IMM proof surface. The advanced-method policy is still conservative: existence of an IMM implementation does not mean the repo automatically claims IMM is necessary everywhere. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains evidence-gated as an escalation beyond the transition rung, PF remains decision-gated, and RBPF is only meaningful if future vector studies expose conditionally tractable mixed discrete/continuous structure.
 The key policy claim is that advanced methods are downstream of failure evidence. If \(M_0\) is the current simpler method and \(M_1\) is a more advanced filter family, the repository is trying to justify a transition only when
 \begin{equation}
 \text{failure}(M_0, \mathcal{D}) \land \text{capability gain}(M_1) \land \text{measurable success criterion}(M_1)
 \end{equation}
 can all be stated explicitly. That is why the advanced-filter reports are decision artifacts rather than implementation plans by default.
 
-For completeness, the deferred advanced-filter families fit the same evidence story. A particle filter approximates
+For IMM specifically, the current proof surface follows the standard
+switching-state recursion. If \(\mu_{k-1}^{(i)}\) is the posterior for mode
+\(i\) and \(\Pi_{ij}\) is the transition probability into mode \(j\), then the
+predicted mode prior is
+\begin{equation}
+\bar{\mu}_{k}^{(j)}
+=
+\sum_i \Pi_{ij}\mu_{k-1}^{(i)},
+\end{equation}
+with mixing weights
+\begin{equation}
+\omega_{ij}^{(k)}
+=
+\frac{\Pi_{ij}\mu_{k-1}^{(i)}}{\bar{\mu}_{k}^{(j)}}.
+\end{equation}
+The mixed state and covariance for target mode \(j\) are then formed before the
+mode-specific Kalman predict/update step, each mode emits an innovation
+likelihood \(\Lambda_k^{(j)}\), and the updated mode posterior becomes
+\begin{equation}
+\mu_k^{(j)}
+=
+\frac{\Lambda_k^{(j)}\bar{\mu}_k^{(j)}}{\sum_m \Lambda_k^{(m)}\bar{\mu}_k^{(m)}}.
+\end{equation}
+This is stronger than the transition-matrix accumulator because IMM mixes full
+mode-conditioned latent-state distributions rather than only label probability
+mass.
+
+For completeness, the deferred advanced-filter families fit the same evidence story. A particle filter starts from a proposal distribution
+\begin{equation}
+x_k^{(i)} \sim q(x_k \mid x_{0:k-1}^{(i)}, z_{1:k}),
+\end{equation}
+with unnormalized importance weights
+\begin{equation}
+\tilde{w}_k^{(i)}
+=
+w_{k-1}^{(i)}
+\frac{
+    p(z_k \mid x_k^{(i)})\,p(x_k^{(i)} \mid x_{k-1}^{(i)})
+}{
+    q(x_k^{(i)} \mid x_{0:k-1}^{(i)}, z_{1:k})
+}.
+\end{equation}
+For the bootstrap choice \(q = p(x_k \mid x_{k-1})\), this reduces to
 \begin{align}
 x_k^{(i)} &\sim p(x_k \mid x_{k-1}^{(i)}, u_k), \\
 w_k^{(i)} &\propto w_{k-1}^{(i)} p(z_k \mid x_k^{(i)}, c), \\
 \hat{p}(z_k \mid c) &\approx \sum_i w_{k-1}^{(i)} p(z_k \mid x_k^{(i)}, c),
 \end{align}
+followed by normalization and, when necessary, resampling triggered by
+\begin{equation}
+N_{\mathrm{eff}} = \frac{1}{\sum_i (w_k^{(i)})^2}.
+\end{equation}
+PF therefore fits the repo only if the particle cloud can still emit
+class-conditioned predictive evidence \(\hat{p}(z_k \mid c)\) for the shared
+posterior update.
+
+The current gate-to-algorithm example is still a no-go: the advanced-filter
+decision walkthrough reports a nominal-noise mean gap of \(0.438\sigma\), a
+final gap of \(1.125\sigma\), a direct-velocity gain of \(0.188\) on the
+\texttt{short\_noisy} witness, and best-Kalman outlier accuracy of \(0.812\).
+Those values indicate the hardest current failures remain materially
+sensing-limited and still partially recoverable by robust linear-Gaussian
+methods, so the repo has not yet earned the claim that PF is the simplest
+necessary next rung.
+
 while an RBPF decomposition writes \(x_k = (r_k, s_k)\) and factors
 \begin{equation}
 p(r_{1:k}, s_k \mid z_{1:k})
@@ -498,6 +674,101 @@ Class validity status & \texttt{class\_validity.py} & \texttt{class\_validity\_s
 \end{tabularx}
 \end{center}
 This table is intentionally short in the synthesis paper; the registry and Markdown crosswalk carry the longer implementation detail.
+
+\section{How To Interpret A Result}
+The synthesis paper should not leave the reader with the impression that a top-line accuracy number is the whole story. The intended interpretation checklist is:
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Did the corpus pass adequacy?} If not, do not trust leaderboard-style claims yet.
+  \item \textbf{Are the class labels valid?} If not, fix class definitions, relabel logic, or corpus generation before blaming the classifier.
+  \item \textbf{Are the active features excited?} If not, the study is under-exercised and unsupported feature claims should be removed or regenerated.
+  \item \textbf{Are the classes separable by the oracle or feature geometry?} If not, the issue is upstream in features, classes, or corpus construction.
+  \item \textbf{Does the classifier underperform the oracle?} If yes, the issue is in evidence modeling, posterior updating, or method assumptions.
+  \item \textbf{Are the decisions prior-sensitive?} If yes, the result should be reported as fragile rather than robust.
+  \item \textbf{Is the confusion localized?} If yes, target the failing class pair, time phase, or regime instead of flattening the result into one global number.
+  \item \textbf{Does a more advanced method address a demonstrated failure?} If not, do not escalate the ladder just because a more complex backend exists.
+\end{enumerate}
+
+The same checklist can be written as a compact decision flow:
+\begin{align}
+\neg \text{adequate corpus}
+&\Rightarrow
+\text{stop and repair corpus},
+\notag \\
+\text{adequate corpus} \land \neg \text{valid labels}
+&\Rightarrow
+\text{repair class validity},
+\notag \\
+\text{adequate corpus} \land \text{valid labels} \land \neg \text{feature excitation}
+&\Rightarrow
+\text{regenerate or restate feature claim},
+\notag \\
+\text{adequate corpus} \land \text{valid labels} \land \text{feature excitation} \land \neg \text{oracle separability}
+&\Rightarrow
+\text{feature/corpus/class-definition issue},
+\notag \\
+\text{oracle separability} \land \text{classifier underperformance}
+&\Rightarrow
+\text{algorithm or posterior issue},
+\notag \\
+\text{good accuracy} \land \text{high prior fragility}
+&\Rightarrow
+\text{report fragility, not only success}.
+\end{align}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Result-interpretation checklist for the current methodology layer.}
+\label{tab:result_interpretation_checklist}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+Question & If answer is no / bad & Interpretation priority \\
+\midrule
+Did the corpus pass adequacy? & repair corpus before trusting classifier claims & 1 \\
+Are the class labels valid? & repair class schema, relabel logic, or generated trajectories & 2 \\
+Are features excited and supported? & regenerate corpus or narrow the supported feature claim & 3 \\
+Are classes separable by oracle geometry? & diagnose feature, corpus, or class-definition failure & 4 \\
+Does the classifier match the oracle opportunity? & diagnose evidence or posterior machinery & 5 \\
+Are decisions prior-robust? & report fragility explicitly and avoid overclaiming & 6 \\
+Is confusion localized? & target the failing pair, regime, or phase & 7 \\
+Is advanced-method escalation justified? & keep the simpler rung until failure evidence exists & 8 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+This ordering is a methodological guardrail. It prevents the reader from
+jumping directly from a scalar benchmark number to a claim about the algorithm.
+
+\section{Top 10 Proof Artifacts}
+The synthesis paper should also identify the small set of artifacts that give a
+reader the fastest route to the current evidence base. Table~\ref{tab:top_proof_artifacts}
+lists the ten artifacts that most directly support the repository's present
+claims.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Top proof artifacts and what each one proves.}
+\label{tab:top_proof_artifacts}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+Artifact & Main question answered & What it proves right now \\
+\midrule
+\texttt{artifacts/latex/kinematic\_classifier\_methodology.pdf} & What is the end-to-end repo story? & the methodology stack is coherent enough to read as one study system \\
+\texttt{artifacts/classifier\_ladder\_and\_contracts.pdf} & How do methods differ in evidence construction? & pointwise, windowed, sequential Bayes, Kalman, and transition methods share one posterior contract \\
+\texttt{artifacts/corpus\_generation\_and\_search.pdf} & How is the corpus produced and governed? & corpus objectives, search, adequacy, leakage, and promotion are part of one engine \\
+\texttt{artifacts/methodology\_evaluation\_framework.pdf} & How should results be judged? & adequacy, separability, prior sensitivity, calibration, and confusion are interpreted in a fixed order \\
+\texttt{artifacts/common\_dataset\_comparison\_v1/common\_dataset\_comparison\_report.md} & Which methods currently work best on the shared 1D corpus? & the accumulator is the strongest current end-to-end combiner on the common comparison bundle \\
+\texttt{artifacts/prior\_sensitivity\_v1/prior\_sensitivity\_report.md} & Are decisions robust to explicit prior shifts? & fragility is measurable and some methods are materially more prior-sensitive than others \\
+\texttt{artifacts/corpus\_adequacy\_audit\_v1/corpus\_adequacy\_report.md} & Is the current corpus trustworthy? & corpus quality is audited before classifier claims and the current common corpus still has leakage and triviality failures \\
+\texttt{artifacts/transition\_matrix\_accumulator\_v1/transition\_matrix\_numeric\_walkthrough.md} & What does switching-aware recursion actually do numerically? & transition-aware accumulation is a real mathematical update, not only a descriptive plot \\
+\texttt{artifacts/corpus\_autodevelopment\_v1/corpus\_autodevelopment\_numeric\_walkthrough.md} & How is a candidate corpus scored and selected? & corpus selection is driven by explicit score decomposition rather than ad hoc choice \\
+\texttt{artifacts/advanced\_filter\_decision\_v1/advanced\_filter\_decision\_numeric\_walkthrough.md} & Why are IMM/PF/RBPF still gated? & advanced filters are deferred by explicit failure-evidence criteria instead of opinion \\
+\bottomrule
+\end{tabularx}
+\end{table}
+These artifacts are the recommended front-door proof set. If a reader only
+opens a few files after this PDF, these are the ones that most directly justify
+the current architectural and mathematical claims.
 
 \section{Results Summary}
 The current artifact stack proves the methodology process end to end: study candidates can be declared, screened statically, evaluated against generated corpora, explained through posterior and prior-sensitivity surfaces, and assigned promotion decisions. The current scope covers the implemented 1D witness stack and the shared methodology flow; the next lift is to extend the same contract to broader class families. The strongest current claim is architectural rather than leaderboard-oriented: the repo already expresses corpus design, feature analysis, evidence accumulation, evaluation, and promotion through shared artifacts.

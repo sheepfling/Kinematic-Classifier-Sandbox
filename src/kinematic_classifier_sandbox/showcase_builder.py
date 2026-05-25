@@ -11,6 +11,12 @@ import subprocess
 import zipfile
 
 from .kalman_filter_bank import run_kalman_bank_benchmark
+from .repo_story import (
+    CLAIMS as REPO_STORY_CLAIMS,
+    render_proof_gallery as render_repo_story_proof_gallery,
+    render_story_index as render_repo_story_index,
+    render_team_packet_index as render_repo_story_team_packet_index,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -54,6 +60,14 @@ class ShowcaseValidationResult:
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
+
+
+def _write_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def _read_json(path: Path):
@@ -113,13 +127,34 @@ def _float(row: dict[str, str], key: str) -> float:
     return float(row[key])
 
 
+def _advanced_filter_summary() -> dict[str, object]:
+    comparison_path = ARTIFACTS_ROOT / "advanced_filter_comparison_v1" / "method_comparison.csv"
+    if comparison_path.exists():
+        rows = _read_csv(comparison_path)
+        by_method = {row["method_id"]: row for row in rows}
+        return {
+            "imm_justified": by_method.get("imm_v1", {}).get("promotion_decision") == "promote",
+            "particle_filter_justified": by_method.get("particle_filter_bank_v1", {}).get("promotion_decision") == "promote",
+            "rbpf_justified": by_method.get("rbpf_v1", {}).get("promotion_decision") == "promote",
+            "method_rows": rows,
+            "primary_artifact": "artifacts/advanced_filter_comparison_v1/method_comparison.csv",
+        }
+    summary = _read_json(ARTIFACTS_ROOT / "advanced_filter_decision_v1" / "advanced_filter_decision_summary.json")
+    return {
+        **summary,
+        "rbpf_justified": False,
+        "method_rows": [],
+        "primary_artifact": "artifacts/advanced_filter_decision_v1/advanced_filter_decision_summary.json",
+    }
+
+
 def _headline_summary() -> dict[str, object]:
     metrics_by_classifier = _read_csv(ARTIFACTS_ROOT / "common_1d_classifier_study" / "metrics_by_classifier.csv")
     best_classifier = max(metrics_by_classifier, key=lambda row: _float(row, "overall_accuracy"))
     common_dataset_rows = _read_csv(ARTIFACTS_ROOT / "common_dataset_comparison_v1" / "method_summary.csv")
     best_common_dataset = max(common_dataset_rows, key=lambda row: _float(row, "overall_accuracy"))
     corpus_summary = _read_json(ARTIFACTS_ROOT / "corpus_adequacy_audit_v1" / "corpus_adequacy_summary.json")
-    advanced_summary = _read_json(ARTIFACTS_ROOT / "advanced_filter_decision_v1" / "advanced_filter_decision_summary.json")
+    advanced_summary = _advanced_filter_summary()
     dimension_rows = _read_csv(ARTIFACTS_ROOT / "dimensional_lift_audit" / "module_dimension_status.csv")
     dimension_counts: dict[str, int] = {}
     for row in dimension_rows:
@@ -438,12 +473,12 @@ def _proof_gallery_claims() -> list[dict[str, object]]:
             ],
         },
         {
-            "heading": "Claim 7: Advanced filters require evidence",
-            "claim": "IMM and particle filtering remain gated by measured failure cases rather than being added only because they are more sophisticated.",
+            "heading": "Claim 7: Advanced filters are promoted by evidence",
+            "claim": "IMM, PF, and RBPF are implemented as evidence providers and promoted only on the failure cases they measurably improve.",
             "evidence": [
                 ("Advanced filter decision matrix", "plots/advanced_filter_decision_matrix.png", "Compact view of the current evidence relevant to advanced-filter escalation."),
                 ("Transition scenario summary", "tables/transition_matrix_scenario_summary.csv", "Switching benchmark results for transition-aware accumulation."),
-                ("PF/RBPF go-no-go table", "tables/pf_rbpf_go_no_go_table.csv", "Explicit current gate status for particle methods."),
+                ("Advanced filter method comparison", "tables/advanced_filter_method_comparison.csv", "Promotion status for IMM, PF, and RBPF on targeted witness failures."),
             ],
         },
         {
@@ -459,28 +494,7 @@ def _proof_gallery_claims() -> list[dict[str, object]]:
 
 
 def _render_proof_gallery() -> str:
-    lines = [
-        "# Proof Gallery",
-        "",
-        "This gallery reorganizes the packet by explicit claim and supporting evidence rather than by artifact folder alone.",
-        "",
-        "The current 1D studies are used as witness problems: each claim names what the repo can currently prove, the evidence used for that proof, and the scope limit that still remains.",
-    ]
-    for claim in _proof_gallery_claims():
-        lines.extend(
-            [
-                "",
-                f"## {claim['heading']}",
-                "",
-                str(claim["claim"]),
-                "",
-                "### Evidence",
-                "",
-            ]
-        )
-        for label, relative_path, rationale in claim["evidence"]:
-            lines.append(f"- [{label}]({relative_path}): {rationale}")
-    return "\n".join(lines)
+    return render_repo_story_proof_gallery()
 
 
 def _extract_markdown_relative_targets(markdown: str) -> tuple[str, ...]:
@@ -831,49 +845,58 @@ def _render_kalman_vs_windowed_comparison(plots_dir: Path) -> dict[str, object]:
 
 def _render_advanced_filter_decision_matrix(plots_dir: Path) -> list[dict[str, object]]:
     plt = _prepare_matplotlib()
-    summary = _read_json(ARTIFACTS_ROOT / "advanced_filter_decision_v1" / "advanced_filter_decision_summary.json")
-    evidence = _read_json(ARTIFACTS_ROOT / "advanced_filter_decision_v1" / "advanced_filter_decision_evidence.json")
+    method_rows = _read_csv(ARTIFACTS_ROOT / "advanced_filter_comparison_v1" / "method_comparison.csv")
     rows = [
-        ("transition_gain", float(summary["transition_post_switch_gain"])),
-        ("transition_vs_kalman", float(summary["transition_vs_kalman_post_switch_gain"])),
-        ("velocity_aided_gain", float(summary["velocity_aided_short_noisy_gain"])),
-        ("best_kalman_outlier", float(summary["best_kalman_outlier_accuracy"])),
+        (row["method_id"], float(row["primary_metric_value"]), row["promotion_decision"])
+        for row in method_rows
     ]
     fig, ax = plt.subplots(figsize=(7.8, 4.4))
-    ax.bar([name for name, _ in rows], [value for _, value in rows], color="#2563eb")
+    colors = ["#15803d" if decision == "promote" else "#b45309" for _, _, decision in rows]
+    ax.bar([name for name, _, _ in rows], [value for _, value, _ in rows], color=colors)
     ax.axhline(0.0, color="#111827", linewidth=1.0)
-    ax.set_title("Advanced Filter Decision Matrix", loc="left", fontsize=12, fontweight="bold")
-    ax.set_ylabel("evidence value")
+    ax.set_title("Advanced Filter Promotion Matrix", loc="left", fontsize=12, fontweight="bold")
+    ax.set_ylabel("primary witness metric")
     ax.tick_params(axis="x", rotation=25)
     ax.grid(True, axis="y", alpha=0.25)
     fig.tight_layout()
     path1 = plots_dir / "advanced_filter_decision_matrix.png"
     _write_plot(fig, path1)
 
-    pf_rbpf_lines = [
-        "gate,status,value,note",
-        f"PF,{'defer' if not summary['particle_filter_justified'] else 'promote'},{summary['particle_filter_justified']},Particle filtering remains gated by current evidence.",
-        "RBPF,defer,n/a,RBPF remains gated until future vector studies expose conditionally tractable mixed discrete/continuous structure.",
-    ]
+    pf_rbpf_lines = ["method_id,decision,primary_metric,primary_metric_value,note"]
+    for row in method_rows:
+        pf_rbpf_lines.append(
+            f"{row['method_id']},{row['promotion_decision']},{row['primary_metric']},{row['primary_metric_value']},Promoted only for the targeted failure case."
+        )
     path2 = plots_dir.parents[0] / "tables" / "pf_rbpf_go_no_go_table.csv"
     path2.parent.mkdir(parents=True, exist_ok=True)
     path2.write_text("\n".join(pf_rbpf_lines) + "\n", encoding="utf-8")
+    path3 = plots_dir.parents[0] / "tables" / "advanced_filter_method_comparison.csv"
+    with path3.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(method_rows[0]))
+        writer.writeheader()
+        writer.writerows(method_rows)
     return [
         {
             "kind": "plot",
             "plot_id": "advanced_filter_decision_matrix",
             "section": "advanced_filters",
             "relative_path": str(path1.relative_to(plots_dir.parents[0])),
-            "source_path": "derived:advanced_filter_decision_summary.json",
-            "caption": "Decision matrix summarizing the evidence currently relevant to advanced-filter escalation.",
-            "interpretation": "Use this to see why advanced filters remain gated instead of being promoted automatically.",
-            "limitations": "The matrix is a compact summary, not a replacement for the full decision report.",
+            "source_path": "artifacts/advanced_filter_comparison_v1/method_comparison.csv",
+            "caption": "Decision matrix summarizing advanced-filter promotion evidence by witness.",
+            "interpretation": "Use this to see which advanced filters are promoted on targeted failure cases.",
+            "limitations": "The matrix promotes methods for current witnesses, not universal dominance.",
         },
         {
             "kind": "table",
             "section": "advanced_filters",
             "relative_path": str(path2.relative_to(plots_dir.parents[0])),
-            "source_path": "derived:advanced_filter_decision_summary.json",
+            "source_path": "artifacts/advanced_filter_comparison_v1/method_comparison.csv",
+        },
+        {
+            "kind": "table",
+            "section": "advanced_filters",
+            "relative_path": str(path3.relative_to(plots_dir.parents[0])),
+            "source_path": "artifacts/advanced_filter_comparison_v1/method_comparison.csv",
         },
     ]
 
@@ -1192,6 +1215,7 @@ def _render_filtering_report(advanced_summary: dict[str, object], transition_row
             "",
             f"- IMM justified now: `{advanced_summary['imm_justified']}`",
             f"- Particle filter justified now: `{advanced_summary['particle_filter_justified']}`",
+            f"- RBPF justified now: `{advanced_summary['rbpf_justified']}`",
             "",
             "## Switching Preview",
             "",
@@ -1199,9 +1223,10 @@ def _render_filtering_report(advanced_summary: dict[str, object], transition_row
             "",
             "## Decision Notes",
             "",
-            "- Transition-aware accumulation already improves switching behavior and still outperforms the current switching Kalman mode bank post-switch.",
-            "- The strongest short-horizon hard case is still evidence-limited rather than a clean advanced-inference failure case.",
-            "- IMM, PF, and RBPF therefore remain explicit no-go items for now.",
+            "- IMM is promoted on switching-mode witnesses where explicit state mixing improves post-switch inference.",
+            "- PF is promoted on the nonlinear-drag/outlier witness where the robust nonlinear particle model beats the Gaussian Kalman baseline.",
+            "- RBPF is promoted on the latent maneuver-onset witness where sampled mode paths and conditional Kalman state estimates recover the post-onset mode.",
+            "- These are witness-specific promotions, not claims that advanced filters dominate every simpler rung.",
         ]
     )
 
@@ -1299,6 +1324,7 @@ def _render_results_summary_report(summary: dict[str, object]) -> str:
             f"- Corpus adequacy status: `{summary['corpus_adequacy']['overall_status']}`.",
             f"- IMM justified now: `{summary['advanced_filters']['imm_justified']}`.",
             f"- Particle filter justified now: `{summary['advanced_filters']['particle_filter_justified']}`.",
+            f"- RBPF justified now: `{summary['advanced_filters']['rbpf_justified']}`.",
             f"- Dimensional status counts: `{dimensional_counts}`.",
             "",
             "## Takeaway",
@@ -1527,7 +1553,7 @@ def build_showcase_artifacts(
     taxonomy_rows = _read_json(ARTIFACTS_ROOT / "feature_taxonomy" / "feature_taxonomy.json")
     identifiability_rows = _read_csv(ARTIFACTS_ROOT / "common_1d_classifier_study" / "identifiability_matrix.csv")
     oracle_rows = _read_csv(ARTIFACTS_ROOT / "common_1d_classifier_study" / "oracle_classifier_results.csv")
-    advanced_summary = _read_json(ARTIFACTS_ROOT / "advanced_filter_decision_v1" / "advanced_filter_decision_summary.json")
+    advanced_summary = _advanced_filter_summary()
     transition_rows = _read_csv(ARTIFACTS_ROOT / "transition_matrix_accumulator_v1" / "transition_matrix_scenario_summary.csv")
     class_pair_rows = _read_csv(ARTIFACTS_ROOT / "corpus_adequacy_audit_v1" / "class_pair_coverage.csv")
     leakage_rows = _read_csv(ARTIFACTS_ROOT / "corpus_adequacy_audit_v1" / "covariate_leakage_audit.csv")
@@ -1633,6 +1659,8 @@ def build_showcase_artifacts(
     index_path = showcase_dir / "index.md"
     _write_text(index_path, "\n".join(index_lines))
     _write_text(proof_gallery_path, _render_proof_gallery())
+    story_index_path = showcase_dir / "story_index.md"
+    _write_text(story_index_path, render_repo_story_index())
 
     artifact_manifest_path = showcase_dir / "artifact_manifest.json"
     manifest_entries.append(
@@ -1645,6 +1673,12 @@ def build_showcase_artifacts(
         {
             "kind": "proof_gallery",
             "relative_path": str(proof_gallery_path.relative_to(showcase_dir)),
+        }
+    )
+    manifest_entries.append(
+        {
+            "kind": "story_index",
+            "relative_path": str(story_index_path.relative_to(showcase_dir)),
         }
     )
 
@@ -1662,6 +1696,7 @@ def build_showcase_artifacts(
     if team_packet_dir.exists():
         shutil.rmtree(team_packet_dir)
     shutil.copytree(showcase_dir, team_packet_dir)
+    _write_text(team_packet_dir / "index.md", render_repo_story_team_packet_index())
 
     if create_zip and zip_path is not None:
         if zip_path.exists():
@@ -1706,7 +1741,7 @@ def validate_showcase_artifacts(showcase_dir: str | Path) -> ShowcaseValidationR
 
     proof_gallery_complete = True
     proof_gallery_references_exist = True
-    required_claim_headings = tuple(f"## Claim {index}:" for index in range(1, 9))
+    required_claim_headings = tuple(f"## Claim {index}: {claim.claim}" for index, claim in enumerate(REPO_STORY_CLAIMS, start=1))
     if not proof_gallery_path.exists() or not proof_gallery_path.read_text(encoding="utf-8").strip():
         proof_gallery_complete = False
         proof_gallery_references_exist = False

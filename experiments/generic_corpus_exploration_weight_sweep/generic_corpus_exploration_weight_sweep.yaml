@@ -1,0 +1,65 @@
+baseline_variant_id: baseline
+variants:
+  - variant_id: baseline
+    description: Current production weights
+    weights:
+      validity: 0.22
+      coverage_novelty: 0.18
+      boundary: 0.18
+      stress: 0.18
+      environment: 0.12
+      provenance: 0.12
+  - variant_id: validity_plus_5
+    description: Increase validity emphasis by 5 percentage points
+    weights:
+      validity: 0.27
+      coverage_novelty: 0.18
+      boundary: 0.18
+      stress: 0.18
+      environment: 0.12
+      provenance: 0.12
+  - variant_id: coverage_plus_5
+    description: Increase coverage-novelty emphasis by 5 percentage points
+    weights:
+      validity: 0.22
+      coverage_novelty: 0.23
+      boundary: 0.18
+      stress: 0.18
+      environment: 0.12
+      provenance: 0.12
+  - variant_id: boundary_plus_5
+    description: Increase boundary emphasis by 5 percentage points
+    weights:
+      validity: 0.22
+      coverage_novelty: 0.18
+      boundary: 0.23
+      stress: 0.18
+      environment: 0.12
+      provenance: 0.12
+  - variant_id: stress_plus_5
+    description: Increase stress emphasis by 5 percentage points
+    weights:
+      validity: 0.22
+      coverage_novelty: 0.18
+      boundary: 0.18
+      stress: 0.23
+      environment: 0.12
+      provenance: 0.12
+  - variant_id: environment_plus_5
+    description: Increase environment emphasis by 5 percentage points
+    weights:
+      validity: 0.22
+      coverage_novelty: 0.18
+      boundary: 0.18
+      stress: 0.18
+      environment: 0.17
+      provenance: 0.12
+  - variant_id: provenance_plus_5
+    description: Increase provenance emphasis by 5 percentage points
+    weights:
+      validity: 0.22
+      coverage_novelty: 0.18
+      boundary: 0.18
+      stress: 0.18
+      environment: 0.12
+      provenance: 0.17

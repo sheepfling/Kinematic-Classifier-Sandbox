@@ -1,6 +1,15 @@
 # kinematic-classifier-sandbox
 
-Survey-first sandbox for kinematic classification methods across maneuver, trajectory, and inertial-motion domains.
+Methodology workbench for kinematic classification studies.
+
+This repository now has one front-door story: a study candidate combines a corpus, feature set, class set, classifier/filter family, prior, and optional backend. The Corpus Explorer generates or selects trajectories that exercise intended class boundaries and feature families while auditing leakage, validity, and difficulty. The classifier/filter ladder turns observations, features, or filter residuals into class evidence, then shared posterior machinery applies priors and produces comparable posterior histories. The evaluation layer inspects prior sensitivity, separability, calibration, confusion, corpus adequacy, and oracle gaps before assigning a promote/revise/reject/defer decision. The current 1D problems are witness problems, not final deployment corpora.
+
+Start here:
+
+- [Documentation front door](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/README.md)
+- [Canonical repo story](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/story/00_repo_story.md)
+- [Canonical reading order](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/story/02_reading_order.md)
+- [Claim evidence matrix](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/story/claim_evidence_matrix.md)
 
 ## What this repo contains
 
@@ -107,6 +116,7 @@ The main abstract-inspection landing artifact is:
 - `python3 scripts/run_milestone.py list`
 - `python3 scripts/run_milestone.py m1-m9 --output-dir artifacts`
 - `python3 scripts/run_study.py experiments/common_1d_classifier_study/common_experiment_config.yaml --output-dir artifacts`
+- `python3 scripts/render_generic_corpus_exploration_weight_sweep.py --output-dir artifacts --config experiments/generic_corpus_exploration_weight_sweep/generic_corpus_exploration_weight_sweep.yaml`
 - `python3 scripts/dev.py`
 
 ## Milestone reruns

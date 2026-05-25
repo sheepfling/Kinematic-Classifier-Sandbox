@@ -1,3 +1,7 @@
+from .runtime_paths import configure_runtime_environment
+
+configure_runtime_environment()
+
 from .artifacts import (
     render_method_survey_markdown,
     render_posterior_numeric_walkthrough_markdown,
@@ -80,6 +84,19 @@ from .corpus_gym import (
     render_corpus_gym_numeric_walkthrough_markdown,
     write_corpus_gym_artifacts,
 )
+from .corpus_policy import (
+    CorpusPolicySpec,
+    corpus_policy_schema,
+    corpus_policy_to_dict,
+    load_corpus_policy_spec,
+    normalize_corpus_policy_spec,
+    validate_corpus_policy_spec,
+    write_default_policy_artifacts,
+)
+from .corpus_policy_sweep import (
+    CorpusPolicyTuningArtifacts,
+    write_corpus_policy_tuning_artifacts,
+)
 from .trajectory_backend_contract import (
     BackendContractDefinition,
     ControlChannelSpec,
@@ -97,6 +114,27 @@ from .trajectory_backend_contract import (
     validate_backend_contract_definition,
     validate_trajectory_run,
     write_trajectory_backend_contract_artifacts,
+)
+from .advanced_state_inference import (
+    AdvancedFilterContractArtifacts,
+    AdvancedFilterContractResult,
+    AdvancedStateInferenceArtifacts,
+    AdvancedStateInferenceResult,
+    AdvancedStateInferenceSummary,
+    ImmRun,
+    ImmStepResult,
+    StateSpaceModeSpec,
+    SwitchingWitness,
+    analyze_advanced_filter_contract,
+    analyze_advanced_state_inference,
+    default_advanced_filter_contract,
+    default_imm_mode_specs,
+    generate_advanced_state_inference_witnesses,
+    render_advanced_state_inference_png_bytes,
+    render_advanced_state_inference_report,
+    run_imm_filter,
+    write_advanced_filter_contract_artifacts,
+    write_advanced_state_inference_artifacts,
 )
 from .backend_adapter_proof import (
     AdapterExecutionRecord,
@@ -121,9 +159,19 @@ from .capability_aware_search import (
 from .generic_corpus_exploration import (
     GenericCorpusExplorationArtifacts,
     GenericCorpusExplorationResult,
+    GenericCorpusExplorationSweepConfig,
+    GenericCorpusExplorationSweepArtifacts,
+    GenericCorpusExplorationSweepResult,
+    GenericCorpusExplorationSweepRow,
+    GenericCorpusExplorationSweepVariant,
+    GenericCorpusExplorationWeights,
     analyze_generic_corpus_exploration,
+    analyze_generic_corpus_exploration_weight_sweep,
+    load_generic_corpus_exploration_weight_sweep_config,
     render_generic_corpus_exploration_numeric_walkthrough_markdown,
+    render_generic_corpus_exploration_weight_sweep_markdown,
     write_generic_corpus_exploration_artifacts,
+    write_generic_corpus_exploration_weight_sweep_artifacts,
 )
 from .corpus_objectives import (
     CorpusObjectiveArtifacts,
@@ -546,6 +594,19 @@ from .validation_ladder import (
     analyze_validation_ladder,
     write_validation_ladder_artifacts,
 )
+from .rung_sufficiency import (
+    RungCapabilitySpec,
+    RungSufficiencyArtifacts,
+    RungSufficiencyResult,
+    RungSufficiencyThresholds,
+    analyze_rung_sufficiency,
+    capability_lookup,
+    capability_rows,
+    capability_specs,
+    canonicalize_rung_id,
+    next_rung_id,
+    write_rung_sufficiency_artifacts,
+)
 from .bayesian_walkthroughs import (
     BayesianWalkthroughArtifacts,
     BayesianWalkthroughResult,
@@ -563,6 +624,38 @@ from .methodology_compendium import (
     MethodologyCompendiumResult,
     analyze_methodology_compendium,
     write_methodology_compendium_artifacts,
+)
+from .functional_surface_catalog import (
+    FunctionalSurfaceCatalogArtifacts,
+    FunctionalSurfaceCatalogResult,
+    analyze_functional_surface_catalog,
+    write_functional_surface_catalog_artifacts,
+)
+from .formal_math_registry import (
+    FormalMathRegistryArtifacts,
+    FormalMathRegistryResult,
+    analyze_formal_math_registry,
+    write_formal_math_registry_artifacts,
+)
+from .formal_math_visual_registry import (
+    FormalMathVisualRegistryArtifacts,
+    FormalMathVisualRegistryResult,
+    analyze_formal_math_visual_registry,
+    write_formal_math_visual_registry_artifacts,
+)
+from .strict_equation_audit import (
+    StrictEquationAuditArtifacts,
+    StrictEquationAuditResult,
+    StrictEquationAuditRow,
+    analyze_strict_equation_audit,
+    render_strict_equation_audit_report,
+    write_strict_equation_audit_artifacts,
+)
+from .repo_story import (
+    RepoStoryArtifacts,
+    render_proof_gallery,
+    validate_repo_story_references,
+    write_repo_story_artifacts,
 )
 from .shared_evaluation import (
     CallableSharedClassifierAdapter,
@@ -928,6 +1021,28 @@ __all__ = [
     "ShowcaseValidationResult",
     "build_showcase_artifacts",
     "validate_showcase_artifacts",
+    "FunctionalSurfaceCatalogArtifacts",
+    "FunctionalSurfaceCatalogResult",
+    "analyze_functional_surface_catalog",
+    "write_functional_surface_catalog_artifacts",
+    "FormalMathRegistryArtifacts",
+    "FormalMathRegistryResult",
+    "analyze_formal_math_registry",
+    "write_formal_math_registry_artifacts",
+    "FormalMathVisualRegistryArtifacts",
+    "FormalMathVisualRegistryResult",
+    "analyze_formal_math_visual_registry",
+    "write_formal_math_visual_registry_artifacts",
+    "StrictEquationAuditArtifacts",
+    "StrictEquationAuditResult",
+    "StrictEquationAuditRow",
+    "analyze_strict_equation_audit",
+    "render_strict_equation_audit_report",
+    "write_strict_equation_audit_artifacts",
+    "RepoStoryArtifacts",
+    "render_proof_gallery",
+    "validate_repo_story_references",
+    "write_repo_story_artifacts",
     "GenericInferenceContractArtifacts",
     "GenericInferenceContractResult",
     "analyze_generic_inference_contract",
@@ -976,6 +1091,15 @@ __all__ = [
     "default_corpus_gym_targets",
     "render_corpus_gym_numeric_walkthrough_markdown",
     "write_corpus_gym_artifacts",
+    "CorpusPolicySpec",
+    "CorpusPolicyTuningArtifacts",
+    "corpus_policy_schema",
+    "corpus_policy_to_dict",
+    "load_corpus_policy_spec",
+    "normalize_corpus_policy_spec",
+    "validate_corpus_policy_spec",
+    "write_default_policy_artifacts",
+    "write_corpus_policy_tuning_artifacts",
     "BackendContractDefinition",
     "ControlChannelSpec",
     "ControlPolicySpec",
@@ -1008,9 +1132,19 @@ __all__ = [
     "write_capability_aware_search_artifacts",
     "GenericCorpusExplorationArtifacts",
     "GenericCorpusExplorationResult",
+    "GenericCorpusExplorationSweepConfig",
+    "GenericCorpusExplorationSweepArtifacts",
+    "GenericCorpusExplorationSweepResult",
+    "GenericCorpusExplorationSweepRow",
+    "GenericCorpusExplorationSweepVariant",
+    "GenericCorpusExplorationWeights",
     "analyze_generic_corpus_exploration",
+    "analyze_generic_corpus_exploration_weight_sweep",
+    "load_generic_corpus_exploration_weight_sweep_config",
     "render_generic_corpus_exploration_numeric_walkthrough_markdown",
+    "render_generic_corpus_exploration_weight_sweep_markdown",
     "write_generic_corpus_exploration_artifacts",
+    "write_generic_corpus_exploration_weight_sweep_artifacts",
     "CorpusObjectiveArtifacts",
     "CorpusObjectiveResult",
     "CorpusObjectiveSpec",

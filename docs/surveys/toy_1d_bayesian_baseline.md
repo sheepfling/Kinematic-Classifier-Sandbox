@@ -1,5 +1,9 @@
 # 1D Toy Bayesian Baseline
 
+Status: superseded by the 1D witness-problem framing in
+`docs/witnesses/index.md`. Keep this document for historical baseline detail,
+but use "1D witness problem" in new narrative docs.
+
 This toy baseline exists to validate the recursive Bayesian architecture before
 the repo grows into full 3D track classification.
 

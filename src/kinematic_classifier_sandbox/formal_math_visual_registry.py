@@ -1,0 +1,570 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+import csv
+import io
+import json
+import math
+import os
+import shutil
+from pathlib import Path
+
+from .corpus_classifier_scoring import analyze_corpus_classifier_scoring
+from .corpus_gym import CorpusGymAction, CorpusGymEnvironment, default_corpus_gym_targets
+from .formal_math_registry import load_equation_registry
+from .generated_corpus_features import select_generated_corpus_records
+from .monte_carlo_benchmark import render_monte_carlo_calibration_png_bytes, run_accumulator_monte_carlo_benchmark
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_DIR = ROOT / "artifacts" / "formal_math_visual_registry_v1"
+
+
+def _prepare_matplotlib():
+    os.environ.setdefault("MPLCONFIGDIR", str(Path("/private/tmp/kinematic-classifier-sandbox-mpl")))
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    return plt
+
+
+def _figure_to_png(fig) -> bytes:
+    plt = _prepare_matplotlib()
+    buffer = io.BytesIO()
+    try:
+        fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
+        return buffer.getvalue()
+    finally:
+        plt.close(fig)
+
+
+def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+@dataclass(frozen=True, slots=True)
+class FormalMathVisualSpec:
+    equation_id: str
+    title: str
+    source_artifact: str | None
+    source_type: str
+    caption: str
+    notes: str
+
+
+@dataclass(frozen=True, slots=True)
+class FormalMathVisualRow:
+    equation_id: str
+    status: str
+    implementation: str
+    visual_path: str
+    source_type: str
+    generated_visual: bool
+    caption: str
+    notes: str
+
+
+@dataclass(frozen=True, slots=True)
+class FormalMathVisualRegistryResult:
+    rows: tuple[FormalMathVisualRow, ...]
+    summary: dict[str, object]
+    report_markdown: str
+
+
+@dataclass(frozen=True, slots=True)
+class FormalMathVisualRegistryArtifacts:
+    run_dir: Path
+    report_path: Path
+    summary_path: Path
+    gallery_csv_path: Path
+    visual_coverage_png_path: Path
+    assets_dir: Path
+
+
+FORMAL_MATH_VISUAL_REGISTRY: tuple[FormalMathVisualSpec, ...] = (
+    FormalMathVisualSpec(
+        equation_id="bayes_logsumexp_update",
+        title="Bayes Recursive Update",
+        source_artifact="artifacts/showcase/plots/posterior_timeline.png",
+        source_type="existing_plot",
+        caption="Posterior timeline for recursive Bayes accumulation.",
+        notes="Uses the existing posterior timeline plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="two_class_log_odds",
+        title="Two-Class Log Odds",
+        source_artifact="artifacts/showcase/plots/prior_to_posterior_single_step.png",
+        source_type="existing_plot",
+        caption="Single-step prior-to-posterior update showing flip sensitivity.",
+        notes="Uses the existing prior-to-posterior plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="transition_matrix_update",
+        title="Transition-Matrix Update",
+        source_artifact="artifacts/showcase/plots/transition_matrix_diagnostics.png",
+        source_type="existing_plot",
+        caption="Switching-model diagnostic plot for the transition accumulator.",
+        notes="Uses the existing transition diagnostics plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="gaussian_feature_likelihood",
+        title="Gaussian Feature Likelihood",
+        source_artifact=None,
+        source_type="illustrative_plot",
+        caption="Empirical class-conditional likelihood curves fit from the generated corpus slice.",
+        notes="Built from the generated corpus measurements, not from a placeholder curve.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="kalman_innovation_likelihood",
+        title="Kalman Innovation Likelihood",
+        source_artifact="artifacts/showcase/plots/kalman_innovation_likelihood_timeline.png",
+        source_type="existing_plot",
+        caption="Innovation-likelihood timeline for the Kalman-bank family.",
+        notes="Uses the showcase innovation timeline as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="calibration_metrics",
+        title="Calibration Metrics",
+        source_artifact=None,
+        source_type="illustrative_plot",
+        caption="Calibration diagnostics from the actual Monte Carlo benchmark.",
+        notes="Built from the real Monte Carlo calibration bins instead of a schematic curve.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="pairwise_mahalanobis_distance",
+        title="Pairwise Mahalanobis Distance",
+        source_artifact="artifacts/feature_analysis_v1/pairwise_distance_heatmap.png",
+        source_type="existing_plot",
+        caption="Class-pair distance heatmap from feature analysis.",
+        notes="Uses the existing pairwise distance heatmap as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="corpus_autodevelopment_score",
+        title="Corpus Autodevelopment Score",
+        source_artifact="artifacts/corpus_autodevelopment_v1/plots/corpus_score_pareto.png",
+        source_type="existing_plot",
+        caption="Pareto view of corpus autodevelopment candidate scores.",
+        notes="Uses the existing corpus score Pareto chart as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="pareto_dominance",
+        title="Pareto Dominance",
+        source_artifact="artifacts/corpus_autodevelopment_v1/plots/corpus_score_pareto.png",
+        source_type="existing_plot",
+        caption="Non-dominated candidates highlighted in the corpus score Pareto plot.",
+        notes="Uses the same Pareto chart as the score equation because the plot already expresses dominance.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="corpus_gym_reward",
+        title="CorpusGym Reward",
+        source_artifact=None,
+        source_type="generated_plot",
+        caption="Reward-component decomposition for the CorpusGym utility equation.",
+        notes="Generated from the explicit reward weights and a representative episode.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="corpus_explorer_utility",
+        title="Corpus Explorer Utility",
+        source_artifact="artifacts/generic_corpus_exploration/score_component_parallel_coordinates.png",
+        source_type="existing_plot",
+        caption="Parallel-coordinates view of the exploration utility components.",
+        notes="Uses the existing component plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="qd_archive_utility",
+        title="QD Archive Utility",
+        source_artifact="artifacts/quality_diversity_corpus_v1/archive_coverage_by_iteration.png",
+        source_type="existing_plot",
+        caption="Archive coverage over iterations in the quality-diversity setup.",
+        notes="Uses the existing archive coverage plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="qd_cell_mapping",
+        title="QD Cell Mapping",
+        source_artifact="artifacts/quality_diversity_corpus/plots/archive_coverage_heatmap.png",
+        source_type="existing_plot",
+        caption="Archive cell occupancy heatmap for the QD mapping function.",
+        notes="Uses the existing archive heatmap as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="sampler_mixture",
+        title="Sampler Mixture",
+        source_artifact=None,
+        source_type="generated_plot",
+        caption="Sampler family mixture derived from candidate generation counts.",
+        notes="Generated from the current candidate-generation result so the sampler mix is visible.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="class_validity_status",
+        title="Class Validity Status",
+        source_artifact="artifacts/class_validity/class_validity_status_distribution.png",
+        source_type="existing_plot",
+        caption="Status distribution for valid, ambiguous, invalid, and relabel candidates.",
+        notes="Uses the existing class-validity status distribution plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="advanced_filter_gate",
+        title="Advanced Filter Gate",
+        source_artifact="artifacts/showcase/plots/advanced_filter_decision_matrix.png",
+        source_type="existing_plot",
+        caption="Decision matrix used to justify or defer advanced filtering methods.",
+        notes="Uses the existing showcase decision matrix as the representative visual.",
+    ),
+)
+
+
+def _load_equation_lookup() -> dict[str, dict[str, object]]:
+    return {row["id"]: row for row in load_equation_registry()}
+
+
+def _ensure_asset(source: Path | None, assets_dir: Path, equation_id: str, builder) -> tuple[Path, bool]:
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    asset_path = assets_dir / f"{equation_id}.png"
+    if source is not None and source.exists():
+        shutil.copy2(source, asset_path)
+        return asset_path, False
+    asset_path.write_bytes(builder())
+    return asset_path, True
+
+
+def _plot_gaussian_feature_likelihood() -> bytes:
+    records = select_generated_corpus_records()
+    class_values: dict[str, list[float]] = {}
+    for record in records:
+        measurements = record.execution.trajectory_run.observations.get("position", ())
+        class_values.setdefault(record.assigned_class, []).extend(float(value) for value in measurements)
+
+    plt = _prepare_matplotlib()
+    import matplotlib.pyplot as plt  # type: ignore[no-redef]
+
+    classes = sorted((name, values) for name, values in class_values.items() if values)
+    if not classes:
+        classes = [("unknown", [0.0, 0.5, 1.0])]
+    fig, (ax, ax2) = plt.subplots(
+        2,
+        1,
+        figsize=(8.6, 5.8),
+        gridspec_kw={"height_ratios": [3.0, 1.1]},
+        sharex=True,
+    )
+    colors = ["#2563eb", "#0f766e", "#dc2626", "#7c3aed", "#d97706", "#0891b2"]
+    summary_rows: list[tuple[str, float, float, int]] = []
+    max_density = 0.0
+    for index, (label, values) in enumerate(classes):
+        sorted_values = sorted(values)
+        mean_value = sum(values) / len(values)
+        variance = sum((value - mean_value) ** 2 for value in values) / max(len(values), 1)
+        sigma = max(variance ** 0.5, 0.08)
+        xs = [mean_value + offset * sigma for offset in [x / 8.0 for x in range(-24, 25)]]
+        ys = [math.exp(-0.5 * ((x - mean_value) / sigma) ** 2) / (sigma * math.sqrt(2 * math.pi)) for x in xs]
+        color = colors[index % len(colors)]
+        ax.plot(xs, ys, color=color, linewidth=2.2, label=label)
+        ax.fill_between(xs, ys, color=color, alpha=0.08)
+        max_density = max(max_density, max(ys))
+        summary_rows.append((label, mean_value, sigma, len(values)))
+    ax.set_title("Gaussian Feature Likelihood", loc="left", fontweight="bold")
+    ax.set_ylabel("likelihood")
+    ax.legend(frameon=False, ncol=3, loc="upper right")
+    ax.grid(alpha=0.25)
+    ax2.bar(
+        [label for label, _, _, _ in summary_rows],
+        [count for _, _, _, count in summary_rows],
+        color=[colors[index % len(colors)] for index, _ in enumerate(summary_rows)],
+    )
+    ax2.set_ylabel("sample count")
+    ax2.set_xlabel("candidate class hypothesis")
+    ax2.grid(axis="y", alpha=0.25)
+    fig.tight_layout()
+    return _figure_to_png(fig)
+
+
+def _plot_calibration_metrics() -> bytes:
+    benchmark = run_accumulator_monte_carlo_benchmark()
+    return render_monte_carlo_calibration_png_bytes(benchmark)
+
+
+def _plot_corpus_gym_reward() -> bytes:
+    plt = _prepare_matplotlib()
+    import matplotlib.pyplot as plt  # type: ignore[no-redef]
+
+    labels = [
+        "class_validity",
+        "feature_excitation",
+        "coverage_gain",
+        "boundary_closeness",
+        "classifier_stress",
+        "prior_sensitivity",
+        "leakage_penalty",
+        "physical_invalidity_penalty",
+        "total_utility",
+    ]
+    targets = default_corpus_gym_targets()
+    environment = CorpusGymEnvironment()
+    component_rows: list[list[float]] = []
+    target_labels: list[str] = []
+    for index, target in enumerate(targets):
+        environment.reset(target)
+        if target.target_type == "target_class_pair":
+            action = CorpusGymAction(seed=2_100 + index, tier_name="boundary_v1", duration_scale=0.88, measurement_scale=1.10, irregularity_scale=1.05, outlier_scale=0.95, step_scale=0.92)
+        elif target.target_type in {"target_failure_mode", "target_feature_cell"}:
+            action = CorpusGymAction(seed=2_100 + index, tier_name="adversarial_v1", duration_scale=0.80, measurement_scale=1.22, irregularity_scale=1.18, outlier_scale=1.20, step_scale=0.86)
+        elif target.target_type == "target_prior_sensitivity":
+            action = CorpusGymAction(seed=2_100 + index, tier_name="boundary_v1", duration_scale=0.74, measurement_scale=1.06, irregularity_scale=0.96, outlier_scale=0.90, step_scale=0.84)
+        elif target.target_type == "target_switching_pattern":
+            action = CorpusGymAction(seed=2_100 + index, tier_name="boundary_v1", duration_scale=0.92, measurement_scale=1.08, irregularity_scale=1.12, outlier_scale=1.00, step_scale=0.88)
+        else:
+            action = CorpusGymAction(seed=2_100 + index, tier_name="realistic_v1", duration_scale=1.0, measurement_scale=1.0, irregularity_scale=1.0, outlier_scale=1.0, step_scale=1.0)
+        episode = environment.simulate(action)
+        reward = episode.reward
+        component_rows.append(
+            [
+                reward.class_validity,
+                reward.feature_excitation,
+                reward.coverage_gain,
+                reward.boundary_closeness,
+                reward.classifier_stress,
+                reward.prior_sensitivity,
+                -reward.leakage_penalty,
+                -reward.physical_invalidity_penalty,
+                reward.total_utility,
+            ]
+        )
+        target_labels.append(target.target_id.replace("target_", ""))
+    fig, ax = plt.subplots(figsize=(10.0, 5.4))
+    matrix = component_rows
+    image = ax.imshow(matrix, aspect="auto", cmap="coolwarm", vmin=-1.0, vmax=1.0)
+    ax.set_title("CorpusGym Reward Decomposition Across Targets", loc="left", fontweight="bold")
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, rotation=25, ha="right")
+    ax.set_yticks(range(len(target_labels)), target_labels)
+    ax.set_xlabel("reward component")
+    ax.set_ylabel("target")
+    fig.colorbar(image, ax=ax, fraction=0.025, pad=0.02, label="weighted contribution")
+    fig.tight_layout()
+    return _figure_to_png(fig)
+
+
+def _plot_sampler_mixture() -> bytes:
+    from .candidate_generation import analyze_candidate_generation
+
+    result = analyze_candidate_generation()
+    plt = _prepare_matplotlib()
+    import matplotlib.pyplot as plt  # type: ignore[no-redef]
+
+    rows = list(result.generated_candidate_rows)
+    scenario_families = sorted({str(row.get("scenario_family", "unknown")) for row in rows})
+    sampler_names = sorted({str(row.get("sampler_name", "unknown")) for row in rows})
+    counts = {
+        scenario: {
+            sampler: sum(1 for row in rows if str(row.get("scenario_family", "unknown")) == scenario and str(row.get("sampler_name", "unknown")) == sampler)
+            for sampler in sampler_names
+        }
+        for scenario in scenario_families
+    }
+    totals = [sum(counts[scenario].values()) for scenario in scenario_families]
+    fig, ax = plt.subplots(figsize=(9.2, 5.0))
+    bottom = [0] * len(scenario_families)
+    palette = ["#2563eb", "#0f766e", "#7c3aed", "#d97706", "#dc2626"]
+    for index, sampler in enumerate(sampler_names):
+        values = [counts[scenario][sampler] for scenario in scenario_families]
+        ax.bar(scenario_families, values, bottom=bottom, label=sampler, color=palette[index % len(palette)])
+        bottom = [existing + value for existing, value in zip(bottom, values)]
+    ax.plot(scenario_families, totals, color="#111827", marker="o", linewidth=1.8, linestyle="--", label="total")
+    ax.set_title("Sampler Mixture Across Scenario Families", loc="left", fontweight="bold")
+    ax.set_ylabel("candidate count")
+    ax.tick_params(axis="x", rotation=20)
+    ax.grid(axis="y", alpha=0.25)
+    ax.legend(frameon=False, ncol=2)
+    fig.tight_layout()
+    return _figure_to_png(fig)
+
+
+def analyze_formal_math_visual_registry() -> FormalMathVisualRegistryResult:
+    equation_lookup = _load_equation_lookup()
+    rows: list[FormalMathVisualRow] = []
+    for spec in FORMAL_MATH_VISUAL_REGISTRY:
+        equation = equation_lookup.get(spec.equation_id)
+        status = equation["status"] if equation else "missing"
+        implementation = ""
+        if equation:
+            impl = equation["implementation"]
+            implementation = f"{impl['module']}::{impl['function']}"
+        source = ROOT / spec.source_artifact if spec.source_artifact else None
+        if spec.source_type == "generated_plot":
+            if spec.equation_id == "gaussian_feature_likelihood":
+                builder = _plot_gaussian_feature_likelihood
+            elif spec.equation_id == "calibration_metrics":
+                builder = _plot_calibration_metrics
+            elif spec.equation_id == "corpus_gym_reward":
+                builder = _plot_corpus_gym_reward
+            elif spec.equation_id == "sampler_mixture":
+                builder = _plot_sampler_mixture
+            else:
+                builder = _plot_gaussian_feature_likelihood
+        else:
+            builder = _plot_gaussian_feature_likelihood
+        visual_path = f"assets/{spec.equation_id}.png"
+        generated_visual = spec.source_type == "generated_plot" or not (source and source.exists())
+        rows.append(
+            FormalMathVisualRow(
+                equation_id=spec.equation_id,
+                status=status,
+                implementation=implementation,
+                visual_path=visual_path,
+                source_type=spec.source_type,
+                generated_visual=generated_visual,
+                caption=spec.caption,
+                notes=spec.notes,
+            )
+        )
+    summary = {
+        "visual_count": len(rows),
+        "generated_visual_count": sum(1 for row in rows if row.generated_visual),
+        "implemented_visual_count": sum(1 for row in rows if row.status == "implemented"),
+        "illustrative_visual_count": sum(1 for row in rows if row.status == "conceptual"),
+        "copied_visual_count": sum(1 for row in rows if not row.generated_visual),
+        "implemented_equation_count": sum(1 for row in rows if row.status == "implemented"),
+        "conceptual_equation_count": sum(1 for row in rows if row.status == "conceptual"),
+    }
+    report_markdown = render_formal_math_visual_registry_report(
+        FormalMathVisualRegistryResult(rows=tuple(rows), summary=summary, report_markdown="")
+    )
+    return FormalMathVisualRegistryResult(rows=tuple(rows), summary=summary, report_markdown=report_markdown)
+
+
+def render_formal_math_visual_registry_report(result: FormalMathVisualRegistryResult) -> str:
+    lines = [
+        "# Formal Math Visual Registry",
+        "",
+        "This gallery pairs the implemented equations with representative charts. Some visuals are copied from existing showcase artifacts; others are built from real benchmark outputs. Conceptual equations are shown only as illustrative visuals and are not counted as implemented coverage.",
+        "",
+        "## Summary",
+        "",
+        f"- Visual count: `{result.summary['visual_count']}`",
+        f"- Generated visuals: `{result.summary['generated_visual_count']}`",
+        f"- Implemented visuals: `{result.summary['implemented_visual_count']}`",
+        f"- Illustrative visuals: `{result.summary['illustrative_visual_count']}`",
+        f"- Copied visuals: `{result.summary['copied_visual_count']}`",
+        f"- Implemented equations covered: `{result.summary['implemented_equation_count']}`",
+        f"- Conceptual equations covered: `{result.summary['conceptual_equation_count']}`",
+        "",
+        "## Gallery",
+        "",
+    ]
+    for row in result.rows:
+        lines.extend(
+            [
+                f"### `{row.equation_id}`",
+                "",
+                f"- Status: `{row.status}`",
+                f"- Visual source: `{row.source_type}`",
+                f"- Visual path: `{row.visual_path}`",
+                f"- Implementation: `{row.implementation}`" if row.implementation else "- Implementation: missing",
+                "",
+                f"![{row.equation_id}]({row.visual_path})",
+                "",
+                row.caption,
+                "",
+            ]
+        )
+    return "\n".join(lines)
+
+
+def write_formal_math_visual_registry_artifacts(
+    output_dir: str | Path,
+    *,
+    result: FormalMathVisualRegistryResult | None = None,
+) -> FormalMathVisualRegistryArtifacts:
+    payload = result or analyze_formal_math_visual_registry()
+    output_root = Path(output_dir)
+    run_dir = output_root / "formal_math_visual_registry_v1"
+    assets_dir = run_dir / "assets"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    assets_dir.mkdir(parents=True, exist_ok=True)
+
+    report_path = run_dir / "formal_math_visual_registry_report.md"
+    summary_path = run_dir / "formal_math_visual_registry_summary.json"
+    gallery_csv_path = run_dir / "formal_math_visual_registry.csv"
+    visual_coverage_png_path = run_dir / "formal_math_visual_registry_coverage.png"
+
+    report_path.write_text(payload.report_markdown, encoding="utf-8")
+    summary_path.write_text(json.dumps(payload.summary, indent=2, sort_keys=True), encoding="utf-8")
+    _write_csv(
+        gallery_csv_path,
+        [
+            {
+                "equation_id": row.equation_id,
+                "status": row.status,
+                "implementation": row.implementation,
+                "visual_path": row.visual_path,
+                "source_type": row.source_type,
+                "generated_visual": row.generated_visual,
+                "caption": row.caption,
+                "notes": row.notes,
+            }
+            for row in payload.rows
+        ],
+        [
+            "equation_id",
+            "status",
+            "implementation",
+            "visual_path",
+            "source_type",
+            "generated_visual",
+            "caption",
+            "notes",
+        ],
+    )
+
+    coverage_labels = [row.equation_id for row in payload.rows]
+    generated = [1 if row.generated_visual else 0 for row in payload.rows]
+    copied = [1 if not row.generated_visual else 0 for row in payload.rows]
+    plt = _prepare_matplotlib()
+    import matplotlib.pyplot as plt  # type: ignore[no-redef]
+
+    fig, ax = plt.subplots(figsize=(11.0, 4.8))
+    ax.bar(coverage_labels, copied, color="#2563eb", label="copied")
+    ax.bar(coverage_labels, generated, bottom=copied, color="#0f766e", label="generated")
+    ax.set_title("Formal Math Visual Coverage", loc="left", fontweight="bold")
+    ax.set_ylabel("visuals")
+    ax.tick_params(axis="x", rotation=35)
+    ax.legend(frameon=False)
+    ax.grid(axis="y", alpha=0.25)
+    fig.tight_layout()
+    visual_coverage_png_path.write_bytes(_figure_to_png(fig))
+
+    for row in payload.rows:
+        spec = next(spec for spec in FORMAL_MATH_VISUAL_REGISTRY if spec.equation_id == row.equation_id)
+        source = ROOT / spec.source_artifact if spec.source_artifact else None
+        asset_path = assets_dir / f"{row.equation_id}.png"
+        if spec.source_type == "generated_plot":
+            if row.equation_id == "gaussian_feature_likelihood":
+                asset_path.write_bytes(_plot_gaussian_feature_likelihood())
+            elif row.equation_id == "calibration_metrics":
+                asset_path.write_bytes(_plot_calibration_metrics())
+            elif row.equation_id == "corpus_gym_reward":
+                asset_path.write_bytes(_plot_corpus_gym_reward())
+            elif row.equation_id == "sampler_mixture":
+                asset_path.write_bytes(_plot_sampler_mixture())
+            else:
+                asset_path.write_bytes(_plot_gaussian_feature_likelihood())
+        elif source is not None and source.exists():
+            shutil.copy2(source, asset_path)
+        else:
+            asset_path.write_bytes(_plot_gaussian_feature_likelihood())
+
+    return FormalMathVisualRegistryArtifacts(
+        run_dir=run_dir,
+        report_path=report_path,
+        summary_path=summary_path,
+        gallery_csv_path=gallery_csv_path,
+        visual_coverage_png_path=visual_coverage_png_path,
+        assets_dir=assets_dir,
+    )

@@ -1,0 +1,56 @@
+policy_id: default_corpus_policy_v1
+corpus_autodevelopment:
+  positive_weights:
+    balance: 0.25
+    boundary_coverage: 0.25
+    feature_excitation: 0.25
+    difficulty_diversity: 0.25
+    provenance_completeness: 0.0
+  penalty_weights:
+    leakage: 0.3333333333333333
+    triviality: 0.3333333333333333
+    degeneracy: 0.3333333333333333
+generic_explorer:
+  weights:
+    validity: 0.22
+    coverage_novelty: 0.18
+    boundary_score: 0.18
+    classifier_stress: 0.18
+    environment_score: 0.12
+    provenance_completeness: 0.12
+corpus_gym:
+  weights:
+    class_validity: 0.22
+    feature_excitation: 0.14
+    coverage_gain: 0.14
+    boundary_closeness: 0.14
+    classifier_stress: 0.14
+    prior_sensitivity: 0.12
+    leakage_penalty: 0.10
+    physical_invalidity_penalty: 0.14
+archive:
+  weights:
+    validity: 0.30
+    acceleration_range_pressure: 0.25
+    classifier_stress: 0.25
+    mean_margin_pressure: 0.20
+sampler_budgets:
+  random: 20
+  grid: 20
+  lhs: 20
+  boundary_mutation: 20
+  archive_mutation: 20
+  stress_mutation: 20
+gates:
+  min_class_validity: 0.70
+  ambiguity_margin: 0.10
+  max_leakage: 0.25
+  max_triviality: 0.35
+  min_feature_excitation: 0.50
+  max_prior_flip_fraction: 0.15
+  boundary_margin_min: 0.10
+  boundary_margin_max: 0.35
+  selected_corpus_size: 8
+normalization:
+  positive_weights_sum_to_one: true
+  penalty_weights_sum_to_one: true

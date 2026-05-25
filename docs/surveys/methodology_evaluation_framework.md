@@ -12,6 +12,46 @@ decides whether that inference is:
 The goal is not to list artifacts. The goal is to state the evaluation
 quantities, the assumptions behind them, and how they connect to code.
 
+In the canonical repo story, this note is the `Evaluation / Promotion` pillar.
+It is the part of the repo that decides whether a study candidate deserves
+promotion after the Corpus Explorer has selected data and the Classifier Ladder
+has emitted evidence.
+
+## Repo Role
+
+This note is the downstream judgment layer for
+
+```tex
+s = (D, f, C, m, \pi, b).
+```
+
+Its intended interpretation order is:
+
+```tex
+\text{corpus adequacy}
+\rightarrow
+\text{class validity}
+\rightarrow
+\text{feature excitation / separability}
+\rightarrow
+\text{oracle gap}
+\rightarrow
+\text{posterior / prior sensitivity}
+\rightarrow
+\text{confusion}
+\rightarrow
+d,
+```
+
+with
+
+```tex
+d \in \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}.
+```
+
+That ordering is a methodological rule for the repo: top-line accuracy is not
+the first thing to trust.
+
 ## 1. Problem Statement
 
 The central evaluation question is:

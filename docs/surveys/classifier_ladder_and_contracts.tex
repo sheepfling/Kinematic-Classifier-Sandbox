@@ -22,7 +22,35 @@ This document explains the implementation-linked classifier ladder in the
 repository and the contract surfaces that let different method families share a
 common evaluation path. The point of the ladder is not that every method should
 win every benchmark. The point is that each level adds a distinct form of
-evidence and makes a distinct claim about what the repo is proving.
+evidence and makes a distinct claim about what the repo is proving. In the
+canonical repo story, this document is the \textbf{Classifier / Filter Ladder}
+pillar: it explains how evidence providers answer the common question ``what is
+the next \(\ell_t(\cdot)\)?'' before the evaluation layer decides whether the
+result deserves promotion.
+
+\section{Role In The Repo Story}
+
+The ladder is the algorithm spine between the selected corpus and the posterior
+evaluation layer:
+\begin{equation}
+\text{Validated Corpus}
+\rightarrow
+\text{Evidence Provider}
+\rightarrow
+\ell_t(\cdot)
+\rightarrow
+\text{Posterior Update}
+\rightarrow
+\text{Evaluation / Promotion}.
+\end{equation}
+The ladder claim is stricter than ``more complexity is better.'' The claim is:
+\begin{quote}
+\textit{each rung adds one new evidence capability and must be justified by a
+failure mode of the previous rung.}
+\end{quote}
+That is why the ladder is paired with the 1D witness suite. The witness
+problems are not miscellaneous toys; they are the smallest controlled studies
+that justify each rung before 3D lift.
 
 \section{Problem And Notation}
 
@@ -102,6 +130,26 @@ Each level adds a specific capability:
     \item \texttt{kalman}: state-space prediction plus innovation likelihoods
     \item \texttt{transition\_matrix}: explicit switching pressure across modes
 \end{itemize}
+
+The current reader-facing ladder can therefore be summarized as:
+\begin{center}
+\small
+\begin{tabular}{p{0.12\textwidth}p{0.17\textwidth}p{0.20\textwidth}p{0.20\textwidth}p{0.18\textwidth}}
+\toprule
+Rung & Algorithm & Adds & Failure addressed & 1D witness \\
+\midrule
+0 & pointwise & local likelihood baseline & no audited local baseline & pointwise overlap \\
+1 & windowed & short local history & outlier and local-noise fragility & windowed outlier/extrema \\
+2 & sequential Bayes & recursive memory & pointwise history blindness & sequential history \\
+3 & Kalman bank & dynamics-conditioned innovations & endpoint ambiguity under irregular timing & Kalman endpoint match \\
+4 & transition matrix & explicit mode switching & static-class assumption & transition switching \\
+5 & IMM proof & switching-aware state inference & demonstrated switching failures & advanced 1D switching witness \\
+6 & PF / RBPF gates & nonlinear or mixed-mode escalation & only justified after demonstrated failures & future gated witnesses \\
+\bottomrule
+\end{tabular}
+\end{center}
+This table is the intended front-door interpretation of the deeper derivations
+that follow.
 
 \section{Pointwise Evidence Baseline}
 
@@ -434,7 +482,7 @@ evaluated through a common output surface. The practical repo contract is:
     \rightarrow
     \text{shared prediction rows}
     \rightarrow
-    \text{shared metrics and artifact writers}.
+    \text{shared metrics}.
 \end{equation}
 This contract is implemented across
 \begin{itemize}[leftmargin=1.5em]
@@ -536,10 +584,11 @@ same.'' The actual claim is:
         \text{diagnostics}
     \big)
     \rightarrow
-    \text{shared posterior / evaluation contract}.
+    \text{shared evaluation contract}.
 \end{align}
-That is the contract future IMM, PF, and RBPF implementations must satisfy if
-they are added later.
+That is the contract the current IMM proof satisfies, and it remains the
+contract future PF and RBPF implementations must satisfy if they are added
+later.
 
 \section{Artifact Map}
 
@@ -550,6 +599,8 @@ Primary artifacts for this layer:
     \item \texttt{artifacts/generic\_inference\_contract/}
     \item \texttt{artifacts/filtering\_contract/}
     \item \texttt{artifacts/transition\_matrix\_accumulator\_v1/}
+    \item \texttt{artifacts/advanced\_state\_inference\_contract/}
+    \item \texttt{artifacts/advanced\_state\_inference\_v1/}
 \end{itemize}
 
 \section{References}

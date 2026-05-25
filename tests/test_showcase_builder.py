@@ -42,16 +42,22 @@ class ShowcaseBuilderTests(unittest.TestCase):
             self.assertTrue(validation.dimensional_status_present)
 
             proof_gallery_text = artifacts.proof_gallery_path.read_text(encoding="utf-8")
-            self.assertIn("## Claim 1: Bayesian update machinery works", proof_gallery_text)
-            self.assertIn("## Claim 8: 3D transition is planned", proof_gallery_text)
+            self.assertIn("## Claim 1: Corpus quality is evaluated before classifier claims.", proof_gallery_text)
+            self.assertIn("## Claim 8: 3D transition is a controlled lift, not a full rewrite.", proof_gallery_text)
+            self.assertTrue((artifacts.showcase_dir / "story_index.md").exists())
+            self.assertIn(
+                "Study Candidate Evaluator",
+                (artifacts.team_packet_dir / "index.md").read_text(encoding="utf-8"),
+            )
             self.assertIn("plots/pointwise_vs_accumulator_posterior_timelines.png", proof_gallery_text)
-            self.assertIn("plots/feature_correlation_heatmap.png", proof_gallery_text)
-            self.assertIn("plots/kalman_innovation_likelihood_timeline.png", proof_gallery_text)
-            self.assertIn("tables/pf_rbpf_go_no_go_table.csv", proof_gallery_text)
+            self.assertIn("plots/corpus_adequacy_scorecard.png", proof_gallery_text)
+            self.assertIn("plots/dimension_lift_audit_chart.png", proof_gallery_text)
+            self.assertIn("tables/advanced_filter_method_comparison.csv", proof_gallery_text)
             self.assertTrue((artifacts.showcase_dir / "plots" / "pointwise_vs_accumulator_posterior_timelines.png").exists())
             self.assertTrue((artifacts.showcase_dir / "plots" / "feature_correlation_heatmap.png").exists())
             self.assertTrue((artifacts.showcase_dir / "plots" / "kalman_innovation_likelihood_timeline.png").exists())
             self.assertTrue((artifacts.showcase_dir / "plots" / "generic_vs_1d_specific_layer_diagram.png").exists())
+            self.assertTrue((artifacts.showcase_dir / "tables" / "advanced_filter_method_comparison.csv").exists())
             self.assertTrue((artifacts.showcase_dir / "tables" / "pf_rbpf_go_no_go_table.csv").exists())
 
 

@@ -1,0 +1,52 @@
+experiment:
+  id: imm_switching_v1
+  seed: 17
+  output_dir: artifacts/imm_filter_v1
+dataset:
+  witness_families:
+    - stationary_then_moving
+    - constant_velocity_then_braking
+    - constant_velocity_then_maneuver
+    - acceleration_then_coast
+  replicas: 12
+modes:
+  ids:
+    - stationary
+    - constant_velocity
+    - constant_acceleration
+    - braking
+    - maneuver
+transition_matrix:
+  stationary:
+    stationary: 0.92
+    constant_velocity: 0.06
+    constant_acceleration: 0.01
+    braking: 0.00
+    maneuver: 0.01
+  constant_velocity:
+    stationary: 0.01
+    constant_velocity: 0.88
+    constant_acceleration: 0.03
+    braking: 0.05
+    maneuver: 0.03
+  constant_acceleration:
+    stationary: 0.00
+    constant_velocity: 0.08
+    constant_acceleration: 0.84
+    braking: 0.03
+    maneuver: 0.05
+  braking:
+    stationary: 0.08
+    constant_velocity: 0.10
+    constant_acceleration: 0.02
+    braking: 0.78
+    maneuver: 0.02
+  maneuver:
+    stationary: 0.01
+    constant_velocity: 0.12
+    constant_acceleration: 0.08
+    braking: 0.04
+    maneuver: 0.75
+evaluation:
+  detection_threshold: 0.6
+  confidence_thresholds: [0.5, 0.7, 0.9]

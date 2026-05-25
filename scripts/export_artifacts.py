@@ -31,6 +31,8 @@ from kinematic_classifier_sandbox import (
     write_coverage_report_artifacts,
     write_corpus_adequacy_artifacts,
     write_feature_analysis_artifacts,
+    write_formal_math_registry_artifacts,
+    write_formal_math_visual_registry_artifacts,
     write_kalman_bank_artifacts,
     write_kalman_variant_comparison_artifacts,
     write_kalman_observable_comparison_artifacts,
@@ -53,12 +55,14 @@ from kinematic_classifier_sandbox import (
     write_dimensional_lift_audit_artifacts,
     write_study_candidate_protocol_artifacts,
     write_corpus_autodevelopment_artifacts,
+    write_functional_surface_catalog_artifacts,
     write_corpus_gym_artifacts,
     write_trajectory_backend_contract_artifacts,
     write_backend_adapter_proof_artifacts,
     write_environment_aware_corpus_artifacts,
     write_capability_aware_search_artifacts,
     write_generic_corpus_exploration_artifacts,
+    write_generic_corpus_exploration_weight_sweep_artifacts,
     write_corpus_objective_artifacts,
     write_candidate_generation_artifacts,
     write_class_validity_artifacts,
@@ -73,9 +77,11 @@ from kinematic_classifier_sandbox import (
     write_quality_diversity_corpus_artifacts,
     write_study_candidate_generation_artifacts,
     write_validation_ladder_artifacts,
+    write_rung_sufficiency_artifacts,
     write_bayesian_walkthrough_artifacts,
     write_methodology_latex_artifacts,
     write_trajectory_generator_artifacts,
+    write_strict_equation_audit_artifacts,
     write_abstract_inspection_artifacts,
     write_accumulator_artifacts,
     write_monte_carlo_artifacts,
@@ -96,6 +102,8 @@ from kinematic_classifier_sandbox import (
     write_posterior_explainer_artifacts,
     write_posterior_failure_artifacts,
     write_posterior_margin_trace_artifacts,
+    write_advanced_filter_contract_artifacts,
+    write_advanced_state_inference_artifacts,
     write_pointwise_benchmark_artifacts,
     write_windowed_benchmark_artifacts,
     build_showcase_artifacts,
@@ -104,6 +112,7 @@ from kinematic_classifier_sandbox import (
     write_toy_benchmark_trace_csv,
     write_milestone0_sample_run_artifacts,
 )
+from kinematic_classifier_sandbox.repo_story import write_repo_story_artifacts
 
 
 def main() -> int:
@@ -124,6 +133,8 @@ def main() -> int:
     irregular_window_artifacts = write_irregular_window_artifacts(ROOT / "artifacts")
     transition_benchmark_artifacts = write_transition_benchmark_artifacts(ROOT / "artifacts")
     advanced_filter_decision_artifacts = write_advanced_filter_decision_artifacts(ROOT / "artifacts")
+    advanced_filter_contract_artifacts = write_advanced_filter_contract_artifacts(ROOT / "artifacts")
+    advanced_state_inference_artifacts = write_advanced_state_inference_artifacts(ROOT / "artifacts")
     velocity_aided_kalman_artifacts = write_velocity_aided_kalman_comparison_artifacts(ROOT / "artifacts")
     prior_sensitivity_result = analyze_prior_sensitivity(seed=7, trajectories_per_class=3)
     prior_sensitivity_artifacts = write_prior_sensitivity_artifacts(ROOT / "artifacts", result=prior_sensitivity_result)
@@ -155,6 +166,10 @@ def main() -> int:
     environment_aware_corpus_artifacts = write_environment_aware_corpus_artifacts(ROOT / "artifacts")
     capability_aware_search_artifacts = write_capability_aware_search_artifacts(ROOT / "artifacts")
     generic_corpus_exploration_artifacts = write_generic_corpus_exploration_artifacts(ROOT / "artifacts")
+    generic_corpus_exploration_weight_sweep_artifacts = write_generic_corpus_exploration_weight_sweep_artifacts(
+        ROOT / "artifacts",
+        config_path=ROOT / "experiments" / "generic_corpus_exploration_weight_sweep" / "generic_corpus_exploration_weight_sweep.yaml",
+    )
     corpus_objective_artifacts = write_corpus_objective_artifacts(ROOT / "artifacts")
     candidate_generation_artifacts = write_candidate_generation_artifacts(ROOT / "artifacts")
     class_validity_artifacts = write_class_validity_artifacts(ROOT / "artifacts")
@@ -169,6 +184,7 @@ def main() -> int:
     corpus_synthesis_comparison_artifacts = write_corpus_synthesis_comparison_artifacts(ROOT / "artifacts")
     study_candidate_generation_artifacts = write_study_candidate_generation_artifacts(ROOT / "artifacts")
     validation_ladder_artifacts = write_validation_ladder_artifacts(ROOT / "artifacts")
+    rung_sufficiency_artifacts = write_rung_sufficiency_artifacts(ROOT / "artifacts")
     bayesian_walkthrough_artifacts = write_bayesian_walkthrough_artifacts(ROOT / "artifacts")
     trajectory_generator_artifacts = write_trajectory_generator_artifacts(ROOT / "artifacts")
     abstract_inspection_artifacts = write_abstract_inspection_artifacts(
@@ -182,6 +198,10 @@ def main() -> int:
     coverage_report_artifacts = write_coverage_report_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
     pca_analysis_artifacts = write_pca_analysis_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5, n_components=3)
     methodology_latex_artifacts = write_methodology_latex_artifacts(ROOT / "artifacts")
+    functional_surface_catalog_artifacts = write_functional_surface_catalog_artifacts(ROOT / "artifacts")
+    formal_math_registry_artifacts = write_formal_math_registry_artifacts(ROOT / "artifacts")
+    formal_math_visual_registry_artifacts = write_formal_math_visual_registry_artifacts(ROOT / "artifacts")
+    strict_equation_audit_artifacts = write_strict_equation_audit_artifacts(ROOT / "artifacts")
     pca_dimensionality_artifacts = write_pca_dimensionality_audit_artifacts(
         ROOT / "artifacts",
         seed=7,
@@ -189,6 +209,7 @@ def main() -> int:
         max_components=5,
     )
     showcase_artifacts = build_showcase_artifacts(ROOT / "artifacts", refresh=False, create_zip=False)
+    repo_story_artifacts = write_repo_story_artifacts(ROOT / "artifacts", docs_root=ROOT / "docs", write_showcase=True)
     posterior_math_markdown_path, posterior_math_png_path = write_posterior_math_artifacts(
         ROOT / "artifacts"
     )
@@ -324,6 +345,16 @@ def main() -> int:
     print(capability_aware_search_artifacts.report_path)
     print(generic_corpus_exploration_artifacts.run_dir)
     print(generic_corpus_exploration_artifacts.report_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.run_dir)
+    print(generic_corpus_exploration_weight_sweep_artifacts.config_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.report_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.summary_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.rows_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.overlap_matrix_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.weight_matrix_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.tradeoff_png_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.selected_set_png_path)
+    print(generic_corpus_exploration_weight_sweep_artifacts.baseline_manifest_path)
     print(corpus_objective_artifacts.run_dir)
     print(corpus_objective_artifacts.report_path)
     print(candidate_generation_artifacts.run_dir)
@@ -358,6 +389,14 @@ def main() -> int:
     print(methodology_latex_artifacts.artifact_tex_path)
     if methodology_latex_artifacts.pdf_path is not None:
         print(methodology_latex_artifacts.pdf_path)
+    print(functional_surface_catalog_artifacts.run_dir)
+    print(functional_surface_catalog_artifacts.report_path)
+    print(formal_math_registry_artifacts.run_dir)
+    print(formal_math_registry_artifacts.report_path)
+    print(formal_math_visual_registry_artifacts.run_dir)
+    print(formal_math_visual_registry_artifacts.report_path)
+    print(strict_equation_audit_artifacts.run_dir)
+    print(strict_equation_audit_artifacts.report_path)
     print(trajectory_generator_artifacts.run_dir)
     print(trajectory_generator_artifacts.report_path)
     print(abstract_inspection_artifacts.run_dir)
@@ -376,6 +415,9 @@ def main() -> int:
     print(showcase_artifacts.index_path)
     print(showcase_artifacts.team_packet_dir)
     print(showcase_artifacts.validation_path)
+    print(repo_story_artifacts.run_dir)
+    print(repo_story_artifacts.claim_matrix_path)
+    print(repo_story_artifacts.artifact_manifest_path)
     print(posterior_math_markdown_path)
     print(posterior_math_png_path)
     print(probability_primitives_markdown_path)

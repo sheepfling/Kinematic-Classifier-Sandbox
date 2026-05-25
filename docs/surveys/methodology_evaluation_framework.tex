@@ -22,7 +22,10 @@
 This document complements the posterior update note. The posterior note explains
 how class evidence is accumulated. This document explains how the repository
 evaluates whether that machinery is trustworthy, informative, and methodologically
-useful.
+useful. In the canonical repo story, this document is the
+\textbf{Evaluation / Promotion} pillar: it decides whether a study candidate
+deserves promotion after the Corpus Explorer has selected data and the
+Classifier Ladder has emitted evidence.
 
 The main questions are:
 \begin{itemize}[leftmargin=1.5em]
@@ -47,6 +50,37 @@ Primary implementation surfaces covered explicitly by this note:
     \item \texttt{generated\_corpus\_features.py}
     \item \texttt{corpus\_classifier\_scoring.py}
 \end{itemize}
+
+\section{Role In The Repo Story}
+
+This note is the downstream judgment layer for
+\begin{equation}
+s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b).
+\end{equation}
+Its job is not to construct evidence; it is to decide whether the resulting
+study claim is credible. The intended interpretation order is
+\begin{align}
+\text{corpus adequacy}
+&\rightarrow
+\text{class validity}
+\rightarrow
+\text{feature excitation / separability}
+\notag \\
+&\rightarrow
+\text{oracle gap}
+\rightarrow
+\text{posterior / prior sensitivity}
+\rightarrow
+\text{confusion}
+\rightarrow
+d,
+\end{align}
+with
+\begin{equation}
+d \in \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}.
+\end{equation}
+This ordering is a methodological rule for the repository: top-line accuracy is
+not the first thing to trust.
 
 \section{Problem And Notation}
 
@@ -423,65 +457,233 @@ itself.
 
 \section{How We Evaluate Corpus Quality}
 
-\subsection{Balance Checks}
+\subsection{Corpus Scorecard}
 
-The corpus should be checked for:
+A corpus is not good merely because classifiers perform well on it. A corpus is
+good when it exercises the declared classes, feature families, hard pairs, and
+sensor regimes without leaking labels through metadata shortcuts such as
+duration, sample count, timing irregularity, or noise.
+
+The audit treats the corpus as
+\begin{equation}
+    D = \{(\tau_i, c_i, s_i, m_i)\}_{i=1}^{N},
+\end{equation}
+where \(\tau_i\) is a trajectory, \(c_i\) is the validated class label,
+\(s_i\) is the tier or scenario label, and \(m_i\) collects metadata such as
+duration, sample count, mean \(\Delta t\), timing spread, noise, and outlier
+rate.
+
+The implemented scorecard is
+\begin{equation}
+    Q_{\text{corpus}}(D)
+    =
+    \frac{
+    B_{\text{class}}
+    +
+    B_{\text{tier}}
+    +
+    B_{\text{covariates}}
+    +
+    E_{\text{feature}}
+    +
+    C_{\text{pair}}
+    +
+    V
+    -
+    L
+    -
+    T
+    -
+    G
+    }{6}.
+\end{equation}
+
+\subsection{Balance Terms}
+
+Let
+\begin{equation}
+    \hat{p}_D(c)
+    =
+    \frac{1}{N}\sum_{i=1}^{N}\mathbf{1}[c_i=c]
+\end{equation}
+be the empirical class distribution. For target distribution \(p^\star(c)\),
+the class-balance term is
+\begin{equation}
+    B_{\text{class}}(D)
+    =
+    1-\frac{1}{2}\sum_{c\in\mathcal{C}}
+    \left|\hat{p}_D(c)-p^\star(c)\right|.
+\end{equation}
+The tier-balance term is identical in form:
+\begin{equation}
+    B_{\text{tier}}(D)
+    =
+    1-\frac{1}{2}\sum_{s\in\mathcal{S}}
+    \left|\hat{p}_D(s)-p^\star(s)\right|.
+\end{equation}
+
+On the current common synthetic corpus, both balance terms are \(1.000\), so
+imbalance is not the reason the audit fails.
+
+\subsection{Covariate Balance and Leakage}
+
+For a metadata covariate \(q\), the balance side uses a normalized 1D
+Wasserstein distance:
+\begin{equation}
+    I_q(D)
+    =
+    \max_{a,b\in\mathcal{C}}
+    \frac{W_1(F_{q|a},F_{q|b})}{R_q+\epsilon},
+    \qquad
+    B_q(D)=1-\operatorname{clip}(I_q(D),0,1).
+\end{equation}
+
+The leakage side asks whether the covariate can predict class by itself:
+\begin{equation}
+    L_q(D)
+    =
+    \operatorname{clip}
+    \left(
+    \frac{\mathrm{AUC}_q-0.5}{0.5},
+    0,
+    1
+    \right).
+\end{equation}
+The aggregate code path then uses
+\begin{equation}
+    B_{\text{covariates}}(D)
+    =
+    \frac{1}{|\mathcal{Q}|}
+    \sum_q
+    \left[
+    1-\max\{L_q(D), B_q^{\text{risk}}(D)\}
+    \right],
+    \qquad
+    L(D)=\max_q L_q(D).
+\end{equation}
+
+The current audit reports:
 \begin{itemize}[leftmargin=1.5em]
-    \item class balance,
-    \item scenario balance,
-    \item duration balance,
-    \item sample-count balance,
-    \item noise and irregular-sampling coverage.
+    \item \(B_{\text{covariates}} = 0.704\),
+    \item \(L = 0.613\),
+    \item yellow leakage findings for \texttt{std\_dt} and
+    \texttt{sampling\_irregularity}.
 \end{itemize}
-
-If those are class-linked, the classifier can appear stronger than it really is.
 
 \subsection{Feature Excitation Coverage}
 
-Each feature set should be excited across multiple tiers and classes. The
-important question is not only whether a feature exists, but whether the corpus
-actually exercises it often enough to judge its utility.
+For feature \(j\), class \(c\), and tier \(s\), the current implementation uses
+a moderate-threshold excitation count:
+\begin{equation}
+    E_{jcs}(D)
+    =
+    \min\left(
+    1,
+    \frac{
+    \#\{i : c_i=c,\ s_i=s,\ |\phi_{ij}| \ge \tau^{\text{moderate}}_j\}
+    }{n_{\min}}
+    \right).
+\end{equation}
+The aggregate feature-excitation term is
+\begin{equation}
+    E_{\text{feature}}(D)
+    =
+    \frac{1}{|\mathcal{J}||\mathcal{C}||\mathcal{S}|}
+    \sum_{j,c,s} E_{jcs}(D).
+\end{equation}
 
-\subsection{Class-Pair Boundary Coverage}
+The current corpus reports \(E_{\text{feature}} = 0.562\): respectable, but
+not saturated.
 
-Declared hard pairs should appear in the tiers where they are supposed to be
-challenging:
+\subsection{Class-Pair Boundary Coverage and Triviality}
+
+For each declared important pair \(h=(a,b)\), the code combines required-tier
+coverage with an expected-difficulty window:
+\begin{equation}
+    C_h(D)
+    =
+    \text{tier\_fraction}(h)
+    \times
+    \text{difficulty-window score}(h),
+    \qquad
+    C_{\text{pair}}(D)
+    =
+    \frac{1}{|\mathcal{H}|}\sum_{h\in\mathcal{H}} C_h(D).
+\end{equation}
+
+For declared hard pairs, the triviality penalty is explicit:
+\begin{equation}
+    T_h(D)
+    =
+    \max\left(
+    0,
+    \frac{\mathrm{AUC}_h-\tau_{\text{easy}}}{1-\tau_{\text{easy}}}
+    \right),
+    \qquad
+    T(D)=\frac{1}{|\mathcal{H}_{\text{hard}}|}\sum_h T_h(D).
+\end{equation}
+
+This is the direct explanation for the current red finding:
 \begin{itemize}[leftmargin=1.5em]
-    \item boundary,
-    \item adversarial,
-    \item realistic,
-    \item stress.
+    \item \texttt{constant\_acceleration vs maneuver} is declared hard,
+    \item observed pairwise AUC is \(1.000\),
+    \item overlap is \(0.000\),
+    \item the pair is therefore over-separated,
+    \item \(T = 0.500\).
 \end{itemize}
 
-If a hard pair is missing or over-separated, then the study is not proving the
-right thing.
+\subsection{Class Validity}
 
-\subsection{Leakage Audit}
+For the current common synthetic corpus, labels are generator-defined and
+treated as valid by construction, so
+\begin{equation}
+    V(D)=1.0
+\end{equation}
+for this specific adequacy audit. The richer relabel pressure logic lives in
+\texttt{class\_validity.py} for generated and objective-driven corpora.
 
-The corpus should also be checked for covariate-only shortcuts such as:
+\subsection{Degeneracy}
+
+The degeneracy penalty catches duplicates and structural invalidity:
+\begin{align}
+    G_{\text{dup}}(D)
+    &=
+    \frac{
+    \#\{(i,j): i<j,\ d(\phi_i,\phi_j)<\epsilon\}
+    }{
+    \binom{N}{2}
+    }, \\
+    G_{\text{invalid}}(D)
+    &=
+    \frac{\#\{i : t_{i,k+1}\le t_{i,k}\ \text{for some }k\}}{N}, \\
+    G_{\text{physical}}(D)
+    &=
+    \frac{\#\{i : \max_k |a_{ik}| > a_{\max}\}}{N}.
+\end{align}
+The implemented aggregate is
+\begin{equation}
+    G(D)=0.5\,G_{\text{dup}}+0.25\,G_{\text{invalid}}+0.25\,G_{\text{physical}}.
+\end{equation}
+
+The current audit reports:
 \begin{itemize}[leftmargin=1.5em]
-    \item duration,
-    \item sample count,
-    \item sampling irregularity,
-    \item noise level,
-    \item outlier fraction.
+    \item \(G_{\text{dup}} = 0.032\),
+    \item \(G_{\text{invalid}} = 0.000\),
+    \item \(G_{\text{physical}} = 0.029\),
+    \item \(G = 0.023\).
 \end{itemize}
-
-If a covariate alone predicts class membership too well, the classifier may be
-benefiting from corpus bias instead of motion structure.
 
 \subsection{Current Repo Interpretation}
 
-The current corpus adequacy audit is already enforceable rather than merely
-descriptive:
+The current common synthetic corpus now fails for principled scorecard reasons:
 \begin{itemize}[leftmargin=1.5em]
-    \item overall status is currently \texttt{fail},
-    \item the main red finding is that
-    \texttt{constant\_acceleration vs maneuver} is over-separated even though it
-    was declared hard,
-    \item two yellow findings indicate class-linked \texttt{std\_dt} and
-    \texttt{sampling\_irregularity} imbalance.
+    \item \(Q_{\text{corpus}} = 0.644\),
+    \item \(L = 0.613\),
+    \item \(T = 0.500\),
+    \item \(V = 1.000\),
+    \item \(G = 0.023\).
 \end{itemize}
+So the dominant issues are leakage and hard-pair triviality, not balance.
 
 \begin{figure}[htbp]
     \centering

@@ -141,6 +141,8 @@ Primary module families:
 - `corpus_search_baseline.py`
 - `corpus_synthesis_comparison.py`
 - `generic_corpus_exploration.py`
+- `corpus_policy.py`
+- `corpus_policy_sweep.py`
 - `candidate_generation.py`
 - `study_candidate_generation.py`
 - `study_candidate_protocol.py`
@@ -167,6 +169,7 @@ Primary module families:
 - `dimensional_lift_audit.py`
 - `pca_dimensionality_audit.py`
 - `advanced_filter_decision.py`
+- `advanced_state_inference.py`
 - `rl_backend_decision.py`
 - advanced-filter portions of `generic_filtering_contract.py`
 
@@ -239,9 +242,15 @@ surfaces rather than standalone math papers:
 - `__init__.py`
 - `__main__.py`
 - `catalog.py`
+- `formal_math_registry.py`
+- `formal_math_visual_registry.py`
 - `milestones.py`
+- `functional_surface_catalog.py`
+- `repo_story.py`
 - `showcase_builder.py`
 - `methodology_latex.py`
+- `runtime_paths.py`
+- `strict_equation_audit.py`
 
 Their mappings live in:
 

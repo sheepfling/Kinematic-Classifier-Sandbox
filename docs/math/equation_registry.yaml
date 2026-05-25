@@ -79,6 +79,69 @@
   tests:
     - tests/test_corpus_classifier_scoring.py
 
+- id: imm_mode_mixing_recursion
+  status: conceptual
+  latex: "\\bar{\\mu}_k^{(j)}=\\sum_i \\Pi_{ij}\\mu_{k-1}^{(i)},\\ \\omega_{ij}^{(k)}=\\frac{\\Pi_{ij}\\mu_{k-1}^{(i)}}{\\bar{\\mu}_{k}^{(j)}},\\ \\mu_k^{(j)}=\\frac{\\Lambda_k^{(j)}\\bar{\\mu}_k^{(j)}}{\\sum_m \\Lambda_k^{(m)}\\bar{\\mu}_k^{(m)}}"
+  symbols:
+    "\\mu_k^{(j)}": posterior probability of mode j at step k
+    "\\bar{\\mu}_k^{(j)}": predicted prior for mode j before measurement update
+    "\\Pi_{ij}": transition probability from mode i to mode j
+    "\\omega_{ij}^{(k)}": mixing weight from source mode i into target mode j
+    "\\Lambda_k^{(j)}": mode-conditioned likelihood at step k
+  implementation:
+    module: docs/surveys/dimensional_lift_and_advanced_filter_gates.tex
+    function: documentation_only
+  artifacts:
+    - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
+  tests: []
+
+- id: pf_importance_weight_update
+  status: conceptual
+  latex: "\\tilde{w}_k^{(i)}=w_{k-1}^{(i)}\\frac{p(z_k\\mid x_k^{(i)})p(x_k^{(i)}\\mid x_{k-1}^{(i)})}{q(x_k^{(i)}\\mid x_{0:k-1}^{(i)},z_{1:k})},\\ \\ w_k^{(i)}=\\frac{\\tilde{w}_k^{(i)}}{\\sum_j \\tilde{w}_k^{(j)}}"
+  symbols:
+    "x_k^{(i)}": particle i at step k
+    "w_k^{(i)}": normalized weight of particle i at step k
+    "\\tilde{w}_k^{(i)}": unnormalized weight of particle i at step k
+    "q(\\cdot)": proposal distribution
+    "p(z_k\\mid x_k^{(i)})": observation likelihood for particle i
+  implementation:
+    module: docs/surveys/dimensional_lift_and_advanced_filter_gates.tex
+    function: documentation_only
+  artifacts:
+    - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
+  tests: []
+
+- id: pf_class_evidence_extraction
+  status: conceptual
+  latex: "\\hat{p}(z_k\\mid c)\\approx\\sum_{i=1}^{N_p} w_{k-1}^{(i,c)}p(z_k\\mid x_k^{(i,c)},c),\\ \\ p_k(c)\\propto \\hat{p}(z_k\\mid c)p_{k-1}(c)"
+  symbols:
+    "\\hat{p}(z_k\\mid c)": particle approximation to class-conditioned predictive evidence
+    "w_{k-1}^{(i,c)}": previous particle weight for particle i under class c
+    "x_k^{(i,c)}": propagated particle i under class c
+    "p_k(c)": updated class posterior after PF evidence extraction
+  implementation:
+    module: docs/surveys/dimensional_lift_and_advanced_filter_gates.tex
+    function: documentation_only
+  artifacts:
+    - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
+  tests: []
+
+- id: rbpf_conditional_weight_update
+  status: conceptual
+  latex: "x_k=(r_k,s_k),\\ \\tilde{w}_k^{(i)}=w_{k-1}^{(i)}\\mathcal{N}(\\nu_k^{(i)};0,S_k^{(i)})"
+  symbols:
+    "r_k": sampled latent component at step k
+    "s_k": analytically filtered latent component at step k
+    "\\tilde{w}_k^{(i)}": unnormalized RBPF particle weight
+    "\\nu_k^{(i)}": conditional innovation residual for particle i
+    "S_k^{(i)}": conditional innovation covariance for particle i
+  implementation:
+    module: docs/surveys/dimensional_lift_and_advanced_filter_gates.tex
+    function: documentation_only
+  artifacts:
+    - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
+  tests: []
+
 - id: calibration_metrics
   status: conceptual
   latex: "\\text{Brier}=\\frac{1}{N}\\sum_{i=1}^N\\sum_{c\\in\\mathcal{C}}(p_i(c)-\\mathbf{1}[y_i=c])^2,\\ \\text{ECE}=\\sum_{b=1}^B\\frac{|I_b|}{N}|\\text{acc}(I_b)-\\text{conf}(I_b)|"
@@ -243,7 +306,7 @@
     "\\delta": ambiguity margin threshold
   implementation:
     module: src/kinematic_classifier_sandbox/class_validity.py
-    function: classify_validity_status
+    function: _status_for_row
   artifacts:
     - artifacts/class_validity/class_validity_scores.csv
   tests:

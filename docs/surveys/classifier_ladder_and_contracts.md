@@ -10,6 +10,34 @@ The point is to show:
 - where that rule lives in the code
 - what concrete artifact demonstrates the rule on a real run
 
+In the canonical repo story, this note is the `Classifier / Filter Ladder`
+pillar. It sits between the selected corpus and the evaluation layer, and its
+job is to answer one question consistently across methods: what is the next
+`ell_t(.)` and why is that evidence justified?
+
+## Repo Role
+
+The ladder should be read as:
+
+```tex
+\text{Validated Corpus}
+\rightarrow
+\text{Evidence Provider}
+\rightarrow
+\ell_t(\cdot)
+\rightarrow
+\text{Posterior Update}
+\rightarrow
+\text{Evaluation / Promotion}.
+```
+
+The repo’s algorithm claim is deliberately narrow:
+
+- each rung adds one new evidence capability
+- each rung must be justified by a failure mode of the previous rung
+- each rung should have at least one 1D witness problem that makes the upgrade
+  legible
+
 ## 1. Problem Statement
 
 The common classification problem in this repo is:
@@ -84,6 +112,9 @@ The methods differ in their stronger assumptions:
   linear-Gaussian state-space model
 - `transition_matrix_accumulator.py`: mode persistence and switching can be
   represented with a finite transition matrix and emission model
+- `advanced_state_inference.py`: IMM mixes multiple linear-Gaussian mode
+  models while preserving the same posterior/evidence/diagnostic contract and
+  emits the current 1D proof artifacts for advanced switching inference
 
 ## 4. Ladder Overview
 
@@ -94,6 +125,7 @@ The current ladder is:
 3. `sequential_bayes_accumulator.py`
 4. `kalman_filter_bank.py`
 5. `transition_matrix_accumulator.py`
+6. `advanced_state_inference.py`
 
 The upgrade path is deliberate:
 
@@ -104,7 +136,21 @@ The upgrade path is deliberate:
 - `kalman`: let a dynamics model predict the next observation and score the
   innovation
 - `transition_matrix`: inject explicit switching structure before paying the
-  complexity cost of IMM-like models
+  complexity cost of full multi-model inference
+- `IMM`: mix multiple linear-Gaussian mode models when switching structure and
+  explicit state mixing are required
+
+The reader-facing ladder is therefore:
+
+| Rung | Algorithm | Adds | Failure addressed | 1D witness |
+| --- | --- | --- | --- | --- |
+| 0 | `pointwise` | local likelihood baseline | no audited local baseline | pointwise overlap |
+| 1 | `windowed` | short local history | outlier and local-noise fragility | windowed outlier/extrema |
+| 2 | `sequential_bayes` | recursive memory | pointwise history blindness | sequential history |
+| 3 | `kalman_bank` | dynamics-conditioned innovations | endpoint ambiguity under irregular timing | Kalman endpoint match |
+| 4 | `transition_matrix` | explicit mode switching | static-class assumption | transition switching |
+| 5 | `IMM` proof | switching-aware state inference | demonstrated switching failures | advanced 1D switching witness |
+| 6 | `PF / RBPF` gates | nonlinear or mixed-mode escalation | only justified after demonstrated failures | future gated witnesses |
 
 ## 5. Pointwise Evidence Baseline
 
@@ -495,6 +541,7 @@ The practical repo contract is:
 - `generic_filtering_contract.py`
 - `trajectory_backend_contract.py`
 - `backend_adapter_proof.py`
+- `advanced_state_inference.py`
 
 ### 10.3 Why This Matters
 

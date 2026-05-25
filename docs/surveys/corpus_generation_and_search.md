@@ -10,6 +10,10 @@ description of how trajectories are synthesized. It is meant to answer:
 - how corpus candidates become promoted studies
 - which artifacts demonstrate those claims numerically
 
+In the canonical repo story, this note is the `Corpus Explorer` pillar. It is
+the part of the repo that turns an objective and backend into a selected corpus
+that the Study Candidate Evaluator can trust.
+
 ## Scope and Relation to Other Documents
 
 This document owns the corpus lifecycle:
@@ -27,6 +31,32 @@ It is intentionally narrower than the other two core documents:
 - this document explains how the corpus is produced, measured, and selected
   before those classifiers are asked to interpret it
 
+## Corpus Explorer Contract
+
+The generic corpus-side contract is:
+
+```tex
+(o, b, q, G_b) \mapsto D^\star,
+```
+
+where:
+
+- `o` is the corpus objective
+- `b` is the backend family
+- `q` is the candidate proposal distribution
+- `G_b` is the backend-specific generator
+- `D^*` is the selected corpus after adequacy, leakage, and validity audits
+
+In study terms, the explorer is upstream of the study candidate
+
+```tex
+s = (D^\star, f, C, m, \pi, b).
+```
+
+That is why this document is not merely about synthetic generation. It is about
+corpus governance: which candidate corpora exist, which are rejected, which are
+selected, and which study claims they can support.
+
 ## Corpus Evaluation Criteria
 
 Before any study is promoted, the corpus itself must be judged on its own
@@ -43,6 +73,9 @@ The most important corpus-level criteria are:
 - leakage control from duration, noise, sampling, or environment
 - degeneracy control so the corpus does not collapse to trivial repeats
 - provenance completeness so the selected corpus is reproducible
+
+These checks happen before classifier conclusions are trusted. A strong
+classifier result on a leaky or trivial corpus is not a strong study.
 
 A useful corpus-evaluation summary vector is:
 
@@ -84,7 +117,8 @@ only to “more synthetic trajectories.”
 The main objects are:
 
 - `tau`: a generated trajectory
-- `D`: a corpus, यानी a set of trajectories and labels
+- `D_k`: corpus candidate `k`
+- `D^*`: selected corpus after audit and selection
 - `theta_class`: class-specific motion parameters
 - `theta_tier`: difficulty-tier controls
 - `theta_noise`: corruption parameters
@@ -92,13 +126,17 @@ The main objects are:
 - `S_k`: scalar score for corpus candidate `k`
 - `o_k`: Pareto objective vector for candidate `k`
 
-At the trajectory level, the repo is effectively generating:
+The front-door corpus story is:
 
 ```tex
-\tau = \tau(\theta_{\text{class}}, \theta_{\text{tier}}, \theta_{\text{noise}}, \theta_{\text{sampling}}, \xi),
+\theta_k \sim q(\theta \mid o, b), \qquad
+\tau_i \sim G_b(\theta_k, \xi_i), \qquad
+D_k = \{\tau_i\}_{i=1}^{N_k}, \qquad
+D^\star = \operatorname*{select}_k(D_k \mid S_k, o_k, \text{adequacy gates}).
 ```
 
-where `xi` is the random seed realization.
+The selected corpus is therefore not merely the most recently generated one. It
+is the candidate that survives the declared score, Pareto, and gate logic.
 
 ## 3. Trajectory Parameterization and Witness Problems
 
