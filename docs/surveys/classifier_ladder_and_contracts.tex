@@ -2,6 +2,7 @@
 
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath, amssymb, amsfonts}
+\usepackage{booktabs}
 \usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -46,6 +47,28 @@ Once that log-score vector is available, the shared normalization surface is
     p_t(c) = \frac{\exp(\ell_t(c))}{\sum_j \exp(\ell_t(j))}.
 \end{equation}
 
+The current ladder uses the following evidence contract:
+\begin{center}
+\small
+\begin{tabular}{p{0.18\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\toprule
+Method & Evidence input \(y_t\) & Evidence term \(\ell_t(c)\) \\
+\midrule
+pointwise & current observation or local feature & \(\log p(y_t \mid c)\) \\
+windowed & fixed-window feature vector \(\phi_t\) & \(\log p(\phi_t \mid c)\) \\
+sequential Bayes & recursively emitted evidence stream & accumulated per-step log evidence \\
+Kalman bank & innovation residual \(\nu_{t,c}\) & \(\log \mathcal{N}(\nu_{t,c}; 0, S_{t,c})\) \\
+transition model & evidence plus transition prior & \(\ell_t(c) + \log \sum_j T_{jc}p_{t-1}(j)\) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The pointwise rung is the pure local-evidence baseline. The windowed rung
+aggregates a short history into a feature vector. The sequential Bayes rung
+adds recursive memory. The Kalman bank replaces hand-built evidence with
+model-based innovation likelihoods. The transition rung adds explicit switching
+structure for mode changes.
+
 \section{Common Assumptions}
 
 The ladder shares a few numerical and methodological assumptions:
@@ -73,6 +96,8 @@ Each level adds a specific capability:
 \begin{itemize}[leftmargin=1.5em]
     \item \texttt{pointwise}: one-step evidence from direct observations
     \item \texttt{windowed}: short-history summary evidence
+    \item \texttt{state\_estimate}: covariance-aware evidence from provided
+    filtered states
     \item \texttt{accumulator}: recursive cumulative evidence
     \item \texttt{kalman}: state-space prediction plus innovation likelihoods
     \item \texttt{transition\_matrix}: explicit switching pressure across modes
@@ -101,6 +126,8 @@ recursive prior \(p_{t-1}(c)\), the implementation computes
 This is the exact update used by
 \texttt{GaussianPointwiseClassifier.update}. The model carries no explicit
 latent state; its entire memory is the posterior vector \(p_{t-1}\).
+This rung is the right baseline when a single sample already carries enough
+class signal and the corpus does not require temporal context.
 
 \section{Windowed Evidence Baseline}
 
@@ -147,6 +174,46 @@ where \(\mathcal{F}\) is the selected feature subset. The current code assumes
 conditional independence between feature coordinates inside a row.
 That conditional-independence approximation is the key modeling assumption of
 the windowed rung.
+Windowed evidence is the right compromise when short local context matters but
+the method still needs a simple probabilistic interface.
+
+\section{Covariance-Aware State Estimate Evidence}
+
+Sometimes the input is not a raw observation stream but an already filtered
+state estimate with covariance, for example
+\begin{equation}
+    (x_t, P_t) \quad \text{or} \quad (x_{t|t}, P_{t|t}).
+\end{equation}
+In that case the Kalman update has already been performed elsewhere, so the
+right evidence atom is not a new innovation residual. The right rung is a
+covariance-aware state-likelihood score.
+
+The class-conditioned evidence can be written as
+\begin{equation}
+    \ell_t(c)
+    =
+    -\frac{1}{2}
+    \left[
+        (x_t - \mu_c)^\top \Sigma_{t,c}^{-1}(x_t - \mu_c)
+        + \log |\Sigma_{t,c}|
+        + d \log(2\pi)
+    \right],
+\end{equation}
+where \(\Sigma_{t,c}\) is the supplied covariance or a class-conditioned
+covariance model built from it. If the provided covariance is class-neutral,
+then \(\Sigma_{t,c}\) can be taken as the supplied covariance plus any
+class-specific process or measurement inflation used by the benchmark.
+
+This rung is the right choice when:
+\begin{itemize}[leftmargin=1.5em]
+    \item the tracker already gives a state estimate and covariance,
+    \item the task is to classify trajectories from filtered states rather than
+    to re-run tracking,
+    \item the evidence should measure class fit to the filtered state, not the
+    raw measurement innovation.
+\end{itemize}
+In other words, the ladder step is \emph{covariance-aware state evidence}, not
+full Kalman filtering.
 
 \section{Sequential Bayes Accumulator}
 
@@ -180,6 +247,8 @@ The implementation also exposes a confidence gate. Let
 with threshold \(\tau\) supplied as \texttt{confidence\_threshold}. That
 abstention rule is why the accumulator artifacts can separate evidence weakness
 from plain misclassification.
+This rung is the simplest place where posterior quality becomes a first-class
+question: a high posterior is only useful if it is also well calibrated.
 
 \section{Kalman Innovation Bank}
 
@@ -231,6 +300,9 @@ change benchmark behavior:
     large.
 \end{itemize}
 Those policies are what the variant-comparison artifacts are actually testing.
+This rung is the most model-driven one in the ladder. It is strongest when the
+class hypothesis really implies a state-space trajectory and weakest when the
+corpus is better described by local features alone.
 
 \section{Transition-Aware Accumulation}
 
@@ -265,8 +337,12 @@ This is the current pre-IMM rung: the repo is already testing whether explicit
 mode persistence and switching probabilities explain the observed failure mode
 before paying the complexity cost of a full interacting multiple-model design.
 
-There is now a worked numeric example for this update path in
-\texttt{artifacts/transition\_matrix\_accumulator\_v1/transition\_matrix\_numeric\_walkthrough.md}.
+There is now a worked numeric example for this update path in the artifact
+below.
+\begin{center}
+\footnotesize
+\texttt{artifacts/transition\_matrix\_accumulator\_v1/transition\_matrix\_numeric\_walkthrough.md}
+\end{center}
 That walkthrough uses a real switching trajectory and shows:
 \begin{itemize}[leftmargin=1.5em]
     \item the propagated prior at the first switched step,
@@ -282,6 +358,73 @@ That walkthrough uses a real switching trajectory and shows:
     \caption{Transition-aware accumulation diagnostics.}
 \end{figure}
 
+\section{Calibration And Posterior Quality}
+
+Posterior quality is not the same as accuracy. A method can be accurate but
+poorly calibrated, or calibrated but not especially accurate. The repo tracks
+both notions because a posterior is only useful if its confidence is
+trustworthy.
+
+The main calibration metrics are:
+\begin{align}
+    \mathrm{NLL}
+    &=
+    -\frac{1}{N}\sum_{i=1}^{N}\log p_i(y_i), \\
+    \mathrm{Brier}
+    &=
+    \frac{1}{N}\sum_{i=1}^{N}\sum_{c\in\mathcal{C}}
+    \left(p_i(c)-\mathbf{1}\{y_i=c\}\right)^2, \\
+    H_i
+    &=
+    -\sum_{c\in\mathcal{C}} p_i(c)\log p_i(c), \\
+    \mathrm{ECE}
+    &=
+    \sum_{b=1}^{B}\frac{|I_b|}{N}
+    \left|\mathrm{acc}(I_b)-\mathrm{conf}(I_b)\right|.
+\end{align}
+Here \(H_i\) is posterior entropy, \(\mathrm{NLL}\) is negative
+log-likelihood, \(\mathrm{Brier}\) is the squared-probability error, and
+\(\mathrm{ECE}\) is expected calibration error computed over confidence bins.
+
+Posterior quality is usually interpreted with three additional indicators:
+\begin{itemize}[leftmargin=1.5em]
+    \item high mean confidence with high error rate indicates overconfidence,
+    \item low entropy with low error rate indicates sharp, well-supported
+    posteriors,
+    \item high disagreement across method families indicates that posterior
+    quality depends strongly on the evidence model, not only on the class pair.
+\end{itemize}
+
+The current artifact bundle does not yet expose NLL, Brier, and ECE as primary
+columns everywhere, so the repo currently uses confidence, entropy, margin,
+confident-error rate, prior flips, and disagreement as the practical posterior
+quality surface.
+
+\subsection*{Current Repo Interpretation}
+
+On the current 90-trajectory generated corpus slice, the posterior-quality
+summary is:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{windowed\_raw}: accuracy \(0.978\), mean confidence \(0.996\),
+    mean entropy \(0.010\), confident-error rate \(0.022\)
+    \item \texttt{windowed\_robust}: accuracy \(0.956\), mean confidence \(1.000\),
+    mean entropy \(0.000\), confident-error rate \(0.044\)
+    \item \texttt{pointwise}: accuracy \(0.867\), mean confidence \(0.984\),
+    mean entropy \(0.034\), confident-error rate \(0.133\)
+    \item \texttt{sequential\_bayes}: accuracy \(0.822\), mean confidence \(0.967\),
+    mean entropy \(0.053\), confident-error rate \(0.111\)
+    \item \texttt{kalman\_bank}: accuracy \(0.678\), mean confidence \(0.924\),
+    mean entropy \(0.198\), confident-error rate \(0.244\)
+\end{itemize}
+The most important reading is that the windowed methods are currently the best
+posterior-quality performers on this corpus slice, while the Kalman bank is the
+least accurate and most uncertain. The pointwise and sequential Bayes rungs
+sit between those extremes.
+
+The current disagreement rate is \(46/90\) trajectories, which means the method
+families are not redundant. They are making meaningfully different claims about
+the same trajectories, which is exactly what a ladder should expose.
+
 \section{Implementation Contract}
 
 The ladder only becomes a methodology framework when different methods can be
@@ -294,10 +437,13 @@ evaluated through a common output surface. The practical repo contract is:
     \text{shared metrics and artifact writers}.
 \end{equation}
 This contract is implemented across
-\texttt{common\_experiment\_harness.py},
-\texttt{common\_experiment\_classifier\_registry.py},
-\texttt{shared\_evaluation.py},
-\texttt{contracts.py}, and the generic contract proof modules.
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{common\_experiment\_harness.py}
+    \item \texttt{common\_experiment\_classifier\_registry.py}
+    \item \texttt{shared\_evaluation.py}
+    \item \texttt{contracts.py}
+\end{itemize}
+and the generic contract proof modules.
 
 \section{Shared Ladder Benchmark And Dataset Comparison}
 
@@ -405,5 +551,28 @@ Primary artifacts for this layer:
     \item \texttt{artifacts/filtering\_contract/}
     \item \texttt{artifacts/transition\_matrix\_accumulator\_v1/}
 \end{itemize}
+
+\section{References}
+\begin{thebibliography}{9}
+\bibitem{brier1950}
+G. W. Brier.
+\newblock Verification of forecasts expressed in terms of probability.
+\newblock \emph{Monthly Weather Review}, 78(1):1--3, 1950.
+
+\bibitem{niculescu2005}
+A. Niculescu-Mizil and R. Caruana.
+\newblock Predicting good probabilities with supervised learning.
+\newblock In \emph{ICML}, 2005.
+
+\bibitem{guo2017}
+C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger.
+\newblock On calibration of modern neural networks.
+\newblock In \emph{ICML}, 2017.
+
+\bibitem{kalman1960}
+R. E. Kalman.
+\newblock A new approach to linear filtering and prediction problems.
+\newblock \emph{Transactions of the ASME}, 1960.
+\end{thebibliography}
 
 \end{document}

@@ -15,6 +15,7 @@ from .validation_ladder import analyze_validation_ladder
 
 ROOT = Path(__file__).resolve().parents[2]
 DOCS_LATEX_DIR = ROOT / "docs" / "latex"
+DOCS_MATH_DIR = ROOT / "docs" / "math"
 DOCS_TABLES_DIR = DOCS_LATEX_DIR / "tables"
 DOCS_FIGURES_DIR = DOCS_LATEX_DIR / "figures"
 SOURCE_TEX_PATH = DOCS_LATEX_DIR / "kinematic_classifier_methodology.tex"
@@ -92,7 +93,7 @@ def _tabularx_table(
     for column in columns:
         if len(column) == 2:
             key, spec = column
-            normalized.append((key, key, spec))
+            normalized.append((key, _latex_escape(key), spec))
         else:
             key, header, spec = column
             normalized.append((key, header, spec))
@@ -151,132 +152,6 @@ def _corpus_synthesis_algorithm_tex() -> str:
 
 def _source_tex() -> str:
     return SOURCE_TEX_PATH.read_text(encoding="utf-8")
-            r"",
-            r"\section{Bayesian Evidence Model}",
-            r"The repository treats posterior updating as a reusable contract. For class label $c$ and observation history $y_{1:k}$, the recursive update is",
-            r"\begin{equation}",
-            r"p_k(c) = \frac{p(y_k \mid c)\, p_{k-1}(c)}{\sum_{c'} p(y_k \mid c')\, p_{k-1}(c')}.",
-            r"\end{equation}",
-            r"In log form,",
-            r"\begin{equation}",
-            r"\log p_k(c) = \log p_{k-1}(c) + \log p(y_k \mid c) - \log Z_k,",
-            r"\end{equation}",
-            r"and in the two-class case the log-odds recursion becomes",
-            r"\begin{equation}",
-            r"\log \frac{p_k(a)}{p_k(b)} = \log \frac{p_{k-1}(a)}{p_{k-1}(b)} + \log \frac{p(y_k \mid a)}{p(y_k \mid b)}.",
-            r"\end{equation}",
-            r"This is why the walkthrough artifacts emphasize Bayes factors, prior sweeps, and flip thresholds rather than only endpoint accuracy. The crucial architectural point is that pointwise baselines, windowed summaries, sequential accumulators, Kalman innovation banks, and transition-aware models are all different ways of supplying the class-conditioned evidence term \(p(y_k \mid c)\) or its log form.",
-            r"",
-            r"\section{Feature Taxonomy}",
-            r"The methodology distinguishes instantaneous, windowed, cumulative, robust-summary, derivative-based, and model-residual evidence. Instantaneous features look the most like fresh evidence. Windowed and robust features are summary evidence. Cumulative features can double-count prior signal if they are treated as independent measurements. Model-residual features compare observations against class-conditioned dynamics and are therefore the natural bridge toward filtering backends.",
-            r"If \(\phi(\tau)\) denotes a feature extractor applied to trajectory \(\tau\), then the feature layer is not only a convenience transformation. It defines the evidence geometry that later AUC, overlap, PCA, and separability studies inspect.",
-            r"",
-            r"\section{Witness Problems}",
-            r"The repository uses small 1D witness problems as methodological proofs. Their purpose is to isolate one layer of reasoning at a time rather than to claim a finished deployment-grade taxonomy.",
-            r"\input{tables/toy_problem_summary_table.tex}",
-            r"",
-            r"\section{Algorithm Ladder}",
-            r"The classifier ladder is the main experimental spine. Each rung adds one capability and is supposed to address one previously identified failure mode rather than add complexity for its own sake.",
-            r"\input{tables/algorithm_ladder_table.tex}",
-            r"",
-            r"\section{Bayesian Update Walkthrough}",
-            r"The current repository emits representative Bayesian walkthroughs from promoted and revised study candidates. These use real common-study trajectories and expose prior odds, class-score increments, posterior odds, prior sweeps, and flip thresholds. The step table below is a compact numeric witness of that process.",
-            r"\input{tables/bayesian_update_walkthrough_table.tex}",
-            r"",
-            r"\begin{figure}[htbp]",
-            r"\centering",
-            r"\includegraphics[width=0.9\textwidth]{prior_sweep_examples.png}",
-            r"\caption{Representative prior-sweep examples from the Bayesian walkthrough suite.}",
-            r"\end{figure}",
-            r"",
-            r"\section{Corpus Adequacy-Driven Corpus Synthesis}",
-            r"The corpus layer is treated as an optimization problem over balance, boundary coverage, feature excitation, leakage control, difficulty diversity, and nontriviality. The current automation does not simply audit the default corpus; it generates and ranks alternatives.",
-            r"In symbolic form, one candidate corpus score takes the form",
-            r"\begin{equation}",
-            r"S_k = B_k + C_k + F_k + D_k - L_k - T_k - G_k,",
-            r"\end{equation}",
-            r"where the positive terms reward balance, boundary coverage, feature excitation, and difficulty diversity, while the negative terms penalize leakage, triviality, and degeneracy. This is the point where the repository moves beyond fixed toy datasets and starts reasoning about whether the data itself is good enough to trust later classifier conclusions.",
-            r"\input{tables/corpus_synthesis_algorithm.tex}",
-            r"",
-            r"\section{Automated Study Proposal and Promotion}",
-            r"The repository now automatically generates study candidates from declared manifests and uses a validation ladder to issue \texttt{promote}, \texttt{revise}, \texttt{reject}, and \texttt{defer} decisions. The study-candidate layer is where corpus evidence, feature evidence, classifier compatibility, prior sensitivity, and implementation readiness are fused.",
-            r"The current screening logic is intentionally two-stage. First, a static score \(Q_{\text{static}}\) screens candidate studies before they are expensive to evaluate. Second, executed common-study evidence provides a confirmation score \(Q_{\text{mc}}\). The current implementation therefore approximates",
-            r"\begin{align}",
-            r"Q_{\text{static}}",
-            r"&=",
-            r"\text{compatibility} + \text{separability} + \text{coverage} + \text{transfer}",
-            r"\notag \\",
-            r"&\quad - \text{dependency risk} - \text{history double-counting risk} - \text{prior fragility},",
-            r"\end{align}",
-            r"followed by",
-            r"\begin{equation}",
-            r"Q_{\text{mc}} = 0.60 \cdot \text{accuracy} + 0.25 \cdot (1 - \text{prior flip fraction}) + 0.15 \cdot (1 - \text{oracle gap}).",
-            r"\end{equation}",
-            r"The algorithmic skeleton used by the current implementation is:",
-            r"\input{tables/study_candidate_generation_algorithm.tex}",
-            r"",
-            r"\section{Feature and Class-Pair Analysis}",
-            r"The methodology separates static identifiability from end-to-end classifier success. Feature-space overlap, oracle separability, pair difficulty, and duration/noise sensitivity are all treated as first-class evidence surfaces. This helps distinguish feature failure, corpus failure, and classifier failure.",
-            r"If a class pair is hard, the repository does not immediately conclude that the classifier is weak. Instead it asks whether the feature layer has poor pairwise AUC, high overlap, weak excitation, or prior fragility. That separation of concerns is one of the main reasons the project can plausibly scale beyond one classifier family.",
-            r"",
-            r"\begin{figure}[htbp]",
-            r"\centering",
-            r"\includegraphics[width=0.9\textwidth]{class_confusability_heatmap.png}",
-            r"\caption{Feature-space confusability remains pair-specific and motivates targeted feature or corpus work instead of one global leaderboard conclusion.}",
-            r"\end{figure}",
-            r"",
-            r"\section{From Generated Corpora To Promoted Studies}",
-            r"The newer corpus-gym and study-candidate layers close the loop between data generation and methodology governance. In the current repository, objective-driven trajectory generation, quality-diversity archiving, backend-aware candidate generation, and validation-ladder promotion are all part of the same chain:",
-            r"\begin{align}",
-            r"\text{objective-driven trajectory proposals}",
-            r"&\rightarrow",
-            r"\text{generated corpus features}",
-            r"\rightarrow",
-            r"\text{classifier stress and prior sensitivity}",
-            r"\notag \\",
-            r"&\rightarrow",
-            r"\text{study candidate generation}",
-            r"\rightarrow",
-            r"\text{validation ladder}",
-            r"\rightarrow",
-            r"d.",
-            r"\end{align}",
-            r"This is the architectural reason the disparate corpus, feature, and study docs belong together. They are not separate research threads anymore; they are stages of one methodology pipeline.",
-            r"",
-            r"\section{Filtering Taxonomy and Advanced-Method Gates}",
-            r"The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, and transition-matrix evidence surfaces. It also records explicit no-go decisions for IMM, PF, and RBPF unless switching-mode or nonlinear evidence demands them. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains decision-gated, PF remains decision-gated, and RBPF is only meaningful if future vector studies expose conditionally tractable mixed discrete/continuous structure.",
-            r"The key policy claim is that advanced methods are downstream of failure evidence. If \(M_0\) is the current simpler method and \(M_1\) is a more advanced filter family, the repository is trying to justify a transition only when",
-            r"\begin{equation}",
-            r"\text{failure}(M_0, \mathcal{D}) \land \text{capability gain}(M_1) \land \text{measurable success criterion}(M_1)",
-            r"\end{equation}",
-            r"can all be stated explicitly. That is why the advanced-filter reports are decision artifacts rather than implementation plans by default.",
-            r"",
-            r"\begin{figure}[htbp]",
-            r"\centering",
-            r"\includegraphics[width=0.9\textwidth]{transition_matrix_diagnostics.png}",
-            r"\caption{Transition-matrix accumulation improves on static accumulation for switching trajectories and acts as the bridge evidence before considering IMM.}",
-            r"\end{figure}",
-            r"",
-            r"\section{Results Summary}",
-            r"The current artifact stack proves the methodology process: study candidates can be declared, screened statically, evaluated against generated corpora, explained through posterior and prior-sensitivity surfaces, and assigned promotion decisions. It does not yet prove that the current synthetic corpus is final or fully adequate for every future class family. The strongest current claim is architectural rather than leaderboard-oriented: the repo can already express corpus design, feature analysis, evidence accumulation, evaluation, and promotion through shared artifacts.",
-            r"",
-            r"\section{3D Transition Status}",
-            r"The current methodology layer distinguishes three statuses: \texttt{dimension\_agnostic}, \texttt{adapter\_compatible}, and \texttt{rewrite\_required}. Contracts, shared evaluation, and study promotion are already dimension-aware. Scalar feature extraction and scalar state-space filtering remain rewrite-required, so current 3D readiness is methodological rather than dynamical.",
-            r"The intended 3D lift is therefore not",
-            r"\begin{equation}",
-            r"\text{rewrite everything},",
-            r"\end{equation}",
-            r"but rather",
-            r"\begin{equation}",
-            r"\text{new corpus adapter} + \text{new feature geometry} + \text{new dynamics/measurement models} + \text{reuse of posterior/evaluation/reporting machinery}.",
-            r"\end{equation}",
-            r"",
-            r"\section{Limitations and Next Work}",
-            r"The current common-study evidence still uses a class-score proxy for some walkthroughs, not a pure additive sensor likelihood decomposition for every family. The 1D studies are witness problems rather than a final deployment corpus. Some survey PDFs still contain cosmetic overfull-box warnings. The next work after this paper bundle is to integrate more numeric worked examples directly into the synthesis paper and then drive a true vector-valued corpus, feature, and filter lift through the same contracts proved here.",
-            r"",
-            r"\end{document}",
-        ]
-    )
 
 
 def analyze_methodology_latex(
@@ -475,6 +350,12 @@ def _copy_figure(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
+def _copy_tree(source: Path, destination: Path) -> None:
+    if destination.exists():
+        shutil.rmtree(destination)
+    shutil.copytree(source, destination)
+
+
 def _compile_pdf(run_dir: Path, tex_path: Path) -> Path | None:
     if shutil.which("latexmk") is None:
         return None
@@ -512,6 +393,7 @@ def write_methodology_latex_artifacts(
     latex = result or analyze_methodology_latex()
     run_dir = Path(output_dir) / "latex"
     figures_dir = run_dir / "figures"
+    math_dir = run_dir / "math"
     tables_dir = run_dir / "tables"
     run_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
@@ -530,7 +412,8 @@ def write_methodology_latex_artifacts(
     study_candidate_generation_algorithm_path = tables_dir / "study_candidate_generation_algorithm.tex"
 
     _write_text(source_tex_path, latex.methodology_tex)
-    _write_text(artifact_tex_path, latex.methodology_tex)
+    artifact_tex = latex.methodology_tex.replace("../math/", "math/")
+    _write_text(artifact_tex_path, artifact_tex)
     _write_text(DOCS_TABLES_DIR / "algorithm_ladder_table.tex", latex.algorithm_ladder_table_tex)
     _write_text(DOCS_TABLES_DIR / "bayesian_update_walkthrough_table.tex", latex.bayesian_update_walkthrough_table_tex)
     _write_text(DOCS_TABLES_DIR / "corpus_synthesis_algorithm.tex", latex.corpus_synthesis_algorithm_tex)
@@ -554,6 +437,8 @@ def write_methodology_latex_artifacts(
         if source.exists():
             _copy_figure(source, figures_dir / filename)
             _copy_figure(source, DOCS_FIGURES_DIR / filename)
+    if DOCS_MATH_DIR.exists():
+        _copy_tree(DOCS_MATH_DIR, math_dir)
 
     pdf_path = _compile_pdf(run_dir, artifact_tex_path) if build_pdf else None
 

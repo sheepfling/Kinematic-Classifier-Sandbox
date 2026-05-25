@@ -1,14 +1,8 @@
-\begin{center}
 \small
-\begin{longtable}{p{0.12\textwidth}p{0.32\textwidth}p{0.17\textwidth}p{0.17\textwidth}p{0.14\textwidth}}
+\begin{tabularx}{\textwidth}{p{0.12\textwidth}X p{0.17\textwidth}p{0.17\textwidth}p{0.14\textwidth}}
 \toprule
 Symbol & Meaning & Shape / type & Example & Source \\
 \midrule
-\endfirsthead
-\toprule
-Symbol & Meaning & Shape / type & Example & Source \\
-\midrule
-\endhead
 \(\tau_i\) & trajectory \(i\) as one sampled truth-and-observation sequence & sequence & \(\{(t_k, z_k)\}_{k=1}^{n_i}\) & trajectory artifacts \\
 \(t_k\) & timestamp at step \(k\) & scalar & \(0.5\ \mathrm{s}\) & trajectory tables \\
 \(x_k\) & latent kinematic state & vector & \([p_k, v_k, a_k]^\top\) & Kalman bank \\
@@ -33,5 +27,4 @@ Symbol & Meaning & Shape / type & Example & Source \\
 \(v_c(\tau)\) & validity score of trajectory \(\tau\) under class \(c\) & scalar in \([0,1]\) & \(0.81\) & class validity \\
 \(d\) & validation-ladder terminal decision & enum & promote / revise / reject / defer & validation ladder \\
 \bottomrule
-\end{longtable}
-\end{center}
+\end{tabularx}

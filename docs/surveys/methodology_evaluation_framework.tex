@@ -169,6 +169,72 @@ The current prior-sensitivity artifacts show the desired split:
     fragility and pairwise flip-threshold structure.}
 \end{figure}
 
+\section{Calibration And Posterior Quality}
+
+Calibration answers a different question from accuracy: when the model says
+``90\% confidence,'' does it actually get the answer right about 90\% of the
+time? Posterior quality is the broader version of that idea. It includes
+calibration, sharpness, entropy, and error concentration.
+
+The main diagnostics are:
+\begin{align}
+    \mathrm{NLL}
+    &=
+    -\frac{1}{N}\sum_{i=1}^{N}\log p_i(y_i), \\
+    \mathrm{Brier}
+    &=
+    \frac{1}{N}\sum_{i=1}^{N}\sum_{c\in\mathcal{C}}
+    \left(p_i(c)-\mathbf{1}\{y_i=c\}\right)^2, \\
+    H_i
+    &=
+    -\sum_{c\in\mathcal{C}} p_i(c)\log p_i(c), \\
+    \mathrm{ECE}
+    &=
+    \sum_{b=1}^{B}\frac{|I_b|}{N}
+    \left|\mathrm{acc}(I_b)-\mathrm{conf}(I_b)\right|.
+\end{align}
+Here \(\mathrm{NLL}\) is the negative log-likelihood, \(\mathrm{Brier}\) is a
+squared-probability score, \(H_i\) is posterior entropy, and \(\mathrm{ECE}\)
+is the expected calibration error over confidence bins.
+
+Interpretation is straightforward:
+\begin{itemize}[leftmargin=1.5em]
+    \item lower NLL is better,
+    \item lower Brier is better,
+    \item lower ECE is better,
+    \item lower entropy on easy cases and higher entropy on hard cases is a
+    healthy sign,
+    \item very high confidence combined with high error rate is a calibration
+    failure.
+\end{itemize}
+
+The current artifact bundle does not yet expose all of these metrics as primary
+CSV columns, so the repo currently uses confidence, entropy, margin,
+confident-error rate, prior flips, and method disagreement as the practical
+posterior-quality surface.
+
+\subsection*{Current Repo Interpretation}
+
+On the current generated-corpus scoring bundle:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{windowed\_raw}: accuracy \(0.978\), mean confidence \(0.996\),
+    mean entropy \(0.010\), confident-error rate \(0.022\)
+    \item \texttt{windowed\_robust}: accuracy \(0.956\), mean confidence \(1.000\),
+    mean entropy \(0.000\), confident-error rate \(0.044\)
+    \item \texttt{pointwise}: accuracy \(0.867\), mean confidence \(0.984\),
+    mean entropy \(0.034\), confident-error rate \(0.133\)
+    \item \texttt{sequential\_bayes}: accuracy \(0.822\), mean confidence \(0.967\),
+    mean entropy \(0.053\), confident-error rate \(0.111\)
+    \item \texttt{kalman\_bank}: accuracy \(0.678\), mean confidence \(0.924\),
+    mean entropy \(0.198\), confident-error rate \(0.244\)
+\end{itemize}
+The useful reading is that the windowed methods currently look best on this
+corpus slice, pointwise and sequential Bayes are intermediate, and the Kalman
+bank is the least accurate and least stable on the current witness data.
+Disagreement across method families occurs on \(46/90\) trajectories, which
+means the corpus is exposing genuinely different evidence behaviors rather than
+just repeating the same posterior surface.
+
 \section{How We Evaluate Separability}
 
 \subsection{Pairwise AUC}
@@ -477,5 +543,23 @@ This document should be read alongside the posterior note:
 \end{itemize}
 
 That keeps posterior mechanics separate from evaluation methodology.
+
+\section{References}
+\begin{thebibliography}{9}
+\bibitem{brier1950}
+G. W. Brier.
+\newblock Verification of forecasts expressed in terms of probability.
+\newblock \emph{Monthly Weather Review}, 78(1):1--3, 1950.
+
+\bibitem{niculescu2005}
+A. Niculescu-Mizil and R. Caruana.
+\newblock Predicting good probabilities with supervised learning.
+\newblock In \emph{ICML}, 2005.
+
+\bibitem{guo2017}
+C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger.
+\newblock On calibration of modern neural networks.
+\newblock In \emph{ICML}, 2017.
+\end{thebibliography}
 
 \end{document}

@@ -1,14 +1,21 @@
 # Code-to-Equation Crosswalk
 
-| Equation / concept | What it computes | Code path | Test path | Artifact path |
-| --- | --- | --- | --- | --- |
-| Bayes recursive update | Posterior history under sequential evidence | `src/kinematic_classifier_sandbox/sequential_bayes_accumulator.py` | `tests/test_corpus_classifier_scoring.py` | `artifacts/corpus_classifier_scoring/posterior_history.csv` |
-| Two-class log odds / prior flip | Prior sensitivity and flip threshold | `src/kinematic_classifier_sandbox/bayesian_walkthroughs.py` | `tests/test_bayesian_walkthroughs.py` | `artifacts/bayesian_walkthroughs/posterior_flip_thresholds.csv` |
-| Transition-matrix update | Switching-aware posterior propagation | `src/kinematic_classifier_sandbox/transition_matrix_accumulator.py` | `tests/test_transition_matrix_accumulator.py` | `artifacts/transition_matrix_accumulator_v1/transition_matrix_accumulator_report.md` |
-| Kalman innovation likelihood | Model-based evidence increment per class | `src/kinematic_classifier_sandbox/kalman_filter_bank.py` | `tests/test_corpus_classifier_scoring.py` | `artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv` |
-| Corpus autodevelopment scalar score | Corpus adequacy ranking | `src/kinematic_classifier_sandbox/corpus_autodevelopment.py` | `tests/test_corpus_autodevelopment.py` | `artifacts/corpus_autodevelopment_v1/candidate_scores.csv` |
-| Pareto dominance | Non-dominated corpus alternatives | `src/kinematic_classifier_sandbox/corpus_autodevelopment.py` | `tests/test_corpus_autodevelopment.py` | `artifacts/corpus_autodevelopment_v1/pareto_front.csv` |
-| CorpusGym reward | Targeted trajectory search utility | `src/kinematic_classifier_sandbox/corpus_gym.py` | `tests/test_corpus_gym.py` | `artifacts/corpus_gym/corpus_gym_report.md` |
-| QD archive utility and cell mapping | Elite selection over archive cells | `src/kinematic_classifier_sandbox/objective_driven_qd_archive.py` | `tests/test_objective_driven_qd_archive.py` | `artifacts/quality_diversity_corpus_v1/archive_elites.csv` |
-| Candidate sampler mixture | Objective-driven candidate proposal family | `src/kinematic_classifier_sandbox/candidate_generation.py` | `tests/test_candidate_generation.py` | `artifacts/candidate_generation/generated_candidates.csv` |
-| Class-validity status logic | Valid / ambiguous / relabel / invalid partitioning | `src/kinematic_classifier_sandbox/class_validity.py` | `tests/test_class_validity.py` | `artifacts/class_validity/class_validity_scores.csv` |
+This source document links the current methodology equations to implementation paths, tests, and generated artifacts. It is the narrative companion to `equation_registry.yaml`.
+
+| Equation / concept | Status | What it computes | Code path | Test path | Artifact path |
+| --- | --- | --- | --- | --- | --- |
+| Bayes recursive update | implemented | Posterior history under sequential evidence | `src/kinematic_classifier_sandbox/sequential_bayes_accumulator.py` | `tests/test_corpus_classifier_scoring.py` | `artifacts/corpus_classifier_scoring/posterior_history.csv` |
+| Two-class log odds / prior flip | implemented | Prior sensitivity and flip threshold | `src/kinematic_classifier_sandbox/bayesian_walkthroughs.py` | `tests/test_bayesian_walkthroughs.py` | `artifacts/bayesian_walkthroughs/posterior_flip_thresholds.csv` |
+| Transition-matrix update | implemented | Switching-aware posterior propagation | `src/kinematic_classifier_sandbox/transition_matrix_accumulator.py` | `tests/test_transition_matrix_accumulator.py` | `artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md` |
+| Gaussian feature likelihood | conceptual | Reference likelihood for feature-space evidence exposition | `docs/latex/kinematic_classifier_methodology.tex` | none | `artifacts/latex/kinematic_classifier_methodology.pdf` |
+| Kalman innovation likelihood | implemented | Model-based evidence increment per class | `src/kinematic_classifier_sandbox/kalman_filter_bank.py` | `tests/test_corpus_classifier_scoring.py` | `artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv` |
+| Calibration metrics | conceptual | Posterior-quality summary metrics | `docs/latex/kinematic_classifier_methodology.tex` | none | `artifacts/latex/kinematic_classifier_methodology.pdf` |
+| Pairwise Mahalanobis distance | conceptual | Feature-space pair-separation diagnostic | `docs/surveys/methodology_evaluation_framework.tex` | none | `artifacts/methodology_evaluation_framework.pdf` |
+| Corpus autodevelopment scalar score | implemented | Corpus adequacy ranking | `src/kinematic_classifier_sandbox/corpus_autodevelopment.py` | `tests/test_corpus_autodevelopment.py` | `artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md` |
+| Pareto dominance | implemented | Non-dominated corpus alternatives | `src/kinematic_classifier_sandbox/corpus_autodevelopment.py` | `tests/test_corpus_autodevelopment.py` | `artifacts/corpus_autodevelopment_v1/pareto_front.csv` |
+| CorpusGym reward | implemented | Targeted trajectory search utility | `src/kinematic_classifier_sandbox/corpus_gym.py` | `tests/test_corpus_gym.py` | `artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md` |
+| Corpus Explorer utility | implemented | Utility for candidate exploration and archive filling | `src/kinematic_classifier_sandbox/generic_corpus_exploration.py` | `tests/test_generic_corpus_exploration.py` | `artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md` |
+| QD archive utility and cell mapping | implemented | Elite selection over archive cells | `src/kinematic_classifier_sandbox/objective_driven_qd_archive.py` | `tests/test_objective_driven_qd_archive.py` | `artifacts/quality_diversity_corpus_v1/archive_elites.csv` |
+| Candidate sampler mixture | implemented | Objective-driven candidate proposal family | `src/kinematic_classifier_sandbox/candidate_generation.py` | `tests/test_candidate_generation.py` | `artifacts/candidate_generation/generated_candidates.csv` |
+| Class-validity status logic | implemented | Valid / ambiguous / relabel / invalid partitioning | `src/kinematic_classifier_sandbox/class_validity.py` | `tests/test_class_validity.py` | `artifacts/class_validity/class_validity_scores.csv` |
+| Advanced-filter gate | implemented | Decision-gated escalation to IMM / PF / RBPF families | `src/kinematic_classifier_sandbox/advanced_filter_decision.py` | `tests/test_advanced_filter_decision.py` | `artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md` |

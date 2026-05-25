@@ -1,6 +1,12 @@
 - id: bayes_logsumexp_update
+  status: implemented
   latex: "\\tilde{r}_k(c)=\\log p_{k-1}(c)+\\ell_k(c),\\ \\log Z_k=\\log\\sum_{c'\\in\\mathcal{C}}\\exp(\\tilde{r}_k(c')),\\ \\log p_k(c)=\\tilde{r}_k(c)-\\log Z_k"
-  conceptual: false
+  symbols:
+    "\\tilde{r}_k(c)": unnormalized log posterior for class c at step k
+    "p_{k-1}(c)": previous-step posterior for class c
+    "\\ell_k(c)": log evidence increment for class c at step k
+    "Z_k": normalizing constant at step k
+    "\\mathcal{C}": active class set
   implementation:
     module: src/kinematic_classifier_sandbox/sequential_bayes_accumulator.py
     function: run_accumulator
@@ -9,29 +15,62 @@
     - artifacts/bayesian_walkthroughs/bayesian_step_tables.csv
   tests:
     - tests/test_corpus_classifier_scoring.py
+
 - id: two_class_log_odds
+  status: implemented
   latex: "\\lambda_k^{ab}=\\log\\frac{p_k(a)}{p_k(b)}=\\log\\frac{\\pi(a)}{\\pi(b)}+\\sum_{i=1}^k \\log\\frac{p(y_i\\mid a)}{p(y_i\\mid b)}"
-  conceptual: false
+  symbols:
+    "\\lambda_k^{ab}": log odds for class a versus b after step k
+    "\\pi(a)": prior probability of class a
+    "\\pi(b)": prior probability of class b
+    "y_i": evidence input at step i
   implementation:
     module: src/kinematic_classifier_sandbox/bayesian_walkthroughs.py
     function: analyze_bayesian_walkthroughs
   artifacts:
     - artifacts/bayesian_walkthroughs/posterior_flip_thresholds.csv
+    - artifacts/bayesian_walkthroughs/bayesian_step_tables.csv
   tests:
     - tests/test_bayesian_walkthroughs.py
+
 - id: transition_matrix_update
+  status: implemented
   latex: "\\bar{p}_k(c)=\\sum_{c'\\in\\mathcal{C}}T_{c'c}p_{k-1}(c'),\\ p_k(c)=\\frac{p(y_k\\mid c)\\bar{p}_k(c)}{\\sum_j p(y_k\\mid j)\\bar{p}_k(j)}"
-  conceptual: false
+  symbols:
+    "\\bar{p}_k(c)": transition-propagated prior for class c at step k
+    "T_{c'c}": class transition probability from c' to c
+    "p(y_k\\mid c)": class-conditioned evidence likelihood at step k
   implementation:
     module: src/kinematic_classifier_sandbox/transition_matrix_accumulator.py
     function: run_transition_benchmark
   artifacts:
     - artifacts/transition_matrix_accumulator_v1/transition_matrix_accumulator_report.md
+    - artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md
   tests:
     - tests/test_transition_matrix_accumulator.py
+
+- id: gaussian_feature_likelihood
+  status: conceptual
+  latex: "\\ell_k(c)=-\\tfrac{1}{2}[(\\phi_k-\\mu_c)^\\top\\Sigma_c^{-1}(\\phi_k-\\mu_c)+\\log|\\Sigma_c|+d_\\phi\\log(2\\pi)]"
+  symbols:
+    "\\phi_k": feature vector at step k
+    "\\mu_c": class-conditioned feature mean
+    "\\Sigma_c": class-conditioned feature covariance
+    "d_\\phi": feature dimension
+  implementation:
+    module: docs/latex/kinematic_classifier_methodology.tex
+    function: documentation_only
+  artifacts:
+    - artifacts/latex/kinematic_classifier_methodology.pdf
+  tests: []
+
 - id: kalman_innovation_likelihood
+  status: implemented
   latex: "\\ell_k(c)=-\\tfrac{1}{2}[\\nu_{k,c}^T S_{k,c}^{-1}\\nu_{k,c}+\\log |S_{k,c}|+d_z\\log(2\\pi)]"
-  conceptual: false
+  symbols:
+    "\\nu_{k,c}": innovation residual for class c at step k
+    "S_{k,c}": innovation covariance for class c at step k
+    "d_z": observation dimension
   implementation:
     module: src/kinematic_classifier_sandbox/kalman_filter_bank.py
     function: run_kalman_filter_bank
@@ -39,9 +78,48 @@
     - artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv
   tests:
     - tests/test_corpus_classifier_scoring.py
+
+- id: calibration_metrics
+  status: conceptual
+  latex: "\\text{Brier}=\\frac{1}{N}\\sum_{i=1}^N\\sum_{c\\in\\mathcal{C}}(p_i(c)-\\mathbf{1}[y_i=c])^2,\\ \\text{ECE}=\\sum_{b=1}^B\\frac{|I_b|}{N}|\\text{acc}(I_b)-\\text{conf}(I_b)|"
+  symbols:
+    "N": number of evaluated trajectories or decisions
+    "p_i(c)": predicted probability of class c for item i
+    "I_b": bin b in a calibration partition
+    "\\text{acc}(I_b)": empirical accuracy in bin b
+    "\\text{conf}(I_b)": mean confidence in bin b
+  implementation:
+    module: docs/latex/kinematic_classifier_methodology.tex
+    function: documentation_only
+  artifacts:
+    - artifacts/latex/kinematic_classifier_methodology.pdf
+  tests: []
+
+- id: pairwise_mahalanobis_distance
+  status: conceptual
+  latex: "D_{ab}^2=(\\mu_a-\\mu_b)^\\top\\Sigma^{-1}(\\mu_a-\\mu_b)"
+  symbols:
+    "\\mu_a": feature mean for class a
+    "\\mu_b": feature mean for class b
+    "\\Sigma": shared or pooled covariance matrix
+  implementation:
+    module: docs/surveys/methodology_evaluation_framework.tex
+    function: documentation_only
+  artifacts:
+    - artifacts/methodology_evaluation_framework.pdf
+  tests: []
+
 - id: corpus_autodevelopment_score
+  status: implemented
   latex: "S_k=w_bB_k+w_cC_k+w_fF_k+w_dD_k-w_\\ell L_k-w_tT_k-w_gG_k"
-  conceptual: false
+  symbols:
+    "B_k": class-balance score
+    "C_k": class-boundary coverage score
+    "F_k": feature-excitation score
+    "D_k": difficulty-diversity score
+    "L_k": leakage penalty
+    "T_k": triviality penalty
+    "G_k": degeneracy penalty
   implementation:
     module: src/kinematic_classifier_sandbox/corpus_autodevelopment.py
     function: analyze_corpus_autodevelopment
@@ -50,9 +128,13 @@
     - artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md
   tests:
     - tests/test_corpus_autodevelopment.py
+
 - id: pareto_dominance
+  status: implemented
   latex: "i \\succ j \\iff o_i^{(r)}\\ge o_j^{(r)}\\ \\forall r\\ \\text{and}\\ \\exists r: o_i^{(r)}>o_j^{(r)}"
-  conceptual: false
+  symbols:
+    "o_i^{(r)}": value of objective component r for candidate i
+    "o_j^{(r)}": value of objective component r for candidate j
   implementation:
     module: src/kinematic_classifier_sandbox/corpus_autodevelopment.py
     function: analyze_corpus_autodevelopment
@@ -60,19 +142,55 @@
     - artifacts/corpus_autodevelopment_v1/pareto_front.csv
   tests:
     - tests/test_corpus_autodevelopment.py
+
 - id: corpus_gym_reward
+  status: implemented
   latex: "U_{\\text{gym}}=0.22V+0.14E+0.14G+0.14B+0.14S+0.12P-0.10L-0.14I"
-  conceptual: false
+  symbols:
+    "V": class-validity score
+    "E": feature-excitation score
+    "G": coverage-gain score
+    "B": boundary-closeness score
+    "S": classifier-stress score
+    "P": prior-sensitivity score
+    "L": leakage penalty
+    "I": physical-invalidity penalty
   implementation:
     module: src/kinematic_classifier_sandbox/corpus_gym.py
     function: _reward_from_components
   artifacts:
     - artifacts/corpus_gym/corpus_gym_report.md
+    - artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md
   tests:
     - tests/test_corpus_gym.py
+
+- id: corpus_explorer_utility
+  status: implemented
+  latex: "U_{\\text{explore}}=0.22V+0.18N+0.18B+0.18S+0.12E+0.12P"
+  symbols:
+    "V": validity score
+    "N": coverage-novelty score
+    "B": boundary score
+    "S": classifier-stress score
+    "E": environment score
+    "P": provenance score
+  implementation:
+    module: src/kinematic_classifier_sandbox/generic_corpus_exploration.py
+    function: analyze_generic_corpus_exploration
+  artifacts:
+    - artifacts/generic_corpus_exploration/generic_corpus_exploration_report.md
+    - artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md
+  tests:
+    - tests/test_generic_corpus_exploration.py
+
 - id: qd_archive_utility
+  status: implemented
   latex: "U_{\\text{archive}}=0.30\\,\\text{validity}+0.25\\,\\text{acceleration pressure}+0.25\\,\\text{stress}+0.20(1-\\text{mean margin})"
-  conceptual: false
+  symbols:
+    "\\text{validity}": class-validity objective in the archive
+    "\\text{acceleration pressure}": pressure toward under-covered acceleration regimes
+    "\\text{stress}": classifier-stress contribution
+    "\\text{mean margin}": average posterior margin
   implementation:
     module: src/kinematic_classifier_sandbox/objective_driven_qd_archive.py
     function: analyze_objective_driven_qd_archive
@@ -80,9 +198,16 @@
     - artifacts/quality_diversity_corpus_v1/archive_elites.csv
   tests:
     - tests/test_objective_driven_qd_archive.py
+
 - id: qd_cell_mapping
-  latex: "h(\\tau)=(c(\\tau),\\text{tier}(\\tau),\\text{backend}(\\tau),b_{\\text{dur}}(\\tau),b_{\\text{acc}}(\\tau),b_{\\text{entropy}}(\\tau),b_{\\text{prior}}(\\tau))"
-  conceptual: false
+  status: implemented
+  latex: "h(\\tau)=(c(\\tau),\\text{tier}(\\tau),\\text{backend}(\\tau),b_{\\text{dur}}(\\tau),b_{\\text{acc}}(\tau),b_{\\text{entropy}}(\\tau),b_{\\text{prior}}(\\tau))"
+  symbols:
+    "h(\\tau)": archive cell key for trajectory tau
+    "b_{\\text{dur}}": duration bucket
+    "b_{\\text{acc}}": acceleration-range bucket
+    "b_{\\text{entropy}}": entropy bucket
+    "b_{\\text{prior}}": prior-flip bucket
   implementation:
     module: src/kinematic_classifier_sandbox/objective_driven_qd_archive.py
     function: analyze_objective_driven_qd_archive
@@ -90,9 +215,14 @@
     - artifacts/quality_diversity_corpus_v1/archive_cells.csv
   tests:
     - tests/test_objective_driven_qd_archive.py
+
 - id: sampler_mixture
+  status: implemented
   latex: "q(c\\mid o,b)=\\sum_s \\pi_s q_s(c\\mid o,b),\\ \\pi_s=\\frac{n_s}{\\sum_{s'} n_{s'}}"
-  conceptual: false
+  symbols:
+    "q(c\\mid o,b)": candidate proposal density under objective o and backend b
+    "\\pi_s": budget-derived mixture weight for sampler family s
+    "n_s": configured candidate budget for sampler family s
   implementation:
     module: src/kinematic_classifier_sandbox/candidate_generation.py
     function: generate_candidates_from_objectives
@@ -100,9 +230,17 @@
     - artifacts/candidate_generation/generated_candidates.csv
   tests:
     - tests/test_candidate_generation.py
+
 - id: class_validity_status
+  status: implemented
   latex: "\\text{label\\_status}(\\tau)=\\begin{cases}\\text{valid target}, & v_{c_{\\text{target}}}(\\tau)\\ge \\alpha \\\\ \\text{ambiguous}, & \\max_c v_c(\\tau)-\\max_{c\\neq c^*} v_c(\\tau)<\\delta \\\\ \\text{relabel candidate}, & \\hat{c}_{\\text{valid}}\\neq c_{\\text{target}} \\\\ \\text{invalid}, & \\max_c v_c(\\tau)<\\beta \\end{cases}"
-  conceptual: false
+  symbols:
+    "v_c(\\tau)": validity score of trajectory tau under class c
+    "c_{\\text{target}}": target class used during generation
+    "\\hat{c}_{\\text{valid}}": highest-validity relabel candidate
+    "\\alpha": minimum target-validity threshold
+    "\\beta": invalidity threshold
+    "\\delta": ambiguity margin threshold
   implementation:
     module: src/kinematic_classifier_sandbox/class_validity.py
     function: classify_validity_status
@@ -110,12 +248,19 @@
     - artifacts/class_validity/class_validity_scores.csv
   tests:
     - tests/test_class_validity.py
-- id: calibration_metrics
-  latex: "\\text{Brier}=\\frac{1}{N}\\sum_{i=1}^N\\sum_{c\\in\\mathcal{C}}(p_i(c)-\\mathbf{1}[y_i=c])^2,\\ \\text{ECE}=\\sum_{b=1}^B\\frac{|I_b|}{N}|\\text{acc}(I_b)-\\text{conf}(I_b)|"
-  conceptual: true
+
+- id: advanced_filter_gate
+  status: implemented
+  latex: "\\text{go}(M_1)=\\mathbf{1}[\\text{failure}(M_0,\\mathcal{D})\\land\\text{capability gain}(M_1)\\land\\text{measurable success criterion}(M_1)]"
+  symbols:
+    "M_0": simpler current method
+    "M_1": candidate advanced method
+    "\\mathcal{D}": evaluation corpus or study surface
   implementation:
-    module: docs/latex/kinematic_classifier_methodology.tex
-    function: documentation_only
+    module: src/kinematic_classifier_sandbox/advanced_filter_decision.py
+    function: analyze_advanced_filter_decision
   artifacts:
-    - artifacts/latex/kinematic_classifier_methodology.pdf
-  tests: []
+    - artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md
+    - artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md
+  tests:
+    - tests/test_advanced_filter_decision.py

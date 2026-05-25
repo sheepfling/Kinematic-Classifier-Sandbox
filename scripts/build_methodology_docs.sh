@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 python3 "$ROOT/scripts/render_methodology_doc_coverage.py"
+python3 "$ROOT/scripts/render_math_metadata.py"
 bash "$ROOT/scripts/build_posterior_math.sh"
 bash "$ROOT/scripts/build_methodology_evaluation_framework.sh"
 bash "$ROOT/scripts/build_classifier_ladder_and_contracts.sh"
@@ -19,3 +20,4 @@ printf '%s\n' "$ROOT/artifacts/corpus_generation_and_search.pdf"
 printf '%s\n' "$ROOT/artifacts/dimensional_lift_and_advanced_filter_gates.pdf"
 printf '%s\n' "$ROOT/artifacts/latex/kinematic_classifier_methodology.pdf"
 printf '%s\n' "$ROOT/artifacts/methodology_compendium.md"
+printf '%s\n' "$ROOT/artifacts/latex/equation_registry.md"

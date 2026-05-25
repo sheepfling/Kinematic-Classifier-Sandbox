@@ -212,42 +212,332 @@ actually failures of class schema or synthetic realization.
 ### 7.1 Problem
 
 `corpus_adequacy_audit.py` asks whether the study data is broad, balanced, and
-hard in the intended ways.
+hard in the intended ways without leaking labels through metadata shortcuts.
+
+A corpus is not good merely because classifiers perform well on it. A corpus is
+good when it exercises the declared classes, feature families, boundary cases,
+priors, and sensor conditions without letting the classifier solve the problem
+from duration, sample count, irregular sampling, or other nuisance variables.
+
+The corpus is treated as
+
+```tex
+D = \{(\tau_i, c_i, s_i, m_i)\}_{i=1}^{N},
+```
+
+where:
+
+- `τ_i`: trajectory `i`
+- `c_i`: validated class label
+- `s_i`: tier or scenario label
+- `m_i`: metadata such as duration, sample count, `mean_dt`, `std_dt`,
+  irregularity, noise, and outlier rate
+
+The current code now makes this explicit with a bounded scorecard:
+
+```tex
+Q_{\text{corpus}}(D)
+=
+\frac{
+B_{\text{class}}
++
+B_{\text{tier}}
++
+B_{\text{covariates}}
++
+E_{\text{feature}}
++
+C_{\text{pair}}
++
+V
+-
+L
+-
+T
+-
+G
+}{6}.
+```
+
+The positive terms should be high. The penalties should be low.
 
 ### 7.2 Evaluation Axes
 
-The audit checks:
+The implemented scorecard terms are:
 
-- class balance
-- scenario balance
-- duration and sample-count balance
-- noise and irregular-sampling coverage
-- feature excitation
-- class-pair boundary coverage
-- covariate leakage
+| term | meaning | desired direction | current artifact |
+| --- | --- | --- | --- |
+| `B_class` | class balance | high | `class_balance.csv` |
+| `B_tier` | tier balance | high | `class_balance.csv` |
+| `B_covariates` | metadata balance across classes | high | `covariate_leakage_audit.csv` |
+| `E_feature` | feature excitation coverage | high | `feature_set_coverage.csv` |
+| `C_pair` | class-pair boundary coverage | high | `class_pair_coverage.csv` |
+| `V` | class-validity score | high | `class_validity_audit.csv` |
+| `L` | leakage penalty | low | `covariate_leakage_audit.csv` |
+| `T` | triviality penalty | low | `class_pair_coverage.csv` |
+| `G` | degeneracy penalty | low | `corpus_degeneracy_report.csv` |
 
-### 7.3 Leakage Interpretation
+For the current common synthetic corpus, the latest audit reports:
 
-The corpus should not allow nuisance variables such as duration, sample count,
-or sampling irregularity to predict class too well on their own. If those
-covariates become highly class-linked, the classifier may be learning the corpus
-rather than the motion class.
+- `B_class = 1.000`
+- `B_tier = 1.000`
+- `B_covariates = 0.704`
+- `E_feature = 0.562`
+- `C_pair = 0.731`
+- `V = 1.000`
+- `L = 0.613`
+- `T = 0.500`
+- `G = 0.023`
+- `Q_corpus = 0.644`
 
-### 7.4 Implementation Mapping
+So the corpus currently fails not because balance is poor, but because leakage
+and hard-pair triviality are still too large.
+
+### 7.3 Class and Tier Balance
+
+Let
+
+```tex
+\hat{p}_D(c)
+=
+\frac{1}{N}\sum_{i=1}^{N}\mathbf{1}[c_i=c]
+```
+
+be the empirical class distribution. For a uniform target over class set
+`𝒞`, the balance score is
+
+```tex
+B_{\text{class}}(D)
+=
+1-\frac{1}{2}\sum_{c\in\mathcal{C}}|\hat{p}_D(c)-p^\star(c)|.
+```
+
+The code uses the same total-variation-style score for tier balance:
+
+```tex
+B_{\text{tier}}(D)
+=
+1-\frac{1}{2}\sum_{s\in\mathcal{S}}|\hat{p}_D(s)-p^\star(s)|.
+```
+
+Interpretation:
+
+- `1.0` means the observed distribution matches the target distribution
+- values near `0` mean one class or tier is dominating the study
+
+On the current common corpus both scores are `1.000`, which is why class and
+tier balance are not the reason for failure.
+
+### 7.4 Covariate Balance and Leakage
+
+For continuous metadata covariates `q` such as duration, sample count,
+`mean_dt`, `std_dt`, `sampling_irregularity`, and outlier fraction, the audit
+now separates two questions:
+
+1. are class-conditional covariate distributions similar?
+2. can the covariate predict class on its own?
+
+The balance side uses a normalized 1D Wasserstein distance:
+
+```tex
+I_q(D)
+=
+\max_{a,b\in\mathcal{C}}
+\frac{W_1(F_{q|a},F_{q|b})}{R_q+\epsilon},
+\qquad
+B_q(D)=1-\operatorname{clip}(I_q(D),0,1).
+```
+
+The leakage side uses covariate-only predictability:
+
+```tex
+L_q(D)
+=
+\operatorname{clip}\left(\frac{\mathrm{AUC}_q-0.5}{0.5},0,1\right).
+```
+
+The current aggregate scores are:
+
+```tex
+B_{\text{covariates}}(D)=\frac{1}{|\mathcal{Q}|}\sum_q \left[1-\max\{L_q(D),B_q^{\text{risk}}(D)\}\right],
+\qquad
+L(D)=\max_q L_q(D).
+```
+
+Operationally:
+
+- `std_dt` is yellow with covariate-only AUC `0.806`
+- `sampling_irregularity` is yellow with covariate-only AUC `0.805`
+- the aggregate leakage penalty is `L = 0.613`
+
+So the current corpus is still class-linked through irregular-sampling metadata
+more than it should be.
+
+### 7.5 Feature Excitation Coverage
+
+The audit no longer treats feature excitation as a checklist item. It scores
+whether each declared feature is actually activated across classes and tiers.
+
+For feature `j`, class `c`, and tier `s`, the current implementation uses a
+moderate-threshold excitation count:
+
+```tex
+E_{jcs}(D)
+=
+\min\left(
+1,
+\frac{
+\#\{i : c_i=c,\ s_i=s,\ |\phi_{ij}| \ge \tau^{\text{moderate}}_j\}
+}{n_{\min}}
+\right).
+```
+
+Then:
+
+```tex
+E_{\text{feature}}(D)
+=
+\frac{1}{|\mathcal{J}||\mathcal{C}||\mathcal{S}|}
+\sum_{j,c,s} E_{jcs}(D).
+```
+
+The current audit reports `E_feature = 0.562`. That is not a failure, but it is
+also not saturated coverage. It means the corpus is exercising many features,
+but not uniformly or strongly enough across every class-tier cell.
+
+### 7.6 Class-Pair Boundary Coverage and Triviality
+
+For each declared important pair `h = (a,b)`, the audit checks both:
+
+1. whether the required tiers are present
+2. whether the pair remains hard in the intended way
+
+The current implementation uses a pair boundary score:
+
+```tex
+C_h(D)
+=
+\text{tier\_fraction}(h)
+\times
+\text{difficulty-window score}(h),
+```
+
+where the difficulty-window score depends on the expected pair type:
+
+- easy pairs should have high AUC
+- hard pairs should not become too separable
+- hard pairs should retain overlap
+
+The aggregate boundary term is:
+
+```tex
+C_{\text{pair}}(D)
+=
+\frac{1}{|\mathcal{H}|}\sum_{h\in\mathcal{H}} C_h(D).
+```
+
+The triviality penalty is explicit for declared hard pairs:
+
+```tex
+T_h(D)
+=
+\max\left(
+0,
+\frac{\mathrm{AUC}_h-\tau_{\text{easy}}}{1-\tau_{\text{easy}}}
+\right),
+\qquad
+T(D)=\frac{1}{|\mathcal{H}_{\text{hard}}|}\sum_h T_h(D).
+```
+
+This is the direct explanation for the current red finding:
+
+- `constant_acceleration vs maneuver` is declared hard
+- observed pairwise AUC is `1.000`
+- overlap is `0.000`
+- therefore the pair is over-separated
+- `T = 0.500`
+
+This is why the corpus fails even though balance is perfect.
+
+### 7.7 Class Validity
+
+The common synthetic corpus is generator-defined, so the current adequacy audit
+treats its labels as valid by construction:
+
+```tex
+V(D)=1.0
+```
+
+for this specific corpus family.
+
+That is not the same thing as saying class validity is unimportant. It means
+the detailed relabel logic lives one layer downstream in `class_validity.py`
+for generated or objective-driven corpora, where labels are not guaranteed by
+construction.
+
+### 7.8 Degeneracy
+
+The degeneracy penalty catches duplicate or structurally invalid corpora. The
+implemented terms are:
+
+```tex
+G_{\text{dup}}(D)
+=
+\frac{
+\#\{(i,j): i<j,\ d(\phi_i,\phi_j)<\epsilon\}
+}{
+\binom{N}{2}
+},
+```
+
+```tex
+G_{\text{invalid}}(D)
+=
+\frac{\#\{i : t_{i,k+1}\le t_{i,k}\ \text{for some }k\}}{N},
+\qquad
+G_{\text{physical}}(D)
+=
+\frac{\#\{i : \max_k |a_{ik}| > a_{\max}\}}{N}.
+```
+
+The aggregate penalty is:
+
+```tex
+G(D)=0.5\,G_{\text{dup}}+0.25\,G_{\text{invalid}}+0.25\,G_{\text{physical}}.
+```
+
+The current audit reports:
+
+- `G_dup = 0.032`
+- `G_invalid = 0.000`
+- `G_physical = 0.029`
+- `G = 0.023`
+
+So degeneracy is present, but it is not the dominant reason for failure.
+
+### 7.9 Implementation Mapping
 
 - `corpus_adequacy_audit.py`
 - `coverage_report.py`
 - `generated_corpus_features.py`
 - `corpus_classifier_scoring.py`
 
-### 7.5 Current Methodological Use
+### 7.10 Current Methodological Use
 
-The adequacy audit is already acting as a real gate. It can say not just “pass”
-or “fail,” but **why**:
+The adequacy audit is now acting as a real scorecard and a real gate. It can
+say not just `pass` or `fail`, but why:
 
 - over-separated hard pairs
 - class-linked irregular-sampling variables
-- weak feature excitation for certain feature bundles
+- incomplete feature excitation
+- duplicate or mildly nonphysical structure
+
+The current common synthetic corpus therefore fails for principled reasons:
+
+- `Q_corpus = 0.644`, below the yellow gate of `0.65`
+- leakage is too high: `L = 0.613`
+- hard-pair triviality is too high: `T = 0.500`
+- the main red pair remains `constant_acceleration vs maneuver`
 
 That is the right shape for a credible methodology audit.
 

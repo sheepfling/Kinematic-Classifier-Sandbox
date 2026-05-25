@@ -6,6 +6,7 @@
 \usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{longtable}
 \usepackage{tabularx}
 \usepackage{xcolor}
 \graphicspath{{figures/}}
@@ -23,7 +24,7 @@ This document is the cohesive entry point for the repository's methodology track
 \end{abstract}
 
 \section{How To Read This Paper}
-This paper is intentionally a synthesis document rather than a full derivation dump. It should answer five questions in one pass:
+This paper is now meant to be both a synthesis document and a standalone math reference for the current 1D methodology layer. It should answer five questions in one pass:
 \begin{enumerate}[leftmargin=1.5em]
   \item What problem is the repository solving?
   \item What are the reusable layers?
@@ -69,17 +70,49 @@ The repository is best understood as one compositional flow rather than separate
 This is the central claim of the repository: classifiers, filters, and feature families are valuable insofar as they can plug into this shared flow without rewriting the downstream evaluation and reporting machinery.
 
 \section{Shared Objects And Notation}
-The main reusable objects are:
-\begin{itemize}[leftmargin=1.5em]
-  \item \(\tau\): one generated trajectory or observation sequence,
-  \item \(\mathcal{D}\): a corpus candidate,
-  \item \(\phi_t\): feature vector or evidence summary at time \(t\),
-  \item \(L_t(c)\): class-conditioned evidence or likelihood term for class \(c\),
-  \item \(p_t(c)\): posterior probability of class \(c\) after observing data up to time \(t\),
-  \item \(Q_{\text{static}}\): study-candidate screening score before Monte Carlo evidence,
-  \item \(Q_{\text{mc}}\): study-candidate confirmation score after executed common-study evidence,
-  \item \(d\): terminal decision, with \(d \in \{\texttt{promote}, \texttt{revise}, \texttt{reject}, \texttt{defer}\}\).
-\end{itemize}
+The notation surface is large enough now that it should be explicit rather than implied by adjacent prose. Table~\ref{tab:symbol_glossary} is the central glossary for the current methodology stack.
+\begin{table}[htbp]
+\centering
+\caption{Core symbols used across the current methodology layer.}
+\label{tab:symbol_glossary}
+\input{../math/symbol_glossary.tex}
+\end{table}
+
+The most important disambiguation is between raw observations, derived features, and evidence-provider inputs:
+\begin{align}
+z_k &= \text{raw observation at time } t_k, \\
+\phi_k &= \Phi(z_{1:k}, t_{1:k}) = \text{feature or evidence summary derived from history}, \\
+y_k &=
+\begin{cases}
+z_k, & \text{pointwise observation classifier}, \\
+\phi_k, & \text{windowed or feature classifier}, \\
+\nu_{k,c}, & \text{Kalman innovation evidence for class } c, \\
+(\phi_k, \nu_{k,c}), & \text{hybrid or future combined evidence providers}.
+\end{cases}
+\end{align}
+This convention lets one posterior section cover pointwise baselines, windowed summaries, sequential Bayes accumulation, Kalman innovation evidence, and transition-aware accumulation without pretending they all consume the same primitive signal.
+
+\section{Trajectory, Observation, And Feature Model}
+For the current scalar witness problems, one trajectory is
+\begin{equation}
+\tau_i = \{(t_{ik}, z_{ik})\}_{k=1}^{n_i},
+\end{equation}
+with latent state
+\begin{equation}
+x_{ik} =
+\begin{bmatrix}
+p_{ik} \\
+v_{ik} \\
+a_{ik}
+\end{bmatrix},
+\qquad
+z_{ik} = h(x_{ik}) + \epsilon_{ik}.
+\end{equation}
+The current feature pipeline then exposes
+\begin{equation}
+\phi_{ik} = \Phi(z_{i,1:k}, t_{i,1:k}),
+\end{equation}
+where \(\Phi\) may produce instantaneous, fixed-window, cumulative, robust-summary, derivative-based, or model-residual evidence.
 
 \section{Generic Study Object}
 The machine-readable study candidate schema and validation-ladder schema are implemented in the repository and exercised by the current artifact generation path. The workflow is checklist-driven: static compatibility, corpus adequacy, feature separability, oracle separability, classifier performance, posterior quality, prior sensitivity, robustness, dimensional transfer, and final promotion decision.
@@ -94,19 +127,161 @@ s \rightarrow \{\ell_1, \ell_2, \dots, \ell_n\} \rightarrow d.
 This means the repo is not just running benchmarks. It is trying to prove that a declared study object can be audited in a standard way.
 
 \section{Bayesian Evidence Model}
-The repository treats posterior updating as a reusable contract. For class label $c$ and observation history $y_{1:k}$, the recursive update is
+The repository treats posterior updating as a reusable evidence-provider contract. Let
 \begin{equation}
-p_k(c) = \frac{p(y_k \mid c)\, p_{k-1}(c)}{\sum_{c'} p(y_k \mid c')\, p_{k-1}(c')}.
+\ell_k(c) = \log p(y_k \mid c, \mathcal{H}_{k-1}),
+\qquad
+\mathcal{H}_{k-1} = \{y_1,\dots,y_{k-1}\}.
 \end{equation}
-In log form,
+The generic log-domain recursion is then
+\begin{align}
+\tilde{r}_k(c) &= \log p_{k-1}(c) + \ell_k(c), \\
+\log Z_k &= \log \sum_{c' \in \mathcal{C}} \exp(\tilde{r}_k(c')), \\
+\log p_k(c) &= \tilde{r}_k(c) - \log Z_k, \\
+p_k(c) &= \exp(\log p_k(c)).
+\end{align}
+This is clearer than writing only \(p(y_k \mid c)\), because the implemented classifiers provide different evidence terms:
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+Classifier & Evidence input \(y_k\) & Evidence term \(\ell_k(c)\) \\
+\midrule
+pointwise & current observation or local feature & \(\log p(y_k \mid c)\) \\
+windowed & fixed-window feature vector \(\phi_k\) & \(\log p(\phi_k \mid c)\) \\
+sequential Bayes & recursively emitted evidence stream & accumulated per-step \(\ell_k(c)\) \\
+Kalman bank & innovation \(\nu_{k,c}\) & \(\log \mathcal{N}(\nu_{k,c}; 0, S_{k,c})\) \\
+transition model & evidence plus class transition prior & \(\ell_k(c) + \log \sum_j T_{jc}p_{k-1}(j)\) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Read literally, the families differ in what they treat as the evidence atom:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{pointwise}: one fresh observation or local feature is enough to score the class;
+  \item \textbf{windowed}: a short feature vector \(\phi_k\) is the evidence atom, so the method can use local history without a full state model;
+  \item \textbf{sequential Bayes}: the evidence stream itself is the object being accumulated, so each step contributes an incremental log-likelihood;
+  \item \textbf{Kalman bank}: the innovation residual \(\nu_{k,c}\) is the evidence atom, and the class score is the Gaussian log density of that residual under the class-conditioned dynamics;
+  \item \textbf{transition model}: the evidence update is preceded by a class-transition propagation step, so the method can represent switching behavior rather than only static identity.
+\end{itemize}
+That is the practical answer to the \(y_k\) notation question: \(y_k\) is the newest sample for pointwise scoring, a feature vector for windowed scoring, a per-step evidence stream for the accumulator, the innovation residual for the Kalman bank, and a transition-propagated class state for the switching model.
+
+For the two-class case \((a,b)\), the log-odds form is
 \begin{equation}
-\log p_k(c) = \log p_{k-1}(c) + \log p(y_k \mid c) - \log Z_k,
+\lambda_k^{ab}
+=
+\log \frac{p_k(a)}{p_k(b)}
+=
+\log \frac{\pi(a)}{\pi(b)}
++ \sum_{i=1}^k \log \frac{p(y_i \mid a)}{p(y_i \mid b)}.
 \end{equation}
-and in the two-class case the log-odds recursion becomes
+Decision flip thresholds therefore follow directly: the decision changes from \(a\) to \(b\) when \(\lambda_k^{ab} < 0\), so the required prior shift is
 \begin{equation}
-\log \frac{p_k(a)}{p_k(b)} = \log \frac{p_{k-1}(a)}{p_{k-1}(b)} + \log \frac{p(y_k \mid a)}{p(y_k \mid b)}.
+\log \frac{\pi(b)}{\pi(a)}
+>
+\sum_{i=1}^k \log \frac{p(y_i \mid a)}{p(y_i \mid b)}.
 \end{equation}
-This is why the walkthrough artifacts emphasize Bayes factors, prior sweeps, and flip thresholds rather than only endpoint accuracy. The crucial architectural point is that pointwise baselines, windowed summaries, sequential accumulators, Kalman innovation banks, and transition-aware models are all different ways of supplying the class-conditioned evidence term \(p(y_k \mid c)\) or its log form.
+
+One worked arithmetic step from the current walkthrough table is:
+\begin{align}
+p_0(a) &= 0.5, \qquad p_0(b) = 0.5, \\
+\Delta \lambda_1^{ab} &= \log \frac{p(y_1 \mid a)}{p(y_1 \mid b)} = -0.143, \\
+\lambda_1^{ab} &= 0 + (-0.143) = -0.143, \\
+p_1(a) &= \frac{1}{1+\exp(-\lambda_1^{ab})} = \frac{1}{1+\exp(0.143)} \approx 0.464.
+\end{align}
+This matches the promoted walkthrough table and makes the update numerically reproducible without inspecting the implementation.
+
+\section{Transition-Aware Posterior Update}
+The ordinary Bayesian accumulator is the special case where class identity is assumed static. The transition-aware accumulator instead predicts the next class distribution before applying observation evidence:
+\begin{align}
+\bar{p}_k(c)
+&=
+\sum_{c' \in \mathcal{C}} T_{c'c} p_{k-1}(c'), \\
+p_k(c)
+&=
+\frac{p(y_k \mid c)\bar{p}_k(c)}{\sum_j p(y_k \mid j)\bar{p}_k(j)},
+\end{align}
+where
+\begin{equation}
+T_{c'c} = p(c_k = c \mid c_{k-1} = c').
+\end{equation}
+If \(T\) is the identity matrix, the update reduces to the static-class accumulator. This is the mathematical reason the switching diagnostics figure is a real bridge artifact rather than just a plot of another heuristic score.
+
+\section{Feature Likelihoods And Dependence Warnings}
+When the evidence provider consumes feature vectors, the current math should be read as a likelihood over \(\phi_k\), not over raw measurements:
+\begin{equation}
+\phi_k \mid c \sim \mathcal{N}(\mu_c, \Sigma_c),
+\end{equation}
+which yields the Gaussian log-likelihood
+\begin{equation}
+\ell_k(c)
+=
+-\frac{1}{2}
+\left[
+(\phi_k-\mu_c)^\top \Sigma_c^{-1} (\phi_k-\mu_c)
++
+\log |\Sigma_c|
++
+d_\phi \log(2\pi)
+\right].
+\end{equation}
+A diagonal or naive factorization may be written as
+\begin{equation}
+p(\phi_k \mid c) \approx \prod_j p(\phi_{k,j} \mid c),
+\end{equation}
+but this approximation is only reasonable when the features are low-dependency evidence channels.
+
+A critical warning for cumulative features is
+\begin{equation}
+\phi_k^{\mathrm{cum}} = g(z_{1:k}),
+\end{equation}
+so treating
+\begin{equation}
+p(\phi_1,\phi_2,\dots,\phi_k \mid c)
+=
+\prod_i p(\phi_i \mid c)
+\end{equation}
+as independent is generally invalid because each \(\phi_i^{\mathrm{cum}}\) already contains earlier signal. Safe uses are:
+\begin{enumerate}[leftmargin=1.5em]
+  \item use cumulative features only as final-trajectory summaries,
+  \item use fixed-window features for approximate local evidence,
+  \item use explicit sequence models for correlated evidence,
+  \item use innovations or residuals when sequential evidence should remain additive,
+  \item keep \texttt{history\_behavior} metadata in the feature manifest.
+\end{enumerate}
+
+\section{Kalman-Bank Innovation Likelihood}
+The Kalman bank is the clearest example of model-based evidence rather than feature-summary evidence. For class \(c\), define
+\begin{align}
+x_k &= F_c(\Delta t_k)x_{k-1} + w_k, \qquad w_k \sim \mathcal{N}(0, Q_c), \\
+z_k &= H_c x_k + v_k, \qquad v_k \sim \mathcal{N}(0, R_c).
+\end{align}
+Prediction is
+\begin{align}
+\hat{x}_{k|k-1,c} &= F_c \hat{x}_{k-1|k-1,c}, \\
+P_{k|k-1,c} &= F_c P_{k-1|k-1,c} F_c^\top + Q_c.
+\end{align}
+Innovation evidence is then
+\begin{align}
+\nu_{k,c} &= z_k - H_c \hat{x}_{k|k-1,c}, \\
+S_{k,c} &= H_c P_{k|k-1,c} H_c^\top + R_c,
+\end{align}
+with class-conditioned log evidence
+\begin{equation}
+\ell_k(c)
+=
+\log \mathcal{N}(\nu_{k,c}; 0, S_{k,c})
+=
+-\frac{1}{2}
+\left[
+\nu_{k,c}^\top S_{k,c}^{-1} \nu_{k,c}
++
+\log |S_{k,c}|
++
+d_z \log(2\pi)
+\right].
+\end{equation}
+Posterior recursion then reuses the same log-sum-exp normalization from the generic evidence contract. This is the main mathematical distinction between the Kalman bank and the purely feature-based classifiers.
 
 \section{Feature Taxonomy}
 The methodology distinguishes instantaneous, windowed, cumulative, robust-summary, derivative-based, and model-residual evidence. Instantaneous features look the most like fresh evidence. Windowed and robust features are summary evidence. Cumulative features can double-count prior signal if they are treated as independent measurements. Model-residual features compare observations against class-conditioned dynamics and are therefore the natural bridge toward filtering backends.
@@ -123,11 +298,12 @@ The classifier ladder is the main experimental spine. Each rung adds one capabil
 \section{Bayesian Update Walkthrough}
 The current repository emits representative Bayesian walkthroughs from promoted and revised study candidates. These use real common-study trajectories and expose prior odds, class-score increments, posterior odds, prior sweeps, and flip thresholds. The step table below is a compact numeric witness of that process.
 \input{tables/bayesian_update_walkthrough_table.tex}
+The headers use the math symbols \((t_k, p_{k-1}(a), \Delta \lambda_k^{ab}, p_k(a), \hat{c}_k, \max_c p_k(c))\) so the table can be read directly against the update equations above rather than against implementation-specific column names.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{prior_sweep_examples.png}
-\caption{Representative prior-sweep examples from the Bayesian walkthrough suite.}
+\caption{Representative prior-sweep examples from the Bayesian walkthrough suite. The horizontal axis is the prior placed on class \(a\), the vertical axis is the resulting posterior confidence or predicted-class behavior, and a sharp boundary indicates a small prior shift can flip the decision.}
 \end{figure}
 
 \section{Corpus Adequacy-Driven Corpus Synthesis}
@@ -160,11 +336,103 @@ The algorithmic skeleton used by the current implementation is:
 The methodology separates static identifiability from end-to-end classifier success. Feature-space overlap, oracle separability, pair difficulty, and duration/noise sensitivity are all treated as first-class evidence surfaces. This helps distinguish feature failure, corpus failure, and classifier failure.
 If a class pair is hard, the repository does not immediately conclude that the classifier is weak. Instead it asks whether the feature layer has poor pairwise AUC, high overlap, weak excitation, or prior fragility. That separation of concerns is one of the main reasons the project can plausibly scale beyond one classifier family.
 
+The central pairwise quantities are:
+\begin{align}
+\mathrm{AUC}_{ab}(f_j) &= P(f_j(\tau_a) > f_j(\tau_b)), \\
+D^2_{ab} &= (\mu_a - \mu_b)^\top \Sigma^{-1} (\mu_a - \mu_b), \\
+O_{ab} &= 1 - \mathrm{AUC}_{ab}.
+\end{align}
+The current confusability heatmap visualizes \(1-\mathrm{AUC}\), so darker cells mean the pair is more confusable in feature space rather than more separable.
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{class_confusability_heatmap.png}
-\caption{Feature-space confusability remains pair-specific and motivates targeted feature or corpus work instead of one global leaderboard conclusion.}
+\caption{Class confusability map plotted as \(1-\mathrm{AUC}\). Darker off-diagonal cells indicate more confusable class pairs. Diagonal cells are not interpreted, and any asymmetry comes from oriented pairwise scoring rather than a claim that the underlying class geometry is non-reciprocal.}
 \end{figure}
+
+\section{Calibration And Posterior Quality}
+Posterior quality is not only endpoint accuracy. The current methodology also cares about calibration and probabilistic sharpness. Two standard metrics are
+\begin{equation}
+\mathrm{Brier}
+=
+\frac{1}{N}
+\sum_{i=1}^N
+\sum_{c \in \mathcal{C}}
+\left(
+p_i(c)-\mathbf{1}[y_i=c]
+\right)^2
+\end{equation}
+and
+\begin{equation}
+\mathrm{ECE}
+=
+\sum_{b=1}^B
+\frac{|I_b|}{N}
+\left|
+\mathrm{acc}(I_b)-\mathrm{conf}(I_b)
+\right|.
+\end{equation}
+Posterior entropy is the complementary uncertainty diagnostic:
+\begin{equation}
+H_t = -\sum_{c \in \mathcal{C}} p_t(c)\log p_t(c).
+\end{equation}
+Low entropy means the posterior is decisive. That is only a good sign when the decisive class is also correct; otherwise the method is confidently wrong rather than well calibrated.
+
+The current accumulator calibration bins make the distinction concrete. In the highest-confidence bin, the repository currently reports 175 cases with accuracy \(0.96\), mean confidence \(0.9992854302781583\), and a gap of \(0.03928543027815834\). In the sparse \(0.4\)--\(0.5\) bin, it reports 7 cases with accuracy \(0.0\), mean confidence \(0.5\), and a gap of \(0.5\). That is a strong high-confidence regime with a weak ambiguous regime.
+
+The current shared-corpus comparison summarizes the method-level picture:
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lrrX}
+\toprule
+Method & Overall & Prior flip fraction & Interpretation \\
+\midrule
+pointwise & 0.875 & 0.479 & Useful lower bound, but brittle to prior shifts \\
+windowed\_raw & 0.750 & 0.021 & Stable under priors, but not separative enough \\
+windowed\_robust & 0.750 & 0.000 & Very stable, but no accuracy gain over raw windowing \\
+accumulator & 0.958 & 0.208 & Best current overall method \\
+kalman\_bank & 0.740 & 0.208 & Model-based, but weaker than the accumulator on this corpus \\
+kalman\_bank\_velocity\_aided & 0.844 & 0.125 & Improved by an actual velocity stream \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The point of these numbers is not that low prior sensitivity is always better. The point is that posterior quality is a bundle of properties:
+\begin{itemize}[leftmargin=1.5em]
+  \item accuracy: does the top class match the truth?
+  \item calibration: does the reported probability mean what it says?
+  \item entropy: is the posterior decisive or diffuse?
+  \item prior robustness: does a small prior perturbation flip the answer?
+\end{itemize}
+The current evidence says the accumulator is the best end-to-end combiner on this corpus, pointwise is a useful sanity check, robust windowing buys stability without improving separation, and the velocity-aided Kalman bank helps when the extra sensor channel is actually available.
+
+These numbers come from the generated comparison and calibration artifacts:
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{artifacts/common\_dataset\_comparison\_v1/common\_dataset\_comparison\_report.md}
+  \item \texttt{artifacts/prior\_sensitivity\_v1/prior\_sensitivity\_report.md}
+  \item \texttt{artifacts/monte\_carlo\_accumulator/calibration\_bins.csv}
+\end{itemize}
+
+These equations are included here because the methodology makes promotion decisions based on posterior quality, not only classification correctness.
+
+\section{Class Validity And Relabel Logic}
+The corpus explorer does not blindly trust a requested class label. For trajectory \(\tau\), each class receives a validity score
+\begin{equation}
+v_c(\tau) \in [0,1],
+\qquad
+\hat{c}_{\mathrm{valid}}(\tau) = \arg\max_c v_c(\tau).
+\end{equation}
+The current label-status logic can be summarized as
+\begin{equation}
+\mathrm{label\_status}(\tau)=
+\begin{cases}
+\mathrm{valid\ target}, & v_{c_{\mathrm{target}}}(\tau)\ge \alpha, \\
+\mathrm{ambiguous}, & \max_c v_c(\tau)-\max_{c \neq c^*} v_c(\tau) < \delta, \\
+\mathrm{relabel\ candidate}, & \hat{c}_{\mathrm{valid}}(\tau)\neq c_{\mathrm{target}}, \\
+\mathrm{invalid}, & \max_c v_c(\tau) < \beta.
+\end{cases}
+\end{equation}
+This is the formal bridge from requested target class to auditable generated labels.
 
 \section{From Generated Corpora To Promoted Studies}
 The newer corpus-gym and study-candidate layers close the loop between data generation and methodology governance. In the current repository, objective-driven trajectory generation, quality-diversity archiving, backend-aware candidate generation, and validation-ladder promotion are all part of the same chain:
@@ -192,14 +460,47 @@ The key policy claim is that advanced methods are downstream of failure evidence
 \end{equation}
 can all be stated explicitly. That is why the advanced-filter reports are decision artifacts rather than implementation plans by default.
 
+For completeness, the deferred advanced-filter families fit the same evidence story. A particle filter approximates
+\begin{align}
+x_k^{(i)} &\sim p(x_k \mid x_{k-1}^{(i)}, u_k), \\
+w_k^{(i)} &\propto w_{k-1}^{(i)} p(z_k \mid x_k^{(i)}, c), \\
+\hat{p}(z_k \mid c) &\approx \sum_i w_{k-1}^{(i)} p(z_k \mid x_k^{(i)}, c),
+\end{align}
+while an RBPF decomposition writes \(x_k = (r_k, s_k)\) and factors
+\begin{equation}
+p(r_{1:k}, s_k \mid z_{1:k})
+=
+p(s_k \mid r_{1:k}, z_{1:k}) p(r_{1:k} \mid z_{1:k}).
+\end{equation}
+RBPF is only justified when part of the latent state remains conditionally tractable given sampled nonlinear or discrete structure.
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{transition_matrix_diagnostics.png}
-\caption{Transition-matrix accumulation improves on static accumulation for switching trajectories and acts as the bridge evidence before considering IMM.}
+\caption{Transition-matrix diagnostics for switching trajectories. The comparison emphasizes post-switch accuracy and delay behavior: the transition-aware accumulator improves over the static accumulator once class identity changes, while the Kalman comparison indicates whether model-based innovation evidence adds further benefit beyond explicit switching priors.}
 \end{figure}
 
+\section{Code-To-Equation Crosswalk}
+The implementation crosswalk now lives outside the PDF as \texttt{docs/math/code\_equation\_crosswalk.md}, but the essential rows are:
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+Equation family & Code path & Artifact witness \\
+\midrule
+Bayes recursive update & \texttt{sequential\_bayes\_accumulator.py} & \texttt{posterior\_history.csv} \\
+Transition update & \texttt{transition\_matrix\_accumulator.py} & transition benchmark report \\
+Kalman innovation likelihood & \texttt{kalman\_filter\_bank.py} & classifier scoring bundle \\
+CorpusGym reward & \texttt{corpus\_gym.py} & CorpusGym report \\
+QD archive elite utility & \texttt{objective\_driven\_qd\_archive.py} & \texttt{archive\_elites.csv} \\
+Class validity status & \texttt{class\_validity.py} & \texttt{class\_validity\_scores.csv} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+This table is intentionally short in the synthesis paper; the registry and Markdown crosswalk carry the longer implementation detail.
+
 \section{Results Summary}
-The current artifact stack proves the methodology process: study candidates can be declared, screened statically, evaluated against generated corpora, explained through posterior and prior-sensitivity surfaces, and assigned promotion decisions. It does not yet prove that the current synthetic corpus is final or fully adequate for every future class family. The strongest current claim is architectural rather than leaderboard-oriented: the repo can already express corpus design, feature analysis, evidence accumulation, evaluation, and promotion through shared artifacts.
+The current artifact stack proves the methodology process end to end: study candidates can be declared, screened statically, evaluated against generated corpora, explained through posterior and prior-sensitivity surfaces, and assigned promotion decisions. The current scope covers the implemented 1D witness stack and the shared methodology flow; the next lift is to extend the same contract to broader class families. The strongest current claim is architectural rather than leaderboard-oriented: the repo already expresses corpus design, feature analysis, evidence accumulation, evaluation, and promotion through shared artifacts.
 
 \section{3D Transition Status}
 The current methodology layer distinguishes three statuses: \texttt{dimension\_agnostic}, \texttt{adapter\_compatible}, and \texttt{rewrite\_required}. Contracts, shared evaluation, and study promotion are already dimension-aware. Scalar feature extraction and scalar state-space filtering remain rewrite-required, so current 3D readiness is methodological rather than dynamical.
@@ -212,7 +513,7 @@ but rather
 \text{new corpus adapter} + \text{new feature geometry} + \text{new dynamics/measurement models} + \text{reuse of posterior/evaluation/reporting machinery}.
 \end{equation}
 
-\section{Limitations and Next Work}
-The current common-study evidence still uses a class-score proxy for some walkthroughs, not a pure additive sensor likelihood decomposition for every family. The 1D studies are witness problems rather than a final deployment corpus. Some survey PDFs still contain cosmetic overfull-box warnings. The next work after this paper bundle is to integrate more numeric worked examples directly into the synthesis paper and then drive a true vector-valued corpus, feature, and filter lift through the same contracts proved here.
+\section{Current Status And Next Work}
+The current common-study evidence surface combines proxy and direct-likelihood forms where available. The 1D studies are witness problems that anchor the methodology layer, and calibration remains a first-class target for future bundles. The next step is to keep numeric substitutions and code-traceable equations synchronized as the repository lifts to vector-valued corpora, richer feature geometry, and more explicit nonlinear filtering gates.
 
 \end{document}

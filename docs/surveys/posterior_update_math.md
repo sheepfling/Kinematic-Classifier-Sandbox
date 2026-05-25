@@ -103,6 +103,24 @@ What changes across methods is how the evidence is produced:
 The posterior updater should not care which of those produced the
 log-likelihoods, as long as the output has a common per-class form.
 
+The implemented method families are easiest to read as a single table:
+
+| method | evidence input `y_k` | evidence term `ℓ_k(c)` | role in the repo |
+| --- | --- | --- | --- |
+| pointwise | current observation or local feature | `log p(y_k \| c)` | weak lower-bound classifier |
+| windowed | fixed-window feature vector `ϕ_k` | `log p(ϕ_k \| c)` | adds short temporal context |
+| sequential Bayes | recursively emitted evidence stream | accumulated per-step `ℓ_k(c)` | composes evidence through time |
+| Kalman bank | innovation `ν_{k,c}` | `log N(ν_{k,c}; 0, S_{k,c})` | scores class-conditioned dynamics mismatch |
+| transition model | evidence plus class transition prior | `ℓ_k(c) + log \sum_j T_{jc} p_{k-1}(j)` | handles switching classes |
+
+This table is the answer to "what is `y_k`?" in practice:
+
+- pointwise uses the newest sample directly
+- windowed uses a short feature summary
+- sequential Bayes uses whatever per-step evidence the classifier emits
+- Kalman bank uses model innovation residuals
+- transition model uses a prior-predicted class distribution before the evidence update
+
 ## 1.1 Implementation mapping
 
 The math in this note maps to a few concrete implementation surfaces:
@@ -689,6 +707,92 @@ So compared with toy:
 
 - toy has class posterior plus per-class state posteriors
 - identity has class posterior only
+
+## 3.7 Calibration And Posterior Quality
+
+Posterior quality is not the same thing as raw accuracy. In this repo it means:
+
+- does the posterior put high probability on the correct class?
+- does confidence mean what it says?
+- does the posterior stay stable under small prior changes when the evidence is strong?
+- does entropy drop for the right reason instead of just getting overconfident?
+
+The standard calibration diagnostics are:
+
+```tex
+\mathrm{Brier}
+=
+\frac{1}{N}
+\sum_{i=1}^N
+\sum_{c \in \mathcal{C}}
+\left(
+p_i(c)-\mathbf{1}[y_i=c]
+\right)^2
+```
+
+```tex
+\mathrm{ECE}
+=
+\sum_{b=1}^B
+\frac{|I_b|}{N}
+\left|
+\mathrm{acc}(I_b)-\mathrm{conf}(I_b)
+\right|.
+```
+
+Posterior entropy is the complementary uncertainty view:
+
+```tex
+H_t = - \sum_{c \in \mathcal{C}} p_t(c)\log p_t(c).
+```
+
+Low entropy means the model is decisive. That is only good when the decisive
+label is also correct. If entropy falls while the model is wrong, the posterior
+is confidently wrong rather than calibrated.
+
+The current calibration bins for the accumulator make this concrete:
+
+- `0.9-1.0` confidence bin: 175 cases, accuracy `0.96`, mean confidence `0.9992854302781583`, gap `0.03928543027815834`
+- `0.4-0.5` confidence bin: 7 cases, accuracy `0.0`, mean confidence `0.5`, gap `0.5`
+
+That means the accumulator is usually strong and highly confident, but the
+small ambiguous regime is not yet well calibrated. This is a useful warning:
+the method is reliable on most runs, but uncertainty is not yet fully
+informative when it appears.
+
+The shared-corpus comparison tells the same story at the method level:
+
+| method | overall accuracy | prior flip fraction | interpretation |
+| --- | ---: | ---: | --- |
+| pointwise | 0.875 | 0.479 | useful lower bound, but brittle to prior shifts |
+| windowed_raw | 0.750 | 0.021 | stable under priors, but not separative enough |
+| windowed_robust | 0.750 | 0.000 | very stable, but no accuracy gain over raw windowing |
+| accumulator | 0.958 | 0.208 | best current overall method |
+| kalman_bank | 0.740 | 0.208 | model-based, but weaker than the accumulator on this corpus |
+| kalman_bank_velocity_aided | 0.844 | 0.125 | improved by an actual velocity stream |
+
+The practical reading is:
+
+- the accumulator is the strongest end-to-end evidence combiner we have here
+- pointwise is a good sanity check, not the finish line
+- windowed robustness buys stability, but it does not automatically buy better separation
+- the velocity-aided Kalman bank is meaningful only when extra sensing is actually available
+
+Prior sensitivity is the stability counterpart to calibration:
+
+- pointwise flips often under prior perturbation
+- robust windowed methods rarely flip
+- the accumulator sits in between: strong enough to be useful, but still sensitive to ambiguous cases
+- the Kalman bank is stable enough to be meaningful, but not yet the best on this corpus
+
+These summaries come from the generated artifact bundles in:
+
+- `artifacts/common_dataset_comparison_v1/common_dataset_comparison_report.md`
+- `artifacts/prior_sensitivity_v1/prior_sensitivity_report.md`
+- `artifacts/monte_carlo_accumulator/calibration_bins.csv`
+
+So posterior quality in this repo is a bundle of metrics, not a single number:
+accuracy, calibration, entropy, and prior robustness all matter.
 
 ## 4. PDF Terms Versus CDF Terms
 

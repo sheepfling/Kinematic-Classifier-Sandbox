@@ -4,7 +4,7 @@
 \label{tab:bayes_walkthrough}
 \begin{tabularx}{\textwidth}{cccclc}
 \toprule
-time & prior\_class\_a & incremental\_log\_bayes\_factor\_ab\_proxy & posterior\_class\_a & predicted\_class & confidence \\
+$t_k$ & $p_{k-1}(a)$ & $\Delta \lambda_k^{ab}$ & $p_k(a)$ & $\hat{c}_k$ & $\max_c p_k(c)$ \\
 \midrule
 0.0 & 0.5 & 0.0 & 0.5 & constant\_velocity & 0.5 \\
 0.5 & 0.5 & -0.143 & 0.464 & constant\_acceleration & 0.536 \\

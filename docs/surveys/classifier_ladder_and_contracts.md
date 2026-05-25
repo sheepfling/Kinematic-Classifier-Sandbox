@@ -76,6 +76,8 @@ The methods differ in their stronger assumptions:
 
 - `pointwise_baseline.py`: observation at time `t` is sufficient evidence
 - `windowed_baseline.py`: a short feature window is a sufficient summary
+- `state_estimate_evidence.py`: a filtered state and covariance are already
+  provided
 - `sequential_bayes_accumulator.py`: likelihood streams can be accumulated with
   optional forgetting
 - `kalman_filter_bank.py`: each class or motion hypothesis induces a
@@ -97,6 +99,7 @@ The upgrade path is deliberate:
 
 - `pointwise`: no temporal compression beyond the posterior itself
 - `windowed`: compress recent history into engineered features
+- `state_estimate`: score the provided filtered state against class templates
 - `accumulator`: make recursive evidence accumulation explicit
 - `kalman`: let a dynamics model predict the next observation and score the
   innovation
@@ -225,7 +228,49 @@ The main risk is that the engineered feature family is either:
 That is why this rung must be read together with the feature-analysis and
 corpus-adequacy documents.
 
-## 7. Sequential Bayes Accumulator
+## 7. Covariance-Aware State Estimate Evidence
+
+Sometimes the input is not a raw observation stream but an already filtered
+state estimate with covariance, for example:
+
+```tex
+(x_t, P_t) \quad \text{or} \quad (x_{t|t}, P_{t|t})
+```
+
+In that case the Kalman update has already been performed elsewhere, so the
+right evidence atom is not a new innovation residual. The right rung is a
+covariance-aware state-likelihood score.
+
+The class-conditioned evidence can be written as:
+
+```tex
+\ell_t(c)
+=
+-\frac{1}{2}
+\left[
+    (x_t - \mu_c)^\top \Sigma_{t,c}^{-1}(x_t - \mu_c)
+    + \log |\Sigma_{t,c}|
+    + d \log(2\pi)
+\right].
+```
+
+Here `Σ_{t,c}` is the supplied covariance or a class-conditioned covariance
+model built from it. If the provided covariance is class-neutral, then
+`Σ_{t,c}` can be taken as the supplied covariance plus any class-specific
+process or measurement inflation used by the benchmark.
+
+This rung is the right choice when:
+
+- the tracker already gives a state estimate and covariance
+- the task is to classify trajectories from filtered states rather than to
+  re-run tracking
+- the evidence should measure class fit to the filtered state, not the raw
+  measurement innovation
+
+In other words, the ladder step is covariance-aware state evidence, not full
+Kalman filtering.
+
+## 8. Sequential Bayes Accumulator
 
 ### 7.1 Problem
 
@@ -287,7 +332,7 @@ If the supplied evidence is poorly calibrated, recursive accumulation can make
 the wrong answer more confident over time. This rung therefore sharpens both
 the strengths and weaknesses of the upstream evidence provider.
 
-## 8. Kalman Innovation Bank
+## 9. Kalman Innovation Bank
 
 ### 8.1 Problem
 
@@ -351,7 +396,7 @@ This rung still assumes that the model family is expressive enough. If the true
 behavior is switching, strongly nonlinear, or non-Gaussian, the innovation
 likelihood can become systematically misleading even when numerically stable.
 
-## 9. Transition-Aware Accumulation
+## 10. Transition-Aware Accumulation
 
 ### 9.1 Problem
 

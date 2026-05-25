@@ -1,13 +1,70 @@
-# Corpus Generation and Search
+# Corpus Generation, Evaluation, and Exploration
 
-This note documents the corpus side of the methodology stack. It is not just a
+This note is the corpus-side pillar of the methodology stack. It is not just a
 description of how trajectories are synthesized. It is meant to answer:
 
 - what variables define a corpus candidate
 - what objective function is being optimized
+- how corpus quality is measured before classifiers are evaluated
 - how adequacy pressure is turned into a scalar score and Pareto surface
 - how corpus candidates become promoted studies
 - which artifacts demonstrate those claims numerically
+
+## Scope and Relation to Other Documents
+
+This document owns the corpus lifecycle:
+
+- corpus objectives and candidate generation
+- corpus adequacy and leakage evaluation
+- archive-based exploration and selection
+- CorpusGym-style execution and reward surfaces
+- backend-aware planning for corpus search
+
+It is intentionally narrower than the other two core documents:
+
+- the methodology evaluation framework explains how to judge studies
+- the classifier ladder explains how evidence providers generate posteriors
+- this document explains how the corpus is produced, measured, and selected
+  before those classifiers are asked to interpret it
+
+## Corpus Evaluation Criteria
+
+Before any study is promoted, the corpus itself must be judged on its own
+merits. The corpus-side evaluation question is not whether the classifier is
+already good; it is whether the generated corpus is broad, valid, auditable,
+and hard in the intended way.
+
+The most important corpus-level criteria are:
+
+- class balance and class-pair balance
+- boundary coverage and ambiguity pressure
+- feature excitation over the active feature set
+- difficulty diversity across tiers and regimes
+- leakage control from duration, noise, sampling, or environment
+- degeneracy control so the corpus does not collapse to trivial repeats
+- provenance completeness so the selected corpus is reproducible
+
+A useful corpus-evaluation summary vector is:
+
+```tex
+\mathbf{m}_k
+=
+\big[
+    B_k,\,
+    C_k,\,
+    F_k,\,
+    D_k,\,
+    1-L_k,\,
+    1-T_k,\,
+    1-G_k,\,
+    P_k
+\big]
+```
+
+where `P_k` is provenance completeness. The corpus score in
+`corpus_autodevelopment.py` is one concrete scalarization of that vector,
+while the archive and selected-corpus artifacts preserve the non-scalarized
+tradeoffs.
 
 ## 1. Problem Statement
 
@@ -16,7 +73,7 @@ generation problem:
 
 ```tex
 \text{How do we generate and select datasets that are informative enough to test
-classification methods without making the task accidentally trivial or biased?}
+classification methods without making the task trivial or biased?}
 ```
 
 That means corpus generation must be tied to explicit objectives rather than
@@ -226,6 +283,16 @@ This score is intentionally mixed. It rewards:
 - usefulness of environment-regime structure
 - preservation of provenance metadata for later audit
 
+The utility is easier to interpret if written as a short symbol map:
+
+```tex
+U_{\text{explore}} = 0.22 V + 0.18 N + 0.18 B + 0.18 S + 0.12 E + 0.12 P.
+```
+
+That is the form used by the numeric walkthrough artifact, which substitutes
+the concrete values for `V`, `N`, `B`, `S`, `E`, and `P` before comparing the
+selected row with a random baseline.
+
 So the explorer is not only asking “which trajectory is hardest?” It is asking
 “which executed trajectories make the corpus more useful as a study object?”
 
@@ -249,8 +316,17 @@ corpus is then compared against a same-size random baseline by coverage:
 \#\{\text{random-baseline archive cells}\}.
 ```
 
-That gives the explorer a meaningful audit question: does the selected corpus
-cover more useful behavioral cells than a naïve random sample of equal size?
+If `h(tau)` is the archive-cell map for a trajectory `tau`, then the selected
+elite is
+
+```tex
+A[h(\tau)]
+\leftarrow
+\arg\max_{\tau' : h(\tau') = h(\tau)} U_{\text{explore}}(\tau').
+```
+
+That gives the explorer a clear audit question: does the selected corpus cover
+more useful behavioral cells than a naïve random sample of equal size?
 
 ### 6.3 Worked Example
 
@@ -275,7 +351,7 @@ selected row.
 just a batch sampler. The question is:
 
 ```tex
-\text{Can we specify desired failure pressure or feature geometry and then reward trajectories that approach it?}
+\text{Can we specify desired failure pressure or feature geometry and reward matching trajectories?}
 ```
 
 ### 7.2 Variables
@@ -283,8 +359,7 @@ just a batch sampler. The question is:
 The main objects are:
 
 - `target`: a desired class, class pair, feature cell, failure mode, or prior-sensitive regime
-- `action`: a parameterized perturbation of the base tier, including measurement
-  scale, irregularity scale, outlier scale, and step scale
+- `action`: a parameterized perturbation of the base tier
 - `reward`: a structured utility decomposition
 - `episode`: `(target, action, trajectory, diagnostics, reward)`
 

@@ -123,6 +123,24 @@ What changes across methods is how the evidence is produced:
 The posterior updater should not care which of those produced the
 log-likelihoods, as long as the output has a common per-class form.
 
+The implemented method families are easiest to read as a single table:
+
+| method | evidence input `y_k` | evidence term `ℓ_k(c)` | role in the repo |
+| --- | --- | --- | --- |
+| pointwise | current observation or local feature | `log p(y_k \| c)` | weak lower-bound classifier |
+| windowed | fixed-window feature vector `ϕ_k` | `log p(ϕ_k \| c)` | adds short temporal context |
+| sequential Bayes | recursively emitted evidence stream | accumulated per-step `ℓ_k(c)` | composes evidence through time |
+| Kalman bank | innovation `ν_{k,c}` | `log N(ν_{k,c}; 0, S_{k,c})` | scores class-conditioned dynamics mismatch |
+| transition model | evidence plus class transition prior | `ℓ_k(c) + log \sum_j T_{jc} p_{k-1}(j)` | handles switching classes |
+
+This table is the answer to "what is `y_k`?" in practice:
+
+- pointwise uses the newest sample directly
+- windowed uses a short feature summary
+- sequential Bayes uses whatever per-step evidence the classifier emits
+- Kalman bank uses model innovation residuals
+- transition model uses a prior-predicted class distribution before the evidence update
+
 ## 1.1 Implementation mapping
 
 The math in this note maps to a few concrete implementation surfaces:
@@ -710,6 +728,92 @@ So compared with toy:
 - toy has class posterior plus per-class state posteriors
 - identity has class posterior only
 
+## 3.7 Calibration And Posterior Quality
+
+Posterior quality is not the same thing as raw accuracy. In this repo it means:
+
+- does the posterior put high probability on the correct class?
+- does confidence mean what it says?
+- does the posterior stay stable under small prior changes when the evidence is strong?
+- does entropy drop for the right reason instead of just getting overconfident?
+
+The standard calibration diagnostics are:
+
+```tex
+\mathrm{Brier}
+=
+\frac{1}{N}
+\sum_{i=1}^N
+\sum_{c \in \mathcal{C}}
+\left(
+p_i(c)-\mathbf{1}[y_i=c]
+\right)^2
+```
+
+```tex
+\mathrm{ECE}
+=
+\sum_{b=1}^B
+\frac{|I_b|}{N}
+\left|
+\mathrm{acc}(I_b)-\mathrm{conf}(I_b)
+\right|.
+```
+
+Posterior entropy is the complementary uncertainty view:
+
+```tex
+H_t = - \sum_{c \in \mathcal{C}} p_t(c)\log p_t(c).
+```
+
+Low entropy means the model is decisive. That is only good when the decisive
+label is also correct. If entropy falls while the model is wrong, the posterior
+is confidently wrong rather than calibrated.
+
+The current calibration bins for the accumulator make this concrete:
+
+- `0.9-1.0` confidence bin: 175 cases, accuracy `0.96`, mean confidence `0.9992854302781583`, gap `0.03928543027815834`
+- `0.4-0.5` confidence bin: 7 cases, accuracy `0.0`, mean confidence `0.5`, gap `0.5`
+
+That means the accumulator is usually strong and highly confident, but the
+small ambiguous regime is not yet well calibrated. This is a useful warning:
+the method is reliable on most runs, but uncertainty is not yet fully
+informative when it appears.
+
+The shared-corpus comparison tells the same story at the method level:
+
+| method | overall accuracy | prior flip fraction | interpretation |
+| --- | ---: | ---: | --- |
+| pointwise | 0.875 | 0.479 | useful lower bound, but brittle to prior shifts |
+| windowed_raw | 0.750 | 0.021 | stable under priors, but not separative enough |
+| windowed_robust | 0.750 | 0.000 | very stable, but no accuracy gain over raw windowing |
+| accumulator | 0.958 | 0.208 | best current overall method |
+| kalman_bank | 0.740 | 0.208 | model-based, but weaker than the accumulator on this corpus |
+| kalman_bank_velocity_aided | 0.844 | 0.125 | improved by an actual velocity stream |
+
+The practical reading is:
+
+- the accumulator is the strongest end-to-end evidence combiner we have here
+- pointwise is a good sanity check, not the finish line
+- windowed robustness buys stability, but it does not automatically buy better separation
+- the velocity-aided Kalman bank is meaningful only when extra sensing is actually available
+
+Prior sensitivity is the stability counterpart to calibration:
+
+- pointwise flips often under prior perturbation
+- robust windowed methods rarely flip
+- the accumulator sits in between: strong enough to be useful, but still sensitive to ambiguous cases
+- the Kalman bank is stable enough to be meaningful, but not yet the best on this corpus
+
+These summaries come from the generated artifact bundles in:
+
+- `artifacts/common_dataset_comparison_v1/common_dataset_comparison_report.md`
+- `artifacts/prior_sensitivity_v1/prior_sensitivity_report.md`
+- `artifacts/monte_carlo_accumulator/calibration_bins.csv`
+
+So posterior quality in this repo is a bundle of metrics, not a single number:
+accuracy, calibration, entropy, and prior robustness all matter.
+
 ## 4. PDF Terms Versus CDF Terms
 
 The repo currently mixes two different probabilistic objects.
@@ -1138,42 +1242,332 @@ actually failures of class schema or synthetic realization.
 ### 7.1 Problem
 
 `corpus_adequacy_audit.py` asks whether the study data is broad, balanced, and
-hard in the intended ways.
+hard in the intended ways without leaking labels through metadata shortcuts.
+
+A corpus is not good merely because classifiers perform well on it. A corpus is
+good when it exercises the declared classes, feature families, boundary cases,
+priors, and sensor conditions without letting the classifier solve the problem
+from duration, sample count, irregular sampling, or other nuisance variables.
+
+The corpus is treated as
+
+```tex
+D = \{(\tau_i, c_i, s_i, m_i)\}_{i=1}^{N},
+```
+
+where:
+
+- `τ_i`: trajectory `i`
+- `c_i`: validated class label
+- `s_i`: tier or scenario label
+- `m_i`: metadata such as duration, sample count, `mean_dt`, `std_dt`,
+  irregularity, noise, and outlier rate
+
+The current code now makes this explicit with a bounded scorecard:
+
+```tex
+Q_{\text{corpus}}(D)
+=
+\frac{
+B_{\text{class}}
++
+B_{\text{tier}}
++
+B_{\text{covariates}}
++
+E_{\text{feature}}
++
+C_{\text{pair}}
++
+V
+-
+L
+-
+T
+-
+G
+}{6}.
+```
+
+The positive terms should be high. The penalties should be low.
 
 ### 7.2 Evaluation Axes
 
-The audit checks:
+The implemented scorecard terms are:
 
-- class balance
-- scenario balance
-- duration and sample-count balance
-- noise and irregular-sampling coverage
-- feature excitation
-- class-pair boundary coverage
-- covariate leakage
+| term | meaning | desired direction | current artifact |
+| --- | --- | --- | --- |
+| `B_class` | class balance | high | `class_balance.csv` |
+| `B_tier` | tier balance | high | `class_balance.csv` |
+| `B_covariates` | metadata balance across classes | high | `covariate_leakage_audit.csv` |
+| `E_feature` | feature excitation coverage | high | `feature_set_coverage.csv` |
+| `C_pair` | class-pair boundary coverage | high | `class_pair_coverage.csv` |
+| `V` | class-validity score | high | `class_validity_audit.csv` |
+| `L` | leakage penalty | low | `covariate_leakage_audit.csv` |
+| `T` | triviality penalty | low | `class_pair_coverage.csv` |
+| `G` | degeneracy penalty | low | `corpus_degeneracy_report.csv` |
 
-### 7.3 Leakage Interpretation
+For the current common synthetic corpus, the latest audit reports:
 
-The corpus should not allow nuisance variables such as duration, sample count,
-or sampling irregularity to predict class too well on their own. If those
-covariates become highly class-linked, the classifier may be learning the corpus
-rather than the motion class.
+- `B_class = 1.000`
+- `B_tier = 1.000`
+- `B_covariates = 0.704`
+- `E_feature = 0.562`
+- `C_pair = 0.731`
+- `V = 1.000`
+- `L = 0.613`
+- `T = 0.500`
+- `G = 0.023`
+- `Q_corpus = 0.644`
 
-### 7.4 Implementation Mapping
+So the corpus currently fails not because balance is poor, but because leakage
+and hard-pair triviality are still too large.
+
+### 7.3 Class and Tier Balance
+
+Let
+
+```tex
+\hat{p}_D(c)
+=
+\frac{1}{N}\sum_{i=1}^{N}\mathbf{1}[c_i=c]
+```
+
+be the empirical class distribution. For a uniform target over class set
+`𝒞`, the balance score is
+
+```tex
+B_{\text{class}}(D)
+=
+1-\frac{1}{2}\sum_{c\in\mathcal{C}}|\hat{p}_D(c)-p^\star(c)|.
+```
+
+The code uses the same total-variation-style score for tier balance:
+
+```tex
+B_{\text{tier}}(D)
+=
+1-\frac{1}{2}\sum_{s\in\mathcal{S}}|\hat{p}_D(s)-p^\star(s)|.
+```
+
+Interpretation:
+
+- `1.0` means the observed distribution matches the target distribution
+- values near `0` mean one class or tier is dominating the study
+
+On the current common corpus both scores are `1.000`, which is why class and
+tier balance are not the reason for failure.
+
+### 7.4 Covariate Balance and Leakage
+
+For continuous metadata covariates `q` such as duration, sample count,
+`mean_dt`, `std_dt`, `sampling_irregularity`, and outlier fraction, the audit
+now separates two questions:
+
+1. are class-conditional covariate distributions similar?
+2. can the covariate predict class on its own?
+
+The balance side uses a normalized 1D Wasserstein distance:
+
+```tex
+I_q(D)
+=
+\max_{a,b\in\mathcal{C}}
+\frac{W_1(F_{q|a},F_{q|b})}{R_q+\epsilon},
+\qquad
+B_q(D)=1-\operatorname{clip}(I_q(D),0,1).
+```
+
+The leakage side uses covariate-only predictability:
+
+```tex
+L_q(D)
+=
+\operatorname{clip}\left(\frac{\mathrm{AUC}_q-0.5}{0.5},0,1\right).
+```
+
+The current aggregate scores are:
+
+```tex
+B_{\text{covariates}}(D)=\frac{1}{|\mathcal{Q}|}\sum_q \left[1-\max\{L_q(D),B_q^{\text{risk}}(D)\}\right],
+\qquad
+L(D)=\max_q L_q(D).
+```
+
+Operationally:
+
+- `std_dt` is yellow with covariate-only AUC `0.806`
+- `sampling_irregularity` is yellow with covariate-only AUC `0.805`
+- the aggregate leakage penalty is `L = 0.613`
+
+So the current corpus is still class-linked through irregular-sampling metadata
+more than it should be.
+
+### 7.5 Feature Excitation Coverage
+
+The audit no longer treats feature excitation as a checklist item. It scores
+whether each declared feature is actually activated across classes and tiers.
+
+For feature `j`, class `c`, and tier `s`, the current implementation uses a
+moderate-threshold excitation count:
+
+```tex
+E_{jcs}(D)
+=
+\min\left(
+1,
+\frac{
+\#\{i : c_i=c,\ s_i=s,\ |\phi_{ij}| \ge \tau^{\text{moderate}}_j\}
+}{n_{\min}}
+\right).
+```
+
+Then:
+
+```tex
+E_{\text{feature}}(D)
+=
+\frac{1}{|\mathcal{J}||\mathcal{C}||\mathcal{S}|}
+\sum_{j,c,s} E_{jcs}(D).
+```
+
+The current audit reports `E_feature = 0.562`. That is not a failure, but it is
+also not saturated coverage. It means the corpus is exercising many features,
+but not uniformly or strongly enough across every class-tier cell.
+
+### 7.6 Class-Pair Boundary Coverage and Triviality
+
+For each declared important pair `h = (a,b)`, the audit checks both:
+
+1. whether the required tiers are present
+2. whether the pair remains hard in the intended way
+
+The current implementation uses a pair boundary score:
+
+```tex
+C_h(D)
+=
+\text{tier\_fraction}(h)
+\times
+\text{difficulty-window score}(h),
+```
+
+where the difficulty-window score depends on the expected pair type:
+
+- easy pairs should have high AUC
+- hard pairs should not become too separable
+- hard pairs should retain overlap
+
+The aggregate boundary term is:
+
+```tex
+C_{\text{pair}}(D)
+=
+\frac{1}{|\mathcal{H}|}\sum_{h\in\mathcal{H}} C_h(D).
+```
+
+The triviality penalty is explicit for declared hard pairs:
+
+```tex
+T_h(D)
+=
+\max\left(
+0,
+\frac{\mathrm{AUC}_h-\tau_{\text{easy}}}{1-\tau_{\text{easy}}}
+\right),
+\qquad
+T(D)=\frac{1}{|\mathcal{H}_{\text{hard}}|}\sum_h T_h(D).
+```
+
+This is the direct explanation for the current red finding:
+
+- `constant_acceleration vs maneuver` is declared hard
+- observed pairwise AUC is `1.000`
+- overlap is `0.000`
+- therefore the pair is over-separated
+- `T = 0.500`
+
+This is why the corpus fails even though balance is perfect.
+
+### 7.7 Class Validity
+
+The common synthetic corpus is generator-defined, so the current adequacy audit
+treats its labels as valid by construction:
+
+```tex
+V(D)=1.0
+```
+
+for this specific corpus family.
+
+That is not the same thing as saying class validity is unimportant. It means
+the detailed relabel logic lives one layer downstream in `class_validity.py`
+for generated or objective-driven corpora, where labels are not guaranteed by
+construction.
+
+### 7.8 Degeneracy
+
+The degeneracy penalty catches duplicate or structurally invalid corpora. The
+implemented terms are:
+
+```tex
+G_{\text{dup}}(D)
+=
+\frac{
+\#\{(i,j): i<j,\ d(\phi_i,\phi_j)<\epsilon\}
+}{
+\binom{N}{2}
+},
+```
+
+```tex
+G_{\text{invalid}}(D)
+=
+\frac{\#\{i : t_{i,k+1}\le t_{i,k}\ \text{for some }k\}}{N},
+\qquad
+G_{\text{physical}}(D)
+=
+\frac{\#\{i : \max_k |a_{ik}| > a_{\max}\}}{N}.
+```
+
+The aggregate penalty is:
+
+```tex
+G(D)=0.5\,G_{\text{dup}}+0.25\,G_{\text{invalid}}+0.25\,G_{\text{physical}}.
+```
+
+The current audit reports:
+
+- `G_dup = 0.032`
+- `G_invalid = 0.000`
+- `G_physical = 0.029`
+- `G = 0.023`
+
+So degeneracy is present, but it is not the dominant reason for failure.
+
+### 7.9 Implementation Mapping
 
 - `corpus_adequacy_audit.py`
 - `coverage_report.py`
 - `generated_corpus_features.py`
 - `corpus_classifier_scoring.py`
 
-### 7.5 Current Methodological Use
+### 7.10 Current Methodological Use
 
-The adequacy audit is already acting as a real gate. It can say not just “pass”
-or “fail,” but **why**:
+The adequacy audit is now acting as a real scorecard and a real gate. It can
+say not just `pass` or `fail`, but why:
 
 - over-separated hard pairs
 - class-linked irregular-sampling variables
-- weak feature excitation for certain feature bundles
+- incomplete feature excitation
+- duplicate or mildly nonphysical structure
+
+The current common synthetic corpus therefore fails for principled reasons:
+
+- `Q_corpus = 0.644`, below the yellow gate of `0.65`
+- leakage is too high: `L = 0.613`
+- hard-pair triviality is too high: `T = 0.500`
+- the main red pair remains `constant_acceleration vs maneuver`
 
 That is the right shape for a credible methodology audit.
 
@@ -1362,6 +1756,8 @@ The methods differ in their stronger assumptions:
 
 - `pointwise_baseline.py`: observation at time `t` is sufficient evidence
 - `windowed_baseline.py`: a short feature window is a sufficient summary
+- `state_estimate_evidence.py`: a filtered state and covariance are already
+  provided
 - `sequential_bayes_accumulator.py`: likelihood streams can be accumulated with
   optional forgetting
 - `kalman_filter_bank.py`: each class or motion hypothesis induces a
@@ -1383,6 +1779,7 @@ The upgrade path is deliberate:
 
 - `pointwise`: no temporal compression beyond the posterior itself
 - `windowed`: compress recent history into engineered features
+- `state_estimate`: score the provided filtered state against class templates
 - `accumulator`: make recursive evidence accumulation explicit
 - `kalman`: let a dynamics model predict the next observation and score the
   innovation
@@ -1511,7 +1908,49 @@ The main risk is that the engineered feature family is either:
 That is why this rung must be read together with the feature-analysis and
 corpus-adequacy documents.
 
-## 7. Sequential Bayes Accumulator
+## 7. Covariance-Aware State Estimate Evidence
+
+Sometimes the input is not a raw observation stream but an already filtered
+state estimate with covariance, for example:
+
+```tex
+(x_t, P_t) \quad \text{or} \quad (x_{t|t}, P_{t|t})
+```
+
+In that case the Kalman update has already been performed elsewhere, so the
+right evidence atom is not a new innovation residual. The right rung is a
+covariance-aware state-likelihood score.
+
+The class-conditioned evidence can be written as:
+
+```tex
+\ell_t(c)
+=
+-\frac{1}{2}
+\left[
+    (x_t - \mu_c)^\top \Sigma_{t,c}^{-1}(x_t - \mu_c)
+    + \log |\Sigma_{t,c}|
+    + d \log(2\pi)
+\right].
+```
+
+Here `Σ_{t,c}` is the supplied covariance or a class-conditioned covariance
+model built from it. If the provided covariance is class-neutral, then
+`Σ_{t,c}` can be taken as the supplied covariance plus any class-specific
+process or measurement inflation used by the benchmark.
+
+This rung is the right choice when:
+
+- the tracker already gives a state estimate and covariance
+- the task is to classify trajectories from filtered states rather than to
+  re-run tracking
+- the evidence should measure class fit to the filtered state, not the raw
+  measurement innovation
+
+In other words, the ladder step is covariance-aware state evidence, not full
+Kalman filtering.
+
+## 8. Sequential Bayes Accumulator
 
 ### 7.1 Problem
 
@@ -1573,7 +2012,7 @@ If the supplied evidence is poorly calibrated, recursive accumulation can make
 the wrong answer more confident over time. This rung therefore sharpens both
 the strengths and weaknesses of the upstream evidence provider.
 
-## 8. Kalman Innovation Bank
+## 9. Kalman Innovation Bank
 
 ### 8.1 Problem
 
@@ -1637,7 +2076,7 @@ This rung still assumes that the model family is expressive enough. If the true
 behavior is switching, strongly nonlinear, or non-Gaussian, the innovation
 likelihood can become systematically misleading even when numerically stable.
 
-## 9. Transition-Aware Accumulation
+## 10. Transition-Aware Accumulation
 
 ### 9.1 Problem
 
@@ -1771,14 +2210,71 @@ justified next?”.
 
 Source: [corpus_generation_and_search.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/corpus_generation_and_search.md)
 
-This note documents the corpus side of the methodology stack. It is not just a
+This note is the corpus-side pillar of the methodology stack. It is not just a
 description of how trajectories are synthesized. It is meant to answer:
 
 - what variables define a corpus candidate
 - what objective function is being optimized
+- how corpus quality is measured before classifiers are evaluated
 - how adequacy pressure is turned into a scalar score and Pareto surface
 - how corpus candidates become promoted studies
 - which artifacts demonstrate those claims numerically
+
+## Scope and Relation to Other Documents
+
+This document owns the corpus lifecycle:
+
+- corpus objectives and candidate generation
+- corpus adequacy and leakage evaluation
+- archive-based exploration and selection
+- CorpusGym-style execution and reward surfaces
+- backend-aware planning for corpus search
+
+It is intentionally narrower than the other two core documents:
+
+- the methodology evaluation framework explains how to judge studies
+- the classifier ladder explains how evidence providers generate posteriors
+- this document explains how the corpus is produced, measured, and selected
+  before those classifiers are asked to interpret it
+
+## Corpus Evaluation Criteria
+
+Before any study is promoted, the corpus itself must be judged on its own
+merits. The corpus-side evaluation question is not whether the classifier is
+already good; it is whether the generated corpus is broad, valid, auditable,
+and hard in the intended way.
+
+The most important corpus-level criteria are:
+
+- class balance and class-pair balance
+- boundary coverage and ambiguity pressure
+- feature excitation over the active feature set
+- difficulty diversity across tiers and regimes
+- leakage control from duration, noise, sampling, or environment
+- degeneracy control so the corpus does not collapse to trivial repeats
+- provenance completeness so the selected corpus is reproducible
+
+A useful corpus-evaluation summary vector is:
+
+```tex
+\mathbf{m}_k
+=
+\big[
+    B_k,\,
+    C_k,\,
+    F_k,\,
+    D_k,\,
+    1-L_k,\,
+    1-T_k,\,
+    1-G_k,\,
+    P_k
+\big]
+```
+
+where `P_k` is provenance completeness. The corpus score in
+`corpus_autodevelopment.py` is one concrete scalarization of that vector,
+while the archive and selected-corpus artifacts preserve the non-scalarized
+tradeoffs.
 
 ## 1. Problem Statement
 
@@ -1787,7 +2283,7 @@ generation problem:
 
 ```tex
 \text{How do we generate and select datasets that are informative enough to test
-classification methods without making the task accidentally trivial or biased?}
+classification methods without making the task trivial or biased?}
 ```
 
 That means corpus generation must be tied to explicit objectives rather than
@@ -1997,6 +2493,16 @@ This score is intentionally mixed. It rewards:
 - usefulness of environment-regime structure
 - preservation of provenance metadata for later audit
 
+The utility is easier to interpret if written as a short symbol map:
+
+```tex
+U_{\text{explore}} = 0.22 V + 0.18 N + 0.18 B + 0.18 S + 0.12 E + 0.12 P.
+```
+
+That is the form used by the numeric walkthrough artifact, which substitutes
+the concrete values for `V`, `N`, `B`, `S`, `E`, and `P` before comparing the
+selected row with a random baseline.
+
 So the explorer is not only asking “which trajectory is hardest?” It is asking
 “which executed trajectories make the corpus more useful as a study object?”
 
@@ -2020,8 +2526,17 @@ corpus is then compared against a same-size random baseline by coverage:
 \#\{\text{random-baseline archive cells}\}.
 ```
 
-That gives the explorer a meaningful audit question: does the selected corpus
-cover more useful behavioral cells than a naïve random sample of equal size?
+If `h(tau)` is the archive-cell map for a trajectory `tau`, then the selected
+elite is
+
+```tex
+A[h(\tau)]
+\leftarrow
+\arg\max_{\tau' : h(\tau') = h(\tau)} U_{\text{explore}}(\tau').
+```
+
+That gives the explorer a clear audit question: does the selected corpus cover
+more useful behavioral cells than a naïve random sample of equal size?
 
 ### 6.3 Worked Example
 
@@ -2046,7 +2561,7 @@ selected row.
 just a batch sampler. The question is:
 
 ```tex
-\text{Can we specify desired failure pressure or feature geometry and then reward trajectories that approach it?}
+\text{Can we specify desired failure pressure or feature geometry and reward matching trajectories?}
 ```
 
 ### 7.2 Variables
@@ -2054,8 +2569,7 @@ just a batch sampler. The question is:
 The main objects are:
 
 - `target`: a desired class, class pair, feature cell, failure mode, or prior-sensitive regime
-- `action`: a parameterized perturbation of the base tier, including measurement
-  scale, irregularity scale, outlier scale, and step scale
+- `action`: a parameterized perturbation of the base tier
 - `reward`: a structured utility decomposition
 - `episode`: `(target, action, trajectory, diagnostics, reward)`
 
