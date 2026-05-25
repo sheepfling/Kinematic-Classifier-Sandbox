@@ -1,0 +1,4 @@
+prior_id,description
+uniform,Equal class prior
+mild_bias,Small preference toward one class
+

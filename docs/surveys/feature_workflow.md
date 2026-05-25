@@ -11,10 +11,10 @@ This note describes the current feature-analysis workflow in the sandbox, with e
 
 The generic feature-analysis path is centered on:
 
-- [feature_analysis.py](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/src/kinematic_classifier_sandbox/feature_analysis.py)
-- [pca_analysis.py](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/src/kinematic_classifier_sandbox/pca_analysis.py)
-- [feature_sets.json](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/experiments/common_1d_classifier_study/feature_sets.json)
-- [class_pair_manifest.json](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/experiments/common_1d_classifier_study/class_pair_manifest.json)
+- [feature_analysis.py](src/kinematic_classifier_sandbox/feature_analysis.py)
+- [pca_analysis.py](src/kinematic_classifier_sandbox/pca_analysis.py)
+- [feature_sets.json](experiments/common_1d_classifier_study/feature_sets.json)
+- [class_pair_manifest.json](experiments/common_1d_classifier_study/class_pair_manifest.json)
 
 The important abstraction is the feature registry in `feature_analysis.py`:
 
@@ -150,7 +150,7 @@ That bundle writes:
 
 The current lowest-friction path is:
 
-1. Add the feature to `FEATURE_REGISTRY` in [feature_analysis.py](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/src/kinematic_classifier_sandbox/feature_analysis.py).
+1. Add the feature to `FEATURE_REGISTRY` in [feature_analysis.py](src/kinematic_classifier_sandbox/feature_analysis.py).
 2. Provide:
    - `name`
    - `group`
@@ -160,7 +160,7 @@ The current lowest-friction path is:
 3. If the extractor depends only on generic trajectory structure, add that ingredient to `BaseFeatureComputationContext`.
 4. If the extractor depends on 1D-specific derived signals, add that ingredient to `OneDimensionalFeatureComputationContext`.
 5. Keep the extractor itself in the registry, not in downstream analysis code.
-6. Add the feature to one or more entries in [feature_sets.json](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/experiments/common_1d_classifier_study/feature_sets.json).
+6. Add the feature to one or more entries in [feature_sets.json](experiments/common_1d_classifier_study/feature_sets.json).
 7. Rerun:
 
 ```bash
@@ -177,7 +177,7 @@ PYTHONPYCACHEPREFIX=/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-cl
 
 ## How To Add A New Feature Set
 
-Edit [feature_sets.json](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/experiments/common_1d_classifier_study/feature_sets.json).
+Edit [feature_sets.json](experiments/common_1d_classifier_study/feature_sets.json).
 
 For a direct set:
 

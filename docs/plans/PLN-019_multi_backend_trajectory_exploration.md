@@ -561,7 +561,7 @@ Success Criteria:
 
 Follow-On:
 - PLN-019 proves the backend-agnostic exploration architecture.
-- The next maturity layer is [PLN-021_objective_driven_corpus_explorer_v1.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/plans/PLN-021_objective_driven_corpus_explorer_v1.md), which covers:
+- The next maturity layer is [PLN-021_objective_driven_corpus_explorer_v1.md](docs/plans/PLN-021_objective_driven_corpus_explorer_v1.md), which covers:
   - objective-driven candidate generation
   - class-validity scoring
   - real feature extraction integration

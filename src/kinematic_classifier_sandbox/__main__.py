@@ -9,6 +9,7 @@ from .formal_math_registry import write_formal_math_registry_artifacts
 from .formal_math_visual_registry import write_formal_math_visual_registry_artifacts
 from .functional_surface_catalog import write_functional_surface_catalog_artifacts
 from .generic_corpus_exploration import write_generic_corpus_exploration_weight_sweep_artifacts
+from .rung_sufficiency import write_ladder_witness_suite_artifacts
 from .pca_dimensionality_audit import write_pca_dimensionality_audit_artifacts
 from .repo_story import write_repo_story_artifacts
 from .strict_equation_audit import write_strict_equation_audit_artifacts
@@ -126,6 +127,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Directory where the strict audit bundle should be written.",
     )
 
+    ladder_witness_suite = subparsers.add_parser(
+        "ladder-witness-suite",
+        help="Render the ladder witness corpus suite manifest and schema bundle.",
+    )
+    ladder_witness_suite.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the witness suite bundle should be written.",
+    )
+    ladder_witness_suite.add_argument(
+        "--config",
+        default=None,
+        help="Optional YAML config defining the witness suite.",
+    )
+
     repo_story = subparsers.add_parser(
         "repo-story",
         help="Render the canonical repo-story proof-navigation bundle.",
@@ -227,6 +243,8 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.report_path)
         print(artifacts.summary_path)
         print(artifacts.gallery_csv_path)
+        print(artifacts.provenance_path)
+        print(artifacts.runbook_path)
         print(artifacts.visual_coverage_png_path)
         print(artifacts.assets_dir)
         return 0
@@ -238,6 +256,19 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.summary_path)
         print(artifacts.rows_path)
         print(artifacts.status_plot_path)
+        return 0
+
+    if args.command == "ladder-witness-suite":
+        artifacts = write_ladder_witness_suite_artifacts(
+            Path(args.output_dir),
+            config_path=args.config,
+        )
+        print(artifacts.run_dir)
+        print(artifacts.config_path)
+        print(artifacts.schema_path)
+        print(artifacts.manifest_path)
+        print(artifacts.claim_matrix_path)
+        print(artifacts.index_path)
         return 0
 
     if args.command == "repo-story":

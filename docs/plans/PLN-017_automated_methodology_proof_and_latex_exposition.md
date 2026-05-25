@@ -142,9 +142,9 @@ Artifacts / Config:
   - `scripts/build_showcase.py`
   - `scripts/build_gallery.py`
   - `scripts/export_team_packet.py`
-  - `scripts/validate_artifacts.py`
-  - `scripts/audit_corpus.py`
-  - `scripts/audit_dimensions.py`
+  - `scripts/audit/validate_artifacts.py`
+  - `scripts/audit/audit_corpus.py`
+  - `scripts/audit/audit_dimensions.py`
   - new study/corpus generation helpers as needed
 
 Dependencies:

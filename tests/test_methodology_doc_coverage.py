@@ -36,12 +36,12 @@ class MethodologyDocCoverageTests(unittest.TestCase):
 
     def test_build_scripts_smoke(self) -> None:
         scripts = (
-            "scripts/build_posterior_math.sh",
-            "scripts/build_methodology_evaluation_framework.sh",
-            "scripts/build_classifier_ladder_and_contracts.sh",
-            "scripts/build_corpus_generation_and_search.sh",
-            "scripts/build_dimensional_lift_and_advanced_filter_gates.sh",
-            "scripts/build_methodology_docs.sh",
+            "scripts/build/build_posterior_math.sh",
+            "scripts/build/build_methodology_evaluation_framework.sh",
+            "scripts/build/build_classifier_ladder_and_contracts.sh",
+            "scripts/build/build_corpus_generation_and_search.sh",
+            "scripts/build/build_dimensional_lift_and_advanced_filter_gates.sh",
+            "scripts/build/build_methodology_docs.sh",
         )
         for script in scripts:
             subprocess.run(["bash", str(self.root / script)], check=True, cwd=self.root)

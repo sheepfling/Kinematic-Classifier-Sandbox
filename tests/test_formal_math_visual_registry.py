@@ -27,6 +27,16 @@ class FormalMathVisualRegistryTests(unittest.TestCase):
         result = analyze_formal_math_visual_registry()
         self.assertIn("Formal Math Visual Registry", result.report_markdown)
         self.assertIn("Gallery", result.report_markdown)
+        self.assertIn("Provenance", result.report_markdown)
+        self.assertIn("rerun command", result.report_markdown.lower())
+
+    def test_registry_uses_explicit_provenance(self) -> None:
+        result = analyze_formal_math_visual_registry()
+        self.assertEqual(len(result.rows), len(self.equations))
+        self.assertTrue(all(row.source_data_artifacts for row in result.rows))
+        self.assertTrue(all(row.rerun_command for row in result.rows))
+        self.assertTrue(all(row.visual_status in {"implemented", "illustrative", "missing"} for row in result.rows))
+        self.assertFalse(any(row.visual_kind == "fallback" for row in result.rows))
 
     def test_writer_emits_artifacts(self) -> None:
         script_path = self.root / "scripts" / "render_formal_math_visual_registry.py"
@@ -41,6 +51,8 @@ class FormalMathVisualRegistryTests(unittest.TestCase):
                 Path(temp_dir) / "formal_math_visual_registry_v1" / "formal_math_visual_registry_report.md",
                 Path(temp_dir) / "formal_math_visual_registry_v1" / "formal_math_visual_registry_summary.json",
                 Path(temp_dir) / "formal_math_visual_registry_v1" / "formal_math_visual_registry.csv",
+                Path(temp_dir) / "formal_math_visual_registry_v1" / "formal_math_visual_registry_provenance.csv",
+                Path(temp_dir) / "formal_math_visual_registry_v1" / "formal_math_visual_registry_runbook.md",
                 Path(temp_dir) / "formal_math_visual_registry_v1" / "formal_math_visual_registry_coverage.png",
                 Path(temp_dir) / "formal_math_visual_registry_v1" / "assets",
             )

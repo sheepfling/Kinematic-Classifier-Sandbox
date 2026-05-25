@@ -78,11 +78,11 @@ Artifacts / Config:
 - `artifacts/corpus_generation_and_search.md`
 - `artifacts/dimensional_lift_and_advanced_filter_gates.pdf`
 - `artifacts/dimensional_lift_and_advanced_filter_gates.md`
-- `scripts/build_classifier_ladder_and_contracts.sh`
-- `scripts/build_corpus_generation_and_search.sh`
-- `scripts/build_dimensional_lift_and_advanced_filter_gates.sh`
-- `scripts/build_methodology_docs.sh`
-- `scripts/render_methodology_doc_coverage.py`
+- `scripts/build/build_classifier_ladder_and_contracts.sh`
+- `scripts/build/build_corpus_generation_and_search.sh`
+- `scripts/build/build_dimensional_lift_and_advanced_filter_gates.sh`
+- `scripts/build/build_methodology_docs.sh`
+- `scripts/render/render_methodology_doc_coverage.py`
 
 Dependencies:
 - `PLN-017` automated methodology proof and LaTeX exposition

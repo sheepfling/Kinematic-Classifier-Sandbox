@@ -5,15 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
-    analyze_validation_ladder,
-    write_validation_ladder_artifacts,
-)
+from kinematic_classifier_sandbox import api
 
 
 class ValidationLadderTests(unittest.TestCase):
     def test_validation_ladder_emits_scores_and_decisions(self) -> None:
-        result = analyze_validation_ladder(seed=7, trajectories_per_case=6)
+        result = api.analyze_validation_ladder(seed=7, trajectories_per_case=6)
 
         self.assertGreater(len(result.score_rows), 0)
         self.assertGreater(len(result.decision_rows), 0)
@@ -32,9 +29,9 @@ class ValidationLadderTests(unittest.TestCase):
 
     def test_validation_ladder_writes_expected_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            artifacts = write_validation_ladder_artifacts(
+            artifacts = api.write_validation_ladder_artifacts(
                 temp_dir,
-                result=analyze_validation_ladder(seed=7, trajectories_per_case=6),
+                result=api.analyze_validation_ladder(seed=7, trajectories_per_case=6),
             )
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "validation_ladder")
             self.assertTrue(artifacts.schema_path.exists())

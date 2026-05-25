@@ -16,6 +16,15 @@ class ParticleFilterBankState:
     log_posterior: np.ndarray
 
 
+def particle_filter_class_evidence_update(
+    prior_log_posterior: np.ndarray,
+    log_evidence_values: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    log_unnormalized = prior_log_posterior + log_evidence_values
+    posterior_values, log_posterior, _ = normalize_log_weights(log_unnormalized)
+    return posterior_values, log_posterior
+
+
 class ParticleFilterBank:
     def __init__(
         self,
@@ -55,8 +64,10 @@ class ParticleFilterBank:
             log_evidence_values.append(step.log_marginal_likelihood)
             ess_values[label] = step.ess
             resampled_values[label] = step.resampled
-        log_unnormalized = self.state.log_posterior + np.asarray(log_evidence_values, dtype=np.float64)
-        posterior_values, log_posterior, _ = normalize_log_weights(log_unnormalized)
+        posterior_values, log_posterior = particle_filter_class_evidence_update(
+            self.state.log_posterior,
+            np.asarray(log_evidence_values, dtype=np.float64),
+        )
         self.state.log_posterior = log_posterior
         best_index = int(np.argmax(posterior_values))
         predicted_label = self.label_ids[best_index]

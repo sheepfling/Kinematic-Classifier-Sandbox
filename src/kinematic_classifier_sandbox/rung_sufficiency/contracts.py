@@ -61,3 +61,13 @@ class RungSufficiencyArtifacts:
     failure_mode_heatmap_path: Path
     promotion_decision_plot_path: Path
     posterior_quality_plot_path: Path
+
+
+@dataclass(frozen=True, slots=True)
+class LadderWitnessSuiteArtifacts:
+    run_dir: Path
+    config_path: Path
+    schema_path: Path
+    manifest_path: Path
+    claim_matrix_path: Path
+    index_path: Path

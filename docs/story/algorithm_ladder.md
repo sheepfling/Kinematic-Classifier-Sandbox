@@ -15,4 +15,6 @@ The classifier/filter ladder organizes evidence providers by the capability they
 
 The ladder rule is simple: each rung must be justified by a failure mode that the previous rung cannot explain or solve. IMM, PF, and RBPF are now implemented as advanced-filter evidence providers and promoted on their targeted witness failures. Those promotions are witness-specific; they do not claim universal dominance over simpler rungs.
 
+The governance layer for deciding whether a rung is sufficient, near its practical limit, or ready to escalate is `PLN-026 Rung Sufficiency And Escalation Evaluator`. That evaluator is the bridge between the ladder and the advanced-filter gates: it checks corpus adequacy, feature learnability, oracle gap, posterior quality, failure mode, and capability match before it permits escalation.
+
 The shared contract is that each rung provides class evidence that can be accumulated into comparable posterior histories and evaluated under the same prior, calibration, confusion, and promotion rules.

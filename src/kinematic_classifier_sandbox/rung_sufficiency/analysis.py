@@ -9,9 +9,10 @@ import math
 import os
 from pathlib import Path
 from statistics import mean
-from typing import Iterable
+from typing import Any, Iterable
 
 import numpy as np
+import yaml
 
 from ..advanced_state_inference import analyze_advanced_state_inference
 from ..common_experiment_harness import analyze_common_experiment
@@ -19,7 +20,11 @@ from ..corpus_adequacy_audit import analyze_corpus_adequacy
 from ..transition_matrix_accumulator import run_transition_benchmark
 from ..validation_ladder import analyze_validation_ladder
 from .capability_matrix import capability_rows, capability_lookup, canonicalize_rung_id, next_rung_id
-from .contracts import RungSufficiencyArtifacts, RungSufficiencyThresholds, RungThresholdConfig
+from .contracts import LadderWitnessSuiteArtifacts, RungSufficiencyArtifacts, RungSufficiencyThresholds, RungThresholdConfig
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_LADDER_WITNESS_SUITE_CONFIG_PATH = ROOT / "experiments" / "ladder_witness_suite" / "ladder_witness_suite.yaml"
+LADDER_WITNESS_SUITE_RUN_DIR_NAME = "ladder_witness_suite_v1"
 
 
 def _prepare_matplotlib():
@@ -34,8 +39,15 @@ def _prepare_matplotlib():
 
 def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_fieldnames = list(fieldnames)
+    seen = set(resolved_fieldnames)
+    for row in rows:
+        for key in row.keys():
+            if key not in seen:
+                resolved_fieldnames.append(key)
+                seen.add(key)
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=resolved_fieldnames)
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
@@ -1264,7 +1276,7 @@ def write_rung_sufficiency_artifacts(
         config_path,
         "\n".join(
             [
-                "thresholds:",
+                "threshold_config:",
                 "  default_profile:",
                 f"    min_corpus_score: {threshold_config.default_profile.min_corpus_score}",
                 f"    min_feature_score: {threshold_config.default_profile.min_feature_score}",
@@ -1281,20 +1293,23 @@ def write_rung_sufficiency_artifacts(
                 "  rung_profiles:",
             ]
             + [
-                f"    - rung_id: {rung_id}",
-                f"      min_corpus_score: {profile.min_corpus_score}",
-                f"      min_feature_score: {profile.min_feature_score}",
-                f"      min_oracle_score: {profile.min_oracle_score}",
-                f"      min_oracle_gap_for_algorithm_failure: {profile.min_oracle_gap_for_algorithm_failure}",
-                f"      max_prior_flip_fraction: {profile.max_prior_flip_fraction}",
-                f"      max_confident_error_rate: {profile.max_confident_error_rate}",
-                f"      min_improvement_to_promote: {profile.min_improvement_to_promote}",
-                f"      max_runtime_cost_ratio: {profile.max_runtime_cost_ratio}",
-                f"      max_overlap_for_learnable: {profile.max_overlap_for_learnable}",
-                f"      min_confusability_for_feature_limited: {profile.min_confusability_for_feature_limited}",
-                f"      min_pairwise_auc_for_learnable: {profile.min_pairwise_auc_for_learnable}",
-                f"      min_posterior_margin_for_learnable: {profile.min_posterior_margin_for_learnable}",
+                line
                 for rung_id, profile in threshold_config.rung_profiles
+                for line in (
+                    f"    - rung_id: {rung_id}",
+                    f"      min_corpus_score: {profile.min_corpus_score}",
+                    f"      min_feature_score: {profile.min_feature_score}",
+                    f"      min_oracle_score: {profile.min_oracle_score}",
+                    f"      min_oracle_gap_for_algorithm_failure: {profile.min_oracle_gap_for_algorithm_failure}",
+                    f"      max_prior_flip_fraction: {profile.max_prior_flip_fraction}",
+                    f"      max_confident_error_rate: {profile.max_confident_error_rate}",
+                    f"      min_improvement_to_promote: {profile.min_improvement_to_promote}",
+                    f"      max_runtime_cost_ratio: {profile.max_runtime_cost_ratio}",
+                    f"      max_overlap_for_learnable: {profile.max_overlap_for_learnable}",
+                    f"      min_confusability_for_feature_limited: {profile.min_confusability_for_feature_limited}",
+                    f"      min_pairwise_auc_for_learnable: {profile.min_pairwise_auc_for_learnable}",
+                    f"      min_posterior_margin_for_learnable: {profile.min_posterior_margin_for_learnable}",
+                )
             ]
         )
         + "\n",
@@ -1318,4 +1333,243 @@ def write_rung_sufficiency_artifacts(
         failure_mode_heatmap_path=plot_paths["failure_heatmap"],
         promotion_decision_plot_path=plot_paths["promotion_matrix"],
         posterior_quality_plot_path=plot_paths["posterior_quality"],
+    )
+
+
+def _ladder_witness_schema() -> dict[str, Any]:
+    witness_objective_schema = {
+        "type": "object",
+        "required": ["difficulty", "evidence_strength", "temporal_consistency"],
+        "properties": {
+            "difficulty": {"type": "string"},
+            "evidence_strength": {"type": "string"},
+            "temporal_consistency": {"type": "string"},
+        },
+        "additionalProperties": True,
+    }
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "LadderWitnessSuiteConfig",
+        "type": "object",
+        "required": ["suite_id", "description", "witnesses"],
+        "properties": {
+            "suite_id": {"type": "string"},
+            "description": {"type": "string"},
+            "witnesses": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": [
+                        "witness_id",
+                        "rung_under_test",
+                        "claim_type",
+                        "classes",
+                        "feature_sets",
+                        "methods",
+                        "priors",
+                        "corpus_objective",
+                        "expected_result",
+                        "success_criteria",
+                        "visual_story",
+                    ],
+                    "properties": {
+                        "witness_id": {"type": "string"},
+                        "rung_under_test": {"type": "string"},
+                        "claim_type": {"type": "string"},
+                        "comparison_method": {"type": "string"},
+                        "classes": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                        "feature_sets": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                        "methods": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                        "priors": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                        "corpus_objective": witness_objective_schema,
+                        "expected_result": {"type": "object", "additionalProperties": {"type": "string"}},
+                        "success_criteria": {"type": "object", "additionalProperties": True},
+                        "visual_story": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                    },
+                    "additionalProperties": True,
+                },
+            },
+        },
+        "additionalProperties": True,
+    }
+
+
+def _normalize_witness_entry(entry: dict[str, Any]) -> dict[str, Any]:
+    required = (
+        "witness_id",
+        "rung_under_test",
+        "claim_type",
+        "classes",
+        "feature_sets",
+        "methods",
+        "priors",
+        "corpus_objective",
+        "expected_result",
+        "success_criteria",
+        "visual_story",
+    )
+    missing = [key for key in required if key not in entry]
+    if missing:
+        raise ValueError(f"witness is missing required keys: {', '.join(sorted(missing))}")
+    corpus_objective = dict(entry["corpus_objective"])
+    for key in ("difficulty", "evidence_strength", "temporal_consistency"):
+        if key not in corpus_objective:
+            raise ValueError(f"witness {entry['witness_id']} missing corpus objective key: {key}")
+    methods = tuple(str(value) for value in entry["methods"])
+    expected_result = {str(key): str(value) for key, value in dict(entry["expected_result"]).items()}
+    comparison_method = entry.get("comparison_method")
+    return {
+        "witness_id": str(entry["witness_id"]),
+        "rung_under_test": str(entry["rung_under_test"]),
+        "claim_type": str(entry["claim_type"]),
+        "comparison_method": str(comparison_method) if comparison_method is not None else "",
+        "classes": tuple(str(value) for value in entry["classes"]),
+        "feature_sets": tuple(str(value) for value in entry["feature_sets"]),
+        "methods": methods,
+        "priors": tuple(str(value) for value in entry["priors"]),
+        "corpus_objective": {
+            "difficulty": str(corpus_objective["difficulty"]),
+            "evidence_strength": str(corpus_objective["evidence_strength"]),
+            "temporal_consistency": str(corpus_objective["temporal_consistency"]),
+        },
+        "expected_result": expected_result,
+        "success_criteria": dict(entry["success_criteria"]),
+        "visual_story": tuple(str(value) for value in entry["visual_story"]),
+    }
+
+
+def load_ladder_witness_suite_config(path: str | Path = DEFAULT_LADDER_WITNESS_SUITE_CONFIG_PATH) -> dict[str, Any]:
+    config_path = Path(path)
+    payload = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    witnesses = tuple(_normalize_witness_entry(dict(entry)) for entry in payload.get("witnesses", ()))
+    if not witnesses:
+        raise ValueError("ladder witness suite config must define at least one witness")
+    suite_id = str(payload.get("suite_id", "ladder_witness_suite_v1"))
+    description = str(payload.get("description", "Ladder witness corpus suite"))
+    return {
+        "suite_id": suite_id,
+        "description": description,
+        "config_path": config_path,
+        "witnesses": witnesses,
+    }
+
+
+def _witness_claim_matrix_rows(config: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for witness in config["witnesses"]:
+        expected_result = dict(witness["expected_result"])
+        sufficient_methods = [method for method, status in expected_result.items() if status == "sufficient"]
+        insufficient_methods = [method for method, status in expected_result.items() if status == "insufficient"]
+        comparison_method = witness["comparison_method"] or (sufficient_methods[0] if sufficient_methods else (witness["methods"][1] if len(witness["methods"]) > 1 else ""))
+        rows.append(
+            {
+                "witness_id": witness["witness_id"],
+                "rung_under_test": witness["rung_under_test"],
+                "claim_type": witness["claim_type"],
+                "comparison_method": comparison_method,
+                "class_count": len(witness["classes"]),
+                "feature_set_count": len(witness["feature_sets"]),
+                "method_count": len(witness["methods"]),
+                "prior_count": len(witness["priors"]),
+                "difficulty": witness["corpus_objective"]["difficulty"],
+                "evidence_strength": witness["corpus_objective"]["evidence_strength"],
+                "temporal_consistency": witness["corpus_objective"]["temporal_consistency"],
+                "sufficient_methods": ";".join(sufficient_methods),
+                "insufficient_methods": ";".join(insufficient_methods),
+                "visual_story_count": len(witness["visual_story"]),
+                "success_criteria_keys": ";".join(sorted(witness["success_criteria"].keys())),
+            }
+        )
+    return rows
+
+
+def _witness_suite_index_markdown(config: dict[str, Any], matrix_rows: list[dict[str, Any]]) -> str:
+    claim_counts = {"sufficiency": 0, "insufficiency": 0}
+    rung_counts: dict[str, int] = {}
+    for witness in config["witnesses"]:
+        claim_counts[witness["claim_type"]] = claim_counts.get(witness["claim_type"], 0) + 1
+        rung_counts[witness["rung_under_test"]] = rung_counts.get(witness["rung_under_test"], 0) + 1
+    lines = [
+        "# Ladder Witness Corpus Suite",
+        "",
+        f"- suite id: `{config['suite_id']}`",
+        f"- witnesses declared: `{len(config['witnesses'])}`",
+        f"- sufficiency claims: `{claim_counts.get('sufficiency', 0)}`",
+        f"- insufficiency claims: `{claim_counts.get('insufficiency', 0)}`",
+        "",
+        "## Witness Matrix",
+        "| Witness | Rung | Claim | Comparison | Difficulty | Evidence |",
+        "| --- | --- | --- | --- | --- | --- |",
+        *[
+            f"| `{row['witness_id']}` | `{row['rung_under_test']}` | `{row['claim_type']}` | `{row['comparison_method']}` | `{row['difficulty']}` | `{row['evidence_strength']}` |"
+            for row in matrix_rows
+        ],
+        "",
+        "## Rung Coverage",
+        "| Rung | Witness Count |",
+        "| --- | --- |",
+        *[f"| `{rung}` | `{count}` |" for rung, count in sorted(rung_counts.items())],
+        "",
+        "## Notes",
+        "- Witness corpora are controlled 1D proof cases, not benchmark vanity sets.",
+        "- Each witness declares the methods it compares, the claim it is proving, and the evidence story the later milestones will render into plots and tables.",
+    ]
+    return "\n".join(lines)
+
+
+def write_ladder_witness_suite_artifacts(
+    output_dir: str | Path,
+    *,
+    config_path: str | Path | None = None,
+    config: dict[str, Any] | None = None,
+) -> LadderWitnessSuiteArtifacts:
+    run_dir = Path(output_dir) / LADDER_WITNESS_SUITE_RUN_DIR_NAME
+    run_dir.mkdir(parents=True, exist_ok=True)
+    for subdir in ("datasets", "plots", "reports"):
+        (run_dir / subdir).mkdir(parents=True, exist_ok=True)
+
+    resolved_config = config or load_ladder_witness_suite_config(config_path or DEFAULT_LADDER_WITNESS_SUITE_CONFIG_PATH)
+    normalized_config = {
+        "suite_id": resolved_config["suite_id"],
+        "description": resolved_config["description"],
+        "source_config_path": str(resolved_config["config_path"]),
+        "witness_count": len(resolved_config["witnesses"]),
+        "witnesses": [
+            {
+                "witness_id": witness["witness_id"],
+                "rung_under_test": witness["rung_under_test"],
+                "claim_type": witness["claim_type"],
+                "comparison_method": witness["comparison_method"],
+                "classes": list(witness["classes"]),
+                "feature_sets": list(witness["feature_sets"]),
+                "methods": list(witness["methods"]),
+                "priors": list(witness["priors"]),
+                "corpus_objective": dict(witness["corpus_objective"]),
+                "expected_result": dict(witness["expected_result"]),
+                "success_criteria": witness["success_criteria"],
+                "visual_story": list(witness["visual_story"]),
+            }
+            for witness in resolved_config["witnesses"]
+        ],
+    }
+    schema_path = run_dir / "witness_schema.json"
+    manifest_path = run_dir / "witness_manifest.json"
+    claim_matrix_path = run_dir / "rung_claim_matrix.csv"
+    index_path = run_dir / "index.md"
+    config_copy_path = run_dir / "witness_suite_config.yaml"
+
+    schema_path.write_text(json.dumps(_ladder_witness_schema(), indent=2, sort_keys=True), encoding="utf-8")
+    manifest_path.write_text(json.dumps(normalized_config, indent=2, sort_keys=True), encoding="utf-8")
+    claim_rows = _witness_claim_matrix_rows(resolved_config)
+    _write_csv(claim_matrix_path, claim_rows, list(claim_rows[0].keys()))
+    index_path.write_text(_witness_suite_index_markdown(resolved_config, claim_rows), encoding="utf-8")
+    config_copy_path.write_text(yaml.safe_dump(normalized_config, sort_keys=False), encoding="utf-8")
+
+    return LadderWitnessSuiteArtifacts(
+        run_dir=run_dir,
+        config_path=config_copy_path,
+        schema_path=schema_path,
+        manifest_path=manifest_path,
+        claim_matrix_path=claim_matrix_path,
+        index_path=index_path,
     )

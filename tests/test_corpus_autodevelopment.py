@@ -5,11 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
-    analyze_corpus_autodevelopment,
-    render_corpus_autodevelopment_numeric_walkthrough_markdown,
-    write_corpus_autodevelopment_artifacts,
-)
+from kinematic_classifier_sandbox.api import *
 
 
 class CorpusAutodevelopmentTests(unittest.TestCase):

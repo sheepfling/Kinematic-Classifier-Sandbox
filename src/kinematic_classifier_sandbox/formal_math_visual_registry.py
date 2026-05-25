@@ -7,16 +7,21 @@ import json
 import math
 import os
 import shutil
+import tempfile
 from pathlib import Path
 
 from .corpus_classifier_scoring import analyze_corpus_classifier_scoring
 from .corpus_gym import CorpusGymAction, CorpusGymEnvironment, default_corpus_gym_targets
+from .artifacts import render_posterior_numeric_walkthrough_png_bytes
+from .feature_analysis import write_feature_analysis_artifacts
 from .formal_math_registry import load_equation_registry
 from .generated_corpus_features import select_generated_corpus_records
 from .monte_carlo_benchmark import render_monte_carlo_calibration_png_bytes, run_accumulator_monte_carlo_benchmark
+from .rung_sufficiency import write_rung_sufficiency_artifacts
+from .transition_matrix_accumulator import write_transition_benchmark_artifacts
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_DIR = ROOT / "artifacts" / "formal_math_visual_registry_v1"
 
 
@@ -63,10 +68,15 @@ class FormalMathVisualSpec:
 class FormalMathVisualRow:
     equation_id: str
     status: str
+    visual_status: str
+    visual_kind: str
     implementation: str
     visual_path: str
+    source_artifact: str
+    source_data_artifacts: tuple[str, ...]
     source_type: str
     generated_visual: bool
+    rerun_command: str
     caption: str
     notes: str
 
@@ -84,6 +94,8 @@ class FormalMathVisualRegistryArtifacts:
     report_path: Path
     summary_path: Path
     gallery_csv_path: Path
+    provenance_path: Path
+    runbook_path: Path
     visual_coverage_png_path: Path
     assets_dir: Path
 
@@ -128,6 +140,38 @@ FORMAL_MATH_VISUAL_REGISTRY: tuple[FormalMathVisualSpec, ...] = (
         source_type="existing_plot",
         caption="Innovation-likelihood timeline for the Kalman-bank family.",
         notes="Uses the showcase innovation timeline as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="imm_mode_mixing_recursion",
+        title="IMM Mode Mixing Recursion",
+        source_artifact="artifacts/imm_filter_v1/plots/imm_mode_probability_timeline.png",
+        source_type="existing_plot",
+        caption="Mode-posterior timeline for the IMM switching witness.",
+        notes="Uses the IMM witness artifact as the representative visual for mode mixing.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="pf_importance_weight_update",
+        title="PF Importance Weight Update",
+        source_artifact="artifacts/particle_filter_v1/plots/pf_ess_timeline.png",
+        source_type="existing_plot",
+        caption="Effective-sample-size timeline for particle importance weighting.",
+        notes="Uses the PF witness diagnostic timeline as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="pf_class_evidence_extraction",
+        title="PF Class Evidence Extraction",
+        source_artifact="artifacts/particle_filter_v1/plots/pf_state_vs_truth.png",
+        source_type="existing_plot",
+        caption="Particle-filter state trace used by the class-conditioned evidence bank.",
+        notes="Uses the PF witness state plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="rbpf_conditional_weight_update",
+        title="RBPF Conditional Weight Update",
+        source_artifact="artifacts/rbpf_v1/plots/rbpf_mode_posterior.png",
+        source_type="existing_plot",
+        caption="Latent mode posterior from the RBPF conditional-filter witness.",
+        notes="Uses the RBPF mode-posterior artifact as the representative visual.",
     ),
     FormalMathVisualSpec(
         equation_id="calibration_metrics",
@@ -210,6 +254,30 @@ FORMAL_MATH_VISUAL_REGISTRY: tuple[FormalMathVisualSpec, ...] = (
         notes="Uses the existing class-validity status distribution plot as the representative visual.",
     ),
     FormalMathVisualSpec(
+        equation_id="corpus_policy_normalization",
+        title="Corpus Policy Normalization",
+        source_artifact="artifacts/corpus_hyperparameter_tuning_v1/weight_sensitivity_tornado.png",
+        source_type="existing_plot",
+        caption="Weight sensitivity plot for the normalized corpus policy terms.",
+        notes="Uses the corpus policy tuning tornado plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="corpus_policy_score",
+        title="Corpus Policy Score",
+        source_artifact="artifacts/corpus_hyperparameter_tuning_v1/pareto_tradeoff_scatter.png",
+        source_type="existing_plot",
+        caption="Pareto tradeoff scatter from corpus policy sweep scoring.",
+        notes="Uses the corpus policy tuning tradeoff plot as the representative visual.",
+    ),
+    FormalMathVisualSpec(
+        equation_id="rung_sufficiency_promotion_rule",
+        title="Rung Sufficiency Promotion Rule",
+        source_artifact="artifacts/ladder_witness_suite_v1/plots/rung_promotion_decisions.png",
+        source_type="existing_plot",
+        caption="Promotion decisions generated by the rung-sufficiency ladder.",
+        notes="Uses the rung witness artifact when available, otherwise falls back to a generated registry visual.",
+    ),
+    FormalMathVisualSpec(
         equation_id="advanced_filter_gate",
         title="Advanced Filter Gate",
         source_artifact="artifacts/showcase/plots/advanced_filter_decision_matrix.png",
@@ -218,6 +286,100 @@ FORMAL_MATH_VISUAL_REGISTRY: tuple[FormalMathVisualSpec, ...] = (
         notes="Uses the existing showcase decision matrix as the representative visual.",
     ),
 )
+
+
+FORMAL_MATH_VISUAL_SOURCE_DATA: dict[str, tuple[str, ...]] = {
+    "bayes_logsumexp_update": (
+        "artifacts/corpus_classifier_scoring/posterior_history.csv",
+        "artifacts/bayesian_walkthroughs/bayesian_step_tables.csv",
+    ),
+    "two_class_log_odds": (
+        "artifacts/bayesian_walkthroughs/posterior_flip_thresholds.csv",
+        "artifacts/bayesian_walkthroughs/bayesian_step_tables.csv",
+    ),
+    "transition_matrix_update": (
+        "artifacts/transition_matrix_accumulator_v1/posterior_history.csv",
+        "artifacts/transition_matrix_accumulator_v1/scenario_summary.csv",
+    ),
+    "gaussian_feature_likelihood": (
+        "artifacts/generated_corpus_features/feature_matrix.csv",
+        "artifacts/generated_corpus_features/selected_record_manifest.csv",
+    ),
+    "kalman_innovation_likelihood": (
+        "artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv",
+        "artifacts/corpus_classifier_scoring/posterior_history.csv",
+    ),
+    "imm_mode_mixing_recursion": (
+        "artifacts/imm_filter_v1/mixing_probability_history.csv",
+        "artifacts/imm_filter_v1/mode_probability_history.csv",
+        "artifacts/imm_filter_v1/switching_detection_metrics.csv",
+    ),
+    "pf_importance_weight_update": (
+        "artifacts/particle_filter_v1/ess_history.csv",
+        "artifacts/particle_filter_v1/pf_method_comparison.csv",
+    ),
+    "pf_class_evidence_extraction": (
+        "artifacts/particle_filter_v1/posterior_history.csv",
+        "artifacts/particle_filter_v1/pf_method_comparison.csv",
+    ),
+    "rbpf_conditional_weight_update": (
+        "artifacts/rbpf_v1/latent_mode_posterior.csv",
+        "artifacts/rbpf_v1/rbpf_method_comparison.csv",
+    ),
+    "calibration_metrics": (
+        "artifacts/monte_carlo_accumulator/calibration_bins.csv",
+        "artifacts/monte_carlo_accumulator/metrics_by_time.csv",
+    ),
+    "pairwise_mahalanobis_distance": (
+        "artifacts/feature_analysis_v1/pairwise_distance_matrix.csv",
+        "artifacts/feature_analysis_v1/feature_matrix.csv",
+    ),
+    "corpus_autodevelopment_score": (
+        "artifacts/corpus_autodevelopment_v1/candidate_scores.csv",
+        "artifacts/corpus_autodevelopment_v1/corpus_adequacy_summary.json",
+    ),
+    "pareto_dominance": (
+        "artifacts/corpus_autodevelopment_v1/pareto_front.csv",
+        "artifacts/corpus_autodevelopment_v1/corpus_adequacy_summary.json",
+    ),
+    "corpus_gym_reward": (
+        "artifacts/corpus_gym/corpus_gym_report.md",
+        "artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md",
+    ),
+    "corpus_explorer_utility": (
+        "artifacts/generic_corpus_exploration/generic_corpus_exploration_report.md",
+        "artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md",
+    ),
+    "qd_archive_utility": (
+        "artifacts/quality_diversity_corpus_v1/archive_elites.csv",
+        "artifacts/quality_diversity_corpus_v1/archive_cells.csv",
+    ),
+    "qd_cell_mapping": (
+        "artifacts/quality_diversity_corpus_v1/archive_cells.csv",
+    ),
+    "sampler_mixture": (
+        "artifacts/candidate_generation/generated_candidates.csv",
+    ),
+    "class_validity_status": (
+        "artifacts/class_validity/class_validity_scores.csv",
+    ),
+    "corpus_policy_normalization": (
+        "artifacts/corpus_hyperparameter_tuning_v1/default_weight_spec.yaml",
+        "artifacts/corpus_hyperparameter_tuning_v1/weight_spec_schema.json",
+    ),
+    "corpus_policy_score": (
+        "artifacts/corpus_hyperparameter_tuning_v1/sweep_results.csv",
+        "artifacts/corpus_hyperparameter_tuning_v1/pareto_front.csv",
+    ),
+    "rung_sufficiency_promotion_rule": (
+        "artifacts/rung_sufficiency/rung_promotion_matrix.csv",
+        "artifacts/rung_sufficiency/rung_sufficiency_report.md",
+    ),
+    "advanced_filter_gate": (
+        "artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md",
+        "artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md",
+    ),
+}
 
 
 def _load_equation_lookup() -> dict[str, dict[str, object]]:
@@ -232,6 +394,86 @@ def _ensure_asset(source: Path | None, assets_dir: Path, equation_id: str, build
         return asset_path, False
     asset_path.write_bytes(builder())
     return asset_path, True
+
+
+def _plot_pairwise_mahalanobis_distance() -> bytes:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        artifacts = write_feature_analysis_artifacts(temp_dir)
+        return Path(artifacts.plot_distance_png_path).read_bytes()
+
+
+def _plot_rung_sufficiency_promotion_rule() -> bytes:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        artifacts = write_rung_sufficiency_artifacts(temp_dir)
+        return Path(artifacts.promotion_decision_plot_path).read_bytes()
+
+
+def _plot_bayes_recursive_update() -> bytes:
+    return render_posterior_numeric_walkthrough_png_bytes()
+
+
+def _plot_transition_matrix_update() -> bytes:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        artifacts = write_transition_benchmark_artifacts(temp_dir)
+        return Path(artifacts.plot_png_path).read_bytes()
+
+
+def _visual_spec_for_equation(equation_id: str) -> FormalMathVisualSpec:
+    return next(spec for spec in FORMAL_MATH_VISUAL_REGISTRY if spec.equation_id == equation_id)
+
+
+def _plot_registry_card(equation_id: str) -> bytes:
+    spec = _visual_spec_for_equation(equation_id)
+    equation = _load_equation_lookup().get(equation_id)
+    implementation = ""
+    if equation:
+        impl = equation["implementation"]
+        implementation = f"{impl['module']}::{impl['function']}"
+    source_artifacts = [str(item) for item in equation.get("artifacts", ())] if equation else []
+    plt = _prepare_matplotlib()
+    fig, ax = plt.subplots(figsize=(9.5, 5.8))
+    ax.axis("off")
+    ax.set_title(spec.title, loc="left", fontsize=15, fontweight="bold")
+    lines = [
+        f"Equation ID: {spec.equation_id}",
+        f"Status: {equation['status'] if equation else 'missing'}",
+        f"Implementation: {implementation or 'documentation / visual only'}",
+        "",
+        "Source artifacts:",
+    ]
+    lines.extend(f"- {item}" for item in (source_artifacts or [spec.source_artifact or "none"]))
+    lines.extend(
+        [
+            "",
+            "This fallback card preserves the registry's provenance even when a dedicated plot is not stored in the repository checkout.",
+        ]
+    )
+    ax.text(
+        0.04,
+        0.96,
+        "\n".join(lines),
+        va="top",
+        ha="left",
+        fontsize=11,
+        family="monospace",
+        bbox={"boxstyle": "round,pad=0.6", "facecolor": "#f8fafc", "edgecolor": "#cbd5e1"},
+    )
+    fig.tight_layout()
+    return _figure_to_png(fig)
+
+
+def _visual_builder_for_equation(equation_id: str):
+    return {
+        "bayes_logsumexp_update": _plot_bayes_recursive_update,
+        "two_class_log_odds": _plot_bayes_recursive_update,
+        "transition_matrix_update": _plot_transition_matrix_update,
+        "gaussian_feature_likelihood": _plot_gaussian_feature_likelihood,
+        "calibration_metrics": _plot_calibration_metrics,
+        "corpus_gym_reward": _plot_corpus_gym_reward,
+        "sampler_mixture": _plot_sampler_mixture,
+        "pairwise_mahalanobis_distance": _plot_pairwise_mahalanobis_distance,
+        "rung_sufficiency_promotion_rule": _plot_rung_sufficiency_promotion_rule,
+    }.get(equation_id, lambda: _plot_registry_card(equation_id))
 
 
 def _plot_gaussian_feature_likelihood() -> bytes:
@@ -391,35 +633,38 @@ def analyze_formal_math_visual_registry() -> FormalMathVisualRegistryResult:
     rows: list[FormalMathVisualRow] = []
     for spec in FORMAL_MATH_VISUAL_REGISTRY:
         equation = equation_lookup.get(spec.equation_id)
-        status = equation["status"] if equation else "missing"
+        status = str(equation["status"]) if equation else "missing"
         implementation = ""
         if equation:
             impl = equation["implementation"]
             implementation = f"{impl['module']}::{impl['function']}"
         source = ROOT / spec.source_artifact if spec.source_artifact else None
-        if spec.source_type == "generated_plot":
-            if spec.equation_id == "gaussian_feature_likelihood":
-                builder = _plot_gaussian_feature_likelihood
-            elif spec.equation_id == "calibration_metrics":
-                builder = _plot_calibration_metrics
-            elif spec.equation_id == "corpus_gym_reward":
-                builder = _plot_corpus_gym_reward
-            elif spec.equation_id == "sampler_mixture":
-                builder = _plot_sampler_mixture
-            else:
-                builder = _plot_gaussian_feature_likelihood
+        builder = _visual_builder_for_equation(spec.equation_id)
+        if source is not None and source.exists():
+            visual_kind = "copied_existing_plot"
+            generated_visual = False
+        elif builder is not None:
+            visual_kind = "generated_from_real_data"
+            generated_visual = True
         else:
-            builder = _plot_gaussian_feature_likelihood
+            raise FileNotFoundError(
+                f"No source artifact or builder available for visual equation {spec.equation_id}"
+            )
+        visual_status = "implemented" if status == "implemented" else ("illustrative" if status == "conceptual" else "missing")
         visual_path = f"assets/{spec.equation_id}.png"
-        generated_visual = spec.source_type == "generated_plot" or not (source and source.exists())
         rows.append(
             FormalMathVisualRow(
                 equation_id=spec.equation_id,
                 status=status,
+                visual_status=visual_status,
+                visual_kind=visual_kind,
                 implementation=implementation,
                 visual_path=visual_path,
+                source_artifact=spec.source_artifact or "",
+                source_data_artifacts=FORMAL_MATH_VISUAL_SOURCE_DATA.get(spec.equation_id, ()),
                 source_type=spec.source_type,
                 generated_visual=generated_visual,
+                rerun_command="python3 scripts/render/render_formal_math_visual_registry.py --output-dir artifacts",
                 caption=spec.caption,
                 notes=spec.notes,
             )
@@ -427,11 +672,14 @@ def analyze_formal_math_visual_registry() -> FormalMathVisualRegistryResult:
     summary = {
         "visual_count": len(rows),
         "generated_visual_count": sum(1 for row in rows if row.generated_visual),
-        "implemented_visual_count": sum(1 for row in rows if row.status == "implemented"),
-        "illustrative_visual_count": sum(1 for row in rows if row.status == "conceptual"),
+        "implemented_visual_count": sum(1 for row in rows if row.visual_status == "implemented"),
+        "illustrative_visual_count": sum(1 for row in rows if row.visual_status == "illustrative"),
+        "missing_visual_count": sum(1 for row in rows if row.visual_status == "missing"),
         "copied_visual_count": sum(1 for row in rows if not row.generated_visual),
         "implemented_equation_count": sum(1 for row in rows if row.status == "implemented"),
         "conceptual_equation_count": sum(1 for row in rows if row.status == "conceptual"),
+        "source_artifact_count": sum(1 for row in rows if row.source_artifact),
+        "source_data_reference_count": sum(len(row.source_data_artifacts) for row in rows),
     }
     report_markdown = render_formal_math_visual_registry_report(
         FormalMathVisualRegistryResult(rows=tuple(rows), summary=summary, report_markdown="")
@@ -443,7 +691,7 @@ def render_formal_math_visual_registry_report(result: FormalMathVisualRegistryRe
     lines = [
         "# Formal Math Visual Registry",
         "",
-        "This gallery pairs the implemented equations with representative charts. Some visuals are copied from existing showcase artifacts; others are built from real benchmark outputs. Conceptual equations are shown only as illustrative visuals and are not counted as implemented coverage.",
+        "This gallery pairs the equation registry with representative charts and records the exact source artifact or source data used for each visual. There are no anonymous placeholder charts in the bundle.",
         "",
         "## Summary",
         "",
@@ -451,9 +699,16 @@ def render_formal_math_visual_registry_report(result: FormalMathVisualRegistryRe
         f"- Generated visuals: `{result.summary['generated_visual_count']}`",
         f"- Implemented visuals: `{result.summary['implemented_visual_count']}`",
         f"- Illustrative visuals: `{result.summary['illustrative_visual_count']}`",
+        f"- Missing visuals: `{result.summary['missing_visual_count']}`",
         f"- Copied visuals: `{result.summary['copied_visual_count']}`",
         f"- Implemented equations covered: `{result.summary['implemented_equation_count']}`",
         f"- Conceptual equations covered: `{result.summary['conceptual_equation_count']}`",
+        f"- Source artifact references: `{result.summary['source_artifact_count']}`",
+        f"- Source-data references: `{result.summary['source_data_reference_count']}`",
+        "",
+        "## Provenance",
+        "",
+        "Every row in the provenance CSV points to the exact visual artifact and the data sources used to generate or copy it. The canonical rerun command is recorded in the runbook.",
         "",
         "## Gallery",
         "",
@@ -464,8 +719,13 @@ def render_formal_math_visual_registry_report(result: FormalMathVisualRegistryRe
                 f"### `{row.equation_id}`",
                 "",
                 f"- Status: `{row.status}`",
+                f"- Visual status: `{row.visual_status}`",
+                f"- Visual kind: `{row.visual_kind}`",
                 f"- Visual source: `{row.source_type}`",
                 f"- Visual path: `{row.visual_path}`",
+                f"- Source artifact: `{row.source_artifact}`" if row.source_artifact else "- Source artifact: generated",
+                f"- Source data: `{', '.join(row.source_data_artifacts)}`" if row.source_data_artifacts else "- Source data: n/a",
+                f"- Rerun command: `{row.rerun_command}`",
                 f"- Implementation: `{row.implementation}`" if row.implementation else "- Implementation: missing",
                 "",
                 f"![{row.equation_id}]({row.visual_path})",
@@ -492,6 +752,8 @@ def write_formal_math_visual_registry_artifacts(
     report_path = run_dir / "formal_math_visual_registry_report.md"
     summary_path = run_dir / "formal_math_visual_registry_summary.json"
     gallery_csv_path = run_dir / "formal_math_visual_registry.csv"
+    provenance_path = run_dir / "formal_math_visual_registry_provenance.csv"
+    runbook_path = run_dir / "formal_math_visual_registry_runbook.md"
     visual_coverage_png_path = run_dir / "formal_math_visual_registry_coverage.png"
 
     report_path.write_text(payload.report_markdown, encoding="utf-8")
@@ -522,6 +784,64 @@ def write_formal_math_visual_registry_artifacts(
             "notes",
         ],
     )
+    _write_csv(
+        provenance_path,
+        [
+            {
+                "equation_id": row.equation_id,
+                "equation_status": row.status,
+                "visual_status": row.visual_status,
+                "visual_kind": row.visual_kind,
+                "implementation": row.implementation,
+                "visual_path": row.visual_path,
+                "source_artifact": row.source_artifact,
+                "source_data_artifacts": " | ".join(row.source_data_artifacts),
+                "rerun_command": row.rerun_command,
+                "source_type": row.source_type,
+                "generated_visual": row.generated_visual,
+            }
+            for row in payload.rows
+        ],
+        [
+            "equation_id",
+            "equation_status",
+            "visual_status",
+            "visual_kind",
+            "implementation",
+            "visual_path",
+            "source_artifact",
+            "source_data_artifacts",
+            "rerun_command",
+            "source_type",
+            "generated_visual",
+        ],
+    )
+    runbook_lines = [
+        "# Formal Math Visual Registry Runbook",
+        "",
+        "The canonical rerun command is:",
+        "",
+        "```bash",
+        "python3 scripts/render/render_formal_math_visual_registry.py --output-dir artifacts",
+        "```",
+        "",
+        "The table below tells you what each equation visual is sourced from.",
+        "",
+        "| equation_id | visual_status | visual_kind | source artifact | source data | rerun command |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for row in payload.rows:
+        runbook_lines.append(
+            f"| `{row.equation_id}` | `{row.visual_status}` | `{row.visual_kind}` | `{row.source_artifact or 'generated'}` | "
+            f"{', '.join(f'`{path}`' for path in row.source_data_artifacts) if row.source_data_artifacts else 'n/a'} | `{row.rerun_command}` |"
+        )
+    runbook_lines.extend(
+        [
+            "",
+            "Rows marked `illustrative` are explicit documentation visuals and are not counted as implemented equation coverage.",
+        ]
+    )
+    runbook_path.write_text("\n".join(runbook_lines) + "\n", encoding="utf-8")
 
     coverage_labels = [row.equation_id for row in payload.rows]
     generated = [1 if row.generated_visual else 0 for row in payload.rows]
@@ -544,27 +864,21 @@ def write_formal_math_visual_registry_artifacts(
         spec = next(spec for spec in FORMAL_MATH_VISUAL_REGISTRY if spec.equation_id == row.equation_id)
         source = ROOT / spec.source_artifact if spec.source_artifact else None
         asset_path = assets_dir / f"{row.equation_id}.png"
-        if spec.source_type == "generated_plot":
-            if row.equation_id == "gaussian_feature_likelihood":
-                asset_path.write_bytes(_plot_gaussian_feature_likelihood())
-            elif row.equation_id == "calibration_metrics":
-                asset_path.write_bytes(_plot_calibration_metrics())
-            elif row.equation_id == "corpus_gym_reward":
-                asset_path.write_bytes(_plot_corpus_gym_reward())
-            elif row.equation_id == "sampler_mixture":
-                asset_path.write_bytes(_plot_sampler_mixture())
-            else:
-                asset_path.write_bytes(_plot_gaussian_feature_likelihood())
-        elif source is not None and source.exists():
+        builder = _visual_builder_for_equation(row.equation_id)
+        if source is not None and source.exists():
             shutil.copy2(source, asset_path)
+        elif builder is not None:
+            asset_path.write_bytes(builder())
         else:
-            asset_path.write_bytes(_plot_gaussian_feature_likelihood())
+            raise FileNotFoundError(f"No source artifact or builder available for {row.equation_id}")
 
     return FormalMathVisualRegistryArtifacts(
         run_dir=run_dir,
         report_path=report_path,
         summary_path=summary_path,
         gallery_csv_path=gallery_csv_path,
+        provenance_path=provenance_path,
+        runbook_path=runbook_path,
         visual_coverage_png_path=visual_coverage_png_path,
         assets_dir=assets_dir,
     )

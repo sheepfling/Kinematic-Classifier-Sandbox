@@ -494,7 +494,7 @@ Then the mode posterior update is
 ### 9.5 Worked Example
 
 The numeric artifact
-[transition_matrix_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md)
+[transition_matrix_numeric_walkthrough.md](artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md)
 shows a real switching trajectory around the first switch point, including:
 
 - propagated prior by mode
@@ -510,7 +510,124 @@ This method still uses a hand-specified transition structure and simple
 emissions. It is a proof rung for “explicit switching pressure helps,” not a
 final multiple-model solution.
 
-## 10. Shared Contracts and Evaluation Surface
+## 10. Rung Sufficiency And Escalation Equations
+
+The ladder is only useful if the repo can answer not just “what is the next
+rung?” but “has the current rung earned the right to stay?” The
+`rung_sufficiency` package makes that decision explicit.
+
+For study `s` at current rung `r`, define the oracle gap
+
+```tex
+g_{\text{oracle}}(s,r)
+=
+\max\big(0, A_{\text{oracle}}(s,r) - A_{\text{current}}(s,r)\big),
+```
+
+the prior-fragility term
+
+```tex
+f_{\text{prior}}(s,r)
+=
+1 - \text{prior\_sensitivity\_score}(s,r),
+```
+
+and the measured next-rung gain
+
+```tex
+\Delta_{r \rightarrow r^{+}}(s)
+=
+A_{\text{current}}(s,r^{+}) - A_{\text{current}}(s,r),
+```
+
+where `r+` is the configured next rung from the capability matrix.
+
+The current implementation treats a study as learnable when
+
+```tex
+\mathbf{1}_{\text{learnable}}(s,r)
+=
+\mathbf{1}\!\left[
+    A_{\text{oracle}} \ge \tau_{\text{oracle}}
+    \land
+    \mathrm{overlap} \le \tau_{\text{overlap}}
+    \land
+    \mathrm{AUC}_{\text{pair}} \ge \tau_{\text{AUC}}
+    \land
+    m_{\text{post}} \ge \tau_{\text{margin}}
+\right],
+```
+
+with the current default thresholds
+
+```tex
+\tau_{\text{oracle}} = 0.85,\qquad
+\tau_{\text{overlap}} = 0.90,\qquad
+\tau_{\text{AUC}} = 0.70,\qquad
+\tau_{\text{margin}} = 0.05.
+```
+
+This is the mathematical version of the repo rule that feature and corpus
+limits should be identified before algorithm blame is assigned.
+
+The promotion decision is then a gated piecewise rule. Let `tau_prior = 0.12`
+and `tau_Delta = 0.05`. Then
+
+```tex
+d(s,r)
+=
+\begin{cases}
+    \texttt{revise\_corpus}, & \neg \text{can\_evaluate\_classifier}(s), \\
+    \texttt{revise\_features}, & \text{feature gate fails}, \\
+    \texttt{revise\_prior}, & f_{\text{prior}}(s,r) > \tau_{\text{prior}}, \\
+    \texttt{feature\_limited}, & \text{learnability\_status}(s,r)=\texttt{feature\_limited}, \\
+    \texttt{stay}, & r^{+} = \varnothing, \\
+    \texttt{reject\_escalation}, & \neg \text{capability\_match}(r,r^{+}), \\
+    \texttt{defer\_advanced}, & \Delta_{r \rightarrow r^{+}}(s)\ \text{is unavailable}, \\
+    \texttt{promote}, & \Delta_{r \rightarrow r^{+}}(s) \ge \tau_{\Delta}, \\
+    \texttt{stay}, & g_{\text{oracle}}(s,r) < \tau_{\text{gap}}, \\
+    \texttt{defer\_advanced}, & \text{otherwise}.
+\end{cases}
+```
+
+where `tau_gap = 0.08` in the default configuration. This is the explicit
+ladder-sufficiency rule that stops the repo from escalating methods only
+because they are available.
+
+The switching witnesses are the cleanest examples because their measured gains
+are hard-coded from dedicated benchmark outputs:
+
+```tex
+\Delta_{\text{kalman} \rightarrow \text{transition}}
+=
+A_{\text{post-switch}}^{\text{transition}}
+-
+A_{\text{post-switch}}^{\text{kalman}},
+```
+
+and
+
+```tex
+\Delta_{\text{transition} \rightarrow \text{IMM}}
+=
+A_{\text{post-switch}}^{\text{IMM}}
+-
+A_{\text{post-switch}}^{\text{transition}}.
+```
+
+That is why the current rung-sufficiency artifact can issue a real promotion
+decision for transition-aware accumulation and a measured
+`promote`/`defer_advanced` decision for IMM.
+
+### 10.1 Implementation Mapping
+
+- `rung_sufficiency/analysis.py`
+- `rung_sufficiency/capability_matrix.py`
+- `rung_sufficiency/contracts.py`
+- `tests/test_rung_sufficiency.py`
+- `tests/test_rung_promotion_decision.py`
+
+## 11. Shared Contracts and Evaluation Surface
 
 The ladder is only useful as a methodology if all methods can be compared
 through one artifact schema.
@@ -557,7 +674,7 @@ internal representation. It only requires each method to emit compatible:
 That is the core proof that the repo is becoming a methodology framework rather
 than a set of unrelated scripts.
 
-## 11. What This Document Proves
+## 12. What This Document Proves
 
 This note is complete only if it supports the following claims:
 

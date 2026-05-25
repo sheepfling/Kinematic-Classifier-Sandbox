@@ -8,12 +8,12 @@ across the current survey documents.
 If you want one document that pulls the survey stack into a single narrative,
 start with:
 
-- [kinematic_classifier_methodology.pdf](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/latex/kinematic_classifier_methodology.pdf)
+- [kinematic_classifier_methodology.pdf](artifacts/latex/kinematic_classifier_methodology.pdf)
 
 If you want one document that literally combines the current survey notes into a
 single long-form reference, open:
 
-- [methodology_compendium.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/methodology_compendium.md)
+- [methodology_compendium.md](artifacts/methodology_compendium.md)
 
 That paper is the synthesis layer. The survey notes below remain the
 implementation-linked deep dives.
@@ -22,11 +22,11 @@ implementation-linked deep dives.
 
 If you want the shortest path through the documentation stack:
 
-1. [kinematic_classifier_methodology.pdf](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/latex/kinematic_classifier_methodology.pdf)
-2. [methodology_compendium.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/methodology_compendium.md)
-3. [posterior_update_math.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/posterior_update_math.md)
-4. [methodology_evaluation_framework.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/methodology_evaluation_framework.md)
-5. [classifier_ladder_and_contracts.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/classifier_ladder_and_contracts.md)
+1. [kinematic_classifier_methodology.pdf](artifacts/latex/kinematic_classifier_methodology.pdf)
+2. [methodology_compendium.md](artifacts/methodology_compendium.md)
+3. [posterior_update_math.md](docs/surveys/posterior_update_math.md)
+4. [methodology_evaluation_framework.md](docs/surveys/methodology_evaluation_framework.md)
+5. [classifier_ladder_and_contracts.md](docs/surveys/classifier_ladder_and_contracts.md)
 
 Then open the corpus and dimensional-lift notes as needed.
 

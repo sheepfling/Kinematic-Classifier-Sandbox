@@ -16,11 +16,11 @@ class StrictEquationAuditTests(unittest.TestCase):
 
     def test_audit_labels_every_equation_strictly(self) -> None:
         result = analyze_strict_equation_audit()
-        self.assertEqual(result.summary["equation_count"], 20)
-        self.assertEqual(result.summary["implemented_count"], 13)
-        self.assertEqual(result.summary["illustrative_count"], 7)
+        self.assertEqual(result.summary["equation_count"], 23)
+        self.assertEqual(result.summary["implemented_count"], 20)
+        self.assertEqual(result.summary["illustrative_count"], 3)
         self.assertEqual(result.summary["missing_count"], 0)
-        self.assertEqual(len(result.rows), 20)
+        self.assertEqual(len(result.rows), 23)
         self.assertTrue(all(row.exact_artifacts for row in result.rows))
         self.assertTrue(all(row.source_data for row in result.rows))
 

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import random
 
+from .corpus_policy import CorpusPolicySpec, load_corpus_policy_spec, score_corpus_gym_reward
 from .feature_analysis import _one_dimensional_feature_context_from_trajectory
 from .trajectory_generator import (
     DatasetTierDefinition,
@@ -323,6 +324,7 @@ def _physical_invalidity_penalty(trajectory: TrajectoryArtifact) -> float:
 
 def _reward_from_components(
     *,
+    policy: CorpusPolicySpec | None = None,
     class_validity: float,
     feature_excitation: float,
     coverage_gain: float,
@@ -332,17 +334,17 @@ def _reward_from_components(
     leakage_penalty: float,
     physical_invalidity_penalty: float,
 ) -> CorpusGymReward:
-    total_utility = _clamp(
-        0.22 * class_validity
-        + 0.14 * feature_excitation
-        + 0.14 * coverage_gain
-        + 0.14 * boundary_closeness
-        + 0.14 * classifier_stress
-        + 0.12 * prior_sensitivity
-        - 0.10 * leakage_penalty
-        - 0.14 * physical_invalidity_penalty,
-        0.0,
-        1.0,
+    resolved_policy = policy or load_corpus_policy_spec()
+    total_utility = score_corpus_gym_reward(
+        resolved_policy,
+        class_validity=class_validity,
+        feature_excitation=feature_excitation,
+        coverage_gain=coverage_gain,
+        boundary_closeness=boundary_closeness,
+        classifier_stress=classifier_stress,
+        prior_sensitivity=prior_sensitivity,
+        leakage_penalty=leakage_penalty,
+        physical_invalidity_penalty=physical_invalidity_penalty,
     )
     return CorpusGymReward(
         class_validity=class_validity,
@@ -408,7 +410,8 @@ def _simulate_trajectory(target: CorpusGymTarget, action: CorpusGymAction) -> Tr
 
 
 class CorpusGymEnvironment:
-    def __init__(self) -> None:
+    def __init__(self, policy: CorpusPolicySpec | None = None) -> None:
+        self._policy = policy or load_corpus_policy_spec()
         self._target: CorpusGymTarget | None = None
         self._action_history: list[CorpusGymAction] = []
         self._last_episode: CorpusGymEpisode | None = None
@@ -467,6 +470,7 @@ class CorpusGymEnvironment:
         leakage_penalty = _leakage_penalty(action or CorpusGymAction(seed=trajectory.seed, tier_name=tier_name), trajectory, tier_name)
         physical_invalidity_penalty = _physical_invalidity_penalty(trajectory)
         return _reward_from_components(
+            policy=self._policy,
             class_validity=class_validity,
             feature_excitation=feature_excitation,
             coverage_gain=coverage_gain,
@@ -501,8 +505,10 @@ class CorpusGymEnvironment:
 
 
 def _environment_contract() -> dict[str, object]:
+    policy = load_corpus_policy_spec()
     return {
         "environment_id": "corpus_gym_v1",
+        "policy_id": policy.policy_id,
         "purpose": "Target-conditioned trajectory and corpus search contract layered over the existing 1D motion generator.",
         "interfaces": {
             "reset": {"input": "CorpusGymTarget", "output": ["target_id", "target_type", "step_index", "done"]},
@@ -532,6 +538,7 @@ def _environment_contract() -> dict[str, object]:
             "physical_invalidity_penalty",
             "total_utility",
         ],
+        "reward_weights": policy.corpus_gym_weights,
         "backend_policy": {
             "deep_rl_default": False,
             "recommended_progression": [
@@ -617,6 +624,7 @@ def render_corpus_gym_numeric_walkthrough_markdown(
     diagnostics = episode.diagnostics
     target = episode.target
     action = episode.action
+    weights = load_corpus_policy_spec().corpus_gym_weights
 
     lines = [
         "# Corpus Gym Numeric Walkthrough",
@@ -660,28 +668,28 @@ def render_corpus_gym_numeric_walkthrough_markdown(
         "",
         "```tex",
         "U_{\\text{gym}}",
-        "= 0.22 \\cdot V",
-        "+ 0.14 \\cdot E",
-        "+ 0.14 \\cdot G",
-        "+ 0.14 \\cdot B",
-        "+ 0.14 \\cdot S",
-        "+ 0.12 \\cdot P",
-        "- 0.10 \\cdot L",
-        "- 0.14 \\cdot I.",
+        "= w_V \\cdot V",
+        "+ w_E \\cdot E",
+        "+ w_G \\cdot G",
+        "+ w_B \\cdot B",
+        "+ w_S \\cdot S",
+        "+ w_P \\cdot P",
+        "- w_L \\cdot L",
+        "- w_I \\cdot I.",
         "```",
         "",
         "## Numeric Substitution",
         "",
         "```tex",
         "U_{\\text{gym}}",
-        f"= 0.22 \\cdot {reward.class_validity:.3f}",
-        f"+ 0.14 \\cdot {reward.feature_excitation:.3f}",
-        f"+ 0.14 \\cdot {reward.coverage_gain:.3f}",
-        f"+ 0.14 \\cdot {reward.boundary_closeness:.3f}",
-        f"+ 0.14 \\cdot {reward.classifier_stress:.3f}",
-        f"+ 0.12 \\cdot {reward.prior_sensitivity:.3f}",
-        f"- 0.10 \\cdot {reward.leakage_penalty:.3f}",
-        f"- 0.14 \\cdot {reward.physical_invalidity_penalty:.3f}",
+        f"= {weights['class_validity']:.2f} \\cdot {reward.class_validity:.3f}",
+        f"+ {weights['feature_excitation']:.2f} \\cdot {reward.feature_excitation:.3f}",
+        f"+ {weights['coverage_gain']:.2f} \\cdot {reward.coverage_gain:.3f}",
+        f"+ {weights['boundary_closeness']:.2f} \\cdot {reward.boundary_closeness:.3f}",
+        f"+ {weights['classifier_stress']:.2f} \\cdot {reward.classifier_stress:.3f}",
+        f"+ {weights['prior_sensitivity']:.2f} \\cdot {reward.prior_sensitivity:.3f}",
+        f"- {weights['leakage_penalty']:.2f} \\cdot {reward.leakage_penalty:.3f}",
+        f"- {weights['physical_invalidity_penalty']:.2f} \\cdot {reward.physical_invalidity_penalty:.3f}",
         f"= {reward.total_utility:.3f}.",
         "```",
         "",

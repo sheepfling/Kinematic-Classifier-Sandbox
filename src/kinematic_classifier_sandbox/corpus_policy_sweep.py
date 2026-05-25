@@ -34,6 +34,7 @@ class CorpusPolicyTuningArtifacts:
     sweep_results_path: Path
     ablation_results_path: Path
     stability_path: Path
+    numeric_walkthrough_path: Path
 
 
 def write_corpus_policy_tuning_artifacts(
@@ -74,7 +75,10 @@ def write_corpus_policy_tuning_artifacts(
     pareto_path = run_dir / "pareto_front.csv"
     recommended_path = run_dir / "recommended_policy.yaml"
     report_path = run_dir / "corpus_hyperparameter_tuning_report.md"
+    numeric_walkthrough_path = run_dir / "corpus_policy_numeric_walkthrough.md"
     sweep_config_path = run_dir / "sweep_config.yaml"
+    all_rows = [baseline, *sweep_rows, *perturbation_rows]
+    best_row = max(all_rows, key=lambda row: (float(row["policy_score"]), float(row.get("selected_jaccard_vs_default", 1.0))))
 
     _write_csv(sweep_design_path, sweep_design_rows, list(sweep_design_rows[0]))
     _write_csv(sweep_results_path, [baseline, *sweep_rows], _policy_result_fields())
@@ -92,6 +96,16 @@ def write_corpus_policy_tuning_artifacts(
         encoding="utf-8",
     )
     report_path.write_text(_render_report(baseline, sweep_rows, ablation_rows, perturbation_rows, dev_holdout_rows, recommended), encoding="utf-8")
+    numeric_walkthrough_path.write_text(
+        _render_numeric_walkthrough(
+            baseline=baseline,
+            best_row=best_row,
+            rank_rows=rank_rows,
+            holdout_rows=dev_holdout_rows,
+            recommended=recommended,
+        ),
+        encoding="utf-8",
+    )
 
     _plot_tornado(run_dir / "weight_sensitivity_tornado.png", ablation_rows)
     _plot_heatmap(run_dir / "selected_set_jaccard_heatmap.png", jaccard_rows, "selected-set Jaccard")
@@ -109,6 +123,7 @@ def write_corpus_policy_tuning_artifacts(
         sweep_results_path=sweep_results_path,
         ablation_results_path=ablation_path,
         stability_path=jaccard_path,
+        numeric_walkthrough_path=numeric_walkthrough_path,
     )
 
 
@@ -390,6 +405,90 @@ def _render_report(
     )
 
 
+def _render_numeric_walkthrough(
+    *,
+    baseline: dict[str, Any],
+    best_row: dict[str, Any],
+    rank_rows: list[dict[str, Any]],
+    holdout_rows: list[dict[str, Any]],
+    recommended: dict[str, Any],
+) -> str:
+    rank_lookup = {str(row["policy_id"]): row for row in rank_rows}
+    holdout_lookup = {str(row["policy_id"]): row for row in holdout_rows}
+    best_policy_id = str(best_row["policy_id"])
+    rank_row = rank_lookup.get(best_policy_id, {})
+    holdout_row = holdout_lookup.get(best_policy_id, {})
+    feature_term = min(float(best_row["feature_excitation"]) / 1.5, 1.0)
+    adequacy = float(best_row["adequacy_score"])
+    stress_bonus = 0.10 * float(best_row["classifier_stress"])
+    policy_score = float(best_row["policy_score"])
+    return "\n".join(
+        [
+            "# Corpus Policy Numeric Walkthrough",
+            "",
+            "This artifact expands one real evaluated policy row from `corpus_policy_sweep.py`.",
+            "",
+            "## Recommended Policy",
+            "",
+            f"- Policy id: `{best_policy_id}`",
+            f"- Recommendation basis: {recommended['recommendation']['basis']}",
+            "",
+            "## Adequacy Proxy Substitution",
+            "",
+            "The implemented adequacy proxy is:",
+            "",
+            "```tex",
+            "A_{\\text{policy}}",
+            "= 0.25\\,\\text{validity}",
+            "+ 0.20\\,\\text{boundary}",
+            "+ 0.20\\min(\\text{feature}/1.5, 1)",
+            "+ 0.15\\,\\text{stress}",
+            "+ 0.20\\,\\text{provenance}",
+            "- 0.20\\,\\text{leakage}.",
+            "```",
+            "",
+            "Substituting the evaluated row:",
+            "",
+            "```tex",
+            f"A_{{\\text{{policy}}}} = 0.25({float(best_row['validity']):.6f})",
+            f"+ 0.20({float(best_row['boundary_coverage']):.6f})",
+            f"+ 0.20({feature_term:.6f})",
+            f"+ 0.15({float(best_row['classifier_stress']):.6f})",
+            f"+ 0.20({float(best_row['provenance_completeness']):.6f})",
+            f"- 0.20({float(best_row['leakage']):.6f})",
+            f"= {adequacy:.6f}.",
+            "```",
+            "",
+            "The bounded policy score then adds the stress bonus:",
+            "",
+            "```tex",
+            f"J_{{\\text{{policy}}}} = \\operatorname{{clip}}({adequacy:.6f} + 0.10({float(best_row['classifier_stress']):.6f}), 0, 1) = {policy_score:.6f}.",
+            "```",
+            "",
+            "## Stability And Holdout",
+            "",
+            f"- Selected-set Jaccard vs default: `{float(rank_row.get('selected_set_jaccard_vs_default', 1.0)):.6f}`",
+            f"- Spearman vs default: `{float(rank_row.get('spearman_vs_default', 1.0)):.6f}`",
+            f"- Kendall tau vs default: `{float(rank_row.get('kendall_tau_vs_default', 1.0)):.6f}`",
+            f"- Dev score: `{float(holdout_row.get('dev_score', policy_score)):.6f}`",
+            f"- Holdout score: `{float(holdout_row.get('holdout_score', policy_score)):.6f}`",
+            f"- Dev-holdout gap: `{float(holdout_row.get('dev_holdout_gap', 0.0)):.6f}`",
+            "",
+            "## Comparison To Default",
+            "",
+            f"- Default policy id: `{baseline['policy_id']}`",
+            f"- Default policy score: `{float(baseline['policy_score']):.6f}`",
+            f"- Recommended policy score: `{policy_score:.6f}`",
+            f"- Delta vs default: `{policy_score - float(baseline['policy_score']):.6f}`",
+            "",
+            "## Interpretation",
+            "",
+            "- A higher policy score is only meaningful when the selected-set and rank-stability metrics remain acceptable.",
+            "- The holdout score is the anti-overfitting check; a tuned policy should not be judged only by the development objective.",
+        ]
+    )
+
+
 def _generic_weights(policy: CorpusPolicySpec) -> GenericCorpusExplorationWeights:
     weights = policy.generic_explorer_weights
     return GenericCorpusExplorationWeights(
@@ -412,6 +511,9 @@ def _replace_generic_weights(policy: CorpusPolicySpec, policy_id: str, weights: 
         generic_explorer_weights=normalized,
         corpus_gym_weights=policy.corpus_gym_weights,
         archive_weights=policy.archive_weights,
+        study_static_positive_weights=policy.study_static_positive_weights,
+        study_static_penalty_weights=policy.study_static_penalty_weights,
+        study_mc_weights=policy.study_mc_weights,
         sampler_budgets=policy.sampler_budgets,
         gates=policy.gates,
         normalization=policy.normalization,

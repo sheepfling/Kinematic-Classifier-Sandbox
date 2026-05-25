@@ -59,6 +59,7 @@ from kinematic_classifier_sandbox import (
     write_corpus_gym_artifacts,
     write_trajectory_backend_contract_artifacts,
     write_backend_adapter_proof_artifacts,
+    write_external_backend_examples_artifacts,
     write_environment_aware_corpus_artifacts,
     write_capability_aware_search_artifacts,
     write_generic_corpus_exploration_artifacts,
@@ -78,6 +79,7 @@ from kinematic_classifier_sandbox import (
     write_study_candidate_generation_artifacts,
     write_validation_ladder_artifacts,
     write_rung_sufficiency_artifacts,
+    write_ladder_witness_suite_artifacts,
     write_bayesian_walkthrough_artifacts,
     write_methodology_latex_artifacts,
     write_trajectory_generator_artifacts,
@@ -163,6 +165,7 @@ def main() -> int:
     corpus_gym_artifacts = write_corpus_gym_artifacts(ROOT / "artifacts")
     trajectory_backend_contract_artifacts = write_trajectory_backend_contract_artifacts(ROOT / "artifacts")
     backend_adapter_proof_artifacts = write_backend_adapter_proof_artifacts(ROOT / "artifacts")
+    external_backend_examples_artifacts = write_external_backend_examples_artifacts(ROOT / "artifacts")
     environment_aware_corpus_artifacts = write_environment_aware_corpus_artifacts(ROOT / "artifacts")
     capability_aware_search_artifacts = write_capability_aware_search_artifacts(ROOT / "artifacts")
     generic_corpus_exploration_artifacts = write_generic_corpus_exploration_artifacts(ROOT / "artifacts")
@@ -185,6 +188,10 @@ def main() -> int:
     study_candidate_generation_artifacts = write_study_candidate_generation_artifacts(ROOT / "artifacts")
     validation_ladder_artifacts = write_validation_ladder_artifacts(ROOT / "artifacts")
     rung_sufficiency_artifacts = write_rung_sufficiency_artifacts(ROOT / "artifacts")
+    ladder_witness_suite_artifacts = write_ladder_witness_suite_artifacts(
+        ROOT / "artifacts",
+        config_path=ROOT / "experiments" / "ladder_witness_suite" / "ladder_witness_suite.yaml",
+    )
     bayesian_walkthrough_artifacts = write_bayesian_walkthrough_artifacts(ROOT / "artifacts")
     trajectory_generator_artifacts = write_trajectory_generator_artifacts(ROOT / "artifacts")
     abstract_inspection_artifacts = write_abstract_inspection_artifacts(
@@ -355,6 +362,12 @@ def main() -> int:
     print(generic_corpus_exploration_weight_sweep_artifacts.tradeoff_png_path)
     print(generic_corpus_exploration_weight_sweep_artifacts.selected_set_png_path)
     print(generic_corpus_exploration_weight_sweep_artifacts.baseline_manifest_path)
+    print(ladder_witness_suite_artifacts.run_dir)
+    print(ladder_witness_suite_artifacts.config_path)
+    print(ladder_witness_suite_artifacts.schema_path)
+    print(ladder_witness_suite_artifacts.manifest_path)
+    print(ladder_witness_suite_artifacts.claim_matrix_path)
+    print(ladder_witness_suite_artifacts.index_path)
     print(corpus_objective_artifacts.run_dir)
     print(corpus_objective_artifacts.report_path)
     print(candidate_generation_artifacts.run_dir)
@@ -395,6 +408,8 @@ def main() -> int:
     print(formal_math_registry_artifacts.report_path)
     print(formal_math_visual_registry_artifacts.run_dir)
     print(formal_math_visual_registry_artifacts.report_path)
+    print(formal_math_visual_registry_artifacts.provenance_path)
+    print(formal_math_visual_registry_artifacts.runbook_path)
     print(strict_equation_audit_artifacts.run_dir)
     print(strict_equation_audit_artifacts.report_path)
     print(trajectory_generator_artifacts.run_dir)

@@ -80,7 +80,7 @@
     - tests/test_corpus_classifier_scoring.py
 
 - id: imm_mode_mixing_recursion
-  status: conceptual
+  status: implemented
   latex: "\\bar{\\mu}_k^{(j)}=\\sum_i \\Pi_{ij}\\mu_{k-1}^{(i)},\\ \\omega_{ij}^{(k)}=\\frac{\\Pi_{ij}\\mu_{k-1}^{(i)}}{\\bar{\\mu}_{k}^{(j)}},\\ \\mu_k^{(j)}=\\frac{\\Lambda_k^{(j)}\\bar{\\mu}_k^{(j)}}{\\sum_m \\Lambda_k^{(m)}\\bar{\\mu}_k^{(m)}}"
   symbols:
     "\\mu_k^{(j)}": posterior probability of mode j at step k
@@ -89,14 +89,16 @@
     "\\omega_{ij}^{(k)}": mixing weight from source mode i into target mode j
     "\\Lambda_k^{(j)}": mode-conditioned likelihood at step k
   implementation:
-    module: docs/surveys/dimensional_lift_and_advanced_filter_gates.tex
-    function: documentation_only
+    module: src/kinematic_classifier_sandbox/advanced_state_inference.py
+    function: analyze_advanced_state_inference
   artifacts:
+    - artifacts/advanced_state_inference/mixing_probability_history.csv
     - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
-  tests: []
+  tests:
+    - tests/test_advanced_state_inference.py
 
 - id: pf_importance_weight_update
-  status: conceptual
+  status: implemented
   latex: "\\tilde{w}_k^{(i)}=w_{k-1}^{(i)}\\frac{p(z_k\\mid x_k^{(i)})p(x_k^{(i)}\\mid x_{k-1}^{(i)})}{q(x_k^{(i)}\\mid x_{0:k-1}^{(i)},z_{1:k})},\\ \\ w_k^{(i)}=\\frac{\\tilde{w}_k^{(i)}}{\\sum_j \\tilde{w}_k^{(j)}}"
   symbols:
     "x_k^{(i)}": particle i at step k
@@ -105,14 +107,15 @@
     "q(\\cdot)": proposal distribution
     "p(z_k\\mid x_k^{(i)})": observation likelihood for particle i
   implementation:
-    module: docs/surveys/dimensional_lift_and_advanced_filter_gates.tex
-    function: documentation_only
+    module: src/kinematic_classifier_sandbox/advanced_filters/particle_filter.py
+    function: particle_filter_importance_weight_update
   artifacts:
     - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
-  tests: []
+  tests:
+    - tests/test_particle_filter.py
 
 - id: pf_class_evidence_extraction
-  status: conceptual
+  status: implemented
   latex: "\\hat{p}(z_k\\mid c)\\approx\\sum_{i=1}^{N_p} w_{k-1}^{(i,c)}p(z_k\\mid x_k^{(i,c)},c),\\ \\ p_k(c)\\propto \\hat{p}(z_k\\mid c)p_{k-1}(c)"
   symbols:
     "\\hat{p}(z_k\\mid c)": particle approximation to class-conditioned predictive evidence
@@ -120,14 +123,15 @@
     "x_k^{(i,c)}": propagated particle i under class c
     "p_k(c)": updated class posterior after PF evidence extraction
   implementation:
-    module: docs/surveys/dimensional_lift_and_advanced_filter_gates.tex
-    function: documentation_only
+    module: src/kinematic_classifier_sandbox/advanced_filters/particle_filter_bank.py
+    function: particle_filter_class_evidence_update
   artifacts:
     - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
-  tests: []
+  tests:
+    - tests/test_particle_filter.py
 
 - id: rbpf_conditional_weight_update
-  status: conceptual
+  status: implemented
   latex: "x_k=(r_k,s_k),\\ \\tilde{w}_k^{(i)}=w_{k-1}^{(i)}\\mathcal{N}(\\nu_k^{(i)};0,S_k^{(i)})"
   symbols:
     "r_k": sampled latent component at step k
@@ -136,11 +140,12 @@
     "\\nu_k^{(i)}": conditional innovation residual for particle i
     "S_k^{(i)}": conditional innovation covariance for particle i
   implementation:
-    module: docs/surveys/dimensional_lift_and_advanced_filter_gates.tex
-    function: documentation_only
+    module: src/kinematic_classifier_sandbox/advanced_filters/rbpf.py
+    function: rbpf_conditional_weight_update
   artifacts:
     - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
-  tests: []
+  tests:
+    - tests/test_rbpf.py
 
 - id: calibration_metrics
   status: conceptual
@@ -278,6 +283,56 @@
     - artifacts/quality_diversity_corpus_v1/archive_cells.csv
   tests:
     - tests/test_objective_driven_qd_archive.py
+
+- id: corpus_policy_normalization
+  status: implemented
+  latex: "\\bar{w}_r=\\frac{w_r}{\\sum_u w_u}"
+  symbols:
+    "w_r": raw weight for policy term r
+    "\\bar{w}_r": normalized weight for policy term r
+  implementation:
+    module: src/kinematic_classifier_sandbox/corpus_policy.py
+    function: normalize_corpus_policy_spec
+  artifacts:
+    - artifacts/corpus_hyperparameter_tuning_v1/default_weight_spec.yaml
+  tests:
+    - tests/test_corpus_policy.py
+
+- id: corpus_policy_score
+  status: implemented
+  latex: "A_{\\text{policy}}=0.25\\,\\text{validity}+0.20\\,\\text{boundary}+0.20\\min(\\text{feature}/1.5,1)+0.15\\,\\text{stress}+0.20\\,\\text{provenance}-0.20\\,\\text{leakage},\\ \\ J_{\\text{policy}}=\\operatorname{clip}(A_{\\text{policy}}+0.10\\,\\text{stress},0,1)"
+  symbols:
+    "\\text{validity}": selected-corpus mean validity score
+    "\\text{boundary}": selected-corpus mean boundary score
+    "\\text{feature}": selected-corpus feature-excitation proxy
+    "\\text{stress}": selected-corpus classifier-stress proxy
+    "\\text{provenance}": selected-corpus provenance completeness
+    "\\text{leakage}": selected-corpus leakage proxy
+  implementation:
+    module: src/kinematic_classifier_sandbox/corpus_policy_sweep.py
+    function: _evaluate_policy
+  artifacts:
+    - artifacts/corpus_hyperparameter_tuning_v1/sweep_results.csv
+  tests:
+    - tests/test_corpus_policy_sweep.py
+
+- id: rung_sufficiency_promotion_rule
+  status: implemented
+  latex: "d(s,r)=\\begin{cases}\\texttt{revise\\_corpus}, & \\neg \\text{can\\_evaluate}(s) \\\\ \\texttt{revise\\_features}, & \\text{feature gate fails} \\\\ \\texttt{revise\\_prior}, & f_{\\text{prior}}(s,r)>\\tau_{\\text{prior}} \\\\ \\texttt{promote}, & \\Delta_{r\\rightarrow r^+}(s)\\ge \\tau_{\\Delta} \\\\ \\texttt{stay/defer}, & \\text{otherwise} \\end{cases}"
+  symbols:
+    "d(s,r)": rung-sufficiency decision for study s at rung r
+    "f_{\\text{prior}}(s,r)": prior-fragility term
+    "\\Delta_{r\\rightarrow r^+}(s)": measured next-rung improvement
+    "\\tau_{\\text{prior}}": prior-fragility threshold
+    "\\tau_{\\Delta}": promotion-improvement threshold
+  implementation:
+    module: src/kinematic_classifier_sandbox/rung_sufficiency/analysis.py
+    function: _promotion_row
+  artifacts:
+    - artifacts/rung_sufficiency/rung_promotion_matrix.csv
+    - artifacts/rung_sufficiency/rung_sufficiency_report.md
+  tests:
+    - tests/test_rung_sufficiency.py
 
 - id: sampler_mixture
   status: implemented

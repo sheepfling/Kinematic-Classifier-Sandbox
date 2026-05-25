@@ -65,6 +65,26 @@ IMPLEMENTED_SOURCE_DATA: dict[str, tuple[str, ...]] = {
         "artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv",
         "artifacts/corpus_classifier_scoring/posterior_history.csv",
     ),
+    "imm_mode_mixing_recursion": (
+        "artifacts/imm_filter_v1/mixing_probability_history.csv",
+        "artifacts/imm_filter_v1/mode_probability_history.csv",
+        "artifacts/imm_filter_v1/switching_detection_metrics.csv",
+    ),
+    "pf_importance_weight_update": (
+        "artifacts/particle_filter_v1/pf_method_comparison.csv",
+        "artifacts/particle_filter_v1/ess_history.csv",
+        "artifacts/particle_filter_v1/pf_report.md",
+    ),
+    "pf_class_evidence_extraction": (
+        "artifacts/particle_filter_v1/posterior_history.csv",
+        "artifacts/particle_filter_v1/pf_method_comparison.csv",
+        "artifacts/advanced_filter_comparison_v1/method_comparison.csv",
+    ),
+    "rbpf_conditional_weight_update": (
+        "artifacts/rbpf_v1/rbpf_method_comparison.csv",
+        "artifacts/rbpf_v1/latent_mode_posterior.csv",
+        "artifacts/rbpf_v1/rbpf_report.md",
+    ),
     "corpus_autodevelopment_score": (
         "artifacts/corpus_autodevelopment_v1/candidate_scores.csv",
         "artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md",
@@ -93,6 +113,19 @@ IMPLEMENTED_SOURCE_DATA: dict[str, tuple[str, ...]] = {
     ),
     "class_validity_status": (
         "artifacts/class_validity/class_validity_scores.csv",
+    ),
+    "corpus_policy_normalization": (
+        "artifacts/corpus_hyperparameter_tuning_v1/default_weight_spec.yaml",
+        "artifacts/corpus_hyperparameter_tuning_v1/weight_spec_schema.json",
+    ),
+    "corpus_policy_score": (
+        "artifacts/corpus_hyperparameter_tuning_v1/sweep_results.csv",
+        "artifacts/corpus_hyperparameter_tuning_v1/pareto_front.csv",
+        "artifacts/corpus_hyperparameter_tuning_v1/corpus_hyperparameter_tuning_report.md",
+    ),
+    "rung_sufficiency_promotion_rule": (
+        "artifacts/ladder_witness_suite_v1/rung_sufficiency_decisions.csv",
+        "artifacts/ladder_witness_suite_v1/ladder_witness_suite_report.md",
     ),
     "advanced_filter_gate": (
         "artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md",
@@ -118,6 +151,22 @@ IMPLEMENTED_EXACT_ARTIFACTS: dict[str, tuple[str, ...]] = {
         "artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv",
         "artifacts/corpus_classifier_scoring/posterior_history.csv",
     ),
+    "imm_mode_mixing_recursion": (
+        "artifacts/imm_filter_v1/mixing_probability_history.csv",
+        "artifacts/imm_filter_v1/switching_detection_metrics.csv",
+    ),
+    "pf_importance_weight_update": (
+        "artifacts/particle_filter_v1/ess_history.csv",
+        "artifacts/particle_filter_v1/pf_report.md",
+    ),
+    "pf_class_evidence_extraction": (
+        "artifacts/particle_filter_v1/posterior_history.csv",
+        "artifacts/particle_filter_v1/pf_method_comparison.csv",
+    ),
+    "rbpf_conditional_weight_update": (
+        "artifacts/rbpf_v1/latent_mode_posterior.csv",
+        "artifacts/rbpf_v1/rbpf_report.md",
+    ),
     "corpus_autodevelopment_score": (
         "artifacts/corpus_autodevelopment_v1/candidate_scores.csv",
         "artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md",
@@ -146,6 +195,18 @@ IMPLEMENTED_EXACT_ARTIFACTS: dict[str, tuple[str, ...]] = {
     ),
     "class_validity_status": (
         "artifacts/class_validity/class_validity_scores.csv",
+    ),
+    "corpus_policy_normalization": (
+        "artifacts/corpus_hyperparameter_tuning_v1/default_weight_spec.yaml",
+        "artifacts/corpus_hyperparameter_tuning_v1/weight_spec_schema.json",
+    ),
+    "corpus_policy_score": (
+        "artifacts/corpus_hyperparameter_tuning_v1/sweep_results.csv",
+        "artifacts/corpus_hyperparameter_tuning_v1/corpus_hyperparameter_tuning_report.md",
+    ),
+    "rung_sufficiency_promotion_rule": (
+        "artifacts/ladder_witness_suite_v1/rung_sufficiency_decisions.csv",
+        "artifacts/ladder_witness_suite_v1/ladder_witness_suite_report.md",
     ),
     "advanced_filter_gate": (
         "artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md",

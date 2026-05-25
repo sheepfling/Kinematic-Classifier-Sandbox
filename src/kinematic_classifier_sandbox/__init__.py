@@ -1,3 +1,11 @@
+"""Compatibility surface for the methodology workbench package.
+
+Prefer importing canonical study/corpus/evaluation entry points from
+``kinematic_classifier_sandbox.api``. This module remains a broader
+compatibility layer because the existing tests and internal call sites
+still import from the package root.
+"""
+
 from .runtime_paths import configure_runtime_environment
 
 configure_runtime_environment()
@@ -90,12 +98,31 @@ from .corpus_policy import (
     corpus_policy_to_dict,
     load_corpus_policy_spec,
     normalize_corpus_policy_spec,
+    score_corpus_autodevelopment_candidate,
+    score_corpus_gym_reward,
+    score_qd_archive_elite,
+    score_study_candidate_monte_carlo,
+    score_study_candidate_static,
     validate_corpus_policy_spec,
     write_default_policy_artifacts,
 )
 from .corpus_policy_sweep import (
     CorpusPolicyTuningArtifacts,
     write_corpus_policy_tuning_artifacts,
+)
+from .corpus_autodevelopment import (
+    CorpusAutodevelopmentArtifacts,
+    CorpusAutodevelopmentResult,
+    analyze_corpus_autodevelopment,
+    load_corpus_objectives,
+    render_corpus_autodevelopment_numeric_walkthrough_markdown,
+    write_corpus_autodevelopment_artifacts,
+)
+from .selected_generated_corpus import (
+    SelectedGeneratedCorpusArtifacts,
+    SelectedGeneratedCorpusResult,
+    analyze_selected_generated_corpus,
+    write_selected_generated_corpus_artifacts,
 )
 from .trajectory_backend_contract import (
     BackendContractDefinition,
@@ -143,6 +170,12 @@ from .backend_adapter_proof import (
     BackendCandidateSpec,
     analyze_backend_adapter_proof,
     write_backend_adapter_proof_artifacts,
+)
+from .external_backend_examples import (
+    ExternalBackendExamplesArtifacts,
+    ExternalBackendExamplesResult,
+    analyze_external_backend_examples,
+    write_external_backend_examples_artifacts,
 )
 from .environment_aware_corpus import (
     EnvironmentAwareCorpusArtifacts,
@@ -207,12 +240,6 @@ from .generated_corpus_features import (
     select_generated_corpus_records,
     write_generated_corpus_feature_artifacts,
 )
-from .corpus_classifier_scoring import (
-    CorpusClassifierScoringArtifacts,
-    CorpusClassifierScoringResult,
-    analyze_corpus_classifier_scoring,
-    write_corpus_classifier_scoring_artifacts,
-)
 from .objective_corpus_gym_runner import (
     ObjectiveCorpusGymRecord,
     candidate_to_corpus_gym_action,
@@ -224,12 +251,6 @@ from .objective_driven_qd_archive import (
     ObjectiveDrivenQdArchiveResult,
     analyze_objective_driven_qd_archive,
     write_objective_driven_qd_archive_artifacts,
-)
-from .selected_generated_corpus import (
-    SelectedGeneratedCorpusArtifacts,
-    SelectedGeneratedCorpusResult,
-    analyze_selected_generated_corpus,
-    write_selected_generated_corpus_artifacts,
 )
 from .corpus_search_baseline import (
     CorpusSearchBaselineArtifacts,
@@ -255,12 +276,6 @@ from .corpus_synthesis_comparison import (
     CorpusSynthesisComparisonResult,
     analyze_corpus_synthesis_comparison,
     write_corpus_synthesis_comparison_artifacts,
-)
-from .quality_diversity_corpus import (
-    QualityDiversityCorpusArtifacts,
-    QualityDiversityCorpusResult,
-    analyze_quality_diversity_corpus,
-    write_quality_diversity_corpus_artifacts,
 )
 from .coverage_report import (
     CoverageReportArtifacts,
@@ -545,23 +560,6 @@ from .generic_feature_taxonomy import (
     render_generic_feature_taxonomy_report,
     write_generic_feature_taxonomy_artifacts,
 )
-from .generic_classification_evidence_proof import (
-    EvidenceStep,
-    GenericClassificationEvidenceProofArtifacts,
-    GenericClassificationEvidenceProofResult,
-    PosteriorStep,
-    analyze_generic_classification_evidence_proof,
-    posterior_history_from_evidence_stream,
-    render_generic_classification_evidence_report,
-    write_generic_classification_evidence_proof_artifacts,
-)
-from .generic_filtering_contract import (
-    GenericFilteringContractArtifacts,
-    GenericFilteringContractResult,
-    analyze_generic_filtering_contract,
-    render_generic_filtering_principles_report,
-    write_generic_filtering_contract_artifacts,
-)
 from .dimensional_lift_audit import (
     DimensionalLiftAuditArtifacts,
     DimensionalLiftAuditResult,
@@ -573,14 +571,6 @@ from .study_candidate_protocol import (
     StudyCandidateProtocolResult,
     analyze_study_candidate_protocol,
     write_study_candidate_protocol_artifacts,
-)
-from .corpus_autodevelopment import (
-    CorpusAutodevelopmentArtifacts,
-    CorpusAutodevelopmentResult,
-    analyze_corpus_autodevelopment,
-    load_corpus_objectives,
-    render_corpus_autodevelopment_numeric_walkthrough_markdown,
-    write_corpus_autodevelopment_artifacts,
 )
 from .study_candidate_generation import (
     StudyCandidateGenerationArtifacts,
@@ -595,6 +585,7 @@ from .validation_ladder import (
     write_validation_ladder_artifacts,
 )
 from .rung_sufficiency import (
+    LadderWitnessSuiteArtifacts,
     RungCapabilitySpec,
     RungSufficiencyArtifacts,
     RungSufficiencyResult,
@@ -604,7 +595,9 @@ from .rung_sufficiency import (
     capability_rows,
     capability_specs,
     canonicalize_rung_id,
+    load_ladder_witness_suite_config,
     next_rung_id,
+    write_ladder_witness_suite_artifacts,
     write_rung_sufficiency_artifacts,
 )
 from .bayesian_walkthroughs import (
@@ -1080,6 +1073,10 @@ __all__ = [
     "load_corpus_objectives",
     "render_corpus_autodevelopment_numeric_walkthrough_markdown",
     "write_corpus_autodevelopment_artifacts",
+    "SelectedGeneratedCorpusArtifacts",
+    "SelectedGeneratedCorpusResult",
+    "analyze_selected_generated_corpus",
+    "write_selected_generated_corpus_artifacts",
     "CorpusGymAction",
     "CorpusGymArtifacts",
     "CorpusGymContractResult",
@@ -1097,6 +1094,11 @@ __all__ = [
     "corpus_policy_to_dict",
     "load_corpus_policy_spec",
     "normalize_corpus_policy_spec",
+    "score_corpus_autodevelopment_candidate",
+    "score_corpus_gym_reward",
+    "score_qd_archive_elite",
+    "score_study_candidate_monte_carlo",
+    "score_study_candidate_static",
     "validate_corpus_policy_spec",
     "write_default_policy_artifacts",
     "write_corpus_policy_tuning_artifacts",
@@ -1217,6 +1219,9 @@ __all__ = [
     "ValidationLadderResult",
     "analyze_validation_ladder",
     "write_validation_ladder_artifacts",
+    "LadderWitnessSuiteArtifacts",
+    "load_ladder_witness_suite_config",
+    "write_ladder_witness_suite_artifacts",
     "BayesianWalkthroughArtifacts",
     "BayesianWalkthroughResult",
     "analyze_bayesian_walkthroughs",

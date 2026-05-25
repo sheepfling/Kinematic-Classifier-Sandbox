@@ -41,6 +41,18 @@ class ParticleFilterStep:
     weight_entropy: float
 
 
+def particle_filter_importance_weight_update(
+    prior_log_weights: FloatArray,
+    propagated_particles: FloatArray,
+    observation: FloatArray,
+    log_likelihood_fn: LogLikelihoodFn,
+) -> tuple[FloatArray, FloatArray, float, FloatArray]:
+    log_likelihood = log_likelihood_fn(propagated_particles, observation)
+    log_unnormalized = prior_log_weights + log_likelihood
+    weights, normalized_log_weights, log_marginal_likelihood = normalize_log_weights(log_unnormalized)
+    return weights, normalized_log_weights, float(log_marginal_likelihood), log_likelihood
+
+
 class BootstrapParticleFilter:
     def __init__(
         self,
@@ -70,9 +82,12 @@ class BootstrapParticleFilter:
             raise RuntimeError("Particle filter must be reset before update")
         dt = 0.0 if self.state.last_time is None else max(float(time - self.state.last_time), 1.0e-9)
         propagated = self.transition_fn(self.state.particles, dt, self.rng)
-        log_likelihood = self.log_likelihood_fn(propagated, observation)
-        log_unnormalized = self.state.log_weights + log_likelihood
-        weights, normalized_log_weights, log_marginal_likelihood = normalize_log_weights(log_unnormalized)
+        weights, normalized_log_weights, log_marginal_likelihood, _ = particle_filter_importance_weight_update(
+            self.state.log_weights,
+            propagated,
+            observation,
+            self.log_likelihood_fn,
+        )
         ess = effective_sample_size(weights)
         resampled = False
         if ess < self.config.resample_threshold_fraction * self.config.particle_count:

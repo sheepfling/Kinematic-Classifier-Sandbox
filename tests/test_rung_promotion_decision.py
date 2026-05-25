@@ -14,6 +14,7 @@ def test_promotion_rows_include_stay_and_promote():
 
 def test_artifact_writer_emits_expected_files(tmp_path: Path):
     artifacts = write_rung_sufficiency_artifacts(tmp_path, seed=7, trajectories_per_case=6)
+    assert artifacts.threshold_profile_path.exists()
     assert artifacts.capability_matrix_path.exists()
     assert artifacts.corpus_precondition_path.exists()
     assert artifacts.oracle_gap_path.exists()
@@ -27,3 +28,11 @@ def test_artifact_writer_emits_expected_files(tmp_path: Path):
     assert artifacts.failure_mode_heatmap_path.exists()
     assert artifacts.promotion_decision_plot_path.exists()
     assert artifacts.posterior_quality_plot_path.exists()
+
+
+def test_threshold_profile_file_contains_one_row_per_rung(tmp_path: Path):
+    artifacts = write_rung_sufficiency_artifacts(tmp_path, seed=7, trajectories_per_case=6)
+    rows = artifacts.threshold_profile_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(rows) == 9
+    assert rows[0].startswith("rung_id,")
+    assert any(line.startswith("imm,") for line in rows[1:])

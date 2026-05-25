@@ -1,0 +1,309 @@
+suite_id: ladder_witness_suite_v1
+description: Controlled 1D ladder witness corpora for rung sufficiency and insufficiency claims.
+witnesses:
+  - witness_id: W00_pointwise_separable
+    rung_under_test: pointwise
+    claim_type: sufficiency
+    comparison_method: sequential_bayes
+    classes: [left_shift, right_shift]
+    feature_sets: [instantaneous]
+    methods: [pointwise, sequential_bayes]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: easy
+      evidence_strength: strong_per_sample
+      temporal_consistency: high
+    expected_result:
+      pointwise: sufficient
+      sequential_bayes: not_needed
+    success_criteria:
+      pointwise_final_accuracy_min: 0.95
+      prior_flip_fraction_max: 0.30
+    visual_story:
+      - pointwise likelihoods separate immediately
+      - posterior mass crosses decisively after one observation
+      - sequential Bayes is unnecessary but remains aligned
+
+  - witness_id: W01_pointwise_insufficient_temporal
+    rung_under_test: pointwise
+    claim_type: insufficiency
+    comparison_method: windowed
+    classes: [weak_drift_up, weak_drift_down]
+    feature_sets: [instantaneous, running_slope]
+    methods: [pointwise, windowed, sequential_bayes]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: boundary
+      evidence_strength: weak_per_sample
+      temporal_consistency: high
+    expected_result:
+      pointwise: insufficient
+      windowed: sufficient
+      sequential_bayes: sufficient
+    success_criteria:
+      pointwise_final_accuracy_max: 0.70
+      windowed_final_accuracy_min: 0.85
+      sequential_bayes_final_accuracy_min: 0.90
+    visual_story:
+      - individual samples overlap heavily
+      - trajectory trend separates the classes
+      - accumulation and short-history summaries both improve over pointwise
+
+  - witness_id: W02_windowed_extrema_sufficient
+    rung_under_test: windowed
+    claim_type: sufficiency
+    comparison_method: sequential_bayes
+    classes: [smooth_monotone, wide_range_monotone]
+    feature_sets: [running_range, extrema, slope]
+    methods: [windowed, sequential_bayes]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: easy
+      evidence_strength: short_history_informative
+      temporal_consistency: high
+    expected_result:
+      windowed: sufficient
+      sequential_bayes: not_needed
+    success_criteria:
+      windowed_final_accuracy_min: 0.90
+      feature_separation_min: 0.80
+    visual_story:
+      - short-history extrema make the classes separable
+      - raw points alone are ambiguous
+      - recursive accumulation adds little beyond the windowed summary
+
+  - witness_id: W03_windowed_insufficient_dynamics
+    rung_under_test: windowed
+    claim_type: insufficiency
+    comparison_method: kalman_bank
+    classes: [constant_velocity, constant_acceleration]
+    feature_sets: [running_range, extrema, slope]
+    methods: [windowed, kalman_bank]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: boundary
+      evidence_strength: dynamic_consistency_required
+      temporal_consistency: high
+    expected_result:
+      windowed: insufficient
+      kalman_bank: sufficient
+    success_criteria:
+      windowed_final_accuracy_max: 0.75
+      kalman_bank_final_accuracy_min: 0.85
+      innovation_nll_max: 1.50
+    visual_story:
+      - endpoints and local summaries can be matched across classes
+      - dynamic consistency separates the trajectories
+      - model-based innovation evidence fixes the ambiguity
+
+  - witness_id: W04_sequential_bayes_sufficient
+    rung_under_test: sequential_bayes
+    claim_type: sufficiency
+    comparison_method: pointwise
+    classes: [weak_evidence_a, weak_evidence_b]
+    feature_sets: [weak_evidence_stream]
+    methods: [pointwise, sequential_bayes]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: easy
+      evidence_strength: weak_per_sample
+      temporal_consistency: high
+    expected_result:
+      pointwise: insufficient
+      sequential_bayes: sufficient
+    success_criteria:
+      pointwise_final_accuracy_max: 0.70
+      sequential_bayes_final_accuracy_min: 0.90
+      sequential_bayes_prior_flip_fraction_max: 0.15
+    visual_story:
+      - repeated weak evidence compounds over time
+      - pointwise decisions stay uncertain
+      - recursive log odds grow steadily toward the correct class
+
+  - witness_id: W05_sequential_bayes_insufficient_switching
+    rung_under_test: sequential_bayes
+    claim_type: insufficiency
+    comparison_method: transition_matrix
+    classes: [velocity, braking]
+    feature_sets: [weak_evidence_stream, mode_switch_indicator]
+    methods: [sequential_bayes, transition_matrix]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: stress
+      evidence_strength: switching
+      temporal_consistency: mixed
+    expected_result:
+      sequential_bayes: insufficient
+      transition_matrix: sufficient
+    success_criteria:
+      sequential_bayes_switch_delay_max: 4
+      transition_matrix_switch_delay_min_improvement: 2
+    visual_story:
+      - the evidence changes regime mid-trajectory
+      - static accumulation becomes sticky after the switch
+      - explicit transition propagation corrects the lag
+
+  - witness_id: W06_kalman_sufficient_linear_dynamics
+    rung_under_test: kalman_bank
+    claim_type: sufficiency
+    comparison_method: windowed
+    classes: [constant_velocity, constant_acceleration, stationary]
+    feature_sets: [state_estimate, innovation, observation]
+    methods: [windowed, kalman_bank]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: easy
+      evidence_strength: linear_gaussian
+      temporal_consistency: high
+    expected_result:
+      windowed: insufficient
+      kalman_bank: sufficient
+    success_criteria:
+      kalman_bank_final_accuracy_min: 0.90
+      kalman_bank_state_rmse_max: 0.20
+    visual_story:
+      - the motion model is the signal
+      - innovations stay well-behaved under the correct hypothesis
+      - state estimates track truth more closely than feature-only summaries
+
+  - witness_id: W07_kalman_insufficient_nonlinear_or_switching
+    rung_under_test: kalman_bank
+    claim_type: insufficiency
+    comparison_method: particle_filter
+    classes: [nonlinear_drag, switching_drag]
+    feature_sets: [state_estimate, innovation, observation]
+    methods: [kalman_bank, particle_filter, imm]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: boundary
+      evidence_strength: nonlinear_or_switching
+      temporal_consistency: mixed
+    expected_result:
+      kalman_bank: insufficient
+      imm: insufficient
+      particle_filter: sufficient
+    success_criteria:
+      kalman_bank_state_rmse_max: 0.35
+      particle_filter_state_rmse_min_improvement: 0.10
+      imm_state_rmse_max: 0.35
+    visual_story:
+      - Gaussian linear updates become overconfident
+      - nonlinear or switching dynamics break the bank
+      - PF or IMM has a justified chance to recover the trajectory
+
+  - witness_id: W08_transition_sufficient_finite_switching
+    rung_under_test: transition_matrix
+    claim_type: sufficiency
+    comparison_method: sequential_bayes
+    classes: [mode_a, mode_b]
+    feature_sets: [mode_switch_indicator, weak_evidence_stream]
+    methods: [sequential_bayes, transition_matrix]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: boundary
+      evidence_strength: finite_switching
+      temporal_consistency: mixed
+    expected_result:
+      sequential_bayes: insufficient
+      transition_matrix: sufficient
+    success_criteria:
+      transition_matrix_final_accuracy_min: 0.85
+      switch_detection_delay_max: 3
+    visual_story:
+      - explicit transition propagation tracks finite mode changes
+      - the static accumulator is too sticky after switching
+      - the transition rung makes the switch hypothesis visible
+
+  - witness_id: W09_transition_insufficient_state_mixing
+    rung_under_test: transition_matrix
+    claim_type: insufficiency
+    comparison_method: imm
+    classes: [cruise, brake]
+    feature_sets: [mode_switch_indicator, state_memory]
+    methods: [transition_matrix, imm]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: stress
+      evidence_strength: state_mixing_required
+      temporal_consistency: mixed
+    expected_result:
+      transition_matrix: insufficient
+      imm: sufficient
+    success_criteria:
+      transition_matrix_state_rmse_max: 0.35
+      imm_state_rmse_min_improvement: 0.10
+    visual_story:
+      - the next state depends on the previous continuous state
+      - transition probabilities alone are not enough
+      - IMM mixes state hypotheses more faithfully
+
+  - witness_id: W10_imm_sufficient_switching_linear_modes
+    rung_under_test: imm
+    claim_type: sufficiency
+    comparison_method: transition_matrix
+    classes: [cruise, brake]
+    feature_sets: [state_memory, mode_switch_indicator]
+    methods: [transition_matrix, imm]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: boundary
+      evidence_strength: switching_linear_modes
+      temporal_consistency: mixed
+    expected_result:
+      transition_matrix: insufficient
+      imm: sufficient
+    success_criteria:
+      imm_final_accuracy_min: 0.88
+      imm_switch_delay_max: 2
+    visual_story:
+      - mode mixing improves switching trajectories
+      - the post-switch posterior should recover faster
+      - state continuity is preserved better than in transition-only scoring
+
+  - witness_id: W11_pf_sufficient_nonlinear_nongaussian
+    rung_under_test: particle_filter
+    claim_type: sufficiency
+    comparison_method: kalman_bank
+    classes: [nonlinear_drag, outlier_noise]
+    feature_sets: [observation, latent_state_samples]
+    methods: [kalman_bank, particle_filter]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: stress
+      evidence_strength: nonlinear_nongaussian
+      temporal_consistency: mixed
+    expected_result:
+      kalman_bank: insufficient
+      particle_filter: sufficient
+      rbpf: insufficient
+    success_criteria:
+      particle_filter_state_rmse_min_improvement: 0.10
+      particle_filter_ess_mean_min: 25
+      rbpf_final_accuracy_max: 0.80
+    visual_story:
+      - Gaussian assumptions break under the chosen noise model
+      - particle clouds remain expressive enough to fit the posterior
+      - RBPF adds no advantage without a useful latent structure
+
+  - witness_id: W12_rbpf_sufficient_latent_mode
+    rung_under_test: rbpf
+    claim_type: sufficiency
+    comparison_method: particle_filter
+    classes: [latent_maneuver, latent_hold]
+    feature_sets: [latent_mode, continuous_state]
+    methods: [particle_filter, rbpf]
+    priors: [uniform, mild_bias]
+    corpus_objective:
+      difficulty: stress
+      evidence_strength: latent_event_timing
+      temporal_consistency: mixed
+    expected_result:
+      particle_filter: insufficient
+      rbpf: sufficient
+    success_criteria:
+      rbpf_final_accuracy_min: 0.90
+      rbpf_latent_onset_delay_max: 2
+    visual_story:
+      - discrete latent structure should be identifiable
+      - the continuous state remains conditionally tractable
+      - RBPF should localize event timing better than full PF

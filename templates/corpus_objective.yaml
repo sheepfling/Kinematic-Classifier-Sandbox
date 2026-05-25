@@ -1,0 +1,6 @@
+difficulty: boundary
+sampling: irregular
+noise: moderate
+notes:
+  - Use this file to record the intended corpus regime before generation.
+

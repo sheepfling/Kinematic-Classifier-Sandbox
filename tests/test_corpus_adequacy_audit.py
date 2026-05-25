@@ -4,15 +4,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
-    analyze_corpus_adequacy,
-    write_corpus_adequacy_artifacts,
-)
+from kinematic_classifier_sandbox import api
 
 
 class CorpusAdequacyAuditTests(unittest.TestCase):
     def test_corpus_adequacy_produces_gate_rows_and_recommendations(self) -> None:
-        result = analyze_corpus_adequacy(seed=7, trajectories_per_class=5)
+        result = api.analyze_corpus_adequacy(seed=7, trajectories_per_class=5)
 
         self.assertEqual(result.summary.total_trajectories, 175)
         self.assertFalse(result.summary.overall_pass)
@@ -37,7 +34,7 @@ class CorpusAdequacyAuditTests(unittest.TestCase):
 
     def test_corpus_adequacy_writes_expected_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            artifacts = write_corpus_adequacy_artifacts(temp_dir, seed=7, trajectories_per_class=5)
+            artifacts = api.write_corpus_adequacy_artifacts(temp_dir, seed=7, trajectories_per_class=5)
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "corpus_adequacy_audit_v1")
             self.assertTrue(artifacts.report_path.exists())
             self.assertTrue(artifacts.summary_path.exists())

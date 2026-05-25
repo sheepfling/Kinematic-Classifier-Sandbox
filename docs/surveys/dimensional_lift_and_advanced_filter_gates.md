@@ -524,6 +524,23 @@ w_{k-1}^{(i)}
 
 followed by the same normalization and optional resampling used by PF.
 
+In the current 1D implementation, this split is no longer hypothetical. The
+sampled variable is the discrete mode index
+
+```tex
+r_k^{(i)} \in \{\text{coast},\text{accelerate},\text{brake},\text{maneuver}\},
+```
+
+while the conditional continuous substate is the 1D PVA block
+
+```tex
+s_k^{(i)} = \big(p_k^{(i)}, v_k^{(i)}, a_k^{(i)}\big)^\top.
+```
+
+The mode transition matrix in `rbpf_models_1d.py` samples the discrete
+hypothesis, and `kalman_predict_update()` in `rbpf.py` performs the conditional
+analytic update for each particle.
+
 RBPF is the right rung only when the repo can point to a genuine split of this
 form. If the state is not naturally decomposable into `(r_k, s_k)`, then RBPF
 is just a more complicated PF claim, not a justified hybrid method.
@@ -628,19 +645,31 @@ contract is the point.
 
 ## Code Mapping For PF And RBPF
 
-The current repo does not yet promote a runtime PF or RBPF backend, so their
-nearest code surfaces are:
+The current repo now has concrete PF and RBPF implementations, even though they
+remain decision-gated rather than promoted defaults. The main code surfaces
+are:
 
+- `advanced_filters/particle_filter.py`: bootstrap PF state, weight update,
+  ESS computation, and resampling
+- `advanced_filters/particle_filter_bank.py`: class-conditioned PF evidence
+  extraction and posterior normalization across labels
+- `advanced_filters/rbpf.py`: sampled discrete latent update plus conditional
+  Kalman subfilter
+- `advanced_filters/rbpf_models_1d.py`: current repo-specific RBPF mode split
+  with 1D PVA conditional state blocks
+- `advanced_filters/resampling.py`: shared log-weight normalization, ESS, and
+  systematic resampling
 - `advanced_filter_decision.py`: current go/no-go logic and numeric gate
-  evidence for PF
-- `generic_filtering_contract.py`: required shared output contract for any PF
-  or RBPF backend
-- `advanced_state_inference.py`: nearest implemented advanced-filter proof
-  surface and template for posterior-compatible evidence/diagnostic rows
+  evidence for IMM/PF/RBPF
+- `generic_filtering_contract.py`: required shared output contract for any
+  advanced-filter backend
+- `tests/test_particle_filter.py` and `tests/test_rbpf.py`: normalization,
+  ESS, resampling, and posterior sanity checks
 
-This means the repo can already state what PF and RBPF must compute, how their
-outputs would be judged, and what failure evidence would justify them, even
-before those backends are promoted into the main ladder.
+This means the repo can now state not only what PF and RBPF must compute, but
+also where the implemented weight updates, posterior rows, and diagnostics are
+already tested. Methodological gating still applies, but the algorithms are no
+longer only hypothetical.
 
 ## 6. Why IMM Is Stronger Than The Transition-Matrix Rung
 
@@ -778,7 +807,7 @@ Without that split, “RBPF” is only a fancy name for unnecessary complexity.
 ## 10. Worked Example
 
 The numeric artifact
-[advanced_filter_decision_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md)
+[advanced_filter_decision_numeric_walkthrough.md](artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md)
 is the current concrete proof for this document. It works through one real
 decision pass and shows:
 

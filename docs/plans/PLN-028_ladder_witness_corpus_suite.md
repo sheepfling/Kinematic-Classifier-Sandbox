@@ -2,7 +2,7 @@
 
 Title: Ladder Witness Corpus Suite
 Plan ID: PLN-028
-Status: proposed
+Status: in_progress
 Owner: @codex
 Priority: P1
 Last Updated: 2026-05-25

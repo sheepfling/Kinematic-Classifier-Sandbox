@@ -40,6 +40,15 @@ class RBPFConfig:
     seed: int = 0
 
 
+def rbpf_conditional_weight_update(
+    prior_log_weights: FloatArray,
+    conditional_log_likelihoods: FloatArray,
+) -> tuple[FloatArray, FloatArray, float, FloatArray]:
+    log_unnormalized = prior_log_weights + conditional_log_likelihoods
+    weights, normalized_log_weights, log_marginal = normalize_log_weights(log_unnormalized)
+    return weights, normalized_log_weights, float(log_marginal), log_unnormalized
+
+
 class RaoBlackwellizedParticleFilter:
     def __init__(
         self,
@@ -94,9 +103,11 @@ class RaoBlackwellizedParticleFilter:
             new_means[index] = mean
             new_covariances[index] = covariance
             log_likelihoods[index] = log_likelihood
-        log_unnormalized = self.state.log_weights + log_likelihoods
+        weights, normalized_log_weights, log_marginal, log_unnormalized = rbpf_conditional_weight_update(
+            self.state.log_weights,
+            log_likelihoods,
+        )
         log_evidence_by_mode = self._mode_log_evidence(log_unnormalized, new_mode_indexes)
-        weights, normalized_log_weights, log_marginal = normalize_log_weights(log_unnormalized)
         ess = effective_sample_size(weights)
         resampled = False
         if ess < self.config.resample_threshold_fraction * self.config.particle_count:

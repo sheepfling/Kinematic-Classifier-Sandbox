@@ -43,6 +43,47 @@ The implementation-linked derivations live in the survey stack. This paper integ
   \item \texttt{dimensional\_lift\_and\_advanced\_filter\_gates} for 3D-readiness auditing and IMM/PF/RBPF decision gates.
 \end{itemize}
 
+\section{Related Methodological Threads}
+The repository sits at the intersection of several established research threads. The point of this section is not to claim invention of each component, but to make the integration explicit and honest.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Methodological threads near the repo and how they map into this work.}
+\label{tab:related_methodological_threads}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+Thread & What the repo borrows & What the repo does not claim \\
+\midrule
+Active learning / experimental design & choose informative trajectories, not just more trajectories; adapt search to uncertainty, disagreement, or coverage gaps & a new active-learning algorithm \\
+Dataset documentation / model cards & structured corpus and model reporting, limitations, and intended-use statements & that a single report replaces corpus governance \\
+Simulation-based falsification / adaptive stress testing & search a trajectory generator for failure, fragility, and near-failure cases & that every failure search is globally optimal \\
+Quality-diversity / MAP-Elites & preserve elites across class, tier, backend, and feature cells rather than one scalar winner & a mature MAP-Elites implementation on every axis \\
+Calibration / posterior-quality evaluation & measure NLL, Brier, ECE, entropy, confident-error rate, and prior fragility & that accuracy alone is enough \\
+Feature separability / oracle diagnostics & distinguish feature insufficiency from classifier insufficiency and corpus bias & that AUC or overlap alone determines the final answer \\
+Bayesian filtering / switching state inference & reuse posterior contracts across pointwise, windowed, Kalman, IMM, PF, and RBPF evidence providers & that one filter family is universally optimal \\
+Benchmark / test-suite construction & use witness problems to prove each methodology layer before 3D lift & that the current witness suite is the final benchmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The short version is:
+\begin{align}
+\text{feature/class geometry}
+\rightarrow
+\text{corpus objective and search}
+\rightarrow
+\text{adequacy and leakage}
+\rightarrow
+\text{evidence providers}
+\rightarrow
+\text{posterior quality}
+\rightarrow
+\text{promotion decision}.
+\end{align}
+The companion narrative version of this mapping lives in
+\texttt{docs/story/related\_methodological\_threads.md}.
+
 \section{Problem Formulation}
 The active repository goal is not only to maximize one benchmark score, but to prove that a study candidate can be declared, screened, executed, audited, and promoted through a reusable methodology surface. A study candidate combines a corpus, feature set, class set, classifier family, prior specification, and optional filtering backend.
 
@@ -570,7 +611,7 @@ d.
 This is the architectural reason the disparate corpus, feature, and study docs belong together. They are not separate research threads anymore; they are stages of one methodology pipeline.
 
 \section{Filtering Taxonomy and Advanced-Method Gates}
-The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, transition-matrix, and now an explicit IMM proof surface. The advanced-method policy is still conservative: existence of an IMM implementation does not mean the repo automatically claims IMM is necessary everywhere. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains evidence-gated as an escalation beyond the transition rung, PF remains decision-gated, and RBPF is only meaningful if future vector studies expose conditionally tractable mixed discrete/continuous structure.
+The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, transition-matrix, and now an explicit IMM proof surface. The advanced-method policy is still conservative: existence of an IMM, PF, or RBPF implementation does not mean the repo automatically claims that rung is necessary everywhere. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains evidence-gated as an escalation beyond the transition rung, PF remains decision-gated, and RBPF is implemented as a sampled-mode plus conditional-\(1\text{D}\)-PVA filter but is still methodologically gated until a witness proves that mixed discrete/continuous structure is the simplest necessary explanation.
 The key policy claim is that advanced methods are downstream of failure evidence. If \(M_0\) is the current simpler method and \(M_1\) is a more advanced filter family, the repository is trying to justify a transition only when
 \begin{equation}
 \text{failure}(M_0, \mathcal{D}) \land \text{capability gain}(M_1) \land \text{measurable success criterion}(M_1)

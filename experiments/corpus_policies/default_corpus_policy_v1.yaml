@@ -34,6 +34,22 @@ archive:
     acceleration_range_pressure: 0.25
     classifier_stress: 0.25
     mean_margin_pressure: 0.20
+study_candidate:
+  static_positive_weights:
+    feature_class_compatibility: 0.18
+    expected_separability: 0.18
+    classifier_assumption_fit: 0.14
+    corpus_coverage: 0.14
+    dimensional_transfer: 0.12
+    implementation_readiness: 0.12
+    feature_independence: 0.12
+  static_penalty_weights:
+    cumulative_double_counting_risk: 0.10
+    prior_sensitivity_risk: 0.10
+  monte_carlo_weights:
+    accuracy: 0.60
+    prior_stability: 0.25
+    oracle_gap_closure: 0.15
 sampler_budgets:
   random: 20
   grid: 20

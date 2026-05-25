@@ -5,20 +5,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
-    CorpusGymAction,
-    CorpusGymEnvironment,
-    analyze_corpus_gym_contract,
-    default_corpus_gym_targets,
-    render_corpus_gym_numeric_walkthrough_markdown,
-    write_corpus_gym_artifacts,
-)
+from kinematic_classifier_sandbox import api
 
 
 class CorpusGymTests(unittest.TestCase):
     def test_environment_resets_and_steps_with_target(self) -> None:
-        environment = CorpusGymEnvironment()
-        target = default_corpus_gym_targets()[0]
+        environment = api.CorpusGymEnvironment()
+        target = api.default_corpus_gym_targets()[0]
         observation = environment.reset(target)
 
         self.assertEqual(observation["target_id"], target.target_id)
@@ -26,7 +19,7 @@ class CorpusGymTests(unittest.TestCase):
         self.assertFalse(observation["done"])
 
         step_result = environment.step(
-            CorpusGymAction(
+            api.CorpusGymAction(
                 seed=11,
                 tier_name=target.target_tier or "realistic_v1",
             )
@@ -37,9 +30,9 @@ class CorpusGymTests(unittest.TestCase):
         self.assertIsNotNone(environment.trajectory())
 
     def test_simulation_is_reproducible_from_seed_and_action(self) -> None:
-        environment = CorpusGymEnvironment()
-        target = default_corpus_gym_targets()[1]
-        action = CorpusGymAction(
+        environment = api.CorpusGymEnvironment()
+        target = api.default_corpus_gym_targets()[1]
+        action = api.CorpusGymAction(
             seed=23,
             tier_name=target.target_tier or "boundary_v1",
             duration_scale=0.9,
@@ -59,17 +52,17 @@ class CorpusGymTests(unittest.TestCase):
         self.assertEqual(first.reward.total_utility, second.reward.total_utility)
 
     def test_analysis_and_artifacts_are_generated(self) -> None:
-        result = analyze_corpus_gym_contract()
+        result = api.analyze_corpus_gym_contract()
         self.assertIn("target_types", result.environment_contract)
         self.assertGreater(len(result.example_targets), 0)
         self.assertIn("Reward Breakdown", result.report_markdown)
-        walkthrough = render_corpus_gym_numeric_walkthrough_markdown(result)
+        walkthrough = api.render_corpus_gym_numeric_walkthrough_markdown(result)
         self.assertIn("Corpus Gym Numeric Walkthrough", walkthrough)
         self.assertIn("Numeric Substitution", walkthrough)
         self.assertIn("total_utility", walkthrough)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            artifacts = write_corpus_gym_artifacts(temp_dir, result=result)
+            artifacts = api.write_corpus_gym_artifacts(temp_dir, result=result)
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "corpus_gym")
             self.assertTrue(artifacts.environment_contract_path.exists())
             self.assertTrue(artifacts.example_targets_path.exists())

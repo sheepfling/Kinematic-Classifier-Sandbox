@@ -260,7 +260,7 @@ The score assumes:
 ### 5.5 Worked Example
 
 The numeric artifact
-[corpus_autodevelopment_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md)
+[corpus_autodevelopment_numeric_walkthrough.md](artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md)
 is the current concrete proof for this section. It shows one real selected
 candidate and:
 
@@ -369,7 +369,7 @@ more useful behavioral cells than a naïve random sample of equal size?
 ### 6.3 Worked Example
 
 The numeric artifact
-[generic_corpus_explorer_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md)
+[generic_corpus_explorer_numeric_walkthrough.md](artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md)
 now expands one selected corpus row into:
 
 - its `U_explore` utility decomposition
@@ -550,7 +550,7 @@ trajectory proposals.
 ### 7.8 Worked Example
 
 The numeric artifact
-[corpus_gym_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md)
+[corpus_gym_numeric_walkthrough.md](artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md)
 now works through one real Gym episode. It shows:
 
 - the selected target
@@ -614,6 +614,191 @@ This layer matters because it separates:
 - “which mutation lineages produce useful diversity”
 
 That is a stronger corpus-search story than one scalar winner alone.
+
+The implementation also makes the archive utility operational:
+
+```tex
+U_{\text{archive}}
+=
+0.30 \cdot \text{validity score}
++ 0.25 \cdot \min\!\left(\frac{\text{accel range}}{0.40}, 1\right)
++ 0.25 \cdot \text{max classifier stress}
++ 0.20 \cdot (1 - \text{mean posterior margin}).
+```
+
+So the archive preserves high-validity, high-stress, low-margin witnesses in
+distinct cells rather than preserving diversity in the abstract.
+
+Successful and failed archive cells are tracked separately. If `tau_t` is the
+trajectory processed at iteration `t`, then
+
+```tex
+A_t^{\text{succ}}[h(\tau_t)]
+\leftarrow
+\arg\max_{\tau' : h(\tau') = h(\tau_t)}
+U_{\text{archive}}(\tau')
+```
+
+only when the run succeeds and the label status is `valid_target_class`;
+otherwise the failed-cell counter is updated in `A_t^{fail}`. The emitted
+coverage curves are
+
+```tex
+C_t^{\text{succ}}
+=
+\frac{|A_t^{\text{succ}}|}{|A_T^{\text{succ}}|},
+\qquad
+C_t^{\text{fail}}
+=
+\frac{|A_t^{\text{fail}}|}{|A_T^{\text{fail}}|}.
+```
+
+That is why invalid or failed runs do not inflate successful coverage.
+
+### 8.5 Quality-Diversity Corpus Layer
+
+`quality_diversity_corpus.py` implements a lighter-weight archive on top of
+CorpusGym episodes. Its cell key is
+
+```tex
+h_{\text{qd}}(\tau)
+=
+\big(
+    c(\tau),
+    \mathrm{tier}(\tau),
+    b_{\mathrm{dur}}(\tau),
+    b_{\mathrm{acc}}(\tau),
+    b_{\mathrm{turn}}(\tau)
+\big),
+```
+
+where the last three coordinates are duration, acceleration-range, and
+direction-change buckets. The elite replacement rule is the same `argmax` rule
+as above, but the utility is the episode reward `U_gym` rather than
+`U_archive`. The current coverage fraction is
+
+```tex
+\mathrm{coverage\_fraction}_t
+=
+\frac{\#\{\text{filled QD cells at iteration } t\}}{81},
+```
+
+because the current 1D archive discretizes `3 x 3 x 3 x 3` regime
+combinations across the non-class axes.
+
+## 8A. Corpus Hyperparameter Policy And Tuning
+
+The corpus-search layer now has an explicit hyperparameter surface in
+`corpus_policy.py` and `corpus_policy_sweep.py`. A policy is
+
+```tex
+p
+=
+\big(
+    w^{+},\,
+    w^{-},\,
+    w^{\text{explore}},\,
+    w^{\text{gym}},\,
+    w^{\text{archive}},\,
+    n,\,
+    g
+\big),
+```
+
+where `w+` are positive corpus weights, `w-` penalty weights, `w^explore`
+generic-explorer weights, `w^gym` CorpusGym weights, `w^archive` archive
+weights, `n` sampler budgets, and `g` adequacy gates.
+
+Whenever a weight group is normalized, the implementation applies
+
+```tex
+\bar{w}_r
+=
+\frac{w_r}{\sum_u w_u},
+```
+
+so the scalar objectives remain comparable under reweighting. This is the role
+of `normalize_corpus_policy_spec()`.
+
+For policy `p`, the generic-explorer utility becomes
+
+```tex
+U_{\text{explore}}^{(p)}
+=
+\sum_{r \in \mathcal{R}_{\text{explore}}}
+\bar{w}^{(p)}_r u_r,
+```
+
+the archive utility becomes
+
+```tex
+U_{\text{archive}}^{(p)}
+=
+\sum_{r \in \mathcal{R}_{\text{archive}}}
+\bar{w}^{(p)}_r a_r,
+```
+
+and the sampler mixture becomes
+
+```tex
+\pi_s^{(p)}
+=
+\frac{n_s^{(p)}}{\sum_{s'} n_{s'}^{(p)}}.
+```
+
+So a policy changes both how candidates are scored and how search effort is
+allocated.
+
+The current tuning sweep evaluates a policy by a downstream adequacy proxy:
+
+```tex
+A_{\text{policy}}(p)
+=
+0.25 \cdot \text{validity}
++ 0.20 \cdot \text{boundary coverage}
++ 0.20 \cdot \min\!\left(\frac{\text{feature excitation}}{1.5}, 1\right)
++ 0.15 \cdot \text{classifier stress}
++ 0.20 \cdot \text{provenance completeness}
+- 0.20 \cdot \text{leakage},
+```
+
+followed by the bounded policy score
+
+```tex
+J_{\text{policy}}(p)
+=
+\operatorname{clip}
+\big(
+    A_{\text{policy}}(p) + 0.10 \cdot \text{classifier stress},
+    0,
+    1
+\big).
+```
+
+This is the quantity emitted as `policy_score` in the sweep results.
+
+There is now a numeric walkthrough artifact for one real recommended policy
+row:
+
+- [corpus_policy_numeric_walkthrough.md](artifacts/corpus_hyperparameter_tuning_v1/corpus_policy_numeric_walkthrough.md)
+
+That artifact expands the adequacy proxy, stress bonus, selected-set Jaccard,
+rank stability, and dev-vs-holdout comparison numerically for the recommended
+policy.
+
+The sweep also checks whether a better score is only a re-ranking accident. For
+selected sets `S(p_a)` and `S(p_b)`, the stability metric is
+
+```tex
+J_{\text{set}}(p_a, p_b)
+=
+\frac{|S(p_a) \cap S(p_b)|}{|S(p_a) \cup S(p_b)|}.
+```
+
+Rank stability is then reported through Spearman and Kendall correlations of
+the ranked candidate lists. The policy question is therefore not only “which
+weights maximize one scalar?” but also “which weights preserve a stable,
+scientifically sensible selected set?”
 
 ## 9. Study Candidate Generation
 
@@ -837,6 +1022,33 @@ The implemented rule set is not abstract. It contains explicit branches for:
 - environment support
 - sequential-control support
 - stochastic versus deterministic execution
+
+Operationally, the current rule families behave like
+
+```tex
+M_{\text{rt}}(\kappa)
+=
+\begin{cases}
+    \{\text{random},\text{lhs},\text{sobol},\text{qd}\}, & \kappa_{\text{runtime}}=\text{cheap}, \\
+    \{\text{lhs},\text{sobol},\text{qd}\}, & \kappa_{\text{runtime}}=\text{medium}, \\
+    \{\text{small DOE},\text{surrogate},\text{active learning}\}, & \kappa_{\text{runtime}}=\text{expensive},
+\end{cases}
+```
+
+and
+
+```tex
+M_{\text{ctl}}(\kappa)
+=
+\begin{cases}
+    \{\text{adaptive stress},\text{cross entropy}\}, & \kappa_{\text{seq}}=1, \\
+    \varnothing, & \kappa_{\text{seq}}=0.
+\end{cases}
+```
+
+with analogous environment- and stochasticity-dependent additions. So search
+planning is already encoded as a capability map, not a loose recommendation
+paragraph.
 
 So the actual planner is closer to:
 

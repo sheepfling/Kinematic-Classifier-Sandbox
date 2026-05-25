@@ -6,10 +6,10 @@ This repository now has one front-door story: a study candidate combines a corpu
 
 Start here:
 
-- [Documentation front door](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/README.md)
-- [Canonical repo story](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/story/00_repo_story.md)
-- [Canonical reading order](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/story/02_reading_order.md)
-- [Claim evidence matrix](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/story/claim_evidence_matrix.md)
+- [Documentation front door](docs/README.md)
+- [Canonical repo story](docs/story/00_repo_story.md)
+- [Canonical reading order](docs/story/02_reading_order.md)
+- [Claim evidence matrix](docs/story/claim_evidence_matrix.md)
 
 ## What this repo contains
 
@@ -55,9 +55,9 @@ pointing at that cache root.
 
 ## Survey entrypoints
 
-- Source survey: [kinematic_method_landscape.md](/Users/rick/LocalStorage/GIT_LOCAL/active/kinematic-classifier-sandbox/docs/surveys/kinematic_method_landscape.md)
-- Generated artifact: [method_survey_summary.md](/Users/rick/LocalStorage/GIT_LOCAL/active/kinematic-classifier-sandbox/artifacts/method_survey_summary.md)
-- Feature workflow: [feature_workflow.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/feature_workflow.md)
+- Source survey: [kinematic_method_landscape.md](docs/surveys/kinematic_method_landscape.md)
+- Generated artifact: [method_survey_summary.md](artifacts/method_survey_summary.md)
+- Feature workflow: [feature_workflow.md](docs/surveys/feature_workflow.md)
 
 ## Feature workflow
 
@@ -77,10 +77,10 @@ That keeps the current 1D feature library intact while making the extension poin
 
 Main files:
 
-- [feature_analysis.py](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/src/kinematic_classifier_sandbox/feature_analysis.py)
-- [pca_analysis.py](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/src/kinematic_classifier_sandbox/pca_analysis.py)
-- [feature_sets.json](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/experiments/common_1d_classifier_study/feature_sets.json)
-- [class_pair_manifest.json](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/experiments/common_1d_classifier_study/class_pair_manifest.json)
+- [feature_analysis.py](src/kinematic_classifier_sandbox/feature_analysis.py)
+- [pca_analysis.py](src/kinematic_classifier_sandbox/pca_analysis.py)
+- [feature_sets.json](experiments/common_1d_classifier_study/feature_sets.json)
+- [class_pair_manifest.json](experiments/common_1d_classifier_study/class_pair_manifest.json)
 
 Quick examples:
 
@@ -99,12 +99,12 @@ feature_result = analyze_feature_datasets(
 )
 ```
 
-Use [feature_workflow.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/feature_workflow.md) for the full add-feature and rerun process.
+Use [feature_workflow.md](docs/surveys/feature_workflow.md) for the full add-feature and rerun process.
 
 The main abstract-inspection landing artifact is:
 
-- [abstract_inspection_index.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/abstract_inspection_v1/abstract_inspection_index.md)
-- [abstract_inspection_summary.json](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/abstract_inspection_v1/abstract_inspection_summary.json)
+- [abstract_inspection_index.md](artifacts/abstract_inspection_v1/abstract_inspection_index.md)
+- [abstract_inspection_summary.json](artifacts/abstract_inspection_v1/abstract_inspection_summary.json)
 
 ## Workflow scripts
 
@@ -116,7 +116,9 @@ The main abstract-inspection landing artifact is:
 - `python3 scripts/run_milestone.py list`
 - `python3 scripts/run_milestone.py m1-m9 --output-dir artifacts`
 - `python3 scripts/run_study.py experiments/common_1d_classifier_study/common_experiment_config.yaml --output-dir artifacts`
-- `python3 scripts/render_generic_corpus_exploration_weight_sweep.py --output-dir artifacts --config experiments/generic_corpus_exploration_weight_sweep/generic_corpus_exploration_weight_sweep.yaml`
+- `python3 scripts/render/render_generic_corpus_exploration_weight_sweep.py --output-dir artifacts --config experiments/generic_corpus_exploration_weight_sweep/generic_corpus_exploration_weight_sweep.yaml`
+- `python3 scripts/render/render_formal_math_visual_registry.py --output-dir artifacts`
+- `python3 scripts/render/render_ladder_witness_suite.py --output-dir artifacts --config experiments/ladder_witness_suite/ladder_witness_suite.yaml`
 - `python3 scripts/dev.py`
 
 ## Milestone reruns
@@ -129,7 +131,7 @@ python3 scripts/run_milestone.py m6 --output-dir artifacts
 python3 scripts/run_milestone.py m1-m9 --output-dir artifacts
 ```
 
-See [milestones.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/milestones.md) for the per-milestone mapping from command to artifact directory.
+See [milestones.md](docs/milestones.md) for the per-milestone mapping from command to artifact directory.
 
 ## Study reruns
 

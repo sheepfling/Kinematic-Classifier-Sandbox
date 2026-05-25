@@ -406,6 +406,96 @@ That walkthrough uses a real switching trajectory and shows:
     \caption{Transition-aware accumulation diagnostics.}
 \end{figure}
 
+\section{Rung Sufficiency And Escalation Equations}
+
+The ladder is only useful if the repo can answer not just ``what is the next
+rung?'' but ``has the current rung earned the right to stay?'' The
+\texttt{rung\_sufficiency} package makes that decision explicit.
+
+For study \(s\) at current rung \(r\), define the oracle gap
+\begin{equation}
+    g_{\text{oracle}}(s,r)
+    =
+    \max\big(0, A_{\text{oracle}}(s,r) - A_{\text{current}}(s,r)\big),
+\end{equation}
+the prior-fragility term
+\begin{equation}
+    f_{\text{prior}}(s,r)
+    =
+    1 - \text{prior\_sensitivity\_score}(s,r),
+\end{equation}
+and the measured next-rung gain
+\begin{equation}
+    \Delta_{r \rightarrow r^{+}}(s)
+    =
+    A_{\text{current}}(s,r^{+}) - A_{\text{current}}(s,r),
+\end{equation}
+where \(r^{+}\) is the configured next rung from the capability matrix.
+
+The current implementation treats a study as learnable when
+\begin{equation}
+    \mathbf{1}_{\text{learnable}}(s,r)
+    =
+    \mathbf{1}\!\left[
+        A_{\text{oracle}} \ge \tau_{\text{oracle}}
+        \land
+        \mathrm{overlap} \le \tau_{\text{overlap}}
+        \land
+        \mathrm{AUC}_{\text{pair}} \ge \tau_{\text{AUC}}
+        \land
+        m_{\text{post}} \ge \tau_{\text{margin}}
+    \right],
+\end{equation}
+with the current default thresholds
+\begin{equation}
+    \tau_{\text{oracle}} = 0.85,\qquad
+    \tau_{\text{overlap}} = 0.90,\qquad
+    \tau_{\text{AUC}} = 0.70,\qquad
+    \tau_{\text{margin}} = 0.05.
+\end{equation}
+This is the mathematical version of the repo rule that feature and corpus
+limits should be identified before algorithm blame is assigned.
+
+The promotion decision is then a gated piecewise rule. Let
+\(\tau_{\text{prior}} = 0.12\) and \(\tau_{\Delta} = 0.05\). Then
+\begin{equation}
+    d(s,r)
+    =
+    \begin{cases}
+        \texttt{revise\_corpus}, & \neg \text{can\_evaluate\_classifier}(s), \\
+        \texttt{revise\_features}, & \text{feature gate fails}, \\
+        \texttt{revise\_prior}, & f_{\text{prior}}(s,r) > \tau_{\text{prior}}, \\
+        \texttt{feature\_limited}, & \text{learnability\_status}(s,r)=\texttt{feature\_limited}, \\
+        \texttt{stay}, & r^{+} = \varnothing, \\
+        \texttt{reject\_escalation}, & \neg \text{capability\_match}(r,r^{+}), \\
+        \texttt{defer\_advanced}, & \Delta_{r \rightarrow r^{+}}(s)\ \text{is unavailable}, \\
+        \texttt{promote}, & \Delta_{r \rightarrow r^{+}}(s) \ge \tau_{\Delta}, \\
+        \texttt{stay}, & g_{\text{oracle}}(s,r) < \tau_{\text{gap}}, \\
+        \texttt{defer\_advanced}, & \text{otherwise},
+    \end{cases}
+\end{equation}
+where \(\tau_{\text{gap}} = 0.08\) in the default configuration. This is the
+explicit ladder-sufficiency rule that stops the repo from escalating methods
+only because they are available.
+
+The switching witnesses are the cleanest examples because their measured gains
+are hard-coded from dedicated benchmark outputs:
+\begin{align}
+    \Delta_{\text{kalman} \rightarrow \text{transition}}
+    &=
+    A_{\text{post-switch}}^{\text{transition}}
+    -
+    A_{\text{post-switch}}^{\text{kalman}}, \\
+    \Delta_{\text{transition} \rightarrow \text{IMM}}
+    &=
+    A_{\text{post-switch}}^{\text{IMM}}
+    -
+    A_{\text{post-switch}}^{\text{transition}}.
+\end{align}
+That is why the current rung-sufficiency artifact can issue a real promotion
+decision for transition-aware accumulation and a measured
+\texttt{promote}/\texttt{defer\_advanced} decision for IMM.
+
 \section{Calibration And Posterior Quality}
 
 Posterior quality is not the same as accuracy. A method can be accurate but

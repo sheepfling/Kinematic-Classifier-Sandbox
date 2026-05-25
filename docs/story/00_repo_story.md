@@ -2,6 +2,10 @@
 
 This repository is a reusable methodology workbench for kinematic classification studies. It is not just a 1D classifier benchmark. The current 1D problems are witness problems: small controlled studies that prove the methodology layers before the framework is lifted to 3D.
 
+The repo's methods are grounded in several established research threads, but the contribution is the integration. A concise map of those threads and how they show up here lives in [Related methodological threads](related_methodological_threads.md).
+
+For code navigation, start with [Package boundaries](package_boundaries.md). The curated import facade is `src/kinematic_classifier_sandbox/api.py`; the package root remains a compatibility surface.
+
 The central object is a study candidate:
 
 ```text

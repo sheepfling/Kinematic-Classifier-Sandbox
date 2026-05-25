@@ -30,6 +30,7 @@ class CorpusPolicySweepTests(unittest.TestCase):
                 "pareto_front.csv",
                 "recommended_policy.yaml",
                 "corpus_hyperparameter_tuning_report.md",
+                "corpus_policy_numeric_walkthrough.md",
                 "weight_sensitivity_tornado.png",
                 "selected_set_jaccard_heatmap.png",
                 "rank_correlation_heatmap.png",
@@ -82,6 +83,14 @@ class CorpusPolicySweepTests(unittest.TestCase):
             evaluated = {row["policy_id"] for row in sweep_rows}
             recommended = yaml.safe_load(artifacts.recommended_policy_path.read_text(encoding="utf-8"))
             self.assertIn(recommended["recommendation"]["recommended_policy_id"], evaluated)
+
+    def test_numeric_walkthrough_contains_real_substitution(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts = write_corpus_policy_tuning_artifacts(temp_dir)
+            text = artifacts.numeric_walkthrough_path.read_text(encoding="utf-8")
+            self.assertIn("Adequacy Proxy Substitution", text)
+            self.assertIn("J_{\\text{policy}}", text)
+            self.assertIn("Selected-set Jaccard vs default", text)
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:

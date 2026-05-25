@@ -5,10 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
-    analyze_selected_generated_corpus,
-    write_selected_generated_corpus_artifacts,
-)
+from kinematic_classifier_sandbox.api import *
 
 
 class SelectedGeneratedCorpusTests(unittest.TestCase):

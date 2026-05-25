@@ -11,6 +11,7 @@ from statistics import mean
 import yaml
 
 from .corpus_adequacy_audit import CorpusAdequacyResult, analyze_corpus_adequacy
+from .corpus_policy import CorpusPolicySpec, load_corpus_policy_spec, score_corpus_autodevelopment_candidate
 from .feature_analysis import FeatureAnalysisResult, analyze_feature_datasets
 from .trajectory_generator import DatasetTierDefinition, default_dataset_tiers, generate_trajectory_datasets
 
@@ -410,7 +411,8 @@ def _render_report(result: CorpusAutodevelopmentResult) -> str:
             "",
             "## Scoring Logic",
             "",
-            "- `overall_score = balance_score + boundary_coverage_score + feature_excitation_score + difficulty_diversity_score - leakage_penalty - triviality_penalty - degeneracy_penalty`",
+            f"- Policy: `{selected.get('policy_id', 'unknown')}`",
+            "- `overall_score` is computed through `CorpusPolicySpec` corpus-autodevelopment weights.",
             "- Higher is better.",
             "- The Pareto front preserves non-dominated candidates even if only one is selected for default use.",
             "",
@@ -487,7 +489,7 @@ def render_corpus_autodevelopment_numeric_walkthrough_markdown(result: CorpusAut
         "## Score Equation",
         "",
         "```tex",
-        "S_k = B_k + C_k + F_k + D_k - L_k - T_k - G_k",
+        "S_k = n_+\\sum_r w^+_r x_{k,r} - n_-\\sum_u w^-_u p_{k,u}",
         "```",
         "",
         "where the implemented selected-candidate values are:",
@@ -599,8 +601,10 @@ def analyze_corpus_autodevelopment(
     *,
     objectives_path: str | Path = DEFAULT_OBJECTIVES_PATH,
     seed: int = 7,
+    policy: CorpusPolicySpec | None = None,
 ) -> CorpusAutodevelopmentResult:
     objectives = load_corpus_objectives(objectives_path)
+    resolved_policy = policy or load_corpus_policy_spec()
     candidate_evaluations: list[CorpusCandidateEvaluation] = []
     candidate_manifest_rows: list[dict[str, object]] = []
     candidate_score_rows: list[dict[str, object]] = []
@@ -622,14 +626,15 @@ def analyze_corpus_autodevelopment(
         leakage_penalty = _leakage_penalty(adequacy, objectives)
         triviality_penalty = _triviality_penalty(adequacy)
         degeneracy_penalty = _degeneracy_penalty(adequacy)
-        overall_score = (
-            balance_score
-            + boundary_coverage_score
-            + feature_excitation_score
-            + difficulty_diversity_score
-            - leakage_penalty
-            - triviality_penalty
-            - degeneracy_penalty
+        overall_score = score_corpus_autodevelopment_candidate(
+            resolved_policy,
+            balance_score=balance_score,
+            boundary_coverage_score=boundary_coverage_score,
+            feature_excitation_score=feature_excitation_score,
+            difficulty_diversity_score=difficulty_diversity_score,
+            leakage_penalty=leakage_penalty,
+            triviality_penalty=triviality_penalty,
+            degeneracy_penalty=degeneracy_penalty,
         )
         manifest_row = _candidate_manifest_row(spec, distribution_rows)
         score_row = {
@@ -644,6 +649,7 @@ def analyze_corpus_autodevelopment(
             "triviality_penalty": triviality_penalty,
             "degeneracy_penalty": degeneracy_penalty,
             "adequacy_status": adequacy.summary.overall_status,
+            "policy_id": resolved_policy.policy_id,
         }
         adequacy_row = {
             "candidate_id": spec.candidate_id,

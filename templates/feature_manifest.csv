@@ -1,0 +1,5 @@
+feature_set_id,history_behavior,notes
+instantaneous,instantaneous,Single-step baseline evidence
+shape_window,windowed,Short-history shape evidence
+model_residuals,model_residual,Dynamic model mismatch evidence
+

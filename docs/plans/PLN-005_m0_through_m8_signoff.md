@@ -53,4 +53,4 @@ Last Updated: 2026-05-23
 
 ## Follow-on
 
-- `M9` was completed after this signoff note in [PLN-006_m9_generator_completion.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/plans/PLN-006_m9_generator_completion.md).
+- `M9` was completed after this signoff note in [PLN-006_m9_generator_completion.md](docs/plans/PLN-006_m9_generator_completion.md).

@@ -6,6 +6,13 @@ interacting multiple model (IMM) witness, but the contract is intentionally
 dimension-agnostic so the same evaluation surface can lift to 3D PVA without
 changing the downstream harness.
 
+The decision to escalate into this rung is governed by the rung sufficiency
+evaluator in `PLN-026`. That layer decides whether the current rung is
+sufficient, near its practical limit, or legitimately replaced by a stronger
+state-inference method. In practice, the IMM proof is only meaningful when the
+corpus passes preconditions, the switching witness is learnable, and the
+measured improvement over the transition-matrix rung is real.
+
 ## What stays invariant
 
 - The backend must emit state summaries, evidence summaries, diagnostics, and

@@ -11,6 +11,12 @@ from statistics import mean
 from .common_experiment_harness import analyze_common_experiment
 from .corpus_adequacy_audit import PAIR_TIER_REQUIREMENTS, load_class_pair_manifest
 from .corpus_autodevelopment import analyze_corpus_autodevelopment
+from .corpus_policy import (
+    CorpusPolicySpec,
+    load_corpus_policy_spec,
+    score_study_candidate_monte_carlo,
+    score_study_candidate_static,
+)
 from .coverage_report import load_classifier_manifest
 from .feature_analysis import load_feature_registry, load_feature_set_manifest, resolve_feature_names
 from .study_candidate_protocol import analyze_study_candidate_protocol
@@ -189,10 +195,12 @@ def analyze_study_candidate_generation(
     *,
     seed: int = 7,
     trajectories_per_case: int = 8,
+    policy: CorpusPolicySpec | None = None,
 ) -> StudyCandidateGenerationResult:
+    resolved_policy = policy or load_corpus_policy_spec()
     protocol = analyze_study_candidate_protocol()
     common = analyze_common_experiment(seed=seed, trajectories_per_case=trajectories_per_case)
-    corpus = analyze_corpus_autodevelopment(seed=seed)
+    corpus = analyze_corpus_autodevelopment(seed=seed, policy=resolved_policy)
     registry = load_feature_registry()
     feature_manifest = load_feature_set_manifest()
     class_pair_manifest = load_class_pair_manifest()
@@ -297,18 +305,17 @@ def analyze_study_candidate_generation(
                     else {"easy": 0.05, "duration_dependent": 0.35, "hard": 0.45, "short_horizon_boundary": 0.65}.get(expected_difficulty, 0.30)
                 )
 
-                static_score = _clamp(
-                    0.18 * feature_class_compatibility_score
-                    + 0.18 * expected_separability_score
-                    + 0.14 * classifier_assumption_fit
-                    + 0.14 * corpus_coverage_score
-                    + 0.12 * dimensional_transfer_score
-                    + 0.12 * implementation_readiness_score
-                    + 0.12 * (1.0 - feature_dependency_risk)
-                    - 0.10 * cumulative_double_counting_risk
-                    - 0.10 * prior_sensitivity_risk,
-                    0.0,
-                    1.0,
+                static_score = score_study_candidate_static(
+                    resolved_policy,
+                    feature_class_compatibility=feature_class_compatibility_score,
+                    expected_separability=expected_separability_score,
+                    classifier_assumption_fit=classifier_assumption_fit,
+                    corpus_coverage=corpus_coverage_score,
+                    dimensional_transfer=dimensional_transfer_score,
+                    implementation_readiness=implementation_readiness_score,
+                    feature_dependency_risk=feature_dependency_risk,
+                    cumulative_double_counting_risk=cumulative_double_counting_risk,
+                    prior_sensitivity_risk=prior_sensitivity_risk,
                 )
 
                 for prior_id in priors:
@@ -385,6 +392,7 @@ def analyze_study_candidate_generation(
                             "implementation_readiness_score": implementation_readiness_score,
                             "static_score": static_score,
                             "expected_difficulty": expected_difficulty,
+                            "policy_id": resolved_policy.policy_id,
                         }
                     )
 
@@ -400,12 +408,11 @@ def analyze_study_candidate_generation(
                         decision = "reject" if (not compatible or static_score < 0.35) else "defer"
                         monte_carlo_score = None
                     else:
-                        monte_carlo_score = _clamp(
-                            0.60 * accuracy
-                            + 0.25 * (1.0 - (prior_flip_fraction or 0.0))
-                            + 0.15 * (1.0 - max(0.0, oracle_gap or 0.0)),
-                            0.0,
-                            1.0,
+                        monte_carlo_score = score_study_candidate_monte_carlo(
+                            resolved_policy,
+                            accuracy=accuracy,
+                            prior_flip_fraction=prior_flip_fraction or 0.0,
+                            oracle_gap=oracle_gap or 0.0,
                         )
                         if (
                             compatible
@@ -435,6 +442,7 @@ def analyze_study_candidate_generation(
                             "prior_flip_fraction": prior_flip_fraction,
                             "monte_carlo_score": monte_carlo_score,
                             "decision": decision,
+                            "policy_id": resolved_policy.policy_id,
                         }
                     )
 

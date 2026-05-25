@@ -4,11 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
-    analyze_common_dataset_comparison,
-    render_common_dataset_comparison_report,
-    write_common_dataset_comparison_artifacts,
-)
+from kinematic_classifier_sandbox.api import *
 
 
 class CommonDatasetComparisonTests(unittest.TestCase):

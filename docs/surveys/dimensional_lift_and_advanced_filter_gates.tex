@@ -465,6 +465,19 @@ The particle weight is then driven by the conditional innovation likelihood,
 \end{equation}
 followed by the same normalization and optional resampling used by PF.
 
+In the current 1D implementation, this split is no longer hypothetical. The
+sampled variable is the discrete mode index
+\begin{equation}
+    r_k^{(i)} \in \{\text{coast},\text{accelerate},\text{brake},\text{maneuver}\},
+\end{equation}
+while the conditional continuous substate is the \(1\text{D}\) PVA block
+\begin{equation}
+    s_k^{(i)} = \big(p_k^{(i)}, v_k^{(i)}, a_k^{(i)}\big)^\top.
+\end{equation}
+The mode transition matrix in \texttt{rbpf\_models\_1d.py} samples the discrete
+hypothesis, and \texttt{kalman\_predict\_update()} in \texttt{rbpf.py}
+performs the conditional analytic update for each particle.
+
 RBPF is the right rung only when the repo can point to a genuine split of this
 form. If the state is not naturally decomposable into \((r_k, s_k)\), then an
 RBPF claim is just a more complicated PF claim, not a justified hybrid method.
@@ -561,20 +574,32 @@ is the point.
 
 \section{Code Mapping For PF And RBPF}
 
-The current repo does not yet promote a runtime PF or RBPF backend, so their
-nearest code surfaces are:
+The current repo now has concrete PF and RBPF implementations, even though they
+remain decision-gated rather than promoted defaults. The main code surfaces
+are:
 \begin{itemize}[leftmargin=1.5em]
+    \item \texttt{advanced\_filters/particle\_filter.py}: bootstrap PF state,
+    weight update, ESS computation, and resampling,
+    \item \texttt{advanced\_filters/particle\_filter\_bank.py}: class-conditioned
+    PF evidence extraction and posterior normalization across labels,
+    \item \texttt{advanced\_filters/rbpf.py}: sampled discrete latent update plus
+    conditional Kalman subfilter,
+    \item \texttt{advanced\_filters/rbpf\_models\_1d.py}: current repo-specific
+    RBPF mode split with 1D PVA conditional state blocks,
+    \item \texttt{advanced\_filters/resampling.py}: shared
+    \(\log\)-weight normalization, ESS, and systematic resampling,
     \item \texttt{advanced\_filter\_decision.py}: current go/no-go logic and
-    numeric gate evidence for PF,
+    numeric gate evidence for IMM/PF/RBPF,
     \item \texttt{generic\_filtering\_contract.py}: required shared output
-    contract for any PF or RBPF backend,
-    \item \texttt{advanced\_state\_inference.py}: nearest implemented
-    advanced-filter proof surface and template for posterior-compatible
-    evidence/diagnostic rows.
+    contract for any advanced-filter backend,
+    \item \texttt{tests/test\_particle\_filter.py} and
+    \texttt{tests/test\_rbpf.py}: normalization, ESS, resampling, and posterior
+    sanity checks.
 \end{itemize}
-This means the repo can already state what PF and RBPF must compute, how their
-outputs would be judged, and what failure evidence would justify them, even
-before those backends are promoted into the main ladder.
+This means the repo can now state not only what PF and RBPF must compute, but
+also where the implemented weight updates, posterior rows, and diagnostics are
+already tested. Methodological gating still applies, but the algorithms are no
+longer only hypothetical.
 
 \section{Why IMM Is Stronger Than The Transition-Matrix Rung}
 

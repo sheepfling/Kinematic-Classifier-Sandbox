@@ -5,20 +5,20 @@ Use it when you want the full methodology stack in one place rather
 than reading the survey notes separately.
 
 For a shorter narrative entry point, start with
-[`artifacts/latex/kinematic_classifier_methodology.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/latex/kinematic_classifier_methodology.pdf).
+[`artifacts/latex/kinematic_classifier_methodology.pdf`](artifacts/latex/kinematic_classifier_methodology.pdf).
 This compendium is the long-form reference companion to that paper.
 
 ## Included Documents
 
-1. [Posterior Update Math](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/posterior_update_math.md) with rendered companion [`artifacts/posterior_update_math.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/posterior_update_math.pdf).
-2. [Methodology Evaluation Framework](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/methodology_evaluation_framework.md) with rendered companion [`artifacts/methodology_evaluation_framework.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/methodology_evaluation_framework.pdf).
-3. [Classifier Ladder and Contracts](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/classifier_ladder_and_contracts.md) with rendered companion [`artifacts/classifier_ladder_and_contracts.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/classifier_ladder_and_contracts.pdf).
-4. [Corpus Generation and Search](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/corpus_generation_and_search.md) with rendered companion [`artifacts/corpus_generation_and_search.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_generation_and_search.pdf).
-5. [Dimensional Lift and Advanced Filter Gates](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/dimensional_lift_and_advanced_filter_gates.md) with rendered companion [`artifacts/dimensional_lift_and_advanced_filter_gates.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/dimensional_lift_and_advanced_filter_gates.pdf).
+1. [Posterior Update Math](docs/surveys/posterior_update_math.md) with rendered companion [`artifacts/posterior_update_math.pdf`](artifacts/posterior_update_math.pdf).
+2. [Methodology Evaluation Framework](docs/surveys/methodology_evaluation_framework.md) with rendered companion [`artifacts/methodology_evaluation_framework.pdf`](artifacts/methodology_evaluation_framework.pdf).
+3. [Classifier Ladder and Contracts](docs/surveys/classifier_ladder_and_contracts.md) with rendered companion [`artifacts/classifier_ladder_and_contracts.pdf`](artifacts/classifier_ladder_and_contracts.pdf).
+4. [Corpus Generation and Search](docs/surveys/corpus_generation_and_search.md) with rendered companion [`artifacts/corpus_generation_and_search.pdf`](artifacts/corpus_generation_and_search.pdf).
+5. [Dimensional Lift and Advanced Filter Gates](docs/surveys/dimensional_lift_and_advanced_filter_gates.md) with rendered companion [`artifacts/dimensional_lift_and_advanced_filter_gates.pdf`](artifacts/dimensional_lift_and_advanced_filter_gates.pdf).
 
 ## Part 1. Posterior Update Math
 
-Source: [posterior_update_math.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/posterior_update_math.md)
+Source: [posterior_update_math.md](docs/surveys/posterior_update_math.md)
 
 This note documents the posterior update math used by the two active benchmark
 families in the sandbox:
@@ -1028,7 +1028,7 @@ toward more generic methodology and later 3D-specific adapters.
 
 ## Part 2. Methodology Evaluation Framework
 
-Source: [methodology_evaluation_framework.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/methodology_evaluation_framework.md)
+Source: [methodology_evaluation_framework.md](docs/surveys/methodology_evaluation_framework.md)
 
 This note covers the evaluation side of the repo. The posterior document
 explains how recursive inference works. This document explains how the repo
@@ -1718,7 +1718,7 @@ This note is complete only if it supports the following claims:
 
 ## Part 3. Classifier Ladder and Contracts
 
-Source: [classifier_ladder_and_contracts.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/classifier_ladder_and_contracts.md)
+Source: [classifier_ladder_and_contracts.md](docs/surveys/classifier_ladder_and_contracts.md)
 
 This note documents the repo's classifier ladder as a sequence of increasingly
 structured evidence models. The point is not only to list which methods exist.
@@ -2214,7 +2214,7 @@ Then the mode posterior update is
 ### 9.5 Worked Example
 
 The numeric artifact
-[transition_matrix_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md)
+[transition_matrix_numeric_walkthrough.md](artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md)
 shows a real switching trajectory around the first switch point, including:
 
 - propagated prior by mode
@@ -2230,7 +2230,124 @@ This method still uses a hand-specified transition structure and simple
 emissions. It is a proof rung for “explicit switching pressure helps,” not a
 final multiple-model solution.
 
-## 10. Shared Contracts and Evaluation Surface
+## 10. Rung Sufficiency And Escalation Equations
+
+The ladder is only useful if the repo can answer not just “what is the next
+rung?” but “has the current rung earned the right to stay?” The
+`rung_sufficiency` package makes that decision explicit.
+
+For study `s` at current rung `r`, define the oracle gap
+
+```tex
+g_{\text{oracle}}(s,r)
+=
+\max\big(0, A_{\text{oracle}}(s,r) - A_{\text{current}}(s,r)\big),
+```
+
+the prior-fragility term
+
+```tex
+f_{\text{prior}}(s,r)
+=
+1 - \text{prior\_sensitivity\_score}(s,r),
+```
+
+and the measured next-rung gain
+
+```tex
+\Delta_{r \rightarrow r^{+}}(s)
+=
+A_{\text{current}}(s,r^{+}) - A_{\text{current}}(s,r),
+```
+
+where `r+` is the configured next rung from the capability matrix.
+
+The current implementation treats a study as learnable when
+
+```tex
+\mathbf{1}_{\text{learnable}}(s,r)
+=
+\mathbf{1}\!\left[
+    A_{\text{oracle}} \ge \tau_{\text{oracle}}
+    \land
+    \mathrm{overlap} \le \tau_{\text{overlap}}
+    \land
+    \mathrm{AUC}_{\text{pair}} \ge \tau_{\text{AUC}}
+    \land
+    m_{\text{post}} \ge \tau_{\text{margin}}
+\right],
+```
+
+with the current default thresholds
+
+```tex
+\tau_{\text{oracle}} = 0.85,\qquad
+\tau_{\text{overlap}} = 0.90,\qquad
+\tau_{\text{AUC}} = 0.70,\qquad
+\tau_{\text{margin}} = 0.05.
+```
+
+This is the mathematical version of the repo rule that feature and corpus
+limits should be identified before algorithm blame is assigned.
+
+The promotion decision is then a gated piecewise rule. Let `tau_prior = 0.12`
+and `tau_Delta = 0.05`. Then
+
+```tex
+d(s,r)
+=
+\begin{cases}
+    \texttt{revise\_corpus}, & \neg \text{can\_evaluate\_classifier}(s), \\
+    \texttt{revise\_features}, & \text{feature gate fails}, \\
+    \texttt{revise\_prior}, & f_{\text{prior}}(s,r) > \tau_{\text{prior}}, \\
+    \texttt{feature\_limited}, & \text{learnability\_status}(s,r)=\texttt{feature\_limited}, \\
+    \texttt{stay}, & r^{+} = \varnothing, \\
+    \texttt{reject\_escalation}, & \neg \text{capability\_match}(r,r^{+}), \\
+    \texttt{defer\_advanced}, & \Delta_{r \rightarrow r^{+}}(s)\ \text{is unavailable}, \\
+    \texttt{promote}, & \Delta_{r \rightarrow r^{+}}(s) \ge \tau_{\Delta}, \\
+    \texttt{stay}, & g_{\text{oracle}}(s,r) < \tau_{\text{gap}}, \\
+    \texttt{defer\_advanced}, & \text{otherwise}.
+\end{cases}
+```
+
+where `tau_gap = 0.08` in the default configuration. This is the explicit
+ladder-sufficiency rule that stops the repo from escalating methods only
+because they are available.
+
+The switching witnesses are the cleanest examples because their measured gains
+are hard-coded from dedicated benchmark outputs:
+
+```tex
+\Delta_{\text{kalman} \rightarrow \text{transition}}
+=
+A_{\text{post-switch}}^{\text{transition}}
+-
+A_{\text{post-switch}}^{\text{kalman}},
+```
+
+and
+
+```tex
+\Delta_{\text{transition} \rightarrow \text{IMM}}
+=
+A_{\text{post-switch}}^{\text{IMM}}
+-
+A_{\text{post-switch}}^{\text{transition}}.
+```
+
+That is why the current rung-sufficiency artifact can issue a real promotion
+decision for transition-aware accumulation and a measured
+`promote`/`defer_advanced` decision for IMM.
+
+### 10.1 Implementation Mapping
+
+- `rung_sufficiency/analysis.py`
+- `rung_sufficiency/capability_matrix.py`
+- `rung_sufficiency/contracts.py`
+- `tests/test_rung_sufficiency.py`
+- `tests/test_rung_promotion_decision.py`
+
+## 11. Shared Contracts and Evaluation Surface
 
 The ladder is only useful as a methodology if all methods can be compared
 through one artifact schema.
@@ -2277,7 +2394,7 @@ internal representation. It only requires each method to emit compatible:
 That is the core proof that the repo is becoming a methodology framework rather
 than a set of unrelated scripts.
 
-## 11. What This Document Proves
+## 12. What This Document Proves
 
 This note is complete only if it supports the following claims:
 
@@ -2295,7 +2412,7 @@ justified next?”.
 
 ## Part 4. Corpus Generation and Search
 
-Source: [corpus_generation_and_search.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/corpus_generation_and_search.md)
+Source: [corpus_generation_and_search.md](docs/surveys/corpus_generation_and_search.md)
 
 This note is the corpus-side pillar of the methodology stack. It is not just a
 description of how trajectories are synthesized. It is meant to answer:
@@ -2557,7 +2674,7 @@ The score assumes:
 ### 5.5 Worked Example
 
 The numeric artifact
-[corpus_autodevelopment_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md)
+[corpus_autodevelopment_numeric_walkthrough.md](artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md)
 is the current concrete proof for this section. It shows one real selected
 candidate and:
 
@@ -2666,7 +2783,7 @@ more useful behavioral cells than a naïve random sample of equal size?
 ### 6.3 Worked Example
 
 The numeric artifact
-[generic_corpus_explorer_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md)
+[generic_corpus_explorer_numeric_walkthrough.md](artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md)
 now expands one selected corpus row into:
 
 - its `U_explore` utility decomposition
@@ -2847,7 +2964,7 @@ trajectory proposals.
 ### 7.8 Worked Example
 
 The numeric artifact
-[corpus_gym_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md)
+[corpus_gym_numeric_walkthrough.md](artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md)
 now works through one real Gym episode. It shows:
 
 - the selected target
@@ -2911,6 +3028,191 @@ This layer matters because it separates:
 - “which mutation lineages produce useful diversity”
 
 That is a stronger corpus-search story than one scalar winner alone.
+
+The implementation also makes the archive utility operational:
+
+```tex
+U_{\text{archive}}
+=
+0.30 \cdot \text{validity score}
++ 0.25 \cdot \min\!\left(\frac{\text{accel range}}{0.40}, 1\right)
++ 0.25 \cdot \text{max classifier stress}
++ 0.20 \cdot (1 - \text{mean posterior margin}).
+```
+
+So the archive preserves high-validity, high-stress, low-margin witnesses in
+distinct cells rather than preserving diversity in the abstract.
+
+Successful and failed archive cells are tracked separately. If `tau_t` is the
+trajectory processed at iteration `t`, then
+
+```tex
+A_t^{\text{succ}}[h(\tau_t)]
+\leftarrow
+\arg\max_{\tau' : h(\tau') = h(\tau_t)}
+U_{\text{archive}}(\tau')
+```
+
+only when the run succeeds and the label status is `valid_target_class`;
+otherwise the failed-cell counter is updated in `A_t^{fail}`. The emitted
+coverage curves are
+
+```tex
+C_t^{\text{succ}}
+=
+\frac{|A_t^{\text{succ}}|}{|A_T^{\text{succ}}|},
+\qquad
+C_t^{\text{fail}}
+=
+\frac{|A_t^{\text{fail}}|}{|A_T^{\text{fail}}|}.
+```
+
+That is why invalid or failed runs do not inflate successful coverage.
+
+### 8.5 Quality-Diversity Corpus Layer
+
+`quality_diversity_corpus.py` implements a lighter-weight archive on top of
+CorpusGym episodes. Its cell key is
+
+```tex
+h_{\text{qd}}(\tau)
+=
+\big(
+    c(\tau),
+    \mathrm{tier}(\tau),
+    b_{\mathrm{dur}}(\tau),
+    b_{\mathrm{acc}}(\tau),
+    b_{\mathrm{turn}}(\tau)
+\big),
+```
+
+where the last three coordinates are duration, acceleration-range, and
+direction-change buckets. The elite replacement rule is the same `argmax` rule
+as above, but the utility is the episode reward `U_gym` rather than
+`U_archive`. The current coverage fraction is
+
+```tex
+\mathrm{coverage\_fraction}_t
+=
+\frac{\#\{\text{filled QD cells at iteration } t\}}{81},
+```
+
+because the current 1D archive discretizes `3 x 3 x 3 x 3` regime
+combinations across the non-class axes.
+
+## 8A. Corpus Hyperparameter Policy And Tuning
+
+The corpus-search layer now has an explicit hyperparameter surface in
+`corpus_policy.py` and `corpus_policy_sweep.py`. A policy is
+
+```tex
+p
+=
+\big(
+    w^{+},\,
+    w^{-},\,
+    w^{\text{explore}},\,
+    w^{\text{gym}},\,
+    w^{\text{archive}},\,
+    n,\,
+    g
+\big),
+```
+
+where `w+` are positive corpus weights, `w-` penalty weights, `w^explore`
+generic-explorer weights, `w^gym` CorpusGym weights, `w^archive` archive
+weights, `n` sampler budgets, and `g` adequacy gates.
+
+Whenever a weight group is normalized, the implementation applies
+
+```tex
+\bar{w}_r
+=
+\frac{w_r}{\sum_u w_u},
+```
+
+so the scalar objectives remain comparable under reweighting. This is the role
+of `normalize_corpus_policy_spec()`.
+
+For policy `p`, the generic-explorer utility becomes
+
+```tex
+U_{\text{explore}}^{(p)}
+=
+\sum_{r \in \mathcal{R}_{\text{explore}}}
+\bar{w}^{(p)}_r u_r,
+```
+
+the archive utility becomes
+
+```tex
+U_{\text{archive}}^{(p)}
+=
+\sum_{r \in \mathcal{R}_{\text{archive}}}
+\bar{w}^{(p)}_r a_r,
+```
+
+and the sampler mixture becomes
+
+```tex
+\pi_s^{(p)}
+=
+\frac{n_s^{(p)}}{\sum_{s'} n_{s'}^{(p)}}.
+```
+
+So a policy changes both how candidates are scored and how search effort is
+allocated.
+
+The current tuning sweep evaluates a policy by a downstream adequacy proxy:
+
+```tex
+A_{\text{policy}}(p)
+=
+0.25 \cdot \text{validity}
++ 0.20 \cdot \text{boundary coverage}
++ 0.20 \cdot \min\!\left(\frac{\text{feature excitation}}{1.5}, 1\right)
++ 0.15 \cdot \text{classifier stress}
++ 0.20 \cdot \text{provenance completeness}
+- 0.20 \cdot \text{leakage},
+```
+
+followed by the bounded policy score
+
+```tex
+J_{\text{policy}}(p)
+=
+\operatorname{clip}
+\big(
+    A_{\text{policy}}(p) + 0.10 \cdot \text{classifier stress},
+    0,
+    1
+\big).
+```
+
+This is the quantity emitted as `policy_score` in the sweep results.
+
+There is now a numeric walkthrough artifact for one real recommended policy
+row:
+
+- [corpus_policy_numeric_walkthrough.md](artifacts/corpus_hyperparameter_tuning_v1/corpus_policy_numeric_walkthrough.md)
+
+That artifact expands the adequacy proxy, stress bonus, selected-set Jaccard,
+rank stability, and dev-vs-holdout comparison numerically for the recommended
+policy.
+
+The sweep also checks whether a better score is only a re-ranking accident. For
+selected sets `S(p_a)` and `S(p_b)`, the stability metric is
+
+```tex
+J_{\text{set}}(p_a, p_b)
+=
+\frac{|S(p_a) \cap S(p_b)|}{|S(p_a) \cup S(p_b)|}.
+```
+
+Rank stability is then reported through Spearman and Kendall correlations of
+the ranked candidate lists. The policy question is therefore not only “which
+weights maximize one scalar?” but also “which weights preserve a stable,
+scientifically sensible selected set?”
 
 ## 9. Study Candidate Generation
 
@@ -3135,6 +3437,33 @@ The implemented rule set is not abstract. It contains explicit branches for:
 - sequential-control support
 - stochastic versus deterministic execution
 
+Operationally, the current rule families behave like
+
+```tex
+M_{\text{rt}}(\kappa)
+=
+\begin{cases}
+    \{\text{random},\text{lhs},\text{sobol},\text{qd}\}, & \kappa_{\text{runtime}}=\text{cheap}, \\
+    \{\text{lhs},\text{sobol},\text{qd}\}, & \kappa_{\text{runtime}}=\text{medium}, \\
+    \{\text{small DOE},\text{surrogate},\text{active learning}\}, & \kappa_{\text{runtime}}=\text{expensive},
+\end{cases}
+```
+
+and
+
+```tex
+M_{\text{ctl}}(\kappa)
+=
+\begin{cases}
+    \{\text{adaptive stress},\text{cross entropy}\}, & \kappa_{\text{seq}}=1, \\
+    \varnothing, & \kappa_{\text{seq}}=0.
+\end{cases}
+```
+
+with analogous environment- and stochasticity-dependent additions. So search
+planning is already encoded as a capability map, not a loose recommendation
+paragraph.
+
 So the actual planner is closer to:
 
 ```tex
@@ -3315,7 +3644,7 @@ This note is complete only if it supports the following claims:
 
 ## Part 5. Dimensional Lift and Advanced Filter Gates
 
-Source: [dimensional_lift_and_advanced_filter_gates.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/dimensional_lift_and_advanced_filter_gates.md)
+Source: [dimensional_lift_and_advanced_filter_gates.md](docs/surveys/dimensional_lift_and_advanced_filter_gates.md)
 
 This note documents two related proof obligations in the repo:
 
@@ -3841,6 +4170,23 @@ w_{k-1}^{(i)}
 
 followed by the same normalization and optional resampling used by PF.
 
+In the current 1D implementation, this split is no longer hypothetical. The
+sampled variable is the discrete mode index
+
+```tex
+r_k^{(i)} \in \{\text{coast},\text{accelerate},\text{brake},\text{maneuver}\},
+```
+
+while the conditional continuous substate is the 1D PVA block
+
+```tex
+s_k^{(i)} = \big(p_k^{(i)}, v_k^{(i)}, a_k^{(i)}\big)^\top.
+```
+
+The mode transition matrix in `rbpf_models_1d.py` samples the discrete
+hypothesis, and `kalman_predict_update()` in `rbpf.py` performs the conditional
+analytic update for each particle.
+
 RBPF is the right rung only when the repo can point to a genuine split of this
 form. If the state is not naturally decomposable into `(r_k, s_k)`, then RBPF
 is just a more complicated PF claim, not a justified hybrid method.
@@ -3945,19 +4291,31 @@ contract is the point.
 
 ## Code Mapping For PF And RBPF
 
-The current repo does not yet promote a runtime PF or RBPF backend, so their
-nearest code surfaces are:
+The current repo now has concrete PF and RBPF implementations, even though they
+remain decision-gated rather than promoted defaults. The main code surfaces
+are:
 
+- `advanced_filters/particle_filter.py`: bootstrap PF state, weight update,
+  ESS computation, and resampling
+- `advanced_filters/particle_filter_bank.py`: class-conditioned PF evidence
+  extraction and posterior normalization across labels
+- `advanced_filters/rbpf.py`: sampled discrete latent update plus conditional
+  Kalman subfilter
+- `advanced_filters/rbpf_models_1d.py`: current repo-specific RBPF mode split
+  with 1D PVA conditional state blocks
+- `advanced_filters/resampling.py`: shared log-weight normalization, ESS, and
+  systematic resampling
 - `advanced_filter_decision.py`: current go/no-go logic and numeric gate
-  evidence for PF
-- `generic_filtering_contract.py`: required shared output contract for any PF
-  or RBPF backend
-- `advanced_state_inference.py`: nearest implemented advanced-filter proof
-  surface and template for posterior-compatible evidence/diagnostic rows
+  evidence for IMM/PF/RBPF
+- `generic_filtering_contract.py`: required shared output contract for any
+  advanced-filter backend
+- `tests/test_particle_filter.py` and `tests/test_rbpf.py`: normalization,
+  ESS, resampling, and posterior sanity checks
 
-This means the repo can already state what PF and RBPF must compute, how their
-outputs would be judged, and what failure evidence would justify them, even
-before those backends are promoted into the main ladder.
+This means the repo can now state not only what PF and RBPF must compute, but
+also where the implemented weight updates, posterior rows, and diagnostics are
+already tested. Methodological gating still applies, but the algorithms are no
+longer only hypothetical.
 
 ## 6. Why IMM Is Stronger Than The Transition-Matrix Rung
 
@@ -4095,7 +4453,7 @@ Without that split, “RBPF” is only a fancy name for unnecessary complexity.
 ## 10. Worked Example
 
 The numeric artifact
-[advanced_filter_decision_numeric_walkthrough.md](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md)
+[advanced_filter_decision_numeric_walkthrough.md](artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md)
 is the current concrete proof for this document. It works through one real
 decision pass and shows:
 

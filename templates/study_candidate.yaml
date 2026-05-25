@@ -1,0 +1,30 @@
+study_id: example_study
+title: Example study title
+hypothesis: >
+  Replace this with the methodological claim the study is intended to test.
+classes:
+  - constant_velocity
+  - constant_acceleration
+class_pairs:
+  - constant_velocity_vs_constant_acceleration
+feature_sets:
+  - instantaneous
+  - shape_window
+  - model_residuals
+classifiers:
+  - pointwise
+  - windowed_shape_features
+  - bayes_accumulator
+  - kalman_bank
+priors:
+  - uniform
+  - mild_bias
+corpus_objective:
+  difficulty: boundary
+  sampling: irregular
+  noise: moderate
+seed: 7
+trajectories_per_case: 8
+trajectories_per_class: 5
+common_experiment_config: experiments/common_1d_classifier_study/common_experiment_config.yaml
+

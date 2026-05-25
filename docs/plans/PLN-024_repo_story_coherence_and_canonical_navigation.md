@@ -50,7 +50,7 @@ Validation:
 - Older or duplicate docs are labeled as supporting or superseded where appropriate.
 - Regression checks still pass.
 - The team packet can be read without opening source code.
-- `python3 scripts/render_repo_story.py` regenerates the repo-story bundle.
+- `python3 scripts/render/render_repo_story.py` regenerates the repo-story bundle.
 - `python -m kinematic_classifier_sandbox repo-story` regenerates the repo-story bundle through the package CLI.
 - `tests/test_repo_story.py` verifies claim, witness, manifest, reference, and generated-output invariants.
 
@@ -73,7 +73,7 @@ Artifacts / Config:
 - `artifacts/showcase/story_index.md`
 - `artifacts/team_packet/index.md`
 - `src/kinematic_classifier_sandbox/repo_story.py`
-- `scripts/render_repo_story.py`
+- `scripts/render/render_repo_story.py`
 - `tests/test_repo_story.py`
 
 Dependencies:
@@ -100,7 +100,7 @@ Milestones:
 - `M55`: Generated repo-story proof layer.
   - Deliverables:
     - `src/kinematic_classifier_sandbox/repo_story.py`
-    - `scripts/render_repo_story.py`
+    - `scripts/render/render_repo_story.py`
     - package CLI command `repo-story`
     - `tests/test_repo_story.py`
   - Exit criterion:

@@ -13,6 +13,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from .corpus_classifier_scoring import analyze_corpus_classifier_scoring
+from .corpus_policy import CorpusPolicySpec, load_corpus_policy_spec, score_qd_archive_elite
 from .generated_corpus_features import collect_generated_corpus_records
 
 
@@ -64,7 +65,8 @@ class ObjectiveDrivenQdArchiveArtifacts:
     lineage_plot_path: Path
 
 
-def analyze_objective_driven_qd_archive() -> ObjectiveDrivenQdArchiveResult:
+def analyze_objective_driven_qd_archive(policy: CorpusPolicySpec | None = None) -> ObjectiveDrivenQdArchiveResult:
+    resolved_policy = policy or load_corpus_policy_spec()
     records = collect_generated_corpus_records()
     scoring = analyze_corpus_classifier_scoring()
     classifier_rows = list(scoring.candidate_score_rows)
@@ -114,11 +116,12 @@ def analyze_objective_driven_qd_archive() -> ObjectiveDrivenQdArchiveResult:
                 _bucket(metrics["mean_entropy"], 0.20, 0.55),
                 _bucket(metrics["min_prior_flip"], 0.25, 0.65),
             )
-            utility = (
-                0.30 * record.validity_score
-                + 0.25 * min(accel_range / 0.40, 1.0)
-                + 0.25 * metrics["max_stress"]
-                + 0.20 * (1.0 - metrics["mean_margin"])
+            utility = score_qd_archive_elite(
+                resolved_policy,
+                validity_score=record.validity_score,
+                acceleration_range_pressure=min(accel_range / 0.40, 1.0),
+                classifier_stress=metrics["max_stress"],
+                mean_margin_pressure=1.0 - metrics["mean_margin"],
             )
             incumbent = success_archive.get(cell_id)
             action = "new_cell"
@@ -139,6 +142,7 @@ def analyze_objective_driven_qd_archive() -> ObjectiveDrivenQdArchiveResult:
                     "entropy_bucket": cell_id[5],
                     "prior_bucket": cell_id[6],
                     "archive_utility": utility,
+                    "policy_id": resolved_policy.policy_id,
                     "validity_score": record.validity_score,
                     "max_classifier_stress": metrics["max_stress"],
                     "mean_entropy": metrics["mean_entropy"],

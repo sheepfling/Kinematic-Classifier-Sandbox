@@ -5,10 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
-    analyze_quality_diversity_corpus,
-    write_quality_diversity_corpus_artifacts,
-)
+from kinematic_classifier_sandbox.api import *
 
 
 class QualityDiversityCorpusTests(unittest.TestCase):

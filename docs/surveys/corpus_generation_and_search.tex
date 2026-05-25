@@ -749,6 +749,18 @@ followed by the bounded policy score
     \big).
 \end{equation}
 This is the quantity emitted as \texttt{policy\_score} in the sweep results.
+There is now a numeric walkthrough artifact for one real recommended policy row:
+\begin{center}
+\footnotesize
+\begin{minipage}{0.88\textwidth}
+\centering
+\ttfamily
+artifacts/\allowbreak corpus\_hyperparameter\_tuning\_v1/\allowbreak corpus\_policy\_numeric\_walkthrough.md
+\end{minipage}
+\end{center}
+That artifact expands the adequacy proxy, stress bonus, selected-set Jaccard,
+rank stability, and dev-vs-holdout comparison numerically for the recommended
+policy.
 
 The sweep also checks whether a better score is only a re-ranking accident. For
 selected sets \(S(p_a)\) and \(S(p_b)\), the stability metric is
