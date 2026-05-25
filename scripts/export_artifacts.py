@@ -53,6 +53,13 @@ from kinematic_classifier_sandbox import (
     write_dimensional_lift_audit_artifacts,
     write_study_candidate_protocol_artifacts,
     write_corpus_autodevelopment_artifacts,
+    write_corpus_gym_artifacts,
+    write_trajectory_backend_contract_artifacts,
+    write_corpus_search_baseline_artifacts,
+    write_adaptive_stress_corpus_artifacts,
+    write_rl_backend_decision_artifacts,
+    write_corpus_synthesis_comparison_artifacts,
+    write_quality_diversity_corpus_artifacts,
     write_study_candidate_generation_artifacts,
     write_validation_ladder_artifacts,
     write_bayesian_walkthrough_artifacts,
@@ -131,6 +138,13 @@ def main() -> int:
     dimensional_lift_audit_artifacts = write_dimensional_lift_audit_artifacts(ROOT / "artifacts")
     study_candidate_protocol_artifacts = write_study_candidate_protocol_artifacts(ROOT / "artifacts")
     corpus_autodevelopment_artifacts = write_corpus_autodevelopment_artifacts(ROOT / "artifacts")
+    corpus_gym_artifacts = write_corpus_gym_artifacts(ROOT / "artifacts")
+    trajectory_backend_contract_artifacts = write_trajectory_backend_contract_artifacts(ROOT / "artifacts")
+    corpus_search_baseline_artifacts = write_corpus_search_baseline_artifacts(ROOT / "artifacts")
+    quality_diversity_corpus_artifacts = write_quality_diversity_corpus_artifacts(ROOT / "artifacts")
+    adaptive_stress_corpus_artifacts = write_adaptive_stress_corpus_artifacts(ROOT / "artifacts")
+    rl_backend_decision_artifacts = write_rl_backend_decision_artifacts(ROOT / "artifacts")
+    corpus_synthesis_comparison_artifacts = write_corpus_synthesis_comparison_artifacts(ROOT / "artifacts")
     study_candidate_generation_artifacts = write_study_candidate_generation_artifacts(ROOT / "artifacts")
     validation_ladder_artifacts = write_validation_ladder_artifacts(ROOT / "artifacts")
     bayesian_walkthrough_artifacts = write_bayesian_walkthrough_artifacts(ROOT / "artifacts")
@@ -276,6 +290,20 @@ def main() -> int:
     print(study_candidate_protocol_artifacts.validation_ladder_schema_path)
     print(corpus_autodevelopment_artifacts.run_dir)
     print(corpus_autodevelopment_artifacts.report_path)
+    print(corpus_gym_artifacts.run_dir)
+    print(corpus_gym_artifacts.report_path)
+    print(trajectory_backend_contract_artifacts.run_dir)
+    print(trajectory_backend_contract_artifacts.report_path)
+    print(corpus_search_baseline_artifacts.run_dir)
+    print(corpus_search_baseline_artifacts.report_path)
+    print(quality_diversity_corpus_artifacts.run_dir)
+    print(quality_diversity_corpus_artifacts.report_path)
+    print(adaptive_stress_corpus_artifacts.run_dir)
+    print(adaptive_stress_corpus_artifacts.report_path)
+    print(rl_backend_decision_artifacts.run_dir)
+    print(rl_backend_decision_artifacts.report_path)
+    print(corpus_synthesis_comparison_artifacts.run_dir)
+    print(corpus_synthesis_comparison_artifacts.report_path)
     print(study_candidate_generation_artifacts.run_dir)
     print(study_candidate_generation_artifacts.decision_report_path)
     print(validation_ladder_artifacts.run_dir)
