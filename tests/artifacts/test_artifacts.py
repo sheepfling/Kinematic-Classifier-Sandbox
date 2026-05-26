@@ -64,7 +64,7 @@ class ArtifactTests(unittest.TestCase):
             self.assertTrue(png_path.exists())
 
     def test_posterior_math_tex_and_build_script_exist(self) -> None:
-        root = Path(__file__).resolve().parents[1]
+        root = Path(__file__).resolve().parents[2]
         tex_path = root / "docs" / "surveys" / "posterior_update_math.tex"
         script_path = root / "scripts" / "build_posterior_math.sh"
 

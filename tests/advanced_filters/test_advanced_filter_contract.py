@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from kinematic_classifier_sandbox.advanced_filters.contracts import (
-    AdvancedFilterStep,
-    validate_advanced_filter_step,
-)
+from kinematic_classifier_sandbox.advanced_filters.contracts import AdvancedFilterStep
+from kinematic_classifier_sandbox.advanced_filters.protocols import validate_advanced_filter_step
 
 
 class AdvancedFilterContractTests(unittest.TestCase):

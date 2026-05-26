@@ -4,12 +4,15 @@ import unittest
 
 import numpy as np
 
-from kinematic_classifier_sandbox.advanced_filters.contracts import validate_advanced_filter_step
-from kinematic_classifier_sandbox.advanced_filters.rbpf import RBPFConfig, RaoBlackwellizedParticleFilter
+from kinematic_classifier_sandbox.advanced_filters.rbpf import (
+    RaoBlackwellizedParticleFilter,
+    RBPFConfig,
+)
 from kinematic_classifier_sandbox.advanced_filters.rbpf_models_1d import (
     default_mode_transition_matrix_1d,
     make_rbpf_1d_mode_models,
 )
+from kinematic_classifier_sandbox.advanced_filters.protocols import validate_advanced_filter_step
 
 
 class RBPFTests(unittest.TestCase):

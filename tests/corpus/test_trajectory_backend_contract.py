@@ -9,6 +9,8 @@ from kinematic_classifier_sandbox.corpus.trajectory_backend_contract import (
     analyze_trajectory_backend_contract,
     default_backend_contract_definitions,
     validate_backend_contract_definition,
+)
+from kinematic_classifier_sandbox.corpus.trajectory_backend_contract_rendering import (
     write_trajectory_backend_contract_artifacts,
 )
 

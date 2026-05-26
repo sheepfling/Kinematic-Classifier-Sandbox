@@ -15,8 +15,13 @@ from ..inference.transition_matrix_accumulator import (
 )
 from ..trajectory_generator import generate_switching_scenarios
 from .artifact_io import write_imm_artifacts
-from .evaluation import write_advanced_filter_comparison_artifacts
-from .contracts import AdvancedFilterStep, IMMArtifacts, IMMBenchmarkResult, IMMSwitchingRun
+from .contracts import (
+    AdvancedFilterStep,
+    IMMArtifacts,
+    IMMBenchmarkResult,
+    IMMSwitchingRun,
+)
+from .evaluation import AdvancedFilterComparisonArtifacts, write_advanced_filter_comparison_artifacts
 from .imm_filter import IMMFilter
 from .linear_gaussian import LinearGaussianModeSpec
 from .protocols import validate_advanced_filter_step

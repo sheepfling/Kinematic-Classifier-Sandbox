@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from kinematic_classifier_sandbox.witnesses.surface import WitnessSurface
 from kinematic_classifier_sandbox.witnesses.toy_1d.core import (
     FEATURE_NAMES,
     ToyBenchmarkConfig,
@@ -15,13 +16,12 @@ from kinematic_classifier_sandbox.witnesses.toy_1d.core import (
     run_class_bank,
     run_toy_benchmark,
     summarize_runs,
+    toy_witness_surface,
     write_toy_benchmark_artifact,
-    write_toy_feature_confusion_artifacts,
     write_toy_benchmark_plot_artifacts,
     write_toy_benchmark_trace_csv,
+    write_toy_feature_confusion_artifacts,
 )
-from kinematic_classifier_sandbox.witnesses.toy_1d.core import toy_witness_surface
-from kinematic_classifier_sandbox.witnesses.surface import WitnessSurface
 from kinematic_classifier_sandbox.witnesses.toy_1d.posterior_explainer import (
     render_posterior_comparison_markdown,
     render_posterior_comparison_png_bytes,

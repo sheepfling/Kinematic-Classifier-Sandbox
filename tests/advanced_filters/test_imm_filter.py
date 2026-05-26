@@ -6,7 +6,6 @@ from pathlib import Path
 
 import numpy as np
 
-from kinematic_classifier_sandbox.advanced_filters.contracts import validate_advanced_filter_step
 from kinematic_classifier_sandbox.advanced_filters.imm_filter import IMMFilter
 from kinematic_classifier_sandbox.advanced_filters.runner import (
     default_imm_mode_specs,
@@ -14,6 +13,7 @@ from kinematic_classifier_sandbox.advanced_filters.runner import (
     run_imm_switching_benchmark,
     write_imm_artifacts,
 )
+from kinematic_classifier_sandbox.advanced_filters.protocols import validate_advanced_filter_step
 
 
 class IMMFilterTests(unittest.TestCase):

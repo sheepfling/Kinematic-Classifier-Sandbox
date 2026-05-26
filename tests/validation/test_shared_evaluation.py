@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import unittest
 
-from kinematic_classifier_sandbox.analysis.common_dataset_comparison import generate_shared_dynamics_dataset
+from kinematic_classifier_sandbox.analysis.common_dataset_comparison import (
+    default_shared_classifier_adapters,
+    generate_shared_dynamics_dataset,
+)
 from kinematic_classifier_sandbox.validation.shared_evaluation import (
     CallableSharedClassifierAdapter,
     SharedClassifierRun,
-    default_shared_classifier_adapters,
     evaluate_shared_classifier_registry,
     sensor_regime_summary_rows,
 )

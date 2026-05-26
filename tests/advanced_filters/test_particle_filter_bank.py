@@ -4,15 +4,18 @@ import unittest
 
 import numpy as np
 
-from kinematic_classifier_sandbox.advanced_filters.contracts import validate_advanced_filter_step
 from kinematic_classifier_sandbox.advanced_filters.models_1d import (
     constant_velocity_transition,
     make_initial_particles_1d,
     nonlinear_drag_transition,
     position_gaussian_log_likelihood,
 )
-from kinematic_classifier_sandbox.advanced_filters.particle_filter import BootstrapParticleFilter, ParticleFilterConfig
+from kinematic_classifier_sandbox.advanced_filters.particle_filter import (
+    BootstrapParticleFilter,
+    ParticleFilterConfig,
+)
 from kinematic_classifier_sandbox.advanced_filters.particle_filter_bank import ParticleFilterBank
+from kinematic_classifier_sandbox.advanced_filters.protocols import validate_advanced_filter_step
 
 
 class ParticleFilterBankTests(unittest.TestCase):

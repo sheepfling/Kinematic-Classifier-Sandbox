@@ -9,18 +9,17 @@ from kinematic_classifier_sandbox.witnesses.identity_1d.core import (
     default_identity_class_specs,
     default_identity_hand_authored_scenarios,
     generate_identity_scenarios,
+    identity_witness_surface,
     make_identity_scenario,
     render_identity_benchmark_markdown,
-    render_identity_feature_confusion_png_bytes,
     render_identity_benchmark_png_bytes,
+    render_identity_feature_confusion_png_bytes,
     run_identity_benchmark,
     run_identity_classifier,
     write_identity_benchmark_artifacts,
-    write_identity_feature_confusion_artifacts,
     write_identity_benchmark_trace_csv,
+    write_identity_feature_confusion_artifacts,
 )
-from kinematic_classifier_sandbox.witnesses.identity_1d.core import identity_witness_surface
-from kinematic_classifier_sandbox.witnesses.surface import WitnessSurface
 from kinematic_classifier_sandbox.witnesses.identity_1d.posterior_explainer import (
     render_identity_posterior_comparison_markdown,
     render_identity_posterior_comparison_png_bytes,
@@ -35,6 +34,7 @@ from kinematic_classifier_sandbox.witnesses.identity_1d.posterior_explainer impo
     write_identity_posterior_failure_artifacts,
     write_identity_posterior_margin_trace_artifacts,
 )
+from kinematic_classifier_sandbox.witnesses.surface import WitnessSurface
 
 
 class Identity1DBenchmarkTests(unittest.TestCase):
