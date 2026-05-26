@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from math import log
+from typing import NamedTuple
 
 from ...markdown_builder import MarkdownDocument
 from .contracts import (
@@ -14,6 +15,12 @@ from .runner import (
     default_switching_mode_specs,
     default_transition_matrix,
 )
+
+
+class TransitionWalkthroughSelection(NamedTuple):
+    scenario: SwitchingScenario
+    static_run: TransitionRun
+    transition_run: TransitionRun
 
 
 def render_transition_benchmark_report(result: TransitionBenchmarkResult) -> str:
@@ -72,13 +79,21 @@ def render_transition_benchmark_report(result: TransitionBenchmarkResult) -> str
     return report.text()
 
 
-def _select_transition_walkthrough(result: TransitionBenchmarkResult) -> tuple[SwitchingScenario, TransitionRun, TransitionRun]:
+def _select_transition_walkthrough(result: TransitionBenchmarkResult) -> TransitionWalkthroughSelection:
     preferred_names = ("constant_velocity_then_braking", "constant_velocity_then_maneuver", "stationary_then_moving")
     for preferred_name in preferred_names:
         for scenario, static_run, transition_run in zip(result.scenarios, result.static_runs, result.transition_runs):
             if scenario.scenario_name == preferred_name:
-                return scenario, static_run, transition_run
-    return result.scenarios[0], result.static_runs[0], result.transition_runs[0]
+                return TransitionWalkthroughSelection(
+                    scenario=scenario,
+                    static_run=static_run,
+                    transition_run=transition_run,
+                )
+    return TransitionWalkthroughSelection(
+        scenario=result.scenarios[0],
+        static_run=result.static_runs[0],
+        transition_run=result.transition_runs[0],
+    )
 
 
 def render_transition_numeric_walkthrough_markdown(
@@ -89,7 +104,10 @@ def render_transition_numeric_walkthrough_markdown(
 ) -> str:
     selected_specs = specs or default_switching_mode_specs()
     transition = transition_matrix or default_transition_matrix()
-    scenario, static_run, transition_run = _select_transition_walkthrough(result)
+    selection = _select_transition_walkthrough(result)
+    scenario = selection.scenario
+    static_run = selection.static_run
+    transition_run = selection.transition_run
     switch_index = next((index for index, step in enumerate(transition_run.steps) if step.true_mode != transition_run.steps[0].true_mode), len(transition_run.steps) - 1)
     start_index = max(0, switch_index - 1)
     end_index = min(len(transition_run.steps), switch_index + 2)

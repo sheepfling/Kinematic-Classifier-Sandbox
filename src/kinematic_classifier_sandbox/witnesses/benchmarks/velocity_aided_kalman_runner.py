@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from typing import NamedTuple
 
 from ...analysis.common_dataset_comparison import (
     SharedDynamicsTrajectory,
@@ -13,6 +14,11 @@ from .kalman_filter_bank import (
     run_kalman_filter_bank,
 )
 from .velocity_aided_kalman_contracts import VelocityAidedComparisonResult, VelocityAidedRow, VelocityAidedTrace
+
+
+class RunModeResult(NamedTuple):
+    run: KalmanClassificationRun
+    velocity_measurements_used: tuple[float, ...]
 
 
 def _shared_kalman_trajectory(trajectory: SharedDynamicsTrajectory) -> KalmanTrajectory:
@@ -47,7 +53,7 @@ def _run_mode(
     trajectory: SharedDynamicsTrajectory,
     *,
     measurement_mode: str,
-) -> tuple[KalmanClassificationRun, tuple[float, ...]]:
+) -> RunModeResult:
     velocity_sigma = 0.12
     velocity_measurements = _synthesized_velocity_measurements(trajectory, sigma=velocity_sigma)
     kwargs = {
@@ -65,7 +71,7 @@ def _run_mode(
     else:
         raise ValueError(f"Unsupported measurement mode: {measurement_mode}")
     run = run_kalman_filter_bank(_shared_kalman_trajectory(trajectory), _kalman_shared_model_specs(), **kwargs)
-    return run, velocity_measurements_used
+    return RunModeResult(run=run, velocity_measurements_used=velocity_measurements_used)
 
 
 def _mode_accuracy(
@@ -73,7 +79,7 @@ def _mode_accuracy(
     *,
     measurement_mode: str,
 ) -> VelocityAidedRow:
-    runs = [_run_mode(trajectory, measurement_mode=measurement_mode)[0] for trajectory in trajectories]
+    runs = [_run_mode(trajectory, measurement_mode=measurement_mode).run for trajectory in trajectories]
 
     def _accuracy(scenario_name: str | None = None) -> float:
         selected = [run for run, trajectory in zip(runs, trajectories) if scenario_name is None or trajectory.scenario_name == scenario_name]
@@ -99,7 +105,9 @@ def analyze_velocity_aided_kalman_comparison(*, seed: int = 7, trajectories_per_
     traces: list[VelocityAidedTrace] = []
     for trajectory in representative_trajectories:
         for mode in measurement_modes:
-            run, velocity_measurements = _run_mode(trajectory, measurement_mode=mode)
+            run_result = _run_mode(trajectory, measurement_mode=mode)
+            run = run_result.run
+            velocity_measurements = run_result.velocity_measurements_used
             traces.append(
                 VelocityAidedTrace(
                     measurement_mode=mode,

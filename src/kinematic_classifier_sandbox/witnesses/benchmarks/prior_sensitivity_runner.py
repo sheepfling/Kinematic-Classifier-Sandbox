@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from ...utils.math import _binary_log_odds, _log_odds_from_prior
 from .pointwise_baseline import (
     PointwiseClassSpec,
@@ -30,6 +32,13 @@ from .prior_sensitivity_contracts import (
     PriorSensitivitySummary,
     PriorSweepRow,
 )
+
+
+class PriorSensitivityRunnerResult(NamedTuple):
+    final_class: str
+    final_confidence: float
+    final_weights: dict[str, float]
+    cumulative_log_likelihood_ratio: float
 
 
 def _default_prior_grid(step: float = 0.05) -> tuple[float, ...]:
@@ -196,12 +205,17 @@ def analyze_prior_sensitivity(
     grid = prior_grid or _default_prior_grid()
     trajectories = tuple(sorted(generate_accumulator_trajectories(seed=seed, trajectories_per_class=trajectories_per_class), key=_trajectory_order_key))
 
-    def _runner(trajectory: AccumulatorTrajectory, prior: dict[str, float]) -> tuple[str, float, dict[str, float], float]:
+    def _runner(trajectory: AccumulatorTrajectory, prior: dict[str, float]) -> PriorSensitivityRunnerResult:
         run = run_accumulator(trajectory, specs, forgetting_factor=forgetting_factor, confidence_threshold=confidence_threshold, prior=prior)
         class_a = specs[0].name
         class_b = specs[1].name
         cumulative_log_likelihood_ratio = sum(step.log_likelihood_terms[class_a] - step.log_likelihood_terms[class_b] for step in run.steps)
-        return run.final_predicted_class, run.final_confidence, run.final_weights, cumulative_log_likelihood_ratio
+        return PriorSensitivityRunnerResult(
+            final_class=run.final_predicted_class,
+            final_confidence=run.final_confidence,
+            final_weights=run.final_weights,
+            cumulative_log_likelihood_ratio=cumulative_log_likelihood_ratio,
+        )
 
     return _analyze_generic_prior_sensitivity(
         method_name="accumulator",
@@ -226,13 +240,18 @@ def analyze_pointwise_prior_sensitivity(
     grid = prior_grid or _default_prior_grid()
     trajectories = tuple(sorted(generate_pointwise_benchmark_trajectories(seed=seed), key=_generic_trajectory_order_key))
 
-    def _runner(trajectory: PointwiseTrajectory, prior: dict[str, float]) -> tuple[str, float, dict[str, float], float]:
+    def _runner(trajectory: PointwiseTrajectory, prior: dict[str, float]) -> PriorSensitivityRunnerResult:
         run = run_pointwise_classifier(trajectory, specs, prior=prior)
         class_a = specs[0].name
         class_b = specs[1].name
         cumulative_log_likelihood_ratio = sum(step.log_likelihood_terms[class_a] - step.log_likelihood_terms[class_b] for step in run.steps)
         confidence = max(run.final_weights.values())
-        return run.final_predicted_class, confidence, run.final_weights, cumulative_log_likelihood_ratio
+        return PriorSensitivityRunnerResult(
+            final_class=run.final_predicted_class,
+            final_confidence=confidence,
+            final_weights=run.final_weights,
+            cumulative_log_likelihood_ratio=cumulative_log_likelihood_ratio,
+        )
 
     return _analyze_generic_prior_sensitivity(
         method_name="pointwise",
@@ -260,7 +279,7 @@ def analyze_windowed_prior_sensitivity(
     grid = prior_grid or _default_prior_grid()
     trajectories = tuple(sorted(generate_windowed_trajectories(seed=seed), key=_generic_trajectory_order_key))
 
-    def _runner(trajectory: WindowedTrajectory, prior: dict[str, float]) -> tuple[str, float, dict[str, float], float]:
+    def _runner(trajectory: WindowedTrajectory, prior: dict[str, float]) -> PriorSensitivityRunnerResult:
         classifier = WindowedFeatureClassifier(specs, feature_mode=feature_mode, prior=prior)
         classifier.reset(prior)
         feature_rows = extract_windowed_feature_rows(trajectory, window_size=window_size, trim_fraction=trim_fraction)
@@ -273,7 +292,12 @@ def analyze_windowed_prior_sensitivity(
         class_a = specs[0].name
         class_b = specs[1].name
         cumulative_log_likelihood_ratio = sum(step.log_likelihood_terms[class_a] - step.log_likelihood_terms[class_b] for step in history)
-        return final_class, confidence, final_weights, cumulative_log_likelihood_ratio
+        return PriorSensitivityRunnerResult(
+            final_class=final_class,
+            final_confidence=confidence,
+            final_weights=final_weights,
+            cumulative_log_likelihood_ratio=cumulative_log_likelihood_ratio,
+        )
 
     return _analyze_generic_prior_sensitivity(
         method_name=f"windowed_{feature_mode}",
