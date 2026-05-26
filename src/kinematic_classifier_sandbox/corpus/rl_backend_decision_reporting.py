@@ -40,7 +40,7 @@ def render_rl_backend_decision_report(result: RlBackendDecisionResult) -> str:
     doc.table(
         ["criterion", "status", "value", "note"],
         [
-            (row["criterion"], row["status"], str(row["value"]), row["note"])
+            (row.criterion, row.status, str(row.value), row.note)
             for row in result.decision_rows
         ],
     )

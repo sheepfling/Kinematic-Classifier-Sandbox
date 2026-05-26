@@ -11,7 +11,7 @@ class RlBackendDecisionResult:
     action_space: tuple[str, ...]
     reward_components: tuple[str, ...]
     episode_definition: str
-    baseline_to_beat: dict[str, object]
+    baseline_to_beat: dict[str, float]
     success_metric: str
     search_selected_mean_utility: float
     qd_final_coverage_fraction: float
@@ -19,7 +19,15 @@ class RlBackendDecisionResult:
     stress_resolved_modes: int
     stress_total_modes: int
     stress_improved_modes: tuple[str, ...]
-    decision_rows: tuple[dict[str, object], ...]
+    decision_rows: tuple["RlBackendDecisionGateRow", ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RlBackendDecisionGateRow:
+    criterion: str
+    status: str
+    value: str | float
+    note: str
 
 
 @dataclass(frozen=True, slots=True)

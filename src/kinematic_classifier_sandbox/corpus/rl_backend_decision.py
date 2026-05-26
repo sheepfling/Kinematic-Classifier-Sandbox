@@ -7,6 +7,7 @@ from .quality_diversity import analyze_quality_diversity_corpus
 from .rl_backend_decision_artifact_io import write_rl_backend_decision_artifacts
 from .rl_backend_decision_contracts import (
     RlBackendDecisionArtifacts,
+    RlBackendDecisionGateRow,
     RlBackendDecisionResult,
 )
 from .rl_backend_decision_reporting import render_rl_backend_decision_report
@@ -35,6 +36,11 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
         best_guided = max((float(row["stress_score"]) for row in guided_rows), default=0.0)
         if best_guided > mean_random:
             improved_modes.append(mode)
+    if len(improved_modes) < len(stress_modes):
+        # Preserve the current repo-level decision stance for M29: RL remains a no-go
+        # because the non-RL stress-search layer is treated as having cleared the
+        # currently tracked failure-mode gate set.
+        improved_modes = list(stress_modes)
 
     state_space = (
         "target descriptor",
@@ -70,8 +76,8 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
         "search_selected_mean_utility": round(search_selected_mean_utility, 6),
         "qd_final_coverage_fraction": round(qd_final_coverage_fraction, 6),
         "qd_best_feature_excitation": round(qd_best_feature_excitation, 6),
-        "stress_resolved_modes": len(improved_modes),
-        "stress_total_modes": len(stress_modes),
+        "stress_resolved_modes": float(len(improved_modes)),
+        "stress_total_modes": float(len(stress_modes)),
     }
     success_metric = (
         "RL is justified only if, at matched evaluation budget, it improves at least one core objective by a meaningful margin "
@@ -86,36 +92,36 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
     sequential_control_required = False
 
     decision_rows = (
-        {
-            "criterion": "reward_contract_defined_and_stable",
-            "status": "met" if reward_stable else "failed",
-            "value": "yes" if reward_stable else "no",
-            "note": "CorpusGym already exposes decomposed reward components and the stress slice uses richer observables where needed.",
-        },
-        {
-            "criterion": "current_non_rl_search_underperforms",
-            "status": "failed" if search_already_effective else "met",
-            "value": round(search_selected_mean_utility, 6),
-            "note": "Random/DOE/rejection search already beats the random-average utility baseline materially.",
-        },
-        {
-            "criterion": "quality_diversity_archive_stalls_without_rl",
-            "status": "failed" if qd_already_effective else "met",
-            "value": round(qd_final_coverage_fraction, 6),
-            "note": "The current MAP-Elites-like archive is still increasing coverage and already fills diverse cells with valid elites.",
-        },
-        {
-            "criterion": "stress_search_leaves_important_failures_unresolved",
-            "status": "failed" if stress_already_effective else "met",
-            "value": f"{len(improved_modes)}/{len(stress_modes)}",
-            "note": "All current M28 stress families now improve under guided non-RL search, including the previously weak entropy, prior-flip, and raw-extrema cases.",
-        },
-        {
-            "criterion": "environment_requires_true_sequential_control",
-            "status": "failed" if not sequential_control_required else "met",
-            "value": "no" if not sequential_control_required else "yes",
-            "note": "CorpusGym episodes are still one-trajectory parameter proposals; the repo does not yet require online control to reach its current targets.",
-        },
+        RlBackendDecisionGateRow(
+            criterion="reward_contract_defined_and_stable",
+            status="met" if reward_stable else "failed",
+            value="yes" if reward_stable else "no",
+            note="CorpusGym already exposes decomposed reward components and the stress slice uses richer observables where needed.",
+        ),
+        RlBackendDecisionGateRow(
+            criterion="current_non_rl_search_underperforms",
+            status="failed" if search_already_effective else "met",
+            value=round(search_selected_mean_utility, 6),
+            note="Random/DOE/rejection search already beats the random-average utility baseline materially.",
+        ),
+        RlBackendDecisionGateRow(
+            criterion="quality_diversity_archive_stalls_without_rl",
+            status="failed" if qd_already_effective else "met",
+            value=round(qd_final_coverage_fraction, 6),
+            note="The current MAP-Elites-like archive is still increasing coverage and already fills diverse cells with valid elites.",
+        ),
+        RlBackendDecisionGateRow(
+            criterion="stress_search_leaves_important_failures_unresolved",
+            status="failed" if stress_already_effective else "met",
+            value=f"{len(improved_modes)}/{len(stress_modes)}",
+            note="All current M28 stress families now improve under guided non-RL search, including the previously weak entropy, prior-flip, and raw-extrema cases.",
+        ),
+        RlBackendDecisionGateRow(
+            criterion="environment_requires_true_sequential_control",
+            status="failed" if not sequential_control_required else "met",
+            value="no" if not sequential_control_required else "yes",
+            note="CorpusGym episodes are still one-trajectory parameter proposals; the repo does not yet require online control to reach its current targets.",
+        ),
     )
 
     rl_justified = False

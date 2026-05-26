@@ -34,7 +34,21 @@ def write_rl_backend_decision_artifacts(
         ),
         encoding="utf-8",
     )
-    evidence_path.write_text(json.dumps(list(analysis.decision_rows), indent=2), encoding="utf-8")
+    evidence_path.write_text(
+        json.dumps(
+            [
+                {
+                    "criterion": row.criterion,
+                    "status": row.status,
+                    "value": row.value,
+                    "note": row.note,
+                }
+                for row in analysis.decision_rows
+            ],
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     return RlBackendDecisionArtifacts(
         run_dir=run_dir,
