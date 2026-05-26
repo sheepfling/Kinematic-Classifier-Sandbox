@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np
-from numpy.typing import NDArray
+from numpy import allclose, asarray, exp, eye, float64, full, int64, log, ndarray, pi, sum as nsum, zeros, zeros_like
+import numpy.linalg as linalg
+import numpy.random as random
 
 from .contracts import AdvancedFilterStep
 from .resampling import effective_sample_size, logsumexp, normalize_log_weights, systematic_resample
-
-
-FloatArray = NDArray[np.float64]
-IntArray = NDArray[np.int64]
+from ..utils.types import FloatArray, IntArray
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,10 +58,10 @@ class RaoBlackwellizedParticleFilter:
         self.config = config
         self.mode_models = mode_models
         self.mode_ids = [model.mode_id for model in mode_models]
-        self.mode_transition_matrix = np.asarray(mode_transition_matrix, dtype=np.float64)
-        if not np.allclose(self.mode_transition_matrix.sum(axis=1), 1.0):
+        self.mode_transition_matrix = asarray(mode_transition_matrix, dtype=float64)
+        if not allclose(self.mode_transition_matrix.sum(axis=1), 1.0):
             raise ValueError("mode_transition_matrix rows must sum to one")
-        self.rng = np.random.default_rng(config.seed)
+        self.rng = random.default_rng(config.seed)
         self.state: RBPFState | None = None
 
     def reset(
@@ -78,10 +76,10 @@ class RaoBlackwellizedParticleFilter:
             raise ValueError("initial_mode_indexes must match particle_count")
         self.state = RBPFState(
             trajectory_id=trajectory_id,
-            mode_indexes=initial_mode_indexes.astype(np.int64),
-            means=initial_means.astype(np.float64),
-            covariances=initial_covariances.astype(np.float64),
-            log_weights=np.full(n_particles, -np.log(n_particles), dtype=np.float64),
+            mode_indexes=initial_mode_indexes.astype(int64),
+            means=initial_means.astype(float64),
+            covariances=initial_covariances.astype(float64),
+            log_weights=full(n_particles, -log(n_particles), dtype=float64),
             last_time=None,
         )
 
@@ -89,9 +87,9 @@ class RaoBlackwellizedParticleFilter:
         if self.state is None:
             raise RuntimeError("RBPF must be reset before update")
         new_mode_indexes = self._sample_modes(self.state.mode_indexes)
-        new_means = np.zeros_like(self.state.means)
-        new_covariances = np.zeros_like(self.state.covariances)
-        log_likelihoods = np.zeros(self.config.particle_count, dtype=np.float64)
+        new_means = zeros_like(self.state.means)
+        new_covariances = zeros_like(self.state.covariances)
+        log_likelihoods = zeros(self.config.particle_count, dtype=float64)
         for index in range(self.config.particle_count):
             model = self.mode_models[int(new_mode_indexes[index])]
             mean, covariance, log_likelihood = kalman_predict_update(
@@ -115,12 +113,12 @@ class RaoBlackwellizedParticleFilter:
             new_mode_indexes = new_mode_indexes[indexes]
             new_means = new_means[indexes]
             new_covariances = new_covariances[indexes]
-            normalized_log_weights = np.full(
+            normalized_log_weights = full(
                 self.config.particle_count,
-                -np.log(self.config.particle_count),
-                dtype=np.float64,
+                -log(self.config.particle_count),
+                dtype=float64,
             )
-            weights = np.exp(normalized_log_weights)
+            weights = exp(normalized_log_weights)
             ess = effective_sample_size(weights)
             resampled = True
         self.state.mode_indexes = new_mode_indexes
@@ -146,7 +144,7 @@ class RaoBlackwellizedParticleFilter:
         )
 
     def _sample_modes(self, old_mode_indexes: IntArray) -> IntArray:
-        new_modes = np.zeros_like(old_mode_indexes)
+        new_modes = zeros_like(old_mode_indexes)
         for index, old_mode in enumerate(old_mode_indexes):
             probabilities = self.mode_transition_matrix[int(old_mode)]
             new_modes[index] = int(self.rng.choice(len(probabilities), p=probabilities))
@@ -182,16 +180,16 @@ def kalman_predict_update(
         model.measurement_matrix @ predicted_covariance @ model.measurement_matrix.T
         + model.measurement_covariance
     )
-    innovation_covariance = innovation_covariance + 1.0e-9 * np.eye(innovation_covariance.shape[0])
-    inv_s = np.linalg.inv(innovation_covariance)
+    innovation_covariance = innovation_covariance + 1.0e-9 * eye(innovation_covariance.shape[0])
+    inv_s = linalg.inv(innovation_covariance)
     gain = predicted_covariance @ model.measurement_matrix.T @ inv_s
     updated_mean = predicted_mean + gain @ innovation
-    updated_covariance = (np.eye(predicted_covariance.shape[0]) - gain @ model.measurement_matrix) @ predicted_covariance
+    updated_covariance = (eye(predicted_covariance.shape[0]) - gain @ model.measurement_matrix) @ predicted_covariance
     updated_covariance = 0.5 * (updated_covariance + updated_covariance.T)
-    sign, log_det = np.linalg.slogdet(innovation_covariance)
+    sign, log_det = linalg.slogdet(innovation_covariance)
     if sign <= 0:
         raise ValueError("innovation covariance must be positive definite")
     mahalanobis = float(innovation.T @ inv_s @ innovation)
     dim = observation.shape[0]
-    log_likelihood = -0.5 * (dim * np.log(2.0 * np.pi) + log_det + mahalanobis)
+    log_likelihood = -0.5 * (dim * log(2.0 * pi) + log_det + mahalanobis)
     return updated_mean, updated_covariance, float(log_likelihood)

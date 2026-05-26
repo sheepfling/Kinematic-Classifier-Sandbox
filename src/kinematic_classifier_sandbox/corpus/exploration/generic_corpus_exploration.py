@@ -1,40 +1,31 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-import csv
 import json
-from pathlib import Path
 import random
+from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import yaml
 
+from kinematic_classifier_sandbox.utils.io import write_csv
+from kinematic_classifier_sandbox.utils.plotting import _figure_to_png
+from kinematic_classifier_sandbox.runtime_paths import prepare_matplotlib
+from kinematic_classifier_sandbox.utils.runtime import repo_root
+
+from ...markdown_builder import MarkdownDocument
+from ..policy import load_corpus_policy_spec
 from .backend_adapter_proof import (
     BackendCandidateSpec,
     _adapter_map,
 )
-from .corpus_policy import load_corpus_policy_spec
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = repo_root()
 DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHT_SWEEP_CONFIG_PATH = (
     ROOT / "experiments" / "generic_corpus_exploration_weight_sweep" / "generic_corpus_exploration_weight_sweep.yaml"
 )
 
-
-def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-
-
-def _clamp(value: float, lower: float, upper: float) -> float:
-    return max(lower, min(upper, value))
+plt = prepare_matplotlib()
 
 
 def _normalize_weights(weights: GenericCorpusExplorationWeights) -> GenericCorpusExplorationWeights:
@@ -128,17 +119,6 @@ def _set_jaccard(left: set[str], right: set[str]) -> float:
     if not left and not right:
         return 1.0
     return len(left & right) / max(len(left | right), 1)
-
-
-def _figure_to_png(fig) -> bytes:
-    from io import BytesIO
-
-    buffer = BytesIO()
-    try:
-        fig.savefig(buffer, format="png", dpi=180, bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
 
 
 @dataclass(frozen=True, slots=True)
@@ -476,11 +456,7 @@ def _render_backend_coverage_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     ax.set_title("Backend Coverage Comparison")
     ax.tick_params(axis="x", rotation=15)
     fig.tight_layout()
-    from io import BytesIO
-    buffer = BytesIO()
-    fig.savefig(buffer, format="png", dpi=180)
-    plt.close(fig)
-    return buffer.getvalue()
+    return _figure_to_png(fig)
 
 
 def _render_archive_heatmap_png(rows: tuple[dict[str, Any], ...]) -> bytes:
@@ -502,11 +478,7 @@ def _render_archive_heatmap_png(rows: tuple[dict[str, Any], ...]) -> bytes:
             ax.text(column_index, row_index, f"{value}", ha="center", va="center", fontsize=8)
     fig.colorbar(image, ax=ax, fraction=0.04, pad=0.04)
     fig.tight_layout()
-    from io import BytesIO
-    buffer = BytesIO()
-    fig.savefig(buffer, format="png", dpi=180)
-    plt.close(fig)
-    return buffer.getvalue()
+    return _figure_to_png(fig)
 
 
 def _render_parallel_png(rows: tuple[dict[str, Any], ...]) -> bytes:
@@ -527,11 +499,7 @@ def _render_parallel_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     ax.set_ylabel("Normalized Score")
     ax.set_title("Score Component Parallel Coordinates")
     fig.tight_layout()
-    from io import BytesIO
-    buffer = BytesIO()
-    fig.savefig(buffer, format="png", dpi=180)
-    plt.close(fig)
-    return buffer.getvalue()
+    return _figure_to_png(fig)
 
 
 def _render_selected_gallery_png(selected_rows: tuple[dict[str, Any,]], candidate_pool: tuple[BackendCandidateSpec, ...]) -> bytes:
@@ -548,11 +516,7 @@ def _render_selected_gallery_png(selected_rows: tuple[dict[str, Any,]], candidat
     axes[0, 0].legend(fontsize=7)
     fig.suptitle("Selected Trajectory Gallery", fontsize=11)
     fig.tight_layout()
-    from io import BytesIO
-    buffer = BytesIO()
-    fig.savefig(buffer, format="png", dpi=180)
-    plt.close(fig)
-    return buffer.getvalue()
+    return _figure_to_png(fig)
 
 
 def _render_provenance_dashboard_png(rows: tuple[dict[str, Any], ...]) -> bytes:
@@ -565,11 +529,7 @@ def _render_provenance_dashboard_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     ax.set_title("Provenance Completeness Dashboard")
     ax.tick_params(axis="x", rotation=20)
     fig.tight_layout()
-    from io import BytesIO
-    buffer = BytesIO()
-    fig.savefig(buffer, format="png", dpi=180)
-    plt.close(fig)
-    return buffer.getvalue()
+    return _figure_to_png(fig)
 
 
 def analyze_generic_corpus_exploration(
@@ -620,35 +580,44 @@ def analyze_generic_corpus_exploration(
     }
     backend_comparison_rows = _backend_comparison_rows(tuple(candidate_rows), selected_rows)
 
-    report_markdown = "\n".join(
+    doc = MarkdownDocument("Generic Corpus Exploration Dashboard")
+    doc.heading("Summary", level=2)
+    doc.bullet_list(
         [
-            "# Generic Corpus Exploration Dashboard",
-            "",
-            "## Summary",
-            f"- candidate rows explored: `{len(candidate_rows)}`",
-            f"- archive cells filled: `{len(archive_rows)}`",
-            f"- selected corpus size: `{len(selected_rows)}`",
-            f"- selected coverage: `{selected_coverage}`",
-            f"- random baseline coverage: `{random_coverage}`",
-            f"- selected backends represented: `{selected_backend_count}`",
-            f"- selected scenario families represented: `{selected_scenario_count}`",
-            f"- utility weights: `{_weights_to_dict(utility_weights)}`",
-            "",
-            "## Selected Corpus",
-            "| Candidate | Backend | Scenario | Utility | Provenance |",
-            "| --- | --- | --- | --- | --- |",
-            *[
-                f"| `{row['candidate_id']}` | `{row['backend_id']}` | `{row['scenario_family']}` | "
-                f"`{row['total_utility']:.3f}` | `{row['provenance_completeness']:.2f}` |"
-                for row in selected_rows
-            ],
-            "",
-            "## Acceptance Notes",
-            f"- coverage improves over random baseline: `{selected_coverage > random_coverage}`",
-            f"- includes at least two backend types: `{selected_backend_count >= 2}`",
-            f"- includes boundary examples: `{selected_corpus_manifest['includes_boundary_examples']}`",
-            f"- includes stress examples: `{selected_corpus_manifest['includes_stress_examples']}`",
-            "- All selected rows retain backend id, scenario family, candidate id, and provenance completeness scores.",
+            f"candidate rows explored: `{len(candidate_rows)}`",
+            f"archive cells filled: `{len(archive_rows)}`",
+            f"selected corpus size: `{len(selected_rows)}`",
+            f"selected coverage: `{selected_coverage}`",
+            f"random baseline coverage: `{random_coverage}`",
+            f"selected backends represented: `{selected_backend_count}`",
+            f"selected scenario families represented: `{selected_scenario_count}`",
+            f"utility weights: `{_weights_to_dict(utility_weights)}`",
+        ]
+    )
+    
+    doc.heading("Selected Corpus", level=2)
+    doc.table(
+        ["Candidate", "Backend", "Scenario", "Utility", "Provenance"],
+        [
+            (
+                f"`{row['candidate_id']}`",
+                f"`{row['backend_id']}`",
+                f"`{row['scenario_family']}`",
+                f"`{row['total_utility']:.3f}`",
+                f"`{row['provenance_completeness']:.2f}`",
+            )
+            for row in selected_rows
+        ]
+    )
+
+    doc.heading("Acceptance Notes", level=2)
+    doc.bullet_list(
+        [
+            f"coverage improves over random baseline: `{selected_coverage > random_coverage}`",
+            f"includes at least two backend types: `{selected_backend_count >= 2}`",
+            f"includes boundary examples: `{selected_corpus_manifest['includes_boundary_examples']}`",
+            f"includes stress examples: `{selected_corpus_manifest['includes_stress_examples']}`",
+            "All selected rows retain backend id, scenario family, candidate id, and provenance completeness scores.",
         ]
     )
 
@@ -658,7 +627,7 @@ def analyze_generic_corpus_exploration(
         archive_cell_rows=archive_rows,
         selected_corpus_manifest=selected_corpus_manifest,
         backend_comparison_rows=backend_comparison_rows,
-        report_markdown=report_markdown,
+        report_markdown=doc.text(),
     )
 
 
@@ -903,32 +872,47 @@ def analyze_generic_corpus_exploration_weight_sweep(
             )
         )
 
-    report_markdown = "\n".join(
+    doc = MarkdownDocument("Generic Corpus Exploration Weight Sweep")
+    doc.paragraph(
+        "This sweep keeps the underlying candidate pool fixed and perturbs the corpus-explorer utility weights to test whether selection is stable or brittle."
+    )
+    
+    doc.heading("Baseline", level=2)
+    doc.bullet_list(
         [
-            "# Generic Corpus Exploration Weight Sweep",
-            "",
-            "This sweep keeps the underlying candidate pool fixed and perturbs the corpus-explorer utility weights to test whether selection is stable or brittle.",
-            "",
-            "## Baseline",
-            "",
-            f"- baseline variant: `{baseline_variant.variant_id}`",
-            f"- baseline selected coverage: `{baseline_selected_coverage}`",
-            f"- baseline weights: `{_weights_to_dict(baseline_weights)}`",
-            f"- sweep config source: `{sweep_config.config_path.name if sweep_config.config_path else 'generic_corpus_exploration_weight_sweep.yaml'}`",
-            "",
-            "## Variant Comparison",
-            "| Variant | Description | Selected Coverage | Random Coverage | Delta vs Random | Delta vs Baseline | Candidate Jaccard vs Baseline | Cell Jaccard vs Baseline | Mean Utility | Mean Utility Delta |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-            *[
-                f"| `{row.variant_id}` | `{row.description}` | `{row.selected_coverage}` | `{row.random_baseline_coverage}` | `{row.coverage_delta_vs_random}` | `{row.coverage_delta_vs_baseline}` | "
-                f"`{row.candidate_jaccard_vs_baseline:.2f}` | `{row.cell_jaccard_vs_baseline:.2f}` | `{row.mean_total_utility:.3f}` | `{row.mean_total_utility_delta_vs_baseline:.3f}` |"
-                for row in rows
-            ],
-            "",
-            "## Interpretation",
-            "- If nearby weight perturbations keep the selected corpus stable, the heuristic is robust.",
-            "- If small perturbations reorder the selected cells heavily, the utility is acting like a fragile hand-tuned score and should be revisited.",
-            "- The baseline row is included so the same analysis path can be used for direct before/after comparison.",
+            f"baseline variant: `{baseline_variant.variant_id}`",
+            f"baseline selected coverage: `{baseline_selected_coverage}`",
+            f"baseline weights: `{_weights_to_dict(baseline_weights)}`",
+            f"sweep config source: `{sweep_config.config_path.name if sweep_config.config_path else 'generic_corpus_exploration_weight_sweep.yaml'}`",
+        ]
+    )
+
+    doc.heading("Variant Comparison", level=2)
+    doc.table(
+        ["Variant", "Description", "Selected Coverage", "Random Coverage", "Delta vs Random", "Delta vs Baseline", "Candidate Jaccard vs Baseline", "Cell Jaccard vs Baseline", "Mean Utility", "Mean Utility Delta"],
+        [
+            (
+                f"`{row.variant_id}`",
+                f"`{row.description}`",
+                f"`{row.selected_coverage}`",
+                f"`{row.random_baseline_coverage}`",
+                f"`{row.coverage_delta_vs_random}`",
+                f"`{row.coverage_delta_vs_baseline}`",
+                f"`{row.candidate_jaccard_vs_baseline:.2f}`",
+                f"`{row.cell_jaccard_vs_baseline:.2f}`",
+                f"`{row.mean_total_utility:.3f}`",
+                f"`{row.mean_total_utility_delta_vs_baseline:.3f}`",
+            )
+            for row in rows
+        ]
+    )
+
+    doc.heading("Interpretation", level=2)
+    doc.bullet_list(
+        [
+            "If nearby weight perturbations keep the selected corpus stable, the heuristic is robust.",
+            "If small perturbations reorder the selected cells heavily, the utility is acting like a fragile hand-tuned score and should be revisited.",
+            "The baseline row is included so the same analysis path can be used for direct before/after comparison.",
         ]
     )
 
@@ -936,7 +920,7 @@ def analyze_generic_corpus_exploration_weight_sweep(
         baseline_variant_id=baseline_variant.variant_id,
         variants=sweep_variants,
         rows=tuple(rows),
-        report_markdown=report_markdown,
+        report_markdown=doc.text(),
     )
 
 
@@ -964,11 +948,7 @@ def _render_weight_sweep_tradeoff_png(rows: tuple[GenericCorpusExplorationSweepR
     ax2.set_ylim(0.0, 1.05)
     fig.suptitle("Explorer Weight Sweep Tradeoff", fontsize=11)
     fig.tight_layout()
-    from io import BytesIO
-    buffer = BytesIO()
-    fig.savefig(buffer, format="png", dpi=180, bbox_inches="tight")
-    plt.close(fig)
-    return buffer.getvalue()
+    return _figure_to_png(fig)
 
 
 def _render_weight_sweep_overlap_png(rows: tuple[GenericCorpusExplorationSweepRow, ...]) -> bytes:
@@ -993,10 +973,10 @@ def _render_weight_sweep_overlap_png(rows: tuple[GenericCorpusExplorationSweepRo
         axis.set_xticks(range(len(variant_ids)), labels=variant_ids, rotation=20, fontsize=7)
         axis.set_yticks(range(len(variant_ids)), labels=variant_ids, fontsize=7)
         axis.set_title(title)
-        for row_index, values in enumerate(matrix):
-            for column_index, value in enumerate(values):
-                axis.text(column_index, row_index, f"{value:.2f}", ha="center", va="center", fontsize=6, color="white" if value < 0.6 else "black")
-        fig.colorbar(image, ax=axis, fraction=0.04, pad=0.02)
+    for row_index, values in enumerate(matrix):
+        for column_index, value in enumerate(values):
+            axis.text(column_index, row_index, f"{value:.2f}", ha="center", va="center", fontsize=6, color="white" if value < 0.6 else "black")
+    fig.colorbar(image, ax=axis, fraction=0.04, pad=0.02)
     return _figure_to_png(fig)
 
 
@@ -1024,11 +1004,7 @@ def _render_weight_sweep_weight_matrix_png(rows: tuple[GenericCorpusExplorationS
             ax.text(column_index, row_index, f"{value:.2f}", ha="center", va="center", fontsize=7)
     fig.colorbar(image, ax=ax, fraction=0.04, pad=0.04)
     fig.tight_layout()
-    from io import BytesIO
-    buffer = BytesIO()
-    fig.savefig(buffer, format="png", dpi=180, bbox_inches="tight")
-    plt.close(fig)
-    return buffer.getvalue()
+    return _figure_to_png(fig)
 
 
 def write_generic_corpus_exploration_weight_sweep_artifacts(
@@ -1106,7 +1082,7 @@ def write_generic_corpus_exploration_weight_sweep_artifacts(
         encoding="utf-8",
     )
 
-    _write_csv(
+    write_csv(
         rows_path,
         [
             {
@@ -1176,7 +1152,7 @@ def write_generic_corpus_exploration_weight_sweep_artifacts(
                     "cell_jaccard": _set_jaccard(left_cells, set(right.selected_cell_ids)),
                 }
             )
-    _write_csv(
+    write_csv(
         overlap_matrix_path,
         overlap_rows,
         ["left_variant_id", "right_variant_id", "candidate_jaccard", "cell_jaccard"],
@@ -1194,7 +1170,7 @@ def write_generic_corpus_exploration_weight_sweep_artifacts(
         }
         for row in rows
     ]
-    _write_csv(
+    write_csv(
         weight_matrix_path,
         weight_rows,
         ["variant_id", "validity", "coverage_novelty", "boundary", "stress", "environment", "provenance"],
@@ -1247,9 +1223,9 @@ def write_generic_corpus_exploration_artifacts(
     candidate_fieldnames = list(payload.candidate_score_rows[0].keys()) if payload.candidate_score_rows else []
     archive_fieldnames = list(payload.archive_cell_rows[0].keys()) if payload.archive_cell_rows else []
     backend_fieldnames = list(payload.backend_comparison_rows[0].keys()) if payload.backend_comparison_rows else []
-    _write_csv(candidate_scores_path, list(payload.candidate_score_rows), candidate_fieldnames)
-    _write_csv(archive_cells_path, list(payload.archive_cell_rows), archive_fieldnames)
-    _write_csv(backend_comparison_path, list(payload.backend_comparison_rows), backend_fieldnames)
+    write_csv(candidate_scores_path, list(payload.candidate_score_rows), candidate_fieldnames)
+    write_csv(archive_cells_path, list(payload.archive_cell_rows), archive_fieldnames)
+    write_csv(backend_comparison_path, list(payload.backend_comparison_rows), backend_fieldnames)
 
     candidate_pool = _candidate_pool()
     backend_coverage_png_path.write_bytes(_render_backend_coverage_png(payload.backend_comparison_rows))

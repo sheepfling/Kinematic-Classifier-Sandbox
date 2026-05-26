@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from pathlib import Path
 
-import numpy as np
-from numpy.typing import NDArray
+from ..utils.types import FloatArray
 
+from .protocols import validate_advanced_filter_step
+from ..inference.transition_matrix_accumulator import SwitchingScenario
 
-FloatArray = NDArray[np.float64]
 DiagnosticValue = float | int | str | bool
-
 
 @dataclass(frozen=True, slots=True)
 class AdvancedFilterStep:
@@ -22,7 +21,6 @@ class AdvancedFilterStep:
     log_evidence_by_label: dict[str, float]
     diagnostics: dict[str, DiagnosticValue]
 
-
 @dataclass(frozen=True, slots=True)
 class AdvancedStateSummary:
     trajectory_id: str
@@ -33,29 +31,39 @@ class AdvancedStateSummary:
     diagnostics: dict[str, DiagnosticValue]
 
 
-class AdvancedFilterBackend(Protocol):
-    filter_id: str
+@dataclass(frozen=True, slots=True)
+class IMMSwitchingRun:
+    trajectory_id: str
+    scenario_name: str
+    true_modes: tuple[str, ...]
+    times: tuple[float, ...]
+    measurements: tuple[float, ...]
+    steps: tuple[AdvancedFilterStep, ...]
+    state_means: tuple[tuple[float, float, float], ...]
+    state_covariances: tuple[tuple[float, ...], ...]
 
-    def reset(self, trajectory_id: str, initial_observation: FloatArray | None = None) -> None:
-        ...
 
-    def update(self, time: float, observation: FloatArray) -> AdvancedFilterStep:
-        ...
+@dataclass(frozen=True, slots=True)
+class IMMBenchmarkResult:
+    scenarios: tuple[SwitchingScenario, ...]
+    runs: tuple[IMMSwitchingRun, ...]
+    metrics: dict[str, float | int | str]
+    method_comparison: tuple[dict[str, float | int | str], ...]
 
-    def state_summary(self) -> AdvancedStateSummary:
-        ...
 
-
-def validate_advanced_filter_step(step: AdvancedFilterStep, *, atol: float = 1.0e-6) -> None:
-    if not step.posterior_by_label:
-        raise ValueError("posterior_by_label must not be empty")
-    posterior_sum = sum(step.posterior_by_label.values())
-    if abs(posterior_sum - 1.0) > atol:
-        raise ValueError(f"posterior probabilities must sum to 1.0, got {posterior_sum}")
-    if step.predicted_label not in step.posterior_by_label:
-        raise ValueError("predicted_label must be present in posterior_by_label")
-    if step.log_evidence_by_label and set(step.log_evidence_by_label).difference(step.posterior_by_label):
-        raise ValueError("log_evidence_by_label cannot contain labels outside posterior_by_label")
-    expected_confidence = step.posterior_by_label[step.predicted_label]
-    if abs(expected_confidence - step.confidence) > atol:
-        raise ValueError("confidence must equal posterior of predicted_label")
+@dataclass(frozen=True, slots=True)
+class IMMArtifacts:
+    run_dir: Path
+    config_path: Path
+    report_path: Path
+    mode_probability_history_path: Path
+    mixing_probability_history_path: Path
+    mode_likelihood_history_path: Path
+    state_estimate_history_path: Path
+    posterior_history_path: Path
+    switching_detection_metrics_path: Path
+    method_comparison_path: Path
+    decision_matrix_path: Path
+    plot_dir: Path
+    mode_probability_plot_path: Path
+    state_plot_path: Path

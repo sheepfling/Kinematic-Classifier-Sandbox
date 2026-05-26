@@ -1,17 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
 
-import numpy as np
-from numpy.typing import NDArray
+from numpy import average, exp, float64, full, log, maximum, sum as nsum
+import numpy.random as random
 
 from .resampling import effective_sample_size, normalize_log_weights, systematic_resample
-
-
-FloatArray = NDArray[np.float64]
-TransitionFn = Callable[[FloatArray, float, np.random.Generator], FloatArray]
-LogLikelihoodFn = Callable[[FloatArray, FloatArray], FloatArray]
+from ..utils.types import FloatArray, LogLikelihoodFn, TransitionFn
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,7 +58,7 @@ class BootstrapParticleFilter:
         self.config = config
         self.transition_fn = transition_fn
         self.log_likelihood_fn = log_likelihood_fn
-        self.rng = np.random.default_rng(config.seed)
+        self.rng = random.default_rng(config.seed)
         self.state: ParticleFilterState | None = None
 
     def reset(self, trajectory_id: str, initial_particles: FloatArray) -> None:
@@ -72,8 +67,8 @@ class BootstrapParticleFilter:
             raise ValueError("initial_particles must match particle_count")
         self.state = ParticleFilterState(
             trajectory_id=trajectory_id,
-            particles=initial_particles.astype(np.float64),
-            log_weights=np.full(n_particles, -np.log(n_particles), dtype=np.float64),
+            particles=initial_particles.astype(float64),
+            log_weights=full(n_particles, -log(n_particles), dtype=float64),
             last_time=None,
         )
 
@@ -93,21 +88,21 @@ class BootstrapParticleFilter:
         if ess < self.config.resample_threshold_fraction * self.config.particle_count:
             indexes = systematic_resample(weights, self.rng)
             propagated = propagated[indexes]
-            normalized_log_weights = np.full(
+            normalized_log_weights = full(
                 self.config.particle_count,
-                -np.log(self.config.particle_count),
-                dtype=np.float64,
+                -log(self.config.particle_count),
+                dtype=float64,
             )
-            weights = np.exp(normalized_log_weights)
+            weights = exp(normalized_log_weights)
             ess = effective_sample_size(weights)
             resampled = True
         self.state.particles = propagated
         self.state.log_weights = normalized_log_weights
         self.state.last_time = float(time)
-        state_mean = np.average(propagated, axis=0, weights=weights)
+        state_mean = average(propagated, axis=0, weights=weights)
         centered = propagated - state_mean
         state_covariance = (centered.T * weights) @ centered
-        weight_entropy = -float(np.sum(weights * np.log(np.maximum(weights, 1.0e-300))))
+        weight_entropy = -float(nsum(weights * log(maximum(weights, 1.0e-300))))
         return ParticleFilterStep(
             trajectory_id=self.state.trajectory_id,
             time=float(time),
