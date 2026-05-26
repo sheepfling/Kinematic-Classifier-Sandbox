@@ -224,7 +224,7 @@
     "L": leakage penalty
     "I": physical-invalidity penalty
   implementation:
-    module: src/kinematic_classifier_sandbox/corpus/gym.py
+    module: src/kinematic_classifier_sandbox/corpus/gym_utils.py
     function: _reward_from_components
   artifacts:
     - artifacts/corpus_gym/corpus_gym_report.md
@@ -309,7 +309,7 @@
     "\\text{provenance}": selected-corpus provenance completeness
     "\\text{leakage}": selected-corpus leakage proxy
   implementation:
-    module: src/kinematic_classifier_sandbox/corpus/policy_sweep.py
+    module: src/kinematic_classifier_sandbox/corpus/policy_sweep_utils.py
     function: _evaluate_policy
   artifacts:
     - artifacts/corpus_hyperparameter_tuning_v1/sweep_results.csv

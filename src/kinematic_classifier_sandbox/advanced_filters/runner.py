@@ -13,7 +13,6 @@ from ..inference.transition_matrix_accumulator import (
     default_switching_mode_specs,
     default_transition_matrix,
 )
-from ..trajectory_generator import generate_switching_scenarios
 from .artifact_io import write_imm_artifacts
 from .contracts import (
     AdvancedFilterStep,
@@ -26,6 +25,7 @@ from .imm_filter import IMMFilter
 from .linear_gaussian import LinearGaussianModeSpec
 from .protocols import validate_advanced_filter_step
 from .surface import AdvancedFilterSurface
+from ..witnesses.trajectory_scenarios import generate_switching_scenarios
 
 
 def default_imm_mode_specs() -> list[LinearGaussianModeSpec]:

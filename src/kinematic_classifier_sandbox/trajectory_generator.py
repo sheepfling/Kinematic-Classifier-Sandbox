@@ -650,10 +650,3 @@ def generate_trajectory_datasets(
         )
         for index, tier_definition in enumerate(resolved_tier_definitions)
     )
-
-
-from .witnesses.trajectory_scenarios import (
-    generate_perturbation_sweep_scenarios,
-    generate_short_horizon_scenarios,
-    generate_switching_scenarios,
-)

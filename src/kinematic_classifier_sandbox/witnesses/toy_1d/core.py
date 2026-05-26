@@ -6,6 +6,7 @@ import random
 from dataclasses import dataclass, field
 from math import erf, exp, log, sqrt
 from pathlib import Path
+from typing import NamedTuple
 
 from ...analysis.classification_benchmark import (
     summarize_classification_features,
@@ -212,6 +213,23 @@ class ToyBenchmarkConfig:
     scenario_specs: tuple[ToyScenarioSpec, ...] = field(default_factory=lambda: default_toy_scenarios())
 
 
+class InitialFilterState(NamedTuple):
+    mean: tuple[float, float, float]
+    covariance: tuple[tuple[float, float, float], ...]
+
+
+class FilterUpdateResult(NamedTuple):
+    updated_mean: tuple[float, float, float]
+    updated_covariance: tuple[tuple[float, float, float], ...]
+    innovation: float
+    innovation_variance: float
+
+
+class FilterPredictionResult(NamedTuple):
+    predicted_mean: tuple[float, float, float]
+    predicted_covariance: tuple[tuple[float, float, float], ...]
+
+
 @dataclass(frozen=True, slots=True)
 class ClassPosteriorStep:
     predicted_class_weights: dict[str, float]
@@ -319,7 +337,7 @@ def _initial_filter_state(
     spec: ToyClassSpec,
     first_observation: float,
     config: ToyBenchmarkConfig,
-) -> tuple[tuple[float, float, float], tuple[tuple[float, float, float], ...]]:
+) -> InitialFilterState:
     if spec.name == "coast":
         mean = (first_observation, 0.0, 0.0)
         covariance = (
@@ -362,7 +380,7 @@ def _initial_filter_state(
             (0.0, 25.0, 0.0),
             (0.0, 0.0, 9.0),
         )
-    return mean, covariance
+    return InitialFilterState(mean=mean, covariance=covariance)
 
 
 def _normalize_weights(weights: dict[str, float]) -> dict[str, float]:
@@ -589,7 +607,7 @@ def _predict_filter(
     dt: float,
     accel_bias: float,
     jerk_sigma: float,
-) -> tuple[tuple[float, float, float], tuple[tuple[float, float, float], ...]]:
+) -> FilterPredictionResult:
     transition = _transition_matrix(dt)
     control = (0.0, 0.0, accel_bias * dt)
     process_noise = (
@@ -602,7 +620,7 @@ def _predict_filter(
         _matmul3(_matmul3(transition, covariance), _transpose3(transition)),
         process_noise,
     )
-    return predicted_mean, predicted_covariance
+    return FilterPredictionResult(predicted_mean=predicted_mean, predicted_covariance=predicted_covariance)
 
 
 def _update_filter(
@@ -610,7 +628,7 @@ def _update_filter(
     predicted_covariance: tuple[tuple[float, float, float], ...],
     measurement: float,
     observation_variance: float,
-) -> tuple[tuple[float, float, float], tuple[tuple[float, float, float], ...], float, float]:
+) -> FilterUpdateResult:
     innovation = measurement - predicted_mean[0]
     innovation_variance = max(predicted_covariance[0][0] + observation_variance, 1e-9)
     gain = tuple(predicted_covariance[row][0] / innovation_variance for row in range(3))
@@ -620,7 +638,12 @@ def _update_filter(
         tuple(predicted_covariance[row][col] - gain[row] * predicted_covariance[0][col] for col in range(3))
         for row in range(3)
     )
-    return updated_mean, updated_covariance, innovation, innovation_variance
+    return FilterUpdateResult(
+        updated_mean=updated_mean,
+        updated_covariance=updated_covariance,
+        innovation=innovation,
+        innovation_variance=innovation_variance,
+    )
 
 
 def _feature_probabilities_from_state(
@@ -884,8 +907,8 @@ def run_class_bank(
         spec.name: _initial_filter_state(spec, track.positions_obs[0], config)
         for spec in class_specs
     }
-    means = {spec.name: initial_states[spec.name][0] for spec in class_specs}
-    covariances = {spec.name: initial_states[spec.name][1] for spec in class_specs}
+    means = {spec.name: initial_states[spec.name].mean for spec in class_specs}
+    covariances = {spec.name: initial_states[spec.name].covariance for spec in class_specs}
     previous_accel_means = {spec.name: means[spec.name][2] for spec in class_specs}
 
     weights = dict(initial_weights)
@@ -901,19 +924,25 @@ def run_class_bank(
         previous_accel_snapshot = dict(previous_accel_means)
 
         for spec in class_specs:
-            predicted_mean, predicted_covariance = _predict_filter(
+            prediction_result = _predict_filter(
                 mean=means[spec.name],
                 covariance=covariances[spec.name],
                 dt=track.dt,
                 accel_bias=spec.accel_bias,
                 jerk_sigma=spec.jerk_sigma,
             )
-            updated_mean, updated_covariance, innovation, innovation_variance = _update_filter(
+            predicted_mean = prediction_result.predicted_mean
+            predicted_covariance = prediction_result.predicted_covariance
+            update_result = _update_filter(
                 predicted_mean=predicted_mean,
                 predicted_covariance=predicted_covariance,
                 measurement=measurement,
                 observation_variance=observation_variance,
             )
+            updated_mean = update_result.updated_mean
+            updated_covariance = update_result.updated_covariance
+            innovation = update_result.innovation
+            innovation_variance = update_result.innovation_variance
 
             means[spec.name] = updated_mean
             covariances[spec.name] = updated_covariance

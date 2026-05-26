@@ -365,15 +365,21 @@ def main() -> int:
     )
     showcase_artifacts = build_showcase_artifacts(ROOT / "artifacts", refresh=False, create_zip=False)
     repo_story_artifacts = write_repo_story_artifacts(ROOT / "artifacts", docs_root=ROOT / "docs", write_showcase=True)
-    posterior_math_markdown_path, posterior_math_png_path = write_posterior_math_artifacts(
+    posterior_math_artifacts = write_posterior_math_artifacts(
         ROOT / "artifacts"
     )
-    probability_primitives_markdown_path, probability_primitives_png_path = write_probability_primitives_artifacts(
+    posterior_math_markdown_path = posterior_math_artifacts.markdown_path
+    posterior_math_png_path = posterior_math_artifacts.png_path
+    probability_primitives_artifacts = write_probability_primitives_artifacts(
         ROOT / "artifacts"
     )
-    posterior_numeric_markdown_path, posterior_numeric_png_path = write_posterior_numeric_walkthrough_artifacts(
+    probability_primitives_markdown_path = probability_primitives_artifacts.markdown_path
+    probability_primitives_png_path = probability_primitives_artifacts.png_path
+    posterior_numeric_artifacts = write_posterior_numeric_walkthrough_artifacts(
         ROOT / "artifacts"
     )
+    posterior_numeric_markdown_path = posterior_numeric_artifacts.markdown_path
+    posterior_numeric_png_path = posterior_numeric_artifacts.png_path
     identity_result = run_identity_benchmark()
     identity_artifacts = write_identity_benchmark_artifacts(
         ROOT / "artifacts",
@@ -413,22 +419,30 @@ def main() -> int:
         result=result,
     )
     benchmark_trace_csv = write_toy_benchmark_trace_csv(result, ROOT / "artifacts")
-    posterior_markdown_path, posterior_png_path = write_posterior_explainer_artifacts(
+    posterior_artifacts = write_posterior_explainer_artifacts(
         ROOT / "artifacts",
         result=result,
     )
-    posterior_failure_markdown_path, posterior_failure_png_path = write_posterior_failure_artifacts(
+    posterior_markdown_path = posterior_artifacts.markdown_path
+    posterior_png_path = posterior_artifacts.png_path
+    posterior_failure_artifacts = write_posterior_failure_artifacts(
         ROOT / "artifacts",
         result=result,
     )
-    posterior_comparison_markdown_path, posterior_comparison_png_path = write_posterior_comparison_artifacts(
+    posterior_failure_markdown_path = posterior_failure_artifacts.markdown_path
+    posterior_failure_png_path = posterior_failure_artifacts.png_path
+    posterior_comparison_artifacts = write_posterior_comparison_artifacts(
         ROOT / "artifacts",
         result=result,
     )
-    posterior_margin_markdown_path, posterior_margin_png_path = write_posterior_margin_trace_artifacts(
+    posterior_comparison_markdown_path = posterior_comparison_artifacts.markdown_path
+    posterior_comparison_png_path = posterior_comparison_artifacts.png_path
+    posterior_margin_artifacts = write_posterior_margin_trace_artifacts(
         ROOT / "artifacts",
         result=result,
     )
+    posterior_margin_markdown_path = posterior_margin_artifacts.markdown_path
+    posterior_margin_png_path = posterior_margin_artifacts.png_path
     benchmark_path.write_text(render_toy_benchmark_markdown(result), encoding="utf-8")
     _remove_svg_outputs(ROOT / "artifacts")
     print(survey_path)

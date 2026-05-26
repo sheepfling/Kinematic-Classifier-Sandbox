@@ -57,13 +57,24 @@ class ReferenceWindowStats(NamedTuple):
     duration: dict[str, dict[str, float]]
 
 
+class WindowClassification(NamedTuple):
+    predicted_class: str
+    confidence: float
+
+
+class TransitionDelayCandidates(NamedTuple):
+    rows: list[dict[str, object]]
+    posterior_payloads: list[dict[str, object]]
+    feature_payloads: list[dict[str, object]]
+
+
 def _local_window_features(shared: SharedDynamicsTrajectory, *, robust: bool) -> dict[str, float]:
     times = list(shared.times)
     values = list(shared.measurements)
     if robust and len(values) >= 3:
         values = [_median3(values, index) for index in range(len(values))]
     slope = _least_squares_slope(times, values)
-    _, _, quadratic = _quadratic_fit(times, values)
+    quadratic = _quadratic_fit(times, values).curvature
     return {
         "slope": slope,
         "quadratic_proxy": 2.0 * quadratic,
@@ -74,7 +85,7 @@ def _local_window_features(shared: SharedDynamicsTrajectory, *, robust: bool) ->
 def _observable_pair_posterior(shared: SharedDynamicsTrajectory, *, prior_cv: float = 0.5) -> tuple[dict[str, float], dict[str, float]]:
     times = list(shared.times)
     values = list(shared.measurements)
-    _, _, quadratic = _quadratic_fit(times, values)
+    quadratic = _quadratic_fit(times, values).curvature
     acceleration_observation = 2.0 * quadratic
     duration = max(times[-1] - times[0], 1e-6)
     measurement_sigma = float(getattr(shared, "measurement_std", 0.0) or 0.0)
@@ -225,7 +236,7 @@ def _reference_window_stats() -> ReferenceWindowStats:
     return ReferenceWindowStats(sample_count=stats["sample_count"], duration=stats["duration"])
 
 
-def _classify_window_row(row, stats: dict[str, dict[str, float]]) -> tuple[str, float]:
+def _classify_window_row(row, stats: dict[str, dict[str, float]]) -> WindowClassification:
     log_scores: dict[str, float] = {}
     for class_name, spec in stats.items():
         log_scores[class_name] = (
@@ -236,7 +247,7 @@ def _classify_window_row(row, stats: dict[str, dict[str, float]]) -> tuple[str, 
         )
     weights = _window_normalize(log_scores)
     predicted = max(weights, key=weights.get)
-    return predicted, weights[predicted]
+    return WindowClassification(predicted_class=predicted, confidence=weights[predicted])
 
 
 def _prior_sweep_predictions(shared: SharedDynamicsTrajectory) -> PriorSweepPredictions:
@@ -386,8 +397,12 @@ def _irregular_window_failure_score(
     duration_stats: dict[str, dict[str, float]],
 ) -> tuple[float, dict[str, object], dict[str, object]]:
     features = SimpleNamespace(**_local_window_features(shared, robust=False))
-    sample_pred, sample_conf = _classify_window_row(features, sample_stats)
-    duration_pred, duration_conf = _classify_window_row(features, duration_stats)
+    sample_classification = _classify_window_row(features, sample_stats)
+    duration_classification = _classify_window_row(features, duration_stats)
+    sample_pred = sample_classification.predicted_class
+    sample_conf = sample_classification.confidence
+    duration_pred = duration_classification.predicted_class
+    duration_conf = duration_classification.confidence
     score = max(0.0, duration_conf - sample_conf)
     if duration_pred == shared.true_class and sample_pred != shared.true_class:
         score += 1.0
@@ -433,7 +448,7 @@ def _transition_delay_candidates(
     seed: int,
     random_candidates: int,
     guided_candidates: int,
-) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+) -> TransitionDelayCandidates:
     scenarios = generate_transition_switching_scenarios(seed=seed, replicas=max(1, random_candidates + guided_candidates))
     specs = default_switching_mode_specs()
     transition_matrix = default_transition_matrix()
@@ -482,7 +497,11 @@ def _transition_delay_candidates(
                     "measurements": scenario.measurements,
                 }
             )
-    return rows, posterior_payloads, feature_payloads
+    return TransitionDelayCandidates(
+        rows=rows,
+        posterior_payloads=posterior_payloads,
+        feature_payloads=feature_payloads,
+    )
 
 
 def _wrong_classification_score(shared: SharedDynamicsTrajectory) -> tuple[float, dict[str, float], dict[str, object]]:
@@ -507,13 +526,21 @@ def _high_entropy_score(shared: SharedDynamicsTrajectory) -> tuple[float, dict[s
 
 def _prior_flip_score(shared: SharedDynamicsTrajectory) -> tuple[float, dict[str, float], dict[str, object]]:
     sweep = _prior_sweep_predictions(shared)
-    predicted_classes = {row[1] for row in sweep.rows}
-    score = 1.0 if len(predicted_classes) > 1 else 0.0
+    rows = sweep.rows
+    predicted_classes = {row[1] for row in rows}
+    reference_row = rows[2] if len(rows) >= 3 else rows[0]
+    if len(predicted_classes) > 1:
+        score = 1.0
+        smallest_shift = min(abs(row[0] - 0.5) for row in rows if row[1] != reference_row[1])
+    else:
+        reference_confidence = reference_row[2]
+        score = max(0.0, 1.0 - abs(reference_confidence - 0.5) * 2.0)
+        smallest_shift = 0.5
     payload = {
         "failure_mode": "prior_flip",
-        "sweep": sweep,
+        "sweep": rows,
     }
-    return score, {"num_distinct_predictions": float(len(predicted_classes))}, payload
+    return score, {"num_distinct_predictions": float(len(predicted_classes)), "smallest_shift_to_flip": smallest_shift}, payload
 
 
 def _raw_extrema_failure_score(shared: SharedDynamicsTrajectory) -> tuple[float, dict[str, float], dict[str, object]]:
@@ -544,8 +571,11 @@ def _irregular_window_failure_score(
     )
     sample_row = _sample_count_window(irregular, 5)
     duration_row = _duration_window(irregular, 5.0)
-    sample_predicted, sample_conf = _classify_window_row(sample_row, sample_stats)
-    duration_predicted, duration_conf = _classify_window_row(duration_row, duration_stats)
+    sample_classification = _classify_window_row(sample_row, sample_stats)
+    duration_classification = _classify_window_row(duration_row, duration_stats)
+    sample_conf = sample_classification.confidence
+    duration_predicted = duration_classification.predicted_class
+    duration_conf = duration_classification.confidence
     score = max(0.0, duration_conf - sample_conf) if duration_predicted == shared.true_class else 0.0
     payload = {
         "failure_mode": "irregular_window_failure",
@@ -598,13 +628,3 @@ def _static_candidate_row(
     }
     row.update(details)
     return row
-
-
-def _transition_delay_candidates(
-    *,
-    seed: int,
-    random_candidates: int,
-    guided_candidates: int,
-) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
-    del seed, random_candidates, guided_candidates
-    return [], [], []

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from ..utils.math import _mean
 from .adaptive_stress import analyze_adaptive_stress_corpus
 from .gym import CorpusGymAction, CorpusGymEnvironment, default_corpus_gym_targets
@@ -21,13 +23,24 @@ def _bucket(value: float, thresholds: tuple[float, float]) -> str:
     return "high"
 
 
-def _archive_cell_id(row: dict[str, object]) -> tuple[str, str, str, str, str]:
-    return (
-        str(row.get("true_class") or row.get("generated_class") or ""),
-        str(row.get("tier_name") or row.get("target_tier") or ""),
-        _bucket(float(row.get("duration", 0.0)), (6.0, 12.0)),
-        _bucket(float(row.get("acceleration_range", 0.0)), (0.35, 0.85)),
-        _bucket(float(row.get("sampling_irregularity", 0.0) + float(row.get("outlier_score", 0.0)) * 0.05), (0.12, 0.35)),
+class ArchiveCellId(NamedTuple):
+    true_class: str
+    tier_name: str
+    duration_bucket: str
+    acceleration_bucket: str
+    irregularity_bucket: str
+
+
+def _archive_cell_id(row: dict[str, object]) -> ArchiveCellId:
+    return ArchiveCellId(
+        true_class=str(row.get("true_class") or row.get("generated_class") or ""),
+        tier_name=str(row.get("tier_name") or row.get("target_tier") or ""),
+        duration_bucket=_bucket(float(row.get("duration", 0.0)), (6.0, 12.0)),
+        acceleration_bucket=_bucket(float(row.get("acceleration_range", 0.0)), (0.35, 0.85)),
+        irregularity_bucket=_bucket(
+            float(row.get("sampling_irregularity", 0.0) + float(row.get("outlier_score", 0.0)) * 0.05),
+            (0.12, 0.35),
+        ),
     )
 
 
@@ -130,21 +143,21 @@ def _rows_from_stress(stress) -> list[dict[str, object]]:
         rows.append(
             {
                 "method_name": "adaptive_stress",
-                "true_class": row["true_class"],
-                "target_tier": row["tier_name"],
-                "duration": float(row["duration"]),
-                "acceleration_range": float(row["acceleration_range"]),
-                "sampling_irregularity": float(row["sampling_irregularity"]),
-                "outlier_score": float(row["outlier_score"]),
-                "class_validity": float(row["class_validity"]),
+                "true_class": row.get("true_class") or row.get("generated_class") or "",
+                "target_tier": row.get("tier_name") or row.get("target_tier") or "",
+                "duration": float(row.get("duration", 0.0)),
+                "acceleration_range": float(row.get("acceleration_range", 0.0)),
+                "sampling_irregularity": float(row.get("sampling_irregularity", 0.0)),
+                "outlier_score": float(row.get("outlier_score", 0.0)),
+                "class_validity": float(row.get("class_validity", 0.0)),
                 "feature_excitation": float(row.get("feature_excitation", 0.0) or 0.0),
-                "boundary_closeness": float(row["boundary_closeness"]),
-                "classifier_stress": float(row["classifier_stress"]),
-                "prior_sensitivity": float(row["prior_sensitivity"]),
-                "leakage_penalty": float(row["leakage_penalty"]),
-                "physical_invalidity_penalty": float(row["physical_invalidity_penalty"]),
-                "total_utility": float(row["total_utility"]),
-                "stress_score": float(row["stress_score"]),
+                "boundary_closeness": float(row.get("boundary_closeness", 0.0)),
+                "classifier_stress": float(row.get("classifier_stress", 0.0)),
+                "prior_sensitivity": float(row.get("prior_sensitivity", 0.0)),
+                "leakage_penalty": float(row.get("leakage_penalty", 0.0)),
+                "physical_invalidity_penalty": float(row.get("physical_invalidity_penalty", 0.0)),
+                "total_utility": float(row.get("total_utility", 0.0)),
+                "stress_score": float(row.get("stress_score", 0.0)),
             }
         )
     return rows

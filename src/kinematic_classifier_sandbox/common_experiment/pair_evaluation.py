@@ -75,7 +75,10 @@ def trajectory_features(
     acceleration_range = (max(acceleration) - min(acceleration)) if acceleration else 0.0
     acceleration_variance = statistics.pvariance(acceleration) if len(acceleration) >= 2 else 0.0
     _, slope = _linear_fit(times, measurements)
-    intercept_q, slope_q, curvature = _quadratic_fit(times, measurements)
+    fit = _quadratic_fit(times, measurements)
+    intercept_q = fit.intercept
+    slope_q = fit.slope
+    curvature = fit.curvature
     linear_residual = (
         sum((value - (intercept_q + slope * time)) ** 2 for time, value in zip(times, measurements)) / max(len(times), 1)
     ) ** 0.5

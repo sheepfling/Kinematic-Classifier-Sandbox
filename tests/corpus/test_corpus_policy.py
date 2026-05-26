@@ -68,7 +68,9 @@ class CorpusPolicyTests(unittest.TestCase):
 
     def test_schema_and_default_artifacts_are_written(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            schema, default = write_default_policy_artifacts(temp_dir)
+            artifacts = write_default_policy_artifacts(temp_dir)
+            schema = artifacts.schema_path
+            default = artifacts.default_path
             self.assertTrue(schema.exists())
             self.assertTrue(default.exists())
             self.assertIn("CorpusPolicySpec", schema.read_text(encoding="utf-8"))

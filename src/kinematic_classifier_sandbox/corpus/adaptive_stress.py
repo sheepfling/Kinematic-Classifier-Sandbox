@@ -29,22 +29,21 @@ from .adaptive_stress_rendering import (
 )
 from .adaptive_stress_types import AdaptiveStressCorpusArtifacts, AdaptiveStressCorpusResult
 from .adaptive_stress_utils import (
-    _accumulator_trace,
-    _classify_window_row,
-    _guided_action,
-    _high_entropy_score,
     _infer_shared_scenario_name,
-    _irregular_window_failure_score,
-    _kalman_mismatch_score,
-    _local_window_features,
-    _observable_pair_posterior,
-    _prior_flip_score,
-    _raw_extrema_failure_score,
+    _guided_action,
     _random_action,
     _reference_window_stats,
-    _static_candidate_row,
     _stress_targets,
     _to_shared_trajectory,
+)
+from .adaptive_stress_scoring import (
+    _accumulator_trace,
+    _high_entropy_score,
+    _irregular_window_failure_score,
+    _kalman_mismatch_score,
+    _prior_flip_score,
+    _raw_extrema_failure_score,
+    _static_candidate_row,
     _transition_delay_candidates,
     _wrong_classification_score,
 )
@@ -102,6 +101,8 @@ def analyze_adaptive_stress_corpus(
                 continue
             shared = _to_shared_trajectory(episode.trajectory)
             stress_score, details, payload = evaluator(shared)
+            if mode_name == "prior_flip":
+                stress_score = max(stress_score, float(episode.reward.prior_sensitivity))
             row = _static_candidate_row(
                 failure_mode=mode_name,
                 search_method=search_method,
@@ -120,11 +121,14 @@ def analyze_adaptive_stress_corpus(
                 prior_flip_payloads.append(payload)
         selected_rows.extend(sorted(mode_rows, key=lambda row: float(row["stress_score"]), reverse=True)[:2])
 
-    transition_rows, transition_posteriors, transition_features = _transition_delay_candidates(
+    transition_bundle = _transition_delay_candidates(
         seed=seed + 101,
         random_candidates=random_candidates_per_mode,
         guided_candidates=guided_candidates_per_mode,
     )
+    transition_rows = transition_bundle.rows
+    transition_posteriors = transition_bundle.posterior_payloads
+    transition_features = transition_bundle.feature_payloads
     score_rows.extend(transition_rows)
     selected_rows.extend(sorted(transition_rows, key=lambda row: float(row["stress_score"]), reverse=True)[:2])
     posterior_payloads.extend(transition_posteriors[:2])

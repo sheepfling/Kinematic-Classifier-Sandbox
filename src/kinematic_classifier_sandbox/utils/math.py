@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from math import exp, isfinite, log, pi, sqrt
+from typing import NamedTuple
 
 import numpy.linalg as linalg
 from numpy import asarray, eye, ndarray, zeros
@@ -322,9 +323,15 @@ def _least_squares_slope(times: list[float], values: list[float]) -> float:
     return numerator / denominator
 
 
-def _quadratic_fit(times: list[float], values: list[float]) -> tuple[float, float, float]:
+class QuadraticFitResult(NamedTuple):
+    intercept: float
+    slope: float
+    curvature: float
+
+
+def _quadratic_fit(times: list[float], values: list[float]) -> QuadraticFitResult:
     if len(times) < 3:
-        return 0.0, _least_squares_slope(times, values), 0.0
+        return QuadraticFitResult(intercept=0.0, slope=_least_squares_slope(times, values), curvature=0.0)
     shifted = [time - times[0] for time in times]
     s1 = len(shifted)
     s_t = sum(shifted)
@@ -342,7 +349,7 @@ def _quadratic_fit(times: list[float], values: list[float]) -> tuple[float, floa
     for pivot_index in range(3):
         pivot_row = max(range(pivot_index, 3), key=lambda row: abs(augmented[row][pivot_index]))
         if abs(augmented[pivot_row][pivot_index]) < 1e-12:
-            return 0.0, _least_squares_slope(times, values), 0.0
+            return QuadraticFitResult(intercept=0.0, slope=_least_squares_slope(times, values), curvature=0.0)
         augmented[pivot_index], augmented[pivot_row] = augmented[pivot_row], augmented[pivot_index]
         pivot = augmented[pivot_index][pivot_index]
         for col in range(pivot_index, 4):
@@ -353,7 +360,7 @@ def _quadratic_fit(times: list[float], values: list[float]) -> tuple[float, floa
             factor = augmented[row][pivot_index]
             for col in range(pivot_index, 4):
                 augmented[row][col] -= factor * augmented[pivot_index][col]
-    return augmented[0][3], augmented[1][3], augmented[2][3]
+    return QuadraticFitResult(intercept=augmented[0][3], slope=augmented[1][3], curvature=augmented[2][3])
 
 
 def _add_matrices(left: list[list[float]], right: list[list[float]]) -> list[list[float]]:

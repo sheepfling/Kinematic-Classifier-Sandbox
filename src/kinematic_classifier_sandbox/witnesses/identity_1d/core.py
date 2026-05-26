@@ -23,6 +23,16 @@ class IdentityArtifactPaths(NamedTuple):
     plot_path: Path
     trace_path: Path
 
+
+class ObservedDynamicsProfile(NamedTuple):
+    mean_delta: float
+    mean_abs_delta: float
+    flip_rate: float
+
+
+class RepresentativeIdentityPairs(NamedTuple):
+    pairs: tuple[tuple[SpeedScenario, IdentityClassificationRun], ...]
+
 FEATURE_NAMES = (
     "bike_envelope",
     "horse_envelope",
@@ -93,14 +103,14 @@ def _difference_flip_rate(differences: tuple[float, ...]) -> float:
     return flips / (len(differences) - 1)
 
 
-def _observed_dynamics_profile(speeds_mph: tuple[float, ...]) -> tuple[float, float, float]:
+def _observed_dynamics_profile(speeds_mph: tuple[float, ...]) -> ObservedDynamicsProfile:
     differences = _speed_differences(speeds_mph)
     if not differences:
-        return 0.0, 0.0, 0.0
+        return ObservedDynamicsProfile(mean_delta=0.0, mean_abs_delta=0.0, flip_rate=0.0)
     mean_delta = sum(differences) / len(differences)
     mean_abs_delta = sum(abs(delta) for delta in differences) / len(differences)
     flip_rate = _difference_flip_rate(differences)
-    return mean_delta, mean_abs_delta, flip_rate
+    return ObservedDynamicsProfile(mean_delta=mean_delta, mean_abs_delta=mean_abs_delta, flip_rate=flip_rate)
 
 
 def _cadence_like_score(speeds_mph: tuple[float, ...]) -> float:
@@ -126,7 +136,10 @@ def _feature_probability_profile(speeds_mph: tuple[float, ...]) -> dict[str, flo
     mean_speed = sum(speeds_mph) / len(speeds_mph)
     trace_range = peak_speed - min(speeds_mph)
     mean_delta = _mean_absolute_delta(speeds_mph)
-    signed_delta, mean_abs_step_delta, flip_rate = _observed_dynamics_profile(speeds_mph)
+    dynamics_profile = _observed_dynamics_profile(speeds_mph)
+    signed_delta = dynamics_profile.mean_delta
+    mean_abs_step_delta = dynamics_profile.mean_abs_delta
+    flip_rate = dynamics_profile.flip_rate
     cadence_like = _cadence_like_score(speeds_mph)
     bike_envelope = _clamp((24.0 - peak_speed) / 6.0, 0.0, 1.0) * _clamp((19.0 - mean_speed) / 5.0, 0.0, 1.0)
     horse_envelope = _clamp((mean_speed - 16.0) / 10.0, 0.0, 1.0) * _clamp((41.0 - peak_speed) / 18.0, 0.0, 1.0)
@@ -186,7 +199,10 @@ def _identity_dynamics_log_likelihood(
     recent_window = observed_history[-min(6, len(observed_history)) :]
     if len(recent_window) < 3:
         return 0.0
-    mean_delta, mean_abs_delta, flip_rate = _observed_dynamics_profile(recent_window)
+    dynamics_profile = _observed_dynamics_profile(recent_window)
+    mean_delta = dynamics_profile.mean_delta
+    mean_abs_delta = dynamics_profile.mean_abs_delta
+    flip_rate = dynamics_profile.flip_rate
     cadence_like = _cadence_like_score(recent_window)
     if spec.name == "bike":
         return (
@@ -875,7 +891,7 @@ def render_identity_benchmark_markdown(result: IdentityBenchmarkResult) -> str:
     return report.text()
 
 
-def _representative_identity_pairs(result: IdentityBenchmarkResult) -> tuple[tuple[SpeedScenario, IdentityClassificationRun], ...]:
+def _representative_identity_pairs(result: IdentityBenchmarkResult) -> RepresentativeIdentityPairs:
     pairs = list(zip(result.scenarios, result.runs))
     by_family: dict[str, list[tuple[SpeedScenario, IdentityClassificationRun]]] = {}
     for scenario, run in pairs:
@@ -885,11 +901,11 @@ def _representative_identity_pairs(result: IdentityBenchmarkResult) -> tuple[tup
         family_pairs = by_family[family_name]
         misclassified = [pair for pair in family_pairs if pair[1].aggregate_map_class != pair[1].expected_class]
         representatives.append(misclassified[0] if misclassified else family_pairs[0])
-    return tuple(representatives)
+    return RepresentativeIdentityPairs(pairs=tuple(representatives))
 
 
 def _build_identity_figure(result: IdentityBenchmarkResult):
-    representative_pairs = _representative_identity_pairs(result)
+    representative_pairs = _representative_identity_pairs(result).pairs
     fig, axes = plt.subplots(len(representative_pairs), 2, figsize=(12, 3.8 * len(representative_pairs)), sharex=False)
     if len(representative_pairs) == 1:
         axes_rows = [axes]

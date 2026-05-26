@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 from dataclasses import dataclass
 from pathlib import Path
+from typing import NamedTuple
 
 from ...markdown_builder import MarkdownDocument
 from ...utils.plotting import plt
@@ -25,6 +26,11 @@ class IdentityPosteriorWalkthrough:
     prior_weights: dict[str, float]
     posterior_weights: dict[str, float]
     log_terms: dict[str, dict[str, float]]
+
+
+class ArtifactPaths(NamedTuple):
+    markdown_path: Path
+    png_path: Path
 
 
 def _scenario_for_run(result: IdentityBenchmarkResult, run: IdentityClassificationRun) -> SpeedScenario:
@@ -500,7 +506,7 @@ def write_identity_posterior_explainer_artifacts(
     output_dir: str | Path,
     *,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path]:
+) -> ArtifactPaths:
     benchmark_result = result or run_identity_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -508,14 +514,14 @@ def write_identity_posterior_explainer_artifacts(
     png_path = output_root / "identity_1d_posterior_walkthrough.png"
     markdown_path.write_text(render_identity_posterior_explainer_markdown(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_posterior_explainer_png_bytes(benchmark_result))
-    return markdown_path, png_path
+    return ArtifactPaths(markdown_path=markdown_path, png_path=png_path)
 
 
 def write_identity_posterior_failure_artifacts(
     output_dir: str | Path,
     *,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path]:
+) -> ArtifactPaths:
     benchmark_result = result or run_identity_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -523,14 +529,14 @@ def write_identity_posterior_failure_artifacts(
     png_path = output_root / "identity_1d_posterior_failure_walkthrough.png"
     markdown_path.write_text(render_identity_posterior_failure_markdown(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_posterior_failure_png_bytes(benchmark_result))
-    return markdown_path, png_path
+    return ArtifactPaths(markdown_path=markdown_path, png_path=png_path)
 
 
 def write_identity_posterior_comparison_artifacts(
     output_dir: str | Path,
     *,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path]:
+) -> ArtifactPaths:
     benchmark_result = result or run_identity_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -538,14 +544,14 @@ def write_identity_posterior_comparison_artifacts(
     png_path = output_root / "identity_1d_posterior_comparison.png"
     markdown_path.write_text(render_identity_posterior_comparison_markdown(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_posterior_comparison_png_bytes(benchmark_result))
-    return markdown_path, png_path
+    return ArtifactPaths(markdown_path=markdown_path, png_path=png_path)
 
 
 def write_identity_posterior_margin_trace_artifacts(
     output_dir: str | Path,
     *,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path]:
+) -> ArtifactPaths:
     benchmark_result = result or run_identity_benchmark()
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -553,4 +559,4 @@ def write_identity_posterior_margin_trace_artifacts(
     png_path = output_root / "identity_1d_posterior_margin_trace.png"
     markdown_path.write_text(render_identity_posterior_margin_trace_markdown(benchmark_result), encoding="utf-8")
     png_path.write_bytes(render_identity_posterior_margin_trace_png_bytes(benchmark_result))
-    return markdown_path, png_path
+    return ArtifactPaths(markdown_path=markdown_path, png_path=png_path)

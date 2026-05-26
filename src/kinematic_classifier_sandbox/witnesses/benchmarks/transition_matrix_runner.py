@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import log, pi
 
-from ...trajectory_generator import generate_switching_scenarios
 from ...utils.math import (
     _gaussian_logpdf as _sigma_to_variance_gaussian_logpdf,
 )
@@ -14,7 +13,8 @@ from ...utils.math import (
     _normalize_log_scores,
     _transpose,
 )
-from .transition_matrix_contracts import (
+from ..trajectory_scenarios import generate_switching_scenarios
+from ...inference.transition_matrix.contracts import (
     SwitchingModeSpec,
     SwitchingScenario,
     TransitionBenchmarkResult,

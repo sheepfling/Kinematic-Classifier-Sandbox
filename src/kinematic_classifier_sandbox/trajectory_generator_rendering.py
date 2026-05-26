@@ -14,10 +14,12 @@ from .contracts import TrajectoryArtifact, validate_trajectory_artifact
 from .trajectory_generator import (
     GeneratedTrajectoryDataset,
     default_trajectory_class_definitions,
+    generate_trajectory_datasets,
+)
+from .witnesses.trajectory_scenarios import (
     generate_perturbation_sweep_scenarios,
     generate_short_horizon_scenarios,
     generate_switching_scenarios,
-    generate_trajectory_datasets,
 )
 
 

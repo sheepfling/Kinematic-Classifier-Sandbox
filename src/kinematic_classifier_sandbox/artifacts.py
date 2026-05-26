@@ -4,6 +4,7 @@ import io
 import math
 from collections import defaultdict
 from pathlib import Path
+from typing import NamedTuple
 
 from matplotlib.patches import FancyBboxPatch
 
@@ -19,6 +20,16 @@ from .witnesses.toy_1d.core import ToyBenchmarkResult, run_toy_benchmark
 from .witnesses.toy_1d.posterior_explainer import (
     _select_failure_walkthrough as _select_toy_failure_walkthrough,
 )
+
+
+class ArtifactPaths(NamedTuple):
+    markdown_path: Path
+    png_path: Path
+
+
+class EquationCaseRows(NamedTuple):
+    rows: list[dict[str, float | str]]
+    log_norm: float
 
 
 def render_method_survey_markdown(entries: tuple[MethodEntry, ...] = METHOD_CATALOG) -> str:
@@ -216,14 +227,14 @@ def render_posterior_math_png_bytes() -> bytes:
         plt.close(fig)
 
 
-def write_posterior_math_artifacts(output_dir: str | Path) -> tuple[Path, Path]:
+def write_posterior_math_artifacts(output_dir: str | Path) -> ArtifactPaths:
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "posterior_update_math.md"
     png_path = output_root / "posterior_update_math.png"
     markdown_path.write_text(render_posterior_math_markdown(), encoding="utf-8")
     png_path.write_bytes(render_posterior_math_png_bytes())
-    return markdown_path, png_path
+    return ArtifactPaths(markdown_path=markdown_path, png_path=png_path)
 
 
 def _normal_pdf(x: float, mean: float, sigma: float) -> float:
@@ -272,18 +283,22 @@ def _build_probability_primitives_figure():
     toy_walkthrough = _select_toy_failure_walkthrough(toy_benchmark)
     identity_walkthrough = _select_identity_failure_walkthrough(identity_benchmark)
 
-    toy_rows, toy_log_norm = _equation_case_rows(
+    toy_bundle = _equation_case_rows(
         toy_walkthrough.class_names,
         toy_walkthrough.prior_weights,
         toy_walkthrough.posterior_weights,
         toy_walkthrough.log_terms,
     )
-    identity_rows, identity_log_norm = _equation_case_rows(
+    toy_rows = toy_bundle.rows
+    toy_log_norm = toy_bundle.log_norm
+    identity_bundle = _equation_case_rows(
         identity_walkthrough.class_names,
         identity_walkthrough.prior_weights,
         identity_walkthrough.posterior_weights,
         identity_walkthrough.log_terms,
     )
+    identity_rows = identity_bundle.rows
+    identity_log_norm = identity_bundle.log_norm
 
     fig, axes = plt.subplots(2, 2, figsize=(13.5, 9.5))
     innovation_ax, interval_ax, upper_ax, posterior_ax = axes.flat
@@ -373,14 +388,14 @@ def render_probability_primitives_png_bytes() -> bytes:
         plt.close(fig)
 
 
-def write_probability_primitives_artifacts(output_dir: str | Path) -> tuple[Path, Path]:
+def write_probability_primitives_artifacts(output_dir: str | Path) -> ArtifactPaths:
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "probability_primitives.md"
     png_path = output_root / "probability_primitives.png"
     markdown_path.write_text(render_probability_primitives_markdown(), encoding="utf-8")
     png_path.write_bytes(render_probability_primitives_png_bytes())
-    return markdown_path, png_path
+    return ArtifactPaths(markdown_path=markdown_path, png_path=png_path)
 
 
 def _equation_case_rows(
@@ -388,7 +403,7 @@ def _equation_case_rows(
     prior_weights: dict[str, float],
     posterior_weights: dict[str, float],
     log_terms: dict[str, dict[str, float]],
-) -> tuple[list[dict[str, float | str]], float]:
+) -> EquationCaseRows:
     rows: list[dict[str, float | str]] = []
     log_numerators: list[float] = []
     for class_name in class_names:
@@ -407,7 +422,7 @@ def _equation_case_rows(
                 "posterior": float(posterior_weights[class_name]),
             }
         )
-    return rows, _logsumexp(log_numerators)
+    return EquationCaseRows(rows=rows, log_norm=_logsumexp(log_numerators))
 
 
 def _render_equation_rows(
@@ -441,18 +456,22 @@ def render_posterior_numeric_walkthrough_markdown(
     toy_walkthrough = _select_toy_failure_walkthrough(toy_benchmark)
     identity_walkthrough = _select_identity_failure_walkthrough(identity_benchmark)
 
-    toy_rows, toy_log_norm = _equation_case_rows(
+    toy_bundle = _equation_case_rows(
         toy_walkthrough.class_names,
         toy_walkthrough.prior_weights,
         toy_walkthrough.posterior_weights,
         toy_walkthrough.log_terms,
     )
-    identity_rows, identity_log_norm = _equation_case_rows(
+    toy_rows = toy_bundle.rows
+    toy_log_norm = toy_bundle.log_norm
+    identity_bundle = _equation_case_rows(
         identity_walkthrough.class_names,
         identity_walkthrough.prior_weights,
         identity_walkthrough.posterior_weights,
         identity_walkthrough.log_terms,
     )
+    identity_rows = identity_bundle.rows
+    identity_log_norm = identity_bundle.log_norm
 
     toy_true = toy_walkthrough.run.true_class
     toy_pred = toy_walkthrough.run.aggregate_map_class
@@ -561,18 +580,22 @@ def render_posterior_numeric_walkthrough_png_bytes(
     identity_benchmark = identity_result or run_identity_benchmark()
     toy_walkthrough = _select_toy_failure_walkthrough(toy_benchmark)
     identity_walkthrough = _select_identity_failure_walkthrough(identity_benchmark)
-    toy_rows, toy_log_norm = _equation_case_rows(
+    toy_bundle = _equation_case_rows(
         toy_walkthrough.class_names,
         toy_walkthrough.prior_weights,
         toy_walkthrough.posterior_weights,
         toy_walkthrough.log_terms,
     )
-    identity_rows, identity_log_norm = _equation_case_rows(
+    toy_rows = toy_bundle.rows
+    toy_log_norm = toy_bundle.log_norm
+    identity_bundle = _equation_case_rows(
         identity_walkthrough.class_names,
         identity_walkthrough.prior_weights,
         identity_walkthrough.posterior_weights,
         identity_walkthrough.log_terms,
     )
+    identity_rows = identity_bundle.rows
+    identity_log_norm = identity_bundle.log_norm
 
     fig, axes = plt.subplots(2, 1, figsize=(12, 8.5))
     _build_numeric_walkthrough_table(
@@ -602,7 +625,7 @@ def write_posterior_numeric_walkthrough_artifacts(
     *,
     toy_result: ToyBenchmarkResult | None = None,
     identity_result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path]:
+) -> ArtifactPaths:
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     markdown_path = output_root / "posterior_numeric_walkthrough.md"
@@ -614,4 +637,4 @@ def write_posterior_numeric_walkthrough_artifacts(
     png_path.write_bytes(
         render_posterior_numeric_walkthrough_png_bytes(toy_result=toy_result, identity_result=identity_result)
     )
-    return markdown_path, png_path
+    return ArtifactPaths(markdown_path=markdown_path, png_path=png_path)

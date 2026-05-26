@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..trajectory_generator import generate_switching_scenarios
+from .trajectory_scenarios import generate_switching_scenarios
 
 
 @dataclass(frozen=True, slots=True)

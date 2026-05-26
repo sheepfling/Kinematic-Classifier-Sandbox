@@ -13,7 +13,7 @@ from .reporting import (
     render_transition_benchmark_report,
     render_transition_numeric_walkthrough_markdown,
 )
-from .runner import run_transition_benchmark
+from ...witnesses.benchmarks.transition_matrix_runner import run_transition_benchmark
 
 
 def _build_figure(result: TransitionBenchmarkResult):

@@ -180,7 +180,9 @@ class Toy1DBenchmarkTests(unittest.TestCase):
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, png_path = write_posterior_explainer_artifacts(temp_dir, result=result)
+            artifacts = write_posterior_explainer_artifacts(temp_dir, result=result)
+            markdown_path = artifacts.markdown_path
+            png_path = artifacts.png_path
             self.assertEqual(markdown_path, Path(temp_dir) / "toy_1d_posterior_walkthrough.md")
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_posterior_walkthrough.png")
             self.assertTrue(markdown_path.exists())
@@ -200,7 +202,9 @@ class Toy1DBenchmarkTests(unittest.TestCase):
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, png_path = write_posterior_failure_artifacts(temp_dir, result=result)
+            artifacts = write_posterior_failure_artifacts(temp_dir, result=result)
+            markdown_path = artifacts.markdown_path
+            png_path = artifacts.png_path
             self.assertEqual(markdown_path, Path(temp_dir) / "toy_1d_posterior_failure_walkthrough.md")
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_posterior_failure_walkthrough.png")
             self.assertTrue(markdown_path.exists())
@@ -220,7 +224,9 @@ class Toy1DBenchmarkTests(unittest.TestCase):
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, png_path = write_posterior_comparison_artifacts(temp_dir, result=result)
+            artifacts = write_posterior_comparison_artifacts(temp_dir, result=result)
+            markdown_path = artifacts.markdown_path
+            png_path = artifacts.png_path
             self.assertEqual(markdown_path, Path(temp_dir) / "toy_1d_posterior_comparison.md")
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_posterior_comparison.png")
             self.assertTrue(markdown_path.exists())
@@ -240,7 +246,9 @@ class Toy1DBenchmarkTests(unittest.TestCase):
         self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            markdown_path, png_path = write_posterior_margin_trace_artifacts(temp_dir, result=result)
+            artifacts = write_posterior_margin_trace_artifacts(temp_dir, result=result)
+            markdown_path = artifacts.markdown_path
+            png_path = artifacts.png_path
             self.assertEqual(markdown_path, Path(temp_dir) / "toy_1d_posterior_margin_trace.md")
             self.assertEqual(png_path, Path(temp_dir) / "toy_1d_posterior_margin_trace.png")
             self.assertTrue(markdown_path.exists())

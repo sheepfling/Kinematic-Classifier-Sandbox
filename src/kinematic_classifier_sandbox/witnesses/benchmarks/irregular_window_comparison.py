@@ -113,7 +113,7 @@ def generate_window_regime_trajectories(*, seed: int = 7, obs_sigma: float = 0.1
 def _sample_count_window(trajectory: WindowRegimeTrajectory, sample_count: int) -> WindowRegimeFeatureRow:
     window_times = list(trajectory.times[-sample_count:])
     window_values = list(trajectory.measurements[-sample_count:])
-    _, _, curvature = _quadratic_fit(window_times, window_values)
+    curvature = _quadratic_fit(window_times, window_values).curvature
     return WindowRegimeFeatureRow(
         trajectory_id=trajectory.trajectory_id,
         true_class=trajectory.true_class,
@@ -141,7 +141,7 @@ def _duration_window(trajectory: WindowRegimeTrajectory, duration: float) -> Win
     if len(window_times) < 2:
         window_times = list(trajectory.times[-2:])
         window_values = list(trajectory.measurements[-2:])
-    _, _, curvature = _quadratic_fit(window_times, window_values)
+    curvature = _quadratic_fit(window_times, window_values).curvature
     return WindowRegimeFeatureRow(
         trajectory_id=trajectory.trajectory_id,
         true_class=trajectory.true_class,

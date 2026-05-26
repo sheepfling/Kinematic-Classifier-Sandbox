@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from ..analysis.common_dataset_comparison import default_shared_classifier_adapters
 from ..inference.kalman_filter_bank import run_kalman_bank_benchmark
 from ..inference.pointwise_baseline import run_pointwise_benchmark
@@ -16,6 +18,11 @@ from .technique_comparison_contracts import (
     TechniqueComparisonRow,
     TechniqueDefinition,
 )
+
+
+class WindowedRows(NamedTuple):
+    raw: TechniqueComparisonRow
+    robust: TechniqueComparisonRow
 
 
 def _safe_mean(values: list[float]) -> float | None:
@@ -50,7 +57,7 @@ def _pointwise_row(seed: int) -> TechniqueComparisonRow:
     )
 
 
-def _windowed_rows(seed: int) -> tuple[TechniqueComparisonRow, TechniqueComparisonRow]:
+def _windowed_rows(seed: int) -> WindowedRows:
     result = run_windowed_benchmark(seed=seed)
     prior_raw = analyze_windowed_prior_sensitivity(seed=seed, feature_mode="raw")
     prior_robust = analyze_windowed_prior_sensitivity(seed=seed, feature_mode="robust")
@@ -97,7 +104,7 @@ def _windowed_rows(seed: int) -> tuple[TechniqueComparisonRow, TechniqueComparis
         outlier_aware=1.0,
         stronger_sensor_stream=0.0,
     )
-    return raw_row, robust_row
+    return WindowedRows(raw=raw_row, robust=robust_row)
 
 
 def _accumulator_row(seed: int) -> TechniqueComparisonRow:
@@ -189,12 +196,12 @@ def default_technique_definitions() -> tuple[TechniqueDefinition, ...]:
         TechniqueDefinition(
             method_name="windowed_raw",
             sensor_regime_id=shared_adapters["windowed_raw"].sensor_regime_id,
-            build_row=lambda seed: _windowed_rows(seed)[0],
+            build_row=lambda seed: _windowed_rows(seed).raw,
         ),
         TechniqueDefinition(
             method_name="windowed_robust",
             sensor_regime_id=shared_adapters["windowed_robust"].sensor_regime_id,
-            build_row=lambda seed: _windowed_rows(seed)[1],
+            build_row=lambda seed: _windowed_rows(seed).robust,
         ),
         TechniqueDefinition(
             method_name="accumulator",

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 
@@ -25,6 +25,11 @@ class CorpusPolicySpec:
     sampler_budgets: dict[str, int]
     gates: dict[str, float | int]
     normalization: dict[str, bool]
+
+
+class PolicyArtifactPaths(NamedTuple):
+    schema_path: Path
+    default_path: Path
 
 
 GENERIC_EXPLORER_TERMS = (
@@ -249,7 +254,7 @@ def corpus_policy_schema() -> dict[str, Any]:
     }
 
 
-def write_default_policy_artifacts(output_dir: str | Path, policy: CorpusPolicySpec | None = None) -> tuple[Path, Path]:
+def write_default_policy_artifacts(output_dir: str | Path, policy: CorpusPolicySpec | None = None) -> PolicyArtifactPaths:
     run_dir = Path(output_dir) / "corpus_hyperparameter_tuning_v1"
     run_dir.mkdir(parents=True, exist_ok=True)
     schema_path = run_dir / "weight_spec_schema.json"
@@ -257,7 +262,7 @@ def write_default_policy_artifacts(output_dir: str | Path, policy: CorpusPolicyS
     resolved = policy or load_corpus_policy_spec()
     schema_path.write_text(json.dumps(corpus_policy_schema(), indent=2), encoding="utf-8")
     default_path.write_text(yaml.safe_dump(corpus_policy_to_dict(resolved), sort_keys=False), encoding="utf-8")
-    return schema_path, default_path
+    return PolicyArtifactPaths(schema_path=schema_path, default_path=default_path)
 
 
 def _float_mapping(payload: dict[str, Any], required: tuple[str, ...]) -> dict[str, float]:
