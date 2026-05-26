@@ -9,12 +9,12 @@ from .candidate_generation_types import CandidateGenerationArtifacts, CandidateG
 
 
 def _render_sampler_comparison_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
-    sampler_names = sorted({str(row["sampler_name"]) for row in rows})
+    sampler_names = sorted({str(row.get("sampler_name", "")) for row in rows})
     metric_names = ("total_utility", "feature_excitation", "coverage_gain", "boundary_closeness")
     means = {
         sampler_name: {
-            metric_name: sum(float(row[metric_name]) for row in rows if row["sampler_name"] == sampler_name)
-            / max(sum(1 for row in rows if row["sampler_name"] == sampler_name), 1)
+            metric_name: sum(float(row.get(metric_name, 0.0)) for row in rows if row.get("sampler_name", "") == sampler_name)
+            / max(sum(1 for row in rows if row.get("sampler_name", "") == sampler_name), 1)
             for metric_name in metric_names
         }
         for sampler_name in sampler_names
@@ -39,8 +39,8 @@ def _render_sampler_comparison_png(rows: tuple[CandidateGenerationRow, ...]) -> 
 
 
 def _render_coverage_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
-    target_types = sorted({str(row["target_type"]) for row in rows})
-    methods = sorted({str(row["search_method"]) for row in rows})
+    target_types = sorted({str(row.get("target_type", "unknown")) for row in rows})
+    methods = sorted({str(row.get("search_method", "")) for row in rows})
     matrix = []
     for target_type in target_types:
         row_values = []
@@ -48,9 +48,9 @@ def _render_coverage_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
             selected = [
                 row
                 for row in rows
-                if row["target_type"] == target_type and row["search_method"] == method
+                if row.get("target_type", "unknown") == target_type and row.get("search_method", "") == method
             ]
-            row_values.append(sum(float(row["selected"]) for row in selected))
+            row_values.append(sum(float(row.get("selected", 0)) for row in selected))
         matrix.append(row_values)
     fig, ax = plt.subplots(figsize=(7.4, 4.6))
     image = ax.imshow(matrix, cmap="viridis", aspect="auto")
@@ -66,12 +66,12 @@ def _render_coverage_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
 
 
 def _render_lineage_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
-    lineage_rows = [row for row in rows if str(row["parent_candidate_id"])]
+    lineage_rows = [row for row in rows if str(row.get("parent_candidate_id", ""))]
     fig, ax = plt.subplots(figsize=(8.0, 4.6))
     for index, row in enumerate(lineage_rows[:20]):
         ax.plot([0, 1], [index, index], color="#94a3b8", linewidth=1.0)
-        ax.text(0.0, index, str(row["parent_candidate_id"]), fontsize=7, ha="right", va="center")
-        ax.text(1.0, index, str(row["candidate_id"]), fontsize=7, ha="left", va="center")
+        ax.text(0.0, index, str(row.get("parent_candidate_id", "")), fontsize=7, ha="right", va="center")
+        ax.text(1.0, index, str(row.get("candidate_id", "")), fontsize=7, ha="left", va="center")
     ax.set_xlim(-0.2, 1.2)
     ax.set_ylim(-1, max(len(lineage_rows[:20]), 1))
     ax.axis("off")
