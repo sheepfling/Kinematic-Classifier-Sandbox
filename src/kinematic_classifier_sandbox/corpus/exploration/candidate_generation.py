@@ -48,21 +48,24 @@ def generate_candidates_from_objective_file(path: str | Path) -> tuple[BackendCa
 def analyze_candidate_generation() -> CandidateGenerationResult:
     objectives = default_corpus_objectives()
     candidates = generate_candidates_from_objectives(objectives)
-    search_analysis = analyze_capability_aware_search(objectives)
+    search_analysis = analyze_capability_aware_search()
     generated_candidate_rows = tuple(
         _candidate_row(candidate, candidate.provenance.get("sampler_name", ""), candidate.provenance.get("parent_candidate_id", ""))
         for candidate in candidates
     )
+    sampler_names = sorted({str(row["sampler_name"]) for row in generated_candidate_rows})
     sampler_manifest = {
         "objective_count": len(objectives),
         "candidate_count": len(candidates),
-        "search_analysis": search_analysis.search_policy_manifest,
+        "samplers": sampler_names,
+        "search_analysis": search_analysis.search_planner_rules,
     }
     report_markdown = "\n".join(
         [
             "# Candidate Generation",
             "",
             "This artifact establishes the candidate sampler surface used by corpus exploration.",
+            "Candidate generation is now objective-driven and routed through the exploration helper stack.",
             "",
             f"- Objective count: `{len(objectives)}`",
             f"- Candidate count: `{len(candidates)}`",

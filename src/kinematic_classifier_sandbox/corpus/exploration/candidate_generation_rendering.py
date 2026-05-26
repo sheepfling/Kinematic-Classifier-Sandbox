@@ -3,14 +3,12 @@ from __future__ import annotations
 import json
 from io import BytesIO
 from pathlib import Path
-from typing import Any
-
 from ...utils.plotting import plt
 from ...utils.io import write_csv
-from .candidate_generation_types import CandidateGenerationArtifacts, CandidateGenerationResult
+from .candidate_generation_types import CandidateGenerationArtifacts, CandidateGenerationResult, CandidateGenerationRow
 
 
-def _render_sampler_comparison_png(rows: tuple[dict[str, Any], ...]) -> bytes:
+def _render_sampler_comparison_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
     sampler_names = sorted({str(row["sampler_name"]) for row in rows})
     metric_names = ("total_utility", "feature_excitation", "coverage_gain", "boundary_closeness")
     means = {
@@ -40,7 +38,7 @@ def _render_sampler_comparison_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     return buffer.getvalue()
 
 
-def _render_coverage_png(rows: tuple[dict[str, Any], ...]) -> bytes:
+def _render_coverage_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
     target_types = sorted({str(row["target_type"]) for row in rows})
     methods = sorted({str(row["search_method"]) for row in rows})
     matrix = []
@@ -67,7 +65,7 @@ def _render_coverage_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     return buffer.getvalue()
 
 
-def _render_lineage_png(rows: tuple[dict[str, Any], ...]) -> bytes:
+def _render_lineage_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
     lineage_rows = [row for row in rows if str(row["parent_candidate_id"])]
     fig, ax = plt.subplots(figsize=(8.0, 4.6))
     for index, row in enumerate(lineage_rows[:20]):

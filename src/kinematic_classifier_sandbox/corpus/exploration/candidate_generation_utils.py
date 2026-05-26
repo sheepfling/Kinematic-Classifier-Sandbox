@@ -5,6 +5,7 @@ from typing import Any
 
 from ..objectives import CorpusObjectiveSpec
 from .backend_adapter_proof import BackendCandidateSpec
+from .candidate_generation_types import CandidateGenerationRow
 
 
 def _backend_constraints_for_objective(objective: CorpusObjectiveSpec) -> tuple[str, ...]:
@@ -66,11 +67,24 @@ def _base_candidate(objective: CorpusObjectiveSpec, backend_id: str, index: int)
     )
 
 
-def _candidate_row(candidate: BackendCandidateSpec, sampler_name: str, parent_candidate_id: str) -> dict[str, Any]:
+def _candidate_row(candidate: BackendCandidateSpec, sampler_name: str, parent_candidate_id: str) -> CandidateGenerationRow:
+    target_type = (
+        "target_feature_cell"
+        if candidate.provenance.get("objective_id", "").endswith("_feature")
+        else "target_class_pair"
+        if candidate.target_class in {"braking", "maneuver"}
+        else "target_class"
+    )
+    feature_excitation = max(0.0, min(1.0, 1.0 - abs(candidate.acceleration) * 0.65 + (0.08 if candidate.provenance.get("environment_id") else 0.0)))
+    coverage_gain = max(0.0, min(1.0, 0.35 + 0.15 * len(candidate.provenance.get("environment_id", "")) + 0.05 * (candidate.duration - 1.5)))
+    boundary_closeness = max(0.0, min(1.0, 1.0 - abs(candidate.acceleration - 0.28) * 1.4))
+    total_utility = 0.50 * feature_excitation + 0.30 * coverage_gain + 0.20 * boundary_closeness
     return {
         "candidate_id": candidate.candidate_id,
         "objective_id": candidate.provenance["objective_id"],
+        "target_type": target_type,
         "sampler_name": sampler_name,
+        "search_method": sampler_name,
         "backend_id": candidate.provenance["backend_id"],
         "scenario_family": candidate.scenario_family,
         "target_class": candidate.target_class,
@@ -83,6 +97,11 @@ def _candidate_row(candidate: BackendCandidateSpec, sampler_name: str, parent_ca
         "measurement_std": candidate.measurement_std,
         "environment_id": candidate.provenance.get("environment_id", ""),
         "parent_candidate_id": parent_candidate_id,
+        "selected": 1,
+        "feature_excitation": feature_excitation,
+        "coverage_gain": coverage_gain,
+        "boundary_closeness": boundary_closeness,
+        "total_utility": total_utility,
     }
 
 
