@@ -7,6 +7,16 @@ from typing import TYPE_CHECKING
 
 from ..analysis.common_dataset_comparison import CommonComparisonResult
 from ..feature_rows import FeatureValueMappingMixin
+from .summary_rows_types import (
+    ClassPairDurationSummaryRow,
+    ClassPairScenarioSummaryRow,
+    CovariateAuditRow,
+    FeatureExcitationSummaryRow,
+    IdentifiabilitySummaryRow,
+    MetricsByClassifierRow,
+    MetricsBySensorRegimeRow,
+    OracleSummaryRow,
+)
 
 if TYPE_CHECKING:
     from .protocols import (
@@ -102,19 +112,19 @@ class CommonExperimentResult:
     posterior_history_rows: tuple[dict[str, Any], ...]
     likelihood_history_rows: tuple[dict[str, Any], ...]
     feature_rows: tuple[dict[str, Any], ...]
-    metrics_by_classifier_rows: tuple[dict[str, Any], ...]
-    metrics_by_sensor_regime_rows: tuple[dict[str, Any], ...]
+    metrics_by_classifier_rows: tuple[MetricsByClassifierRow, ...]
+    metrics_by_sensor_regime_rows: tuple[MetricsBySensorRegimeRow, ...]
     metrics_by_classifier_and_feature_set_rows: tuple[dict[str, Any], ...]
     metrics_by_class_pair_rows: tuple[dict[str, Any], ...]
     prior_sensitivity_rows: tuple[dict[str, Any], ...]
     feature_set_comparison_rows: tuple[dict[str, Any], ...]
     irregular_window_rows: tuple[dict[str, Any], ...]
-    class_pair_duration_rows: tuple[dict[str, Any], ...]
-    class_pair_scenario_rows: tuple[dict[str, Any], ...]
-    covariate_rows: tuple[dict[str, Any], ...]
-    feature_excitation_rows: tuple[dict[str, Any], ...]
-    identifiability_rows: tuple[dict[str, Any], ...]
-    oracle_rows: tuple[dict[str, Any], ...]
+    class_pair_duration_rows: tuple[ClassPairDurationSummaryRow, ...]
+    class_pair_scenario_rows: tuple[ClassPairScenarioSummaryRow, ...]
+    covariate_rows: tuple[CovariateAuditRow, ...]
+    feature_excitation_rows: tuple[FeatureExcitationSummaryRow, ...]
+    identifiability_rows: tuple[IdentifiabilitySummaryRow, ...]
+    oracle_rows: tuple[OracleSummaryRow, ...]
 
 
 @dataclass(frozen=True, slots=True)

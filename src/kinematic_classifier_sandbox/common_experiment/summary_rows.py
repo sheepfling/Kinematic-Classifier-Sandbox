@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from math import exp
-from typing import Callable
+from typing import Callable, cast
 
 from ..analysis.feature_analysis import resolve_feature_names
 from ..scenarios import get_scenario_family, get_scenario_measurement_sigma
@@ -28,6 +28,16 @@ from .contracts import (
     ExecutableTrajectory,
     FeatureExcitationRow,
     PairPredictionRow,
+)
+from .summary_rows_types import (
+    ClassPairDurationSummaryRow,
+    ClassPairScenarioSummaryRow,
+    CovariateAuditRow,
+    FeatureExcitationSummaryRow,
+    IdentifiabilitySummaryRow,
+    MetricsByClassifierRow,
+    MetricsBySensorRegimeRow,
+    OracleSummaryRow,
 )
 
 
@@ -83,11 +93,11 @@ def trajectory_covariates(trajectory: ExecutableTrajectory) -> dict[str, float]:
     }
 
 
-def metrics_by_classifier(prediction_rows: tuple[PairPredictionRow, ...]) -> tuple[dict[str, object], ...]:
+def metrics_by_classifier(prediction_rows: tuple[PairPredictionRow, ...]) -> tuple[MetricsByClassifierRow, ...]:
     grouped: dict[str, list[PairPredictionRow]] = {}
     for row in prediction_rows:
         grouped.setdefault(row.classifier_id, []).append(row)
-    rows: list[dict[str, object]] = []
+    rows: list[MetricsByClassifierRow] = []
     for classifier_id, classifier_rows in sorted(grouped.items()):
         accuracy = sum(1 for row in classifier_rows if row.predicted_class == row.true_class) / max(len(classifier_rows), 1)
         rows.append(
@@ -100,11 +110,11 @@ def metrics_by_classifier(prediction_rows: tuple[PairPredictionRow, ...]) -> tup
     return tuple(rows)
 
 
-def metrics_by_sensor_regime(prediction_rows: tuple[PairPredictionRow, ...]) -> tuple[dict[str, object], ...]:
+def metrics_by_sensor_regime(prediction_rows: tuple[PairPredictionRow, ...]) -> tuple[MetricsBySensorRegimeRow, ...]:
     grouped: dict[str, list[PairPredictionRow]] = {}
     for row in prediction_rows:
         grouped.setdefault(row.sensor_regime_id, []).append(row)
-    rows: list[dict[str, object]] = []
+    rows: list[MetricsBySensorRegimeRow] = []
     for sensor_regime_id, regime_rows in sorted(grouped.items()):
         hits = [1.0 if row.predicted_class == row.true_class else 0.0 for row in regime_rows]
         confidences = [row.confidence for row in regime_rows]
@@ -131,7 +141,7 @@ def covariate_rows(
     *,
     scenario_tier_fn: Callable[[str], str],
     scenario_family_fn: Callable[[str], str],
-) -> tuple[dict[str, object], ...]:
+) -> tuple[CovariateAuditRow, ...]:
     grouped: dict[tuple[str, str, str, str], list[ExecutableTrajectory]] = {}
     pair_tier_values: dict[tuple[str, str], dict[str, list[float]]] = {}
     for trajectory in trajectories:
@@ -192,10 +202,10 @@ def covariate_rows(
                 status=status,
             )
         )
-    return tuple(asdict(row) for row in rows)
+    return cast(tuple[CovariateAuditRow, ...], tuple(asdict(row) for row in rows))
 
 
-def feature_excitation_rows(feature_rows: tuple[dict[str, object], ...]) -> tuple[dict[str, object], ...]:
+def feature_excitation_rows(feature_rows: tuple[dict[str, object], ...]) -> tuple[FeatureExcitationSummaryRow, ...]:
     feature_names = (
         "position_range",
         "speed_range",
@@ -239,12 +249,12 @@ def feature_excitation_rows(feature_rows: tuple[dict[str, object], ...]) -> tupl
                 feature_stds=feature_stds,
             )
         )
-    return tuple(asdict(row) for row in rows)
+    return cast(tuple[FeatureExcitationSummaryRow, ...], tuple(asdict(row) for row in rows))
 
 
 def class_pair_duration_rows(
     posterior_rows: tuple[dict[str, object], ...],
-) -> tuple[dict[str, object], ...]:
+) -> tuple[ClassPairDurationSummaryRow, ...]:
     grouped: dict[tuple[str, str, float], list[dict[str, object]]] = {}
     for row in posterior_rows:
         grouped.setdefault(
@@ -255,7 +265,7 @@ def class_pair_duration_rows(
             ),
             [],
         ).append(row)
-    rows: list[dict[str, object]] = []
+    rows: list[ClassPairDurationSummaryRow] = []
     for (classifier_id, class_pair_id, time_value), selected in sorted(grouped.items()):
         hits = 0
         confidence_sum = 0.0
@@ -278,12 +288,12 @@ def class_pair_duration_rows(
                 posterior_margin=margin_sum / max(len(selected), 1),
             )
         )
-    return tuple(asdict(row) for row in rows)
+    return cast(tuple[ClassPairDurationSummaryRow, ...], tuple(asdict(row) for row in rows))
 
 
 def class_pair_scenario_rows(
     prediction_rows: tuple[dict[str, object], ...],
-) -> tuple[dict[str, object], ...]:
+) -> tuple[ClassPairScenarioSummaryRow, ...]:
     grouped: dict[tuple[str, str, str], list[dict[str, object]]] = {}
     for row in prediction_rows:
         grouped.setdefault(
@@ -294,7 +304,7 @@ def class_pair_scenario_rows(
             ),
             [],
         ).append(row)
-    rows: list[ClassPairScenarioRow] = []
+    rows: list[ClassPairScenarioSummaryRow] = []
     for (classifier_id, class_pair_id, scenario_id), selected in sorted(grouped.items()):
         rows.append(
             ClassPairScenarioRow(
@@ -311,19 +321,19 @@ def class_pair_scenario_rows(
                 num_predictions=len(selected),
             )
         )
-    return tuple(asdict(row) for row in rows)
+    return cast(tuple[ClassPairScenarioSummaryRow, ...], tuple(asdict(row) for row in rows))
 
 
 def identifiability_rows(
     feature_rows: tuple[dict[str, object], ...],
     *,
     feature_manifest: dict[str, dict[str, object]],
-) -> tuple[dict[str, object], ...]:
+) -> tuple[IdentifiabilitySummaryRow, ...]:
     grouped: dict[tuple[str, str], list[dict[str, object]]] = {}
     for row in feature_rows:
         grouped.setdefault((str(row["class_pair_id"]), str(row["feature_set_id"])), []).append(row)
 
-    rows: list[dict[str, object]] = []
+    rows: list[IdentifiabilitySummaryRow] = []
     for (pair_id, feature_set_id), selected in sorted(grouped.items()):
         feature_names = resolve_feature_names(feature_set=feature_set_id, manifest=feature_manifest)
         class_names = sorted({str(row["true_class"]) for row in selected})
@@ -379,7 +389,7 @@ def oracle_rows(
     feature_rows: tuple[dict[str, object], ...],
     *,
     feature_manifest: dict[str, dict[str, object]],
-) -> tuple[dict[str, object], ...]:
+) -> tuple[OracleSummaryRow, ...]:
     grouped: dict[tuple[str, str], list[dict[str, object]]] = {}
     for row in feature_rows:
         grouped.setdefault((str(row["class_pair_id"]), str(row["feature_set_id"])), []).append(row)
@@ -423,10 +433,13 @@ def oracle_rows(
             "mean_posterior_margin": _mean(margins),
             "num_examples": len(selected),
             "history_behavior": str(feature_manifest[feature_set_id].get("history_behavior", "unknown")),
+            "best_feature_set_for_pair": "",
+            "best_oracle_accuracy_for_pair": 0.0,
+            "is_best_feature_set": False,
         }
         pair_rows.setdefault(pair_id, []).append(feature_row)
 
-    rows: list[dict[str, object]] = []
+    rows: list[OracleSummaryRow] = []
     for pair_id, selected in sorted(pair_rows.items()):
         best_row = max(selected, key=lambda row: (float(row["oracle_accuracy"]), float(row["mean_posterior_margin"])))
         for row in selected:
