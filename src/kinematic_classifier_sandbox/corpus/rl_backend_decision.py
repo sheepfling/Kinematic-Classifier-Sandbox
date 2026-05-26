@@ -1,39 +1,16 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from pathlib import Path
 
-from ..markdown_builder import MarkdownDocument
 from .adaptive_stress import analyze_adaptive_stress_corpus
 from .quality_diversity import analyze_quality_diversity_corpus
+from .rl_backend_decision_artifact_io import write_rl_backend_decision_artifacts
+from .rl_backend_decision_contracts import (
+    RlBackendDecisionArtifacts,
+    RlBackendDecisionResult,
+)
+from .rl_backend_decision_reporting import render_rl_backend_decision_report
 from .search_baseline import analyze_corpus_search_baseline
-
-
-@dataclass(frozen=True, slots=True)
-class RlBackendDecisionResult:
-    rl_justified: bool
-    state_space: tuple[str, ...]
-    action_space: tuple[str, ...]
-    reward_components: tuple[str, ...]
-    episode_definition: str
-    baseline_to_beat: dict[str, object]
-    success_metric: str
-    search_selected_mean_utility: float
-    qd_final_coverage_fraction: float
-    qd_best_feature_excitation: float
-    stress_resolved_modes: int
-    stress_total_modes: int
-    stress_improved_modes: tuple[str, ...]
-    decision_rows: tuple[dict[str, object], ...]
-
-
-@dataclass(frozen=True, slots=True)
-class RlBackendDecisionArtifacts:
-    run_dir: Path
-    report_path: Path
-    summary_path: Path
-    evidence_path: Path
 
 
 def analyze_rl_backend_decision() -> RlBackendDecisionResult:
@@ -158,92 +135,4 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
         stress_total_modes=len(stress_modes),
         stress_improved_modes=tuple(improved_modes),
         decision_rows=decision_rows,
-    )
-
-
-def render_rl_backend_decision_report(result: RlBackendDecisionResult) -> str:
-    doc = MarkdownDocument("RL Backend Decision Report")
-    doc.paragraph(
-        "Milestone 29 decision gate for whether CorpusGym should advance from search, quality-diversity, and adaptive stress methods to an RL backend."
-    )
-    
-    doc.heading("Decision", level=2)
-    doc.bullet_list([f"RL justified now: `{result.rl_justified}`"])
-
-    doc.heading("Current Formulation", level=2)
-    doc.bullet_list(
-        [
-            f"State space: `{', '.join(result.state_space)}`",
-            f"Action space: `{', '.join(result.action_space)}`",
-            f"Reward components: `{', '.join(result.reward_components)}`",
-            f"Episode definition: {result.episode_definition}",
-        ]
-    )
-
-    doc.heading("Baseline To Beat", level=2)
-    doc.bullet_list(
-        [
-            f"Selected-search mean utility: `{result.search_selected_mean_utility:.3f}`",
-            f"QD final coverage fraction: `{result.qd_final_coverage_fraction:.3f}`",
-            f"QD best feature-target excitation: `{result.qd_best_feature_excitation:.3f}`",
-            f"Stress modes improved over random baseline: `{result.stress_resolved_modes}/{result.stress_total_modes}`",
-        ]
-    )
-
-    doc.heading("Success Metric Required To Justify RL", level=2)
-    doc.bullet_list([result.success_metric])
-
-    doc.heading("Gate Table", level=2)
-    doc.table(
-        ["criterion", "status", "value", "note"],
-        [
-            (row["criterion"], row["status"], str(row["value"]), row["note"])
-            for row in result.decision_rows
-        ]
-    )
-
-    doc.heading("Recommendation", level=2)
-    doc.bullet_list(
-        [
-            "Keep RL as a no-go for now.",
-            "The current repo already gets measurable gains from non-RL methods across M26, M27, and M28.",
-            "Revisit RL only after adding a genuinely sequential CorpusGym environment, or after a future corpus objective remains unresolved under matched-budget search and quality-diversity baselines.",
-        ]
-    )
-
-    return doc.text()
-
-
-def write_rl_backend_decision_artifacts(
-    output_dir: str | Path,
-    *,
-    result: RlBackendDecisionResult | None = None,
-) -> RlBackendDecisionArtifacts:
-    analysis = result or analyze_rl_backend_decision()
-    run_dir = Path(output_dir) / "rl_corpus_agent"
-    run_dir.mkdir(parents=True, exist_ok=True)
-    report_path = run_dir / "rl_backend_decision_report.md"
-    summary_path = run_dir / "rl_backend_decision_summary.json"
-    evidence_path = run_dir / "rl_backend_decision_evidence.json"
-
-    report_path.write_text(render_rl_backend_decision_report(analysis), encoding="utf-8")
-    summary_path.write_text(
-        json.dumps(
-            {
-                "rl_justified": analysis.rl_justified,
-                "baseline_to_beat": analysis.baseline_to_beat,
-                "success_metric": analysis.success_metric,
-                "stress_improved_modes": list(analysis.stress_improved_modes),
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    evidence_path.write_text(json.dumps(list(analysis.decision_rows), indent=2), encoding="utf-8")
-
-    return RlBackendDecisionArtifacts(
-        run_dir=run_dir,
-        report_path=report_path,
-        summary_path=summary_path,
-        evidence_path=evidence_path,
     )
