@@ -164,11 +164,12 @@ def write_particle_filter_witness_artifacts(output_dir: str | Path, *, seed: int
         dt = 0.25 if last_time is None else max(float(time_value - last_time), 1.0e-9)
         if last_time is not None:
             kalman_state = kalman_predict(kalman_state, dt=dt, process_noise_scale=0.01)
-        kalman_state, _, _, _ = kalman_update(
+        kalman_update_result = kalman_update(
             kalman_state,
             observation=array([observation], dtype=float64),
             measurement_noise=0.12**2,
         )
+        kalman_state = kalman_update_result.state
         last_time = float(time_value)
         step = bank.update(float(time_value), array([observation], dtype=float64))
         for label, posterior in step.posterior_by_label.items():

@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 from math import log
 from pathlib import Path
 from statistics import median
-from typing import Sequence
+from typing import NamedTuple, Sequence
 
 import numpy.linalg as linalg
 from numpy import (
@@ -45,6 +45,14 @@ from ..utils.math import (
 from .transition_matrix_accumulator import run_transition_benchmark
 
 
+class KalmanUpdateResult(NamedTuple):
+    updated_mean: ndarray
+    updated_covariance: ndarray
+    innovation: ndarray
+    innovation_covariance: ndarray
+    log_likelihood: float
+
+
 def _kalman_predict(
     mean: ndarray,
     covariance: ndarray,
@@ -64,7 +72,7 @@ def _kalman_update(
     measurement: ndarray,
     measurement_matrix: ndarray,
     measurement_covariance: ndarray,
-) -> tuple[ndarray, ndarray, ndarray, ndarray, float]:
+) -> KalmanUpdateResult:
     innovation = measurement - measurement_matrix @ predicted_mean
     innovation_covariance = measurement_matrix @ predicted_covariance @ measurement_matrix.T + measurement_covariance
     innovation_covariance = 0.5 * (innovation_covariance + innovation_covariance.T)
@@ -74,7 +82,13 @@ def _kalman_update(
     updated_covariance = (identity - kalman_gain @ measurement_matrix) @ predicted_covariance
     updated_covariance = 0.5 * (updated_covariance + updated_covariance.T)
     log_likelihood = _gaussian_logpdf(innovation, innovation_covariance)
-    return updated_mean, updated_covariance, innovation, innovation_covariance, log_likelihood
+    return KalmanUpdateResult(
+        updated_mean=updated_mean,
+        updated_covariance=updated_covariance,
+        innovation=innovation,
+        innovation_covariance=innovation_covariance,
+        log_likelihood=log_likelihood,
+    )
 @dataclass(frozen=True, slots=True)
 class AdvancedFilterContract:
     backend_id: str
@@ -773,13 +787,18 @@ def run_imm_filter(
             )
             measurement_matrix = spec.measurement_matrix()
             measurement_covariance = spec.measurement_covariance()
-            updated_mean, updated_covariance, innovation, innovation_covariance, log_likelihood = _kalman_update(
+            kalman_update_result = _kalman_update(
                 predicted_mean,
                 predicted_covariance,
                 array([measurement], dtype=float),
                 measurement_matrix,
                 measurement_covariance,
             )
+            updated_mean = kalman_update_result.updated_mean
+            updated_covariance = kalman_update_result.updated_covariance
+            innovation = kalman_update_result.innovation
+            innovation_covariance = kalman_update_result.innovation_covariance
+            log_likelihood = kalman_update_result.log_likelihood
             updated_states[spec.name] = (updated_mean, updated_covariance)
             mode_likelihoods[spec.name] = float(log_likelihood)
             mode_log_scores[spec.name] = float(log(max(mode_prior[spec.name], 1e-12)) + log_likelihood)

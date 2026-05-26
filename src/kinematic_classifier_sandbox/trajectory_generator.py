@@ -3,10 +3,23 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 from math import cos, pi, sin
+from typing import NamedTuple
 
 from kinematic_classifier_sandbox.utils.math import clamp as _clamp
 
 from .contracts import TrajectoryArtifact
+from .trajectory_series import KinematicSeries
+
+
+class NoisyMeasurements(NamedTuple):
+    measurements: tuple[float, ...]
+    outlier_indices: list[int]
+
+
+class StepSamplingResult(NamedTuple):
+    steps: int
+    dt: float
+    measurement_std: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -260,7 +273,7 @@ def _sample_steps_and_dt(
     rng: random.Random,
     class_definition: TrajectoryClassDefinition,
     tier_definition: DatasetTierDefinition,
-) -> tuple[int, float, float]:
+) -> StepSamplingResult:
     min_steps = max(class_definition.nominal_steps[0], tier_definition.steps_range[0])
     max_steps = min(class_definition.nominal_steps[1], tier_definition.steps_range[1])
     if min_steps > max_steps:
@@ -268,7 +281,7 @@ def _sample_steps_and_dt(
     steps = rng.randint(min_steps, max_steps)
     dt = _sample_from_range(rng, tier_definition.dt_range, tier_definition.parameter_mode)
     measurement_std = _sample_from_range(rng, tier_definition.measurement_std_range, tier_definition.parameter_mode)
-    return steps, dt, measurement_std
+    return StepSamplingResult(steps=steps, dt=dt, measurement_std=measurement_std)
 
 
 def _sample_parameters(
@@ -331,34 +344,34 @@ def _generate_times(rng: random.Random, steps: int, dt: float, irregular_samplin
     return tuple(times)
 
 
-def _evaluate_stationary(times: tuple[float, ...], params: dict[str, float]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _evaluate_stationary(times: tuple[float, ...], params: dict[str, float]) -> KinematicSeries:
     p0 = params["position"]
     positions = tuple(p0 for _ in times)
     velocities = tuple(0.0 for _ in times)
     accelerations = tuple(0.0 for _ in times)
-    return positions, velocities, accelerations
+    return KinematicSeries(positions, velocities, accelerations)
 
 
-def _evaluate_constant_velocity(times: tuple[float, ...], params: dict[str, float]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _evaluate_constant_velocity(times: tuple[float, ...], params: dict[str, float]) -> KinematicSeries:
     p0 = params["position"]
     v0 = params["velocity"]
     positions = tuple(p0 + v0 * time for time in times)
     velocities = tuple(v0 for _ in times)
     accelerations = tuple(0.0 for _ in times)
-    return positions, velocities, accelerations
+    return KinematicSeries(positions, velocities, accelerations)
 
 
-def _evaluate_constant_acceleration(times: tuple[float, ...], params: dict[str, float]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _evaluate_constant_acceleration(times: tuple[float, ...], params: dict[str, float]) -> KinematicSeries:
     p0 = params["position"]
     v0 = params["velocity"]
     a0 = params["acceleration"]
     positions = tuple(p0 + v0 * time + 0.5 * a0 * time * time for time in times)
     velocities = tuple(v0 + a0 * time for time in times)
     accelerations = tuple(a0 for _ in times)
-    return positions, velocities, accelerations
+    return KinematicSeries(positions, velocities, accelerations)
 
 
-def _evaluate_braking(times: tuple[float, ...], params: dict[str, float]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _evaluate_braking(times: tuple[float, ...], params: dict[str, float]) -> KinematicSeries:
     p0 = params["position"]
     v0 = params["velocity"]
     decel = params["deceleration"]
@@ -376,10 +389,10 @@ def _evaluate_braking(times: tuple[float, ...], params: dict[str, float]) -> tup
             positions.append(stop_position)
             velocities.append(0.0)
             accelerations.append(0.0)
-    return tuple(positions), tuple(velocities), tuple(accelerations)
+    return KinematicSeries(tuple(positions), tuple(velocities), tuple(accelerations))
 
 
-def _evaluate_maneuver(times: tuple[float, ...], params: dict[str, float]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _evaluate_maneuver(times: tuple[float, ...], params: dict[str, float]) -> KinematicSeries:
     p0 = params["position"]
     v0 = params["velocity"]
     a1 = params["accel_early"]
@@ -400,10 +413,10 @@ def _evaluate_maneuver(times: tuple[float, ...], params: dict[str, float]) -> tu
             positions.append(switch_position + switch_velocity * delta + 0.5 * a2 * delta * delta)
             velocities.append(switch_velocity + a2 * delta)
             accelerations.append(a2)
-    return tuple(positions), tuple(velocities), tuple(accelerations)
+    return KinematicSeries(tuple(positions), tuple(velocities), tuple(accelerations))
 
 
-def _evaluate_oscillatory(times: tuple[float, ...], params: dict[str, float]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _evaluate_oscillatory(times: tuple[float, ...], params: dict[str, float]) -> KinematicSeries:
     p0 = params["position"]
     amplitude = params["amplitude"]
     frequency = params["frequency"]
@@ -411,10 +424,10 @@ def _evaluate_oscillatory(times: tuple[float, ...], params: dict[str, float]) ->
     positions = tuple(p0 + amplitude * sin(frequency * time + phase) for time in times)
     velocities = tuple(amplitude * frequency * cos(frequency * time + phase) for time in times)
     accelerations = tuple(-amplitude * frequency * frequency * sin(frequency * time + phase) for time in times)
-    return positions, velocities, accelerations
+    return KinematicSeries(positions, velocities, accelerations)
 
 
-def _evaluate_bounded_acceleration(times: tuple[float, ...], params: dict[str, float]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _evaluate_bounded_acceleration(times: tuple[float, ...], params: dict[str, float]) -> KinematicSeries:
     p0 = params["position"]
     v0 = params["velocity"]
     accel_bias = params["accel_bias"]
@@ -435,14 +448,14 @@ def _evaluate_bounded_acceleration(times: tuple[float, ...], params: dict[str, f
         positions.append(next_position)
         velocities.append(next_velocity)
         accelerations.append(accel)
-    return tuple(positions), tuple(velocities), tuple(accelerations)
+    return KinematicSeries(tuple(positions), tuple(velocities), tuple(accelerations))
 
 
 def _generate_states(
     class_definition: TrajectoryClassDefinition,
     times: tuple[float, ...],
     params: dict[str, float],
-) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+) -> KinematicSeries:
     if class_definition.kind == "stationary":
         return _evaluate_stationary(times, params)
     if class_definition.kind == "constant_velocity":
@@ -465,7 +478,7 @@ def _inject_measurement_noise(
     positions_true: tuple[float, ...],
     measurement_std: float,
     outlier_probability: float,
-) -> tuple[tuple[float, ...], list[int]]:
+) -> NoisyMeasurements:
     measurements: list[float] = []
     outlier_indices: list[int] = []
     for index, position in enumerate(positions_true):
@@ -474,7 +487,7 @@ def _inject_measurement_noise(
             measurement += rng.choice((-1.0, 1.0)) * rng.uniform(4.0, 7.5) * measurement_std
             outlier_indices.append(index)
         measurements.append(measurement)
-    return tuple(measurements), outlier_indices
+    return NoisyMeasurements(measurements=tuple(measurements), outlier_indices=outlier_indices)
 
 
 def _make_manual_trajectory(
@@ -572,7 +585,10 @@ def generate_trajectory_dataset(
         for trajectory_index in range(count):
             trajectory_seed = rng.randrange(1 << 30) + class_index * 10_000 + trajectory_index
             local_rng = random.Random(trajectory_seed)
-            steps, dt, measurement_std = _sample_steps_and_dt(local_rng, class_definition, resolved_tier_definition)
+            step_sampling = _sample_steps_and_dt(local_rng, class_definition, resolved_tier_definition)
+            steps = step_sampling.steps
+            dt = step_sampling.dt
+            measurement_std = step_sampling.measurement_std
             params = _sample_parameters(local_rng, class_definition, resolved_tier_definition)
             times = _generate_times(
                 local_rng,
@@ -581,12 +597,14 @@ def generate_trajectory_dataset(
                 resolved_tier_definition.irregular_sampling_strength + class_definition.irregular_sampling_strength,
             )
             positions_true, velocities_true, accelerations_true = _generate_states(class_definition, times, params)
-            measurements, outlier_indices = _inject_measurement_noise(
+            noisy_measurements = _inject_measurement_noise(
                 local_rng,
                 positions_true,
                 measurement_std,
                 resolved_tier_definition.outlier_probability + class_definition.outlier_probability,
             )
+            measurements = noisy_measurements.measurements
+            outlier_indices = noisy_measurements.outlier_indices
             scenario_id = f"{resolved_tier_definition.name}_{class_definition.name}_{trajectory_index}"
             trajectory = _make_trajectory(
                 class_definition=class_definition,
@@ -667,12 +685,14 @@ def generate_short_horizon_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifa
         class_definition = _class_by_name(class_name)
         positions_true, velocities_true, accelerations_true = _generate_states(class_definition, times, params)
         measurement_std = 0.06
-        measurements, outlier_indices = _inject_measurement_noise(
+        noisy_measurements = _inject_measurement_noise(
             rng,
             positions_true,
             measurement_std,
             outlier_probability=0.0,
         )
+        measurements = noisy_measurements.measurements
+        outlier_indices = noisy_measurements.outlier_indices
         scenarios.append(
             _make_manual_trajectory(
                 trajectory_id=scenario_id,
@@ -712,12 +732,14 @@ def generate_perturbation_sweep_scenarios(*, seed: int = 7) -> tuple[TrajectoryA
     scenarios: list[TrajectoryArtifact] = []
     for index, (scenario_id, times, positions_true, velocities_true, accelerations_true, measurement_std, outlier_probability) in enumerate(specs):
         rng = random.Random(seed + 20_000 + index)
-        measurements, outlier_indices = _inject_measurement_noise(
+        noisy_measurements = _inject_measurement_noise(
             rng,
             positions_true,
             measurement_std,
             outlier_probability=outlier_probability,
         )
+        measurements = noisy_measurements.measurements
+        outlier_indices = noisy_measurements.outlier_indices
         scenarios.append(
             _make_manual_trajectory(
                 trajectory_id=scenario_id,
@@ -748,7 +770,7 @@ def _switching_segment_trajectory(
     initial_velocity: float,
     times: tuple[float, ...],
     accelerations: tuple[float, ...],
-) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+) -> KinematicSeries:
     positions = [initial_position]
     velocities = [initial_velocity]
     applied_accelerations = [accelerations[0] if accelerations else 0.0]
@@ -760,7 +782,7 @@ def _switching_segment_trajectory(
         positions.append(next_position)
         velocities.append(next_velocity)
         applied_accelerations.append(accel)
-    return tuple(positions), tuple(velocities), tuple(applied_accelerations)
+    return KinematicSeries(tuple(positions), tuple(velocities), tuple(applied_accelerations))
 
 
 def generate_switching_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifact, ...]:
@@ -820,12 +842,14 @@ def generate_switching_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifact, 
         ),
     ]
     for index, (scenario_id, times, positions_true, velocities_true, accelerations_true, measurement_std, extra_params) in enumerate(switching_specs):
-        measurements, outlier_indices = _inject_measurement_noise(
+        noisy_measurements = _inject_measurement_noise(
             rng,
             positions_true,
             measurement_std,
             outlier_probability=0.0,
         )
+        measurements = noisy_measurements.measurements
+        outlier_indices = noisy_measurements.outlier_indices
         scenarios.append(
             _make_manual_trajectory(
                 trajectory_id=scenario_id,

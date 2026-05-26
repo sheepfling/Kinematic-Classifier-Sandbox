@@ -21,8 +21,8 @@ def particle_filter_class_evidence_update(
     log_evidence_values: ndarray,
 ) -> tuple[ndarray, ndarray]:
     log_unnormalized = prior_log_posterior + log_evidence_values
-    posterior_values, log_posterior, _ = normalize_log_weights(log_unnormalized)
-    return posterior_values, log_posterior
+    normalization = normalize_log_weights(log_unnormalized)
+    return normalization.weights, normalization.normalized_log_weights
 
 
 class ParticleFilterBank:

@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from statistics import mean
+from typing import NamedTuple
 from typing import Any
 
 from ..corpus.exploration.objective_corpus_gym_runner import (
     execute_objective_candidates_via_corpus_gym,
 )
 from .class_validity_contracts import ClassValidityResult
+
+
+class ClassValidityStatus(NamedTuple):
+    status: str
+    assigned_class: str
+    assigned_score: float
 
 
 def _class_definition_schema() -> dict[str, Any]:
@@ -27,20 +34,20 @@ def _class_definition_schema() -> dict[str, Any]:
     }
 
 
-def _status_for_row(target_class: str, similarity: dict[str, float]) -> tuple[str, str, float]:
+def _status_for_row(target_class: str, similarity: dict[str, float]) -> ClassValidityStatus:
     best_class = max(similarity, key=similarity.get)
     best_score = similarity[best_class]
     ordered = sorted(similarity.values(), reverse=True)
     margin = ordered[0] - ordered[1] if len(ordered) > 1 else ordered[0]
     if best_score < 0.35:
-        return "invalid", best_class, best_score
+        return ClassValidityStatus("invalid", best_class, best_score)
     if best_class == target_class:
         if margin < 0.22:
-            return "ambiguous", best_class, best_score
-        return "valid_target_class", best_class, best_score
+            return ClassValidityStatus("ambiguous", best_class, best_score)
+        return ClassValidityStatus("valid_target_class", best_class, best_score)
     if margin < 0.18:
-        return "ambiguous", best_class, best_score
-    return "relabel_candidate", best_class, best_score
+        return ClassValidityStatus("ambiguous", best_class, best_score)
+    return ClassValidityStatus("relabel_candidate", best_class, best_score)
 
 
 def _score_similarity(run: Any) -> dict[str, float]:
@@ -84,7 +91,10 @@ def analyze_class_validity() -> ClassValidityResult:
         candidate = executed_record.candidate
         run = executed_record.execution.trajectory_run
         similarity = _score_similarity(run)
-        status, assigned_class, assigned_score = _status_for_row(candidate.target_class, similarity)
+        status_row = _status_for_row(candidate.target_class, similarity)
+        status = status_row.status
+        assigned_class = status_row.assigned_class
+        assigned_score = status_row.assigned_score
         truth = run.truth_state
         accelerations = truth.get("acceleration", ())
         velocities = truth.get("velocity", ())

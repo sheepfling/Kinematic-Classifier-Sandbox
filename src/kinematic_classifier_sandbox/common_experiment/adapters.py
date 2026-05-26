@@ -6,6 +6,7 @@ from math import sin
 from ..corpus.adequacy_audit_utils import load_class_pair_manifest
 from ..scenarios import get_scenario_measurement_sigma, get_scenario_times
 from .contracts import ExecutablePairSpec, ExecutableTrajectory
+from ..trajectory_series import KinematicSeries
 
 
 def build_pair_specs(
@@ -39,18 +40,18 @@ def _pair_state(
     class_name: str,
     scenario_id: str,
     times: tuple[float, ...],
-) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+) -> KinematicSeries:
     if pair_id == "stationary_vs_constant_velocity":
         if class_name == "stationary":
             position = tuple(0.0 for _ in times)
             velocity = tuple(0.0 for _ in times)
             acceleration = tuple(0.0 for _ in times)
-            return position, velocity, acceleration
+            return KinematicSeries(position, velocity, acceleration)
         speed = 0.85 if scenario_id != "endpoint_match" else 0.30
         position = tuple(speed * time for time in times)
         velocity = tuple(speed for _ in times)
         acceleration = tuple(0.0 for _ in times)
-        return position, velocity, acceleration
+        return KinematicSeries(position, velocity, acceleration)
 
     if pair_id == "constant_velocity_vs_constant_acceleration":
         if class_name == "constant_velocity":
@@ -58,13 +59,13 @@ def _pair_state(
             position = tuple(speed * time for time in times)
             velocity = tuple(speed for _ in times)
             acceleration = tuple(0.0 for _ in times)
-            return position, velocity, acceleration
+            return KinematicSeries(position, velocity, acceleration)
         speed0 = 0.80 if scenario_id != "endpoint_match" else 0.35
         accel = 0.24 if scenario_id != "endpoint_match" else 0.30
         position = tuple(speed0 * time + 0.5 * accel * time * time for time in times)
         velocity = tuple(speed0 + accel * time for time in times)
         acceleration = tuple(accel for _ in times)
-        return position, velocity, acceleration
+        return KinematicSeries(position, velocity, acceleration)
 
     if pair_id == "constant_velocity_vs_braking":
         if class_name == "constant_velocity":
@@ -72,13 +73,13 @@ def _pair_state(
             position = tuple(speed * time for time in times)
             velocity = tuple(speed for _ in times)
             acceleration = tuple(0.0 for _ in times)
-            return position, velocity, acceleration
+            return KinematicSeries(position, velocity, acceleration)
         speed0 = 0.90 if scenario_id != "endpoint_match" else 0.16
         accel = -0.02 if scenario_id != "endpoint_match" else -0.016
         position = tuple(speed0 * time + 0.5 * accel * time * time for time in times)
         velocity = tuple(speed0 + accel * time for time in times)
         acceleration = tuple(accel for _ in times)
-        return position, velocity, acceleration
+        return KinematicSeries(position, velocity, acceleration)
 
     if pair_id == "maneuver_vs_bounded_acceleration":
         if class_name == "bounded_acceleration":
@@ -92,7 +93,7 @@ def _pair_state(
                 next_velocity = velocity[-1] + accel * dt
                 position.append(position[-1] + velocity[-1] * dt + 0.5 * accel * dt * dt)
                 velocity.append(next_velocity)
-            return tuple(position), tuple(velocity), tuple(accelerations)
+            return KinematicSeries(tuple(position), tuple(velocity), tuple(accelerations))
         velocity = [0.36 if scenario_id != "endpoint_match" else 0.28]
         position = [0.0]
         accelerations = [0.05]
@@ -105,7 +106,7 @@ def _pair_state(
             next_velocity = velocity[-1] + accel * dt
             position.append(position[-1] + velocity[-1] * dt + 0.5 * accel * dt * dt)
             velocity.append(next_velocity)
-        return tuple(position), tuple(velocity), tuple(accelerations)
+        return KinematicSeries(tuple(position), tuple(velocity), tuple(accelerations))
 
     if pair_id == "constant_acceleration_vs_maneuver":
         if class_name == "constant_acceleration":
@@ -114,7 +115,7 @@ def _pair_state(
             position = tuple(speed0 * time + 0.5 * accel * time * time for time in times)
             velocity = tuple(speed0 + accel * time for time in times)
             acceleration = tuple(accel for _ in times)
-            return position, velocity, acceleration
+            return KinematicSeries(position, velocity, acceleration)
         velocity = [0.42 if scenario_id != "endpoint_match" else 0.24]
         position = [0.0]
         accelerations = [0.09]
@@ -127,7 +128,7 @@ def _pair_state(
             next_velocity = velocity[-1] + accel * dt
             position.append(position[-1] + velocity[-1] * dt + 0.5 * accel * dt * dt)
             velocity.append(next_velocity)
-        return tuple(position), tuple(velocity), tuple(accelerations)
+        return KinematicSeries(tuple(position), tuple(velocity), tuple(accelerations))
 
     raise KeyError(f"unsupported pair id: {pair_id}")
 

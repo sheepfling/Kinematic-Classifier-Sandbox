@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import statistics
 from typing import Callable
+from typing import NamedTuple
 
 from kinematic_classifier_sandbox.utils.math import (
     _quadratic_fit,
@@ -37,6 +38,11 @@ from .contracts import (
     PosteriorHistoryRow,
 )
 from .scoring import score_classifier_family
+
+
+class TruncatedTrajectory(NamedTuple):
+    times: tuple[float, ...]
+    trajectory: ExecutableTrajectory
 
 
 def trajectory_features(
@@ -128,7 +134,7 @@ def pair_priors(class_a: str, class_b: str, prior_id: str) -> dict[str, float]:
 def truncated_trajectory(
     trajectory: ExecutableTrajectory,
     prefix_length: int,
-) -> tuple[tuple[float, ...], ExecutableTrajectory]:
+) -> TruncatedTrajectory:
     times = trajectory.times[:prefix_length]
     truncated = ExecutableTrajectory(
         trajectory_id=trajectory.trajectory_id,
@@ -144,7 +150,7 @@ def truncated_trajectory(
         true_velocity=trajectory.true_velocity[:prefix_length],
         true_acceleration=trajectory.true_acceleration[:prefix_length],
     )
-    return times, truncated
+    return TruncatedTrajectory(times=times, trajectory=truncated)
 
 
 def classifier_scores_for_prefix(
@@ -155,7 +161,9 @@ def classifier_scores_for_prefix(
     prior_weights: dict[str, float],
     feature_manifest: dict[str, dict[str, object]],
 ) -> dict[str, float]:
-    times, truncated = truncated_trajectory(trajectory, prefix_length)
+    truncated_bundle = truncated_trajectory(trajectory, prefix_length)
+    times = truncated_bundle.times
+    truncated = truncated_bundle.trajectory
     context = FamilyScoringContext(
         pair_spec=pair_spec,
         trajectory=trajectory,

@@ -116,11 +116,14 @@ class IMMFilter:
                 process_noise_scale=spec.process_noise_scale,
                 acceleration_bias=spec.acceleration_bias,
             )
-            updated, log_likelihood, innovation, _ = kalman_update(
+            update_result = kalman_update(
                 predicted,
                 observation=observation,
                 measurement_noise=spec.measurement_noise,
             )
+            updated = update_result.state
+            log_likelihood = update_result.log_likelihood
+            innovation = update_result.innovation
             updated_states[mode_id] = updated
             log_likelihoods.append(float(log_likelihood))
             innovations[mode_id] = float(innovation[0])

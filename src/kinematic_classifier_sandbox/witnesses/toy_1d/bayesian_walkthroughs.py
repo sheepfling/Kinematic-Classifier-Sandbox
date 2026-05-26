@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from dataclasses import dataclass
 from math import exp, log, pi, sqrt
 from pathlib import Path
@@ -68,6 +70,16 @@ class BayesianWalkthroughArtifacts:
     prior_sensitivity_curve_path: Path
     feature_ablation_posterior_path: Path
     confidence_threshold_crossing_path: Path
+
+
+class PriorSweepRows(NamedTuple):
+    rows: tuple[dict[str, object], ...]
+    threshold_rows: tuple[dict[str, object], ...]
+
+
+class FeatureContributionRows(NamedTuple):
+    rows: tuple[dict[str, object], ...]
+    feature_example: dict[str, object]
 
 
 def _gaussian_pdf(value: float, mean: float, sigma: float) -> float:
@@ -243,7 +255,7 @@ def _build_prior_sweep_rows(
     trajectory_lookup: dict[str, object],
     classifier_lookup: dict[str, dict[str, object]],
     feature_manifest: dict[str, dict[str, object]],
-) -> tuple[tuple[dict[str, object], ...], tuple[dict[str, object], ...]]:
+) -> PriorSweepRows:
     pair_spec = pair_lookup[str(selected_run["class_pair_id"])]
     trajectory = trajectory_lookup[str(selected_run["trajectory_id"])]
     classifier_entry = classifier_lookup[str(selected_run["classifier_id"])]
@@ -322,7 +334,7 @@ def _build_prior_sweep_rows(
             "theoretical_flip_threshold_prior_a": theoretical_threshold_prior_a,
         }
     ]
-    return tuple(rows), tuple(threshold_rows)
+    return PriorSweepRows(tuple(rows), tuple(threshold_rows))
 
 
 def _select_feature_example_run(
@@ -364,7 +376,7 @@ def _build_feature_contribution_rows(
     trajectory_lookup: dict[str, object],
     feature_manifest: dict[str, dict[str, object]],
     feature_registry: dict[str, object],
-) -> tuple[tuple[dict[str, object], ...], dict[str, object]]:
+) -> FeatureContributionRows:
     pair_spec = pair_lookup[str(feature_run["class_pair_id"])]
     trajectory = trajectory_lookup[str(feature_run["trajectory_id"])]
     feature_set_id = str(feature_run["feature_set_id"])
@@ -432,7 +444,7 @@ def _build_feature_contribution_rows(
         "top_feature_observed_value": top_feature["observed_value"],
         "full_posterior_true": full_weights[true_class],
     }
-    return tuple(rows), feature_example
+    return FeatureContributionRows(tuple(rows), feature_example)
 
 
 def _render_report(
@@ -516,22 +528,26 @@ def analyze_bayesian_walkthroughs(
         posterior_rows=common.posterior_history_rows,
         likelihood_rows=common.likelihood_history_rows,
     )
-    prior_sweep_rows, posterior_flip_threshold_rows = _build_prior_sweep_rows(
+    prior_sweep_bundle = _build_prior_sweep_rows(
         selected_run=selected_walkthrough,
         pair_lookup=pair_lookup,
         trajectory_lookup=trajectory_lookup,
         classifier_lookup=classifier_lookup,
         feature_manifest=feature_manifest,
     )
+    prior_sweep_rows = prior_sweep_bundle.rows
+    posterior_flip_threshold_rows = prior_sweep_bundle.threshold_rows
 
     feature_run = dict(_select_feature_example_run(common.pair_prediction_rows))
-    feature_contribution_rows, feature_example = _build_feature_contribution_rows(
+    feature_contribution_bundle = _build_feature_contribution_rows(
         feature_run=feature_run,
         pair_lookup=pair_lookup,
         trajectory_lookup=trajectory_lookup,
         feature_manifest=feature_manifest,
         feature_registry=feature_registry,
     )
+    feature_contribution_rows = feature_contribution_bundle.rows
+    feature_example = feature_contribution_bundle.feature_example
     report_markdown = _render_report(
         selected_walkthrough=selected_walkthrough,
         feature_example=feature_example,

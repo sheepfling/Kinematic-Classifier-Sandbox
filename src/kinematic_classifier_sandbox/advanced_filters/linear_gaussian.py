@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import NamedTuple
 
 import numpy.linalg as linalg
 from numpy import array, eye, float64, log, pi
@@ -21,6 +22,13 @@ class LinearGaussianModeSpec:
 class KalmanModeState:
     mean: FloatArray
     covariance: FloatArray
+
+
+class KalmanUpdateResult(NamedTuple):
+    state: KalmanModeState
+    log_likelihood: float
+    innovation: FloatArray
+    innovation_covariance: FloatArray
 
 
 def constant_acceleration_transition(dt: float) -> FloatArray:
@@ -69,7 +77,7 @@ def kalman_update(
     state: KalmanModeState,
     observation: FloatArray,
     measurement_noise: float,
-) -> tuple[KalmanModeState, float, FloatArray, FloatArray]:
+) -> KalmanUpdateResult:
     h = position_measurement_matrix()
     r = array([[measurement_noise]], dtype=float64)
     innovation = observation.reshape(1, 1) - h @ state.mean.reshape(-1, 1)
@@ -83,9 +91,9 @@ def kalman_update(
         log(2.0 * pi * innovation_covariance[0, 0])
         + (innovation.T @ s_inv @ innovation)[0, 0]
     )
-    return (
-        KalmanModeState(mean=mean.ravel(), covariance=covariance),
-        log_likelihood,
-        innovation.ravel(),
-        innovation_covariance,
+    return KalmanUpdateResult(
+        state=KalmanModeState(mean=mean.ravel(), covariance=covariance),
+        log_likelihood=log_likelihood,
+        innovation=innovation.ravel(),
+        innovation_covariance=innovation_covariance,
     )

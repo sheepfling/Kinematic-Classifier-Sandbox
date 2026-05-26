@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from math import sqrt
 from kinematic_classifier_sandbox.utils.math import _normalize_log_scores
 
@@ -10,6 +12,11 @@ from .dimensional_lift_audit_contracts import (
     DimensionalLiftAuditResult,
 )
 from .dimensional_lift_audit_reporting import render_dimensional_lift_audit_report
+
+
+class VectorPredictionsAndPosteriors(NamedTuple):
+    predictions: tuple[dict[str, object], ...]
+    posteriors: tuple[dict[str, object], ...]
 
 def _module_rows() -> tuple[dict[str, object], ...]:
     return (
@@ -240,7 +247,7 @@ def _vector_predictions_and_posteriors(
         feature_rows: tuple[dict[str, object], ...],
         *,
         threshold: float = 3.4,
-) -> tuple[tuple[dict[str, object], ...], tuple[dict[str, object], ...]]:
+) -> VectorPredictionsAndPosteriors:
     predictions = []
     posteriors = []
     for row in feature_rows:
@@ -281,7 +288,7 @@ def _vector_predictions_and_posteriors(
                 "coordinate_frame": row["coordinate_frame"],
             }
         )
-    return tuple(predictions), tuple(posteriors)
+    return VectorPredictionsAndPosteriors(tuple(predictions), tuple(posteriors))
 
 def analyze_dimensional_lift_audit() -> DimensionalLiftAuditResult:
     module_rows = _module_rows()
@@ -293,7 +300,9 @@ def analyze_dimensional_lift_audit() -> DimensionalLiftAuditResult:
         for trajectory in corpus
     }
     feature_rows = _vector_feature_rows(corpus)
-    prediction_rows, posterior_rows = _vector_predictions_and_posteriors(feature_rows)
+    vector_bundle = _vector_predictions_and_posteriors(feature_rows)
+    prediction_rows = vector_bundle.predictions
+    posterior_rows = vector_bundle.posteriors
     validation_results = {
         "all_modules_labeled": all(bool(row["dimensional_status"]) for row in module_rows),
         "scalar_assumptions_listed": len(scalar_assumption_rows) > 0,

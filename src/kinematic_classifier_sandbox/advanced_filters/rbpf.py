@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import NamedTuple
 
 import numpy.linalg as linalg
 import numpy.random as random
@@ -50,13 +51,25 @@ class RBPFConfig:
     seed: int = 0
 
 
+class RBPFWeightUpdate(NamedTuple):
+    weights: FloatArray
+    normalized_log_weights: FloatArray
+    log_marginal: float
+    log_unnormalized: FloatArray
+
+
 def rbpf_conditional_weight_update(
     prior_log_weights: FloatArray,
     conditional_log_likelihoods: FloatArray,
-) -> tuple[FloatArray, FloatArray, float, FloatArray]:
+) -> RBPFWeightUpdate:
     log_unnormalized = prior_log_weights + conditional_log_likelihoods
-    weights, normalized_log_weights, log_marginal = normalize_log_weights(log_unnormalized)
-    return weights, normalized_log_weights, float(log_marginal), log_unnormalized
+    normalization = normalize_log_weights(log_unnormalized)
+    return RBPFWeightUpdate(
+        weights=normalization.weights,
+        normalized_log_weights=normalization.normalized_log_weights,
+        log_marginal=float(normalization.log_norm),
+        log_unnormalized=log_unnormalized,
+    )
 
 
 class RaoBlackwellizedParticleFilter:
@@ -113,10 +126,14 @@ class RaoBlackwellizedParticleFilter:
             new_means[index] = mean
             new_covariances[index] = covariance
             log_likelihoods[index] = log_likelihood
-        weights, normalized_log_weights, log_marginal, log_unnormalized = rbpf_conditional_weight_update(
+        weight_update = rbpf_conditional_weight_update(
             self.state.log_weights,
             log_likelihoods,
         )
+        weights = weight_update.weights
+        normalized_log_weights = weight_update.normalized_log_weights
+        log_marginal = weight_update.log_marginal
+        log_unnormalized = weight_update.log_unnormalized
         log_evidence_by_mode = self._mode_log_evidence(log_unnormalized, new_mode_indexes)
         ess = effective_sample_size(weights)
         resampled = False
