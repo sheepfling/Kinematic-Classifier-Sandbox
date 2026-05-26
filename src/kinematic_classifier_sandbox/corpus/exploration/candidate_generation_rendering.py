@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import json
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from ..markdown_builder import MarkdownDocument
-from ..utils.plotting import plt
-from ..utils.io import write_csv
+from ...utils.plotting import plt
+from ...utils.io import write_csv
 from .candidate_generation_types import CandidateGenerationArtifacts, CandidateGenerationResult
 
 
@@ -105,7 +105,7 @@ def write_candidate_generation_artifacts(
     sampler_comparison_png_path = plots_dir / "sampler_comparison.png"
     candidate_coverage_png_path = plots_dir / "candidate_coverage.png"
     mutation_lineage_png_path = plots_dir / "mutation_lineage.png"
-    sampler_manifest_path.write_text(MarkdownDocument.render_json(payload.sampler_manifest), encoding="utf-8")
+    sampler_manifest_path.write_text(json.dumps(payload.sampler_manifest, indent=2), encoding="utf-8")
     write_csv(generated_candidates_path, list(payload.generated_candidate_rows), list(payload.generated_candidate_rows[0].keys()))
     report_path.write_text(payload.report_markdown, encoding="utf-8")
     sampler_comparison_png_path.write_bytes(_render_sampler_comparison_png(payload.generated_candidate_rows))

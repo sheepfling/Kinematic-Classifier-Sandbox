@@ -29,6 +29,9 @@ class RlBackendDecisionGateRow:
     value: str | float
     note: str
 
+    def __getitem__(self, key: str) -> str | float:
+        return getattr(self, key)
+
 
 @dataclass(frozen=True, slots=True)
 class RlBackendDecisionArtifacts:

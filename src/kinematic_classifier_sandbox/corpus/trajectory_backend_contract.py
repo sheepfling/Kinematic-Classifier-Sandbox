@@ -508,30 +508,6 @@ def default_backend_contract_definitions() -> tuple[BackendContractDefinition, .
         _mock_file_backend_definition(),
     )
 
-
-def _capability_matrix_rows(definitions: tuple[BackendContractDefinition, ...]) -> tuple[dict[str, Any], ...]:
-    rows: list[dict[str, Any]] = []
-    for definition in definitions:
-        capabilities = definition.capabilities
-        rows.append(
-            {
-                "backend_id": capabilities.backend_id,
-                "family": capabilities.family,
-                "runtime_class": capabilities.runtime_class,
-                "supports_environment": int(capabilities.supports_environment),
-                "supports_sequential_control": int(capabilities.supports_sequential_control),
-                "supports_events": int(capabilities.supports_events),
-                "supports_stochastic_runs": int(capabilities.supports_stochastic_runs),
-                "state_output_count": len(capabilities.state_outputs),
-                "observation_output_count": len(capabilities.observation_outputs),
-                "event_output_count": len(capabilities.event_outputs),
-                "search_method_count": len(capabilities.valid_search_methods),
-            }
-        )
-    return tuple(rows)
-
-
-
 def analyze_trajectory_backend_contract() -> TrajectoryBackendContractResult:
     definitions = default_backend_contract_definitions()
     validation_rows: list[dict[str, Any]] = []
