@@ -375,10 +375,13 @@ def main() -> int:
         ROOT / "artifacts"
     )
     identity_result = run_identity_benchmark()
-    identity_markdown_path, identity_png_path, identity_csv_path = write_identity_benchmark_artifacts(
+    identity_artifacts = write_identity_benchmark_artifacts(
         ROOT / "artifacts",
         result=identity_result,
     )
+    identity_markdown_path = identity_artifacts.summary_path
+    identity_png_path = identity_artifacts.plot_path
+    identity_csv_path = identity_artifacts.trace_path
     identity_feature_confusion_png_path = write_identity_feature_confusion_artifacts(
         ROOT / "artifacts",
         result=identity_result,

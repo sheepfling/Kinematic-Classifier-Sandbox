@@ -58,6 +58,12 @@ class RBPFWeightUpdate(NamedTuple):
     log_unnormalized: FloatArray
 
 
+class KalmanPredictUpdateResult(NamedTuple):
+    updated_mean: FloatArray
+    updated_covariance: FloatArray
+    log_likelihood: float
+
+
 def rbpf_conditional_weight_update(
     prior_log_weights: FloatArray,
     conditional_log_likelihoods: FloatArray,
@@ -117,15 +123,15 @@ class RaoBlackwellizedParticleFilter:
         log_likelihoods = zeros(self.config.particle_count, dtype=float64)
         for index in range(self.config.particle_count):
             model = self.mode_models[int(new_mode_indexes[index])]
-            mean, covariance, log_likelihood = kalman_predict_update(
+            predict_update = kalman_predict_update(
                 mean=self.state.means[index],
                 covariance=self.state.covariances[index],
                 observation=observation,
                 model=model,
             )
-            new_means[index] = mean
-            new_covariances[index] = covariance
-            log_likelihoods[index] = log_likelihood
+            new_means[index] = predict_update.updated_mean
+            new_covariances[index] = predict_update.updated_covariance
+            log_likelihoods[index] = predict_update.log_likelihood
         weight_update = rbpf_conditional_weight_update(
             self.state.log_weights,
             log_likelihoods,
@@ -198,7 +204,7 @@ def kalman_predict_update(
     covariance: FloatArray,
     observation: FloatArray,
     model: LinearModeModel,
-) -> tuple[FloatArray, FloatArray, float]:
+) -> KalmanPredictUpdateResult:
     predicted_mean = model.transition_matrix @ mean + model.control_bias
     predicted_covariance = (
         model.transition_matrix @ covariance @ model.transition_matrix.T
@@ -221,4 +227,8 @@ def kalman_predict_update(
     mahalanobis = float(innovation.T @ inv_s @ innovation)
     dim = observation.shape[0]
     log_likelihood = -0.5 * (dim * log(2.0 * pi) + log_det + mahalanobis)
-    return updated_mean, updated_covariance, float(log_likelihood)
+    return KalmanPredictUpdateResult(
+        updated_mean=updated_mean,
+        updated_covariance=updated_covariance,
+        log_likelihood=float(log_likelihood),
+    )

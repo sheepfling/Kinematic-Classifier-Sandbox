@@ -142,7 +142,10 @@ class Identity1DBenchmarkTests(unittest.TestCase):
             self.assertIn("scenario_family", csv_text.splitlines()[0])
             self.assertIn("bike", csv_text.splitlines()[0])
 
-            markdown_path, png_path, trace_path = write_identity_benchmark_artifacts(temp_dir, result=result)
+            artifacts = write_identity_benchmark_artifacts(temp_dir, result=result)
+            markdown_path = artifacts.summary_path
+            png_path = artifacts.plot_path
+            trace_path = artifacts.trace_path
             self.assertEqual(markdown_path, Path(temp_dir) / "identity_1d_benchmark_summary.md")
             self.assertEqual(png_path, Path(temp_dir) / "identity_1d_benchmark_posteriors.png")
             self.assertEqual(trace_path, Path(temp_dir) / "identity_1d_benchmark_traces.csv")

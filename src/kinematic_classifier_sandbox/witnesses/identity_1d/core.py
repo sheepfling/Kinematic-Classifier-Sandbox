@@ -5,6 +5,7 @@ import random
 from dataclasses import dataclass
 from math import erf, exp, log, sqrt
 from pathlib import Path
+from typing import NamedTuple
 
 from ...analysis.classification_benchmark import (
     summarize_classification_features,
@@ -15,6 +16,12 @@ from ...utils.io import _write_csv_rows
 from ...utils.math import _clamp, _entropy, _gaussian_logpdf, _logsumexp
 from ...utils.plotting import plt
 from ..study_surface import NamedArtifactWriter, OneDWitnessSurface, write_one_d_surface_artifacts
+
+
+class IdentityArtifactPaths(NamedTuple):
+    summary_path: Path
+    plot_path: Path
+    trace_path: Path
 
 FEATURE_NAMES = (
     "bike_envelope",
@@ -1040,7 +1047,7 @@ def write_identity_benchmark_artifacts(
     seed: int = 7,
     obs_sigma_mph: float = 2.0,
     result: IdentityBenchmarkResult | None = None,
-) -> tuple[Path, Path, Path]:
+) -> IdentityArtifactPaths:
     benchmark_result = result or run_identity_benchmark(steps=steps, seed=seed, obs_sigma_mph=obs_sigma_mph)
     artifacts = write_one_d_surface_artifacts(
         identity_witness_surface(),
@@ -1054,7 +1061,11 @@ def write_identity_benchmark_artifacts(
     assert artifacts.summary_path is not None
     assert artifacts.plot_path is not None
     assert artifacts.trace_path is not None
-    return artifacts.summary_path, artifacts.plot_path, artifacts.trace_path
+    return IdentityArtifactPaths(
+        summary_path=artifacts.summary_path,
+        plot_path=artifacts.plot_path,
+        trace_path=artifacts.trace_path,
+    )
 
 
 def write_identity_feature_confusion_artifacts(

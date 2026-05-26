@@ -30,7 +30,6 @@ from kinematic_classifier_sandbox.utils.io import _write_json, write_csv
 
 from ..markdown_builder import MarkdownDocument
 from ..runtime_paths import prepare_matplotlib
-from ..trajectory_generator import generate_switching_scenarios
 from ..utils.plotting import plt
 from ..utils.io import _write_yaml_like
 from ..utils.math import (
@@ -41,6 +40,10 @@ from ..utils.math import (
     _logsumexp,
     _mean,
     _normalize_log_scores,
+)
+from ..witnesses.advanced_state_inference_witnesses import (
+    SwitchingWitness,
+    generate_advanced_state_inference_witnesses,
 )
 from .transition_matrix_accumulator import run_transition_benchmark
 
@@ -170,19 +173,6 @@ class StateSpaceModeSpec:
             start = axis * 3
             covariance[start : start + 3, start : start + 3] = diag([scale, scale, scale])
         return covariance
-
-
-@dataclass(frozen=True, slots=True)
-class SwitchingWitness:
-    trajectory_id: str
-    scenario_name: str
-    seed: int
-    times: tuple[float, ...]
-    measurements: tuple[float, ...]
-    true_position: tuple[float, ...]
-    true_velocity: tuple[float, ...]
-    true_acceleration: tuple[float, ...]
-    true_modes: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -665,30 +655,6 @@ def default_imm_mode_specs(*, axes: int = 1) -> tuple[StateSpaceModeSpec, ...]:
             acceleration_bias=0.0,
         ),
     )
-
-
-def generate_advanced_state_inference_witnesses(*, seed: int = 7, replicas: int = 6) -> tuple[SwitchingWitness, ...]:
-    witnesses: list[SwitchingWitness] = []
-    for replica in range(replicas):
-        for artifact in generate_switching_scenarios(seed=seed + replica * 31):
-            params = artifact.generator_parameters
-            segment_modes = list(params["segment_modes"])
-            switch_time = float(params["switch_time"])
-            true_modes = tuple(segment_modes[0] if time < switch_time else segment_modes[1] for time in artifact.times)
-            witnesses.append(
-                SwitchingWitness(
-                    trajectory_id=f"{artifact.trajectory_id}_{replica}",
-                    scenario_name=artifact.scenario_id,
-                    seed=artifact.seed,
-                    times=tuple(float(time) for time in artifact.times),
-                    measurements=tuple(float(value) for value in artifact.measurements),
-                    true_position=tuple(float(value) for value in artifact.true_position),
-                    true_velocity=tuple(float(value) for value in artifact.true_velocity),
-                    true_acceleration=tuple(float(value) for value in artifact.true_acceleration),
-                    true_modes=true_modes,
-                )
-            )
-    return tuple(witnesses)
 
 
 def _mode_transition_template(mode_names: Sequence[str]) -> dict[str, dict[str, float]]:

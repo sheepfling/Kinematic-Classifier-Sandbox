@@ -87,7 +87,7 @@ def build_irregular_window_comparison_rows(
             prior = pair_priors(pair_spec.class_a, pair_spec.class_b, "uniform")
             trajectory_results: dict[str, dict[str, object]] = {}
             for window_definition in ("sample_count", "elapsed_time"):
-                scores, observed, selected_count, selected_duration = feature_set_scores_for_window(
+                window_scores = feature_set_scores_for_window(
                     feature_set_id=feature_set_id,
                     feature_manifest=feature_manifest,
                     pair_spec=pair_spec,
@@ -97,6 +97,10 @@ def build_irregular_window_comparison_rows(
                     window_duration=window_duration,
                     prior_weights=prior,
                 )
+                scores = window_scores.scores
+                observed = window_scores.observed
+                selected_count = window_scores.selected_count
+                selected_duration = window_scores.selected_duration
                 weights = _normalize_scores(scores)
                 predicted_class = max(weights, key=weights.get)
                 trajectory_results[window_definition] = {

@@ -20,6 +20,7 @@ from ..trajectory_backend_contract import (
     default_backend_contract_definitions,
 )
 from ..trajectory_backend_contract_utils import validate_trajectory_run
+from ...trajectory_series import KinematicSeries
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,7 +150,7 @@ def _deterministic_noise(seed: int, index: int, scale: float) -> float:
     return scale * (rng.random() - 0.5) * 2.0
 
 
-def _parameter_truth(candidate: BackendCandidateSpec, times: tuple[float, ...]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _parameter_truth(candidate: BackendCandidateSpec, times: tuple[float, ...]) -> KinematicSeries:
     positions: list[float] = []
     velocities: list[float] = []
     accelerations: list[float] = []
@@ -157,10 +158,10 @@ def _parameter_truth(candidate: BackendCandidateSpec, times: tuple[float, ...]) 
         positions.append(candidate.initial_position + candidate.initial_velocity * time + 0.5 * candidate.acceleration * time * time)
         velocities.append(candidate.initial_velocity + candidate.acceleration * time)
         accelerations.append(candidate.acceleration)
-    return tuple(positions), tuple(velocities), tuple(accelerations)
+    return KinematicSeries(tuple(positions), tuple(velocities), tuple(accelerations))
 
 
-def _switching_truth(candidate: BackendCandidateSpec, times: tuple[float, ...]) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+def _switching_truth(candidate: BackendCandidateSpec, times: tuple[float, ...]) -> KinematicSeries:
     switch_time = candidate.switch_time if candidate.switch_time is not None else candidate.duration + 1.0
     accel_after = candidate.acceleration_after_switch if candidate.acceleration_after_switch is not None else candidate.acceleration
     positions: list[float] = []
@@ -181,7 +182,7 @@ def _switching_truth(candidate: BackendCandidateSpec, times: tuple[float, ...]) 
         positions.append(position)
         velocities.append(velocity)
         accelerations.append(accel)
-    return tuple(positions), tuple(velocities), tuple(accelerations)
+    return KinematicSeries(tuple(positions), tuple(velocities), tuple(accelerations))
 
 
 class ParameterOnly1DAdapter(TrajectoryBackendAdapter):

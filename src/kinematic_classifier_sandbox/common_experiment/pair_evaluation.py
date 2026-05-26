@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import statistics
-from typing import Callable
+from typing import Callable, NamedTuple
 from typing import NamedTuple
 
 from kinematic_classifier_sandbox.utils.math import (
@@ -43,6 +43,13 @@ from .scoring import score_classifier_family
 class TruncatedTrajectory(NamedTuple):
     times: tuple[float, ...]
     trajectory: ExecutableTrajectory
+
+
+class WindowFeatureScores(NamedTuple):
+    scores: dict[str, float]
+    observed: dict[str, float]
+    selected_count: int
+    selected_duration: float
 
 
 def trajectory_features(
@@ -267,7 +274,7 @@ def feature_set_scores_for_window(
     window_sample_count: int,
     window_duration: float,
     prior_weights: dict[str, float],
-) -> tuple[dict[str, float], dict[str, float], int, float]:
+) -> WindowFeatureScores:
     truncated = slice_trailing_window(
         trajectory,
         window_definition=window_definition,
@@ -286,7 +293,12 @@ def feature_set_scores_for_window(
             score += _gaussian_logpdf(observed[feature_name], reference_features[feature_name], feature_sigma(feature_name))
         scores[class_name] = score
     selected_duration = truncated.times[-1] - truncated.times[0] if len(truncated.times) >= 2 else 0.0
-    return scores, observed, len(truncated.times), selected_duration
+    return WindowFeatureScores(
+        scores=scores,
+        observed=observed,
+        selected_count=len(truncated.times),
+        selected_duration=selected_duration,
+    )
 
 
 # Compatibility aliases for legacy private import sites.

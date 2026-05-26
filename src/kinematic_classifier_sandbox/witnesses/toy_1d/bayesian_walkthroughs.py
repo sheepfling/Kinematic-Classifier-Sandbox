@@ -82,6 +82,12 @@ class FeatureContributionRows(NamedTuple):
     feature_example: dict[str, object]
 
 
+class PreferenceScore(NamedTuple):
+    tier_score: float
+    confidence_score: float
+    margin_delta: float
+
+
 def _gaussian_pdf(value: float, mean: float, sigma: float) -> float:
     sigma = max(sigma, 1e-9)
     coefficient = 1.0 / (sigma * sqrt(2.0 * pi))
@@ -122,15 +128,15 @@ def _select_representative_run(
         "easy_v1": 1.0,
     }
 
-    def score(row: dict[str, object]) -> tuple[float, float, float]:
+    def score(row: dict[str, object]) -> PreferenceScore:
         history = sorted(posterior_lookup[str(row["run_id"])], key=lambda item: float(item["time"]))
         first_margin = abs(float(history[0]["posterior_class_a"]) - float(history[0]["posterior_class_b"]))
         final_margin = abs(float(history[-1]["posterior_class_a"]) - float(history[-1]["posterior_class_b"]))
         confidence = float(row["confidence"])
-        return (
-            tier_preference.get(str(row["dataset_tier"]), 0.0),
-            1.0 - abs(confidence - 0.72),
-            final_margin - first_margin,
+        return PreferenceScore(
+            tier_score=tier_preference.get(str(row["dataset_tier"]), 0.0),
+            confidence_score=1.0 - abs(confidence - 0.72),
+            margin_delta=final_margin - first_margin,
         )
 
     return max(preferred_rows, key=score)

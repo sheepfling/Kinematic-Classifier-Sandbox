@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 from math import exp, log
 from pathlib import Path
 from types import SimpleNamespace
+from typing import NamedTuple
 
 import yaml
 
@@ -49,6 +50,11 @@ from ..utils.math import (
 from ..utils.plotting import plt
 from ..utils.plotting import _figure_to_png
 from .gym import CorpusGymAction, CorpusGymEnvironment, CorpusGymTarget
+
+
+class ReferenceWindowStats(NamedTuple):
+    sample_count: dict[str, dict[str, float]]
+    duration: dict[str, dict[str, float]]
 
 
 def _local_window_features(shared: SharedDynamicsTrajectory, *, robust: bool) -> dict[str, float]:
@@ -200,7 +206,7 @@ def _to_shared_trajectory(trajectory) -> SharedDynamicsTrajectory:
     )
 
 
-def _reference_window_stats() -> tuple[dict[str, dict[str, float]], dict[str, dict[str, float]]]:
+def _reference_window_stats() -> ReferenceWindowStats:
     reference = generate_window_regime_trajectories(seed=7, replicas=12)
     sample_rows = [_sample_count_window(trajectory, 5) for trajectory in reference if trajectory.sampling_regime == "regular"]
     duration_rows = [_duration_window(trajectory, 5.0) for trajectory in reference if trajectory.sampling_regime == "regular"]
@@ -216,7 +222,7 @@ def _reference_window_stats() -> tuple[dict[str, dict[str, float]], dict[str, di
                 "curvature_sigma": max((sum((row.curvature_proxy - (sum(r.curvature_proxy for r in selected) / len(selected))) ** 2 for row in selected) / max(len(selected) - 1, 1)) ** 0.5, 0.05),
                 "range_sigma": max((sum((row.position_range - (sum(r.position_range for r in selected) / len(selected))) ** 2 for row in selected) / max(len(selected) - 1, 1)) ** 0.5, 0.05),
             }
-    return stats["sample_count"], stats["duration"]
+    return ReferenceWindowStats(sample_count=stats["sample_count"], duration=stats["duration"])
 
 
 def _classify_window_row(row, stats: dict[str, dict[str, float]]) -> tuple[str, float]:
