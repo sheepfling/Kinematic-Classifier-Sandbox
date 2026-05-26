@@ -1,30 +1,35 @@
+
+
+
+
 # Kinematic Classifier Methodology Compendium
 
+
 This document combines the current survey notes into one reference file.
-Use it when you want the full methodology stack in one place rather
-than reading the survey notes separately.
 
-For a shorter narrative entry point, start with
-[`artifacts/latex/kinematic_classifier_methodology.pdf`](artifacts/latex/kinematic_classifier_methodology.pdf).
+Use it when you want the full methodology stack in one place rather than reading the survey notes separately.
+
+For a shorter narrative entry point, start with [artifacts/latex/kinematic_classifier_methodology.pdf](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/latex/kinematic_classifier_methodology.pdf).
+
 This compendium is the long-form reference companion to that paper.
-
 ## Included Documents
 
-1. [Posterior Update Math](docs/surveys/posterior_update_math.md) with rendered companion [`artifacts/posterior_update_math.pdf`](artifacts/posterior_update_math.pdf).
-2. [Methodology Evaluation Framework](docs/surveys/methodology_evaluation_framework.md) with rendered companion [`artifacts/methodology_evaluation_framework.pdf`](artifacts/methodology_evaluation_framework.pdf).
-3. [Classifier Ladder and Contracts](docs/surveys/classifier_ladder_and_contracts.md) with rendered companion [`artifacts/classifier_ladder_and_contracts.pdf`](artifacts/classifier_ladder_and_contracts.pdf).
-4. [Corpus Generation and Search](docs/surveys/corpus_generation_and_search.md) with rendered companion [`artifacts/corpus_generation_and_search.pdf`](artifacts/corpus_generation_and_search.pdf).
-5. [Dimensional Lift and Advanced Filter Gates](docs/surveys/dimensional_lift_and_advanced_filter_gates.md) with rendered companion [`artifacts/dimensional_lift_and_advanced_filter_gates.pdf`](artifacts/dimensional_lift_and_advanced_filter_gates.pdf).
 
+1. [Posterior Update Math](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/posterior_update_math.md) with rendered companion [`artifacts/posterior_update_math.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/posterior_update_math.pdf).
+2. [Methodology Evaluation Framework](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/methodology_evaluation_framework.md) with rendered companion [`artifacts/methodology_evaluation_framework.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/methodology_evaluation_framework.pdf).
+3. [Classifier Ladder and Contracts](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/classifier_ladder_and_contracts.md) with rendered companion [`artifacts/classifier_ladder_and_contracts.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/classifier_ladder_and_contracts.pdf).
+4. [Corpus Generation and Search](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/corpus_generation_and_search.md) with rendered companion [`artifacts/corpus_generation_and_search.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/corpus_generation_and_search.pdf).
+5. [Dimensional Lift and Advanced Filter Gates](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/dimensional_lift_and_advanced_filter_gates.md) with rendered companion [`artifacts/dimensional_lift_and_advanced_filter_gates.pdf`](/Users/rick/Library/Mobile%20Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/artifacts/dimensional_lift_and_advanced_filter_gates.pdf).
 ## Part 1. Posterior Update Math
 
-Source: [posterior_update_math.md](docs/surveys/posterior_update_math.md)
+
+Source: [posterior_update_math.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/posterior_update_math.md)
 
 This note documents the posterior update math used by the two active benchmark
 families in the sandbox:
 
-- `toy_1d.py`: class-matched latent-state filter bank
-- `identity_1d.py`: direct speed-identity classifier over `bike`, `horse`, `car`
+- `witnesses/toy_1d/`: class-matched latent-state filter bank
+- `inference/identity_1d.py`: direct speed-identity classifier over `bike`, `horse`, `car`
 
 The goal is not to present an abstract Bayesian classifier. It is to show the
 specific scoring structure the repo is actually using today.
@@ -43,11 +48,11 @@ does this benchmark prove about the larger methodology?"
 
 Primary implementation surfaces covered explicitly by this note:
 
-- `toy_1d.py`
-- `identity_1d.py`
-- `posterior_explainer.py`
-- `identity_posterior_explainer.py`
-- `bayesian_walkthroughs.py`
+- `witnesses/toy_1d/`
+- `inference/identity_1d.py`
+- `witnesses/toy_1d/posterior_explainer.py`
+- `inference/identity_inference/posterior_explainer.py`
+- `witnesses/toy_1d/bayesian_walkthroughs.py`
 - posterior-oriented artifact writers in `artifacts.py`
 
 ## 0.1 Layered methodology view
@@ -145,17 +150,17 @@ This table is the answer to "what is `y_k`?" in practice:
 
 The math in this note maps to a few concrete implementation surfaces:
 
-- `toy_1d.gaussian_interval_probability(...)`
+- `witnesses.toy_1d.gaussian_interval_probability(...)`
   - symmetric Gaussian region mass for toy speed and acceleration envelopes
-- `toy_1d._innovation_log_likelihood(...)`
+- `witnesses.toy_1d._innovation_log_likelihood(...)`
   - Gaussian innovation log density
-- `toy_1d.run_class_bank(...)`
+- `witnesses.toy_1d.run_class_bank(...)`
   - toy recursive filter-bank classification loop
 - `identity_1d.run_identity_benchmark(...)`
   - identity recursive direct-speed classification loop
-- `posterior_explainer.py`
+- `witnesses/toy_1d/posterior_explainer.py`
   - toy success/failure/comparison/margin-trace posterior diagnostics
-- `identity_posterior_explainer.py`
+- `inference/identity_inference/posterior_explainer.py`
   - identity boundary-failure posterior diagnostics
 
 So this is not just theory. It is intended to stay close to the actual code
@@ -272,7 +277,7 @@ of only final confusion matrices.
 
 Primary recursive implementation surface:
 
-- `run_class_bank(...)` in `toy_1d.py`
+- `run_class_bank(...)` in `witnesses/toy_1d/`
 
 ### 2.2 Innovation likelihood
 
@@ -574,7 +579,7 @@ same.
 
 Primary recursive implementation surface:
 
-- `run_identity_benchmark(...)` in `identity_1d.py`
+- `run_identity_benchmark(...)` in `inference/identity_1d.py`
 
 ### 3.2 Base speed-shape likelihood
 
@@ -1003,9 +1008,9 @@ The present 1D work supports a few concrete claims:
 
 The posterior walkthrough artifacts are built primarily through:
 
-- `posterior_explainer.py`
-- `identity_posterior_explainer.py`
-- `bayesian_walkthroughs.py`
+- `witnesses/toy_1d/posterior_explainer.py`
+- `inference/identity_inference/posterior_explainer.py`
+- `witnesses/toy_1d/bayesian_walkthroughs.py`
 
 Those modules bridge recursive posterior math, implementation-level evidence
 terms, and team-readable success and failure artifacts.
@@ -1025,10 +1030,10 @@ That pattern is what keeps the repo understandable as it grows from:
 - filtering comparisons
 
 toward more generic methodology and later 3D-specific adapters.
-
 ## Part 2. Methodology Evaluation Framework
 
-Source: [methodology_evaluation_framework.md](docs/surveys/methodology_evaluation_framework.md)
+
+Source: [methodology_evaluation_framework.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/methodology_evaluation_framework.md)
 
 This note covers the evaluation side of the repo. The posterior document
 explains how recursive inference works. This document explains how the repo
@@ -1132,7 +1137,7 @@ That layering matters because a failure can happen at any stage.
 
 ### 3.1 Problem
 
-`prior_sensitivity_analysis.py` asks whether a decision is being driven by data
+`inference/prior_sensitivity_analysis.py` asks whether a decision is being driven by data
 or by the prior regime.
 
 ### 3.2 Derivation
@@ -1169,7 +1174,7 @@ rerun the classifier, and record:
 
 ### 3.4 Implementation Mapping
 
-- `prior_sensitivity_analysis.py`
+- `inference/prior_sensitivity_analysis.py`
 - `inspection_bundle.py` for bundle-level summary surfacing
 
 ### 3.5 Methodological Use
@@ -1715,10 +1720,10 @@ This note is complete only if it supports the following claims:
 - each major metric family has an implementation surface in the code
 - the artifact families are interpretable as measurements of those quantities,
   not just dashboards
-
 ## Part 3. Classifier Ladder and Contracts
 
-Source: [classifier_ladder_and_contracts.md](docs/surveys/classifier_ladder_and_contracts.md)
+
+Source: [classifier_ladder_and_contracts.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/classifier_ladder_and_contracts.md)
 
 This note documents the repo's classifier ladder as a sequence of increasingly
 structured evidence models. The point is not only to list which methods exist.
@@ -1822,17 +1827,17 @@ The ladder reuses a small number of methodological assumptions:
 
 The methods differ in their stronger assumptions:
 
-- `pointwise_baseline.py`: observation at time `t` is sufficient evidence
-- `windowed_baseline.py`: a short feature window is a sufficient summary
+- `inference/pointwise_baseline.py`: observation at time `t` is sufficient evidence
+- `inference/windowed_baseline.py`: a short feature window is a sufficient summary
 - `state_estimate_evidence.py`: a filtered state and covariance are already
   provided
-- `sequential_bayes_accumulator.py`: likelihood streams can be accumulated with
+- `inference/sequential_bayes_accumulator.py`: likelihood streams can be accumulated with
   optional forgetting
-- `kalman_filter_bank.py`: each class or motion hypothesis induces a
+- `inference/kalman_filter_bank.py`: each class or motion hypothesis induces a
   linear-Gaussian state-space model
-- `transition_matrix_accumulator.py`: mode persistence and switching can be
+- `inference/transition_matrix_accumulator.py`: mode persistence and switching can be
   represented with a finite transition matrix and emission model
-- `advanced_state_inference.py`: IMM mixes multiple linear-Gaussian mode
+- `inference/advanced_state_inference.py`: IMM mixes multiple linear-Gaussian mode
   models while preserving the same posterior/evidence/diagnostic contract and
   emits the current 1D proof artifacts for advanced switching inference
 
@@ -1840,12 +1845,12 @@ The methods differ in their stronger assumptions:
 
 The current ladder is:
 
-1. `pointwise_baseline.py`
-2. `windowed_baseline.py`
-3. `sequential_bayes_accumulator.py`
-4. `kalman_filter_bank.py`
-5. `transition_matrix_accumulator.py`
-6. `advanced_state_inference.py`
+1. `inference/pointwise_baseline.py`
+2. `inference/windowed_baseline.py`
+3. `inference/sequential_bayes_accumulator.py`
+4. `inference/kalman_filter_bank.py`
+5. `inference/transition_matrix_accumulator.py`
+6. `inference/advanced_state_inference.py`
 
 The upgrade path is deliberate:
 
@@ -1876,7 +1881,7 @@ The reader-facing ladder is therefore:
 
 ### 5.1 Problem
 
-`pointwise_baseline.py` asks the simplest possible question:
+`inference/pointwise_baseline.py` asks the simplest possible question:
 
 ```tex
 \text{How far can direct observation evidence go without explicit memory?}
@@ -1928,7 +1933,7 @@ instantaneous. It cannot represent trend, persistence, or switching.
 
 ### 6.1 Problem
 
-`windowed_baseline.py` addresses the first weakness of pointwise scoring:
+`inference/windowed_baseline.py` addresses the first weakness of pointwise scoring:
 classes may separate only after short-history statistics are computed.
 
 ### 6.2 Variables
@@ -1980,8 +1985,8 @@ compressed summary of recent trajectory geometry.
 
 ### 6.5 Implementation Mapping
 
-- `windowed_baseline.py`
-- `irregular_window_comparison.py`
+- `inference/windowed_baseline.py`
+- `inference/irregular_window_comparison.py`
 - `common_experiment_classifier_registry.py`
 
 ### 6.6 Failure Mode
@@ -2040,7 +2045,7 @@ Kalman filtering.
 
 ### 7.1 Problem
 
-`sequential_bayes_accumulator.py` turns the evidence-combination rule itself
+`inference/sequential_bayes_accumulator.py` turns the evidence-combination rule itself
 into a first-class module.
 
 ### 7.2 Derivation
@@ -2090,7 +2095,7 @@ ambiguity from error.
 
 - `SequentialBayesAccumulator.update_with_likelihoods(...)`
 - `SequentialBayesAccumulator.update_with_gaussian_observation(...)`
-- `monte_carlo_benchmark.py`
+- `inference/monte_carlo_benchmark.py`
 
 ### 7.5 Failure Mode
 
@@ -2102,7 +2107,7 @@ the strengths and weaknesses of the upstream evidence provider.
 
 ### 8.1 Problem
 
-`kalman_filter_bank.py` handles the case where the class distinction is not
+`inference/kalman_filter_bank.py` handles the case where the class distinction is not
 just about feature statistics but about consistency with a dynamics model.
 
 ### 8.2 State-Space Assumptions
@@ -2151,10 +2156,10 @@ measurement is under that model's predicted state.
 ### 8.4 Implementation Mapping
 
 - `_innovation_log_likelihood(...)`
-- model-bank normalization logic in `kalman_filter_bank.py`
-- `kalman_variant_comparison.py`
-- `kalman_observable_comparison.py`
-- `velocity_aided_kalman_comparison.py`
+- model-bank normalization logic in `inference/kalman_filter_bank.py`
+- `inference/kalman_variant_comparison.py`
+- `inference/kalman_observable_comparison.py`
+- `inference/velocity_aided_kalman_comparison.py`
 
 ### 8.5 Failure Mode
 
@@ -2166,7 +2171,7 @@ likelihood can become systematically misleading even when numerically stable.
 
 ### 9.1 Problem
 
-`transition_matrix_accumulator.py` addresses mode persistence and switching
+`inference/transition_matrix_accumulator.py` addresses mode persistence and switching
 before the repo commits to a full IMM-style design.
 
 ### 9.2 Variables
@@ -2207,7 +2212,7 @@ Then the mode posterior update is
 
 ### 9.4 Implementation Mapping
 
-- finite-difference feature derivation in `transition_matrix_accumulator.py`
+- finite-difference feature derivation in `inference/transition_matrix_accumulator.py`
 - transition propagation through the configured `T`
 - normalization over modes after adding emission terms
 
@@ -2378,7 +2383,7 @@ The practical repo contract is:
 - `generic_filtering_contract.py`
 - `trajectory_backend_contract.py`
 - `backend_adapter_proof.py`
-- `advanced_state_inference.py`
+- `inference/advanced_state_inference.py`
 
 ### 10.3 Why This Matters
 
@@ -2409,10 +2414,10 @@ This note is complete only if it supports the following claims:
 The next methodological question after this document is therefore not “what
 method exists?” but “which rung fails, and what stronger assumption would be
 justified next?”.
-
 ## Part 4. Corpus Generation and Search
 
-Source: [corpus_generation_and_search.md](docs/surveys/corpus_generation_and_search.md)
+
+Source: [corpus_generation_and_search.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/corpus_generation_and_search.md)
 
 This note is the corpus-side pillar of the methodology stack. It is not just a
 description of how trajectories are synthesized. It is meant to answer:
@@ -3641,10 +3646,10 @@ This note is complete only if it supports the following claims:
 - at least one real candidate score has been decomposed numerically
 - study promotion is treated as a methodology problem, not only as a report
   listing
-
 ## Part 5. Dimensional Lift and Advanced Filter Gates
 
-Source: [dimensional_lift_and_advanced_filter_gates.md](docs/surveys/dimensional_lift_and_advanced_filter_gates.md)
+
+Source: [dimensional_lift_and_advanced_filter_gates.md](/Users/rick/Library/Mobile Documents/com~apple~CloudDocs/GIT/kinematic-classifier-sandbox/docs/surveys/dimensional_lift_and_advanced_filter_gates.md)
 
 This note documents two related proof obligations in the repo:
 
@@ -3771,7 +3776,7 @@ That principle is only credible if the failure evidence is measured.
 ## 5. IMM As An Actual Algorithm Family
 
 The repo now has an explicit IMM proof surface in
-`advanced_state_inference.py`. That means IMM should no longer be documented
+`inference/advanced_state_inference.py`. That means IMM should no longer be documented
 only as a gate label. It should be documented as a switching linear-Gaussian
 algorithm whose justification is still evidence-gated.
 
@@ -4389,7 +4394,7 @@ that the implementation is necessary.
 - `analyze_advanced_filter_decision()`
 - `run_transition_benchmark(...)`
 - `run_imm_filter(...)`
-- `advanced_state_inference.py`
+- `inference/advanced_state_inference.py`
 
 ## 8. Particle-Filter Gate
 
@@ -4421,8 +4426,8 @@ bottleneck is not yet “we need a particle filter.”
 
 - short-horizon identifiability metrics from
   `short_horizon_identifiability.py`
-- velocity-aided comparison from `velocity_aided_kalman_comparison.py`
-- robust Kalman comparison from `kalman_variant_comparison.py`
+- velocity-aided comparison from `inference/velocity_aided_kalman_comparison.py`
+- robust Kalman comparison from `inference/kalman_variant_comparison.py`
 - gate assembly in `advanced_filter_decision.py`
 
 ## 9. RBPF Gate

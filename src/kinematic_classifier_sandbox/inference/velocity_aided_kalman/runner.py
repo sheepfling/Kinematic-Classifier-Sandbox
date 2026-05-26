@@ -2,8 +2,16 @@ from __future__ import annotations
 
 import random
 
-from ...analysis.common_dataset_comparison import SharedDynamicsTrajectory, generate_shared_dynamics_dataset
-from ..kalman_filter_bank import KalmanClassificationRun, KalmanModelSpec, KalmanTrajectory, run_kalman_filter_bank
+from ...analysis.common_dataset_comparison import (
+    SharedDynamicsTrajectory,
+    generate_shared_dynamics_dataset,
+)
+from ..kalman_filter_bank import (
+    KalmanClassificationRun,
+    KalmanModelSpec,
+    KalmanTrajectory,
+    run_kalman_filter_bank,
+)
 from .contracts import VelocityAidedComparisonResult, VelocityAidedRow, VelocityAidedTrace
 
 

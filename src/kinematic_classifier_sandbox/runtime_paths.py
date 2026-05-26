@@ -1,28 +1,22 @@
 from __future__ import annotations
 
-import os
-import tempfile
-from pathlib import Path
+from .utils.plotting import prepare_matplotlib
+from .utils.runtime import (
+    configure_matplotlib_environment,
+    configure_runtime_environment,
+    mpl_config_dir,
+    pycache_prefix,
+    runtime_root,
+)
 
+__all__ = [
+    "configure_matplotlib_environment",
+    "configure_runtime_environment",
+    "mpl_config_dir",
+    "pycache_prefix",
+    "runtime_root",
+    "prepare_matplotlib",
+    "_prepare_matplotlib",
+]
 
-_RUNTIME_ROOT_NAME = "kinematic-classifier-sandbox"
-
-
-def runtime_root() -> Path:
-    override = os.environ.get("KINEMATIC_CLASSIFIER_RUNTIME_ROOT")
-    if override:
-        return Path(override)
-    return Path(tempfile.gettempdir()) / _RUNTIME_ROOT_NAME
-
-
-def pycache_prefix() -> Path:
-    return runtime_root() / "pycache"
-
-
-def mpl_config_dir() -> Path:
-    return runtime_root() / "mplconfig"
-
-
-def configure_runtime_environment() -> None:
-    os.environ.setdefault("PYTHONPYCACHEPREFIX", str(pycache_prefix()))
-    os.environ.setdefault("MPLCONFIGDIR", str(mpl_config_dir()))
+_prepare_matplotlib = prepare_matplotlib

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from numpy import array, argmax, asarray, float64, log, ndarray
+from numpy import argmax, array, asarray, float64, log, ndarray
 
 from .contracts import AdvancedFilterStep
 from .particle_filter import BootstrapParticleFilter

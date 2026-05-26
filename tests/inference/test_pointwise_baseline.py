@@ -7,14 +7,10 @@ from pathlib import Path
 from kinematic_classifier_sandbox.inference.pointwise_baseline import (
     GaussianPointwiseClassifier,
     PointwiseClassSpec,
-    PointwiseTrajectory,
-    default_pointwise_class_specs,
-    generate_pointwise_benchmark_trajectories,
-    render_pointwise_benchmark_report,
     render_pointwise_benchmark_png_bytes,
+    render_pointwise_benchmark_report,
     render_pointwise_benchmark_svg,
     run_pointwise_benchmark,
-    run_pointwise_classifier,
     write_pointwise_benchmark_artifacts,
 )
 

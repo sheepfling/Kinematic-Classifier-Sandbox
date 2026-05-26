@@ -16,7 +16,10 @@ def main() -> int:
     if str(src) not in sys.path:
         sys.path.insert(0, str(src))
 
-    from kinematic_classifier_sandbox import recommend_feature_set, recommend_hardest_class_pair
+    from kinematic_classifier_sandbox.analysis.inspection_bundle import (
+        recommend_feature_set,
+        recommend_hardest_class_pair,
+    )
 
     summary_path = root / "artifacts" / "abstract_inspection_v1" / "abstract_inspection_summary.json"
     if not summary_path.exists():

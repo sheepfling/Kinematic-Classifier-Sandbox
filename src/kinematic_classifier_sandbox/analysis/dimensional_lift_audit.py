@@ -1,38 +1,15 @@
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass
 from math import sqrt
-from pathlib import Path
-
-from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.math import _normalize_log_scores
+
 from ..contracts import TrajectoryArtifact, validate_trajectory_artifact
-from ..markdown_builder import MarkdownDocument
-
-
-@dataclass(frozen=True, slots=True)
-class DimensionalLiftAuditResult:
-    module_rows: tuple[dict[str, object], ...]
-    scalar_assumption_rows: tuple[dict[str, object], ...]
-    required_adapter_markdown: str
-    audit_markdown: str
-    vector_predictions_rows: tuple[dict[str, object], ...]
-    vector_posterior_rows: tuple[dict[str, object], ...]
-    vector_feature_rows: tuple[dict[str, object], ...]
-    validation_results: dict[str, object]
-
-@dataclass(frozen=True, slots=True)
-class DimensionalLiftAuditArtifacts:
-    run_dir: Path
-    audit_report_path: Path
-    module_status_path: Path
-    scalar_assumption_inventory_path: Path
-    required_adapters_path: Path
-    vector_predictions_path: Path
-    vector_posterior_history_path: Path
-    vector_feature_matrix_path: Path
-    validation_results_path: Path
+from .dimensional_lift_audit_artifact_io import write_dimensional_lift_audit_artifacts
+from .dimensional_lift_audit_contracts import (
+    DimensionalLiftAuditArtifacts,
+    DimensionalLiftAuditResult,
+)
+from .dimensional_lift_audit_reporting import render_dimensional_lift_audit_report
 
 def _module_rows() -> tuple[dict[str, object], ...]:
     return (
@@ -333,155 +310,23 @@ def analyze_dimensional_lift_audit() -> DimensionalLiftAuditResult:
         else "fail",
     }
 
-    doc = MarkdownDocument("Dimensional Lift Audit")
-    doc.paragraph(
-        "This artifact audits which current modules are dimension-agnostic, adapter-compatible, or rewrite-required, and proves that a fake vector-valued corpus can still reach the standard methodology artifact surface."
-    )
-
-    doc.heading("Validation Summary", level=2)
-    doc.bullet_list(
-        [
-            f"Overall status: `{validation_results['overall_status']}`",
-            f"All modules labeled: `{validation_results['all_modules_labeled']}`",
-            f"Scalar assumptions listed: `{validation_results['scalar_assumptions_listed']}`",
-            f"Vector corpus loaded: `{validation_results['vector_corpus_loaded']}`",
-            f"Vector features emitted: `{validation_results['vector_features_emitted']}`",
-            f"Vector predictions emitted: `{validation_results['vector_predictions_emitted']}`",
-            f"Vector posterior rows emitted: `{validation_results['vector_posteriors_emitted']}`",
-        ]
-    )
-
-    doc.heading("Module Status", level=2)
-    doc.table(
-        ["module", "layer", "dimensional_status", "required_3d_action"],
-        [
-            (row["module"], row["layer"], row["dimensional_status"], row["required_3d_action"])
-            for row in module_rows
-        ]
-    )
-
-    doc.heading("Scalar Assumption Inventory", level=2)
-    doc.table(
-        ["module", "assumption_id", "severity", "blocking_for_3d"],
-        [
-            (row["module"], row["assumption_id"], row["severity"], str(row["blocking_for_3d"]))
-            for row in scalar_assumption_rows
-        ]
-    )
-
-    doc.heading("Fake Vector Proof", level=2)
-    doc.bullet_list(
-        [
-            "The fake vector corpus uses `measurement_dim=3`, `measurement_axes=(x,y,z)`, and `coordinate_frame=enu`.",
-            "It emits a standard feature table, prediction table, and posterior table without relying on full 3D dynamics or a full 3D Kalman bank.",
-        ]
-    )
-
-    doc.heading("Required Adapters", level=2)
-    doc.paragraph(required_adapter_markdown)
-
-    return DimensionalLiftAuditResult(
+    result = DimensionalLiftAuditResult(
         module_rows=module_rows,
         scalar_assumption_rows=scalar_assumption_rows,
         required_adapter_markdown=required_adapter_markdown,
-        audit_markdown=doc.text(),
+        audit_markdown="",
         vector_predictions_rows=prediction_rows,
         vector_posterior_rows=posterior_rows,
         vector_feature_rows=feature_rows,
         validation_results=validation_results,
     )
-
-def write_dimensional_lift_audit_artifacts(
-        output_dir: str | Path,
-        *,
-        result: DimensionalLiftAuditResult | None = None,
-) -> DimensionalLiftAuditArtifacts:
-    audit = result or analyze_dimensional_lift_audit()
-    run_dir = Path(output_dir) / "dimensional_lift_audit"
-    run_dir.mkdir(parents=True, exist_ok=True)
-
-    audit_report_path = run_dir / "dimensional_lift_audit.md"
-    module_status_path = run_dir / "module_dimension_status.csv"
-    scalar_assumption_inventory_path = run_dir / "scalar_assumption_inventory.csv"
-    required_adapters_path = run_dir / "required_3d_adapters.md"
-    vector_predictions_path = run_dir / "vector_proof_predictions.csv"
-    vector_posterior_history_path = run_dir / "vector_proof_posterior_history.csv"
-    vector_feature_matrix_path = run_dir / "vector_proof_feature_matrix.csv"
-    validation_results_path = run_dir / "validation_results.json"
-
-    audit_report_path.write_text(audit.audit_markdown, encoding="utf-8")
-    required_adapters_path.write_text(audit.required_adapter_markdown, encoding="utf-8")
-    validation_results_path.write_text(json.dumps(audit.validation_results, indent=2), encoding="utf-8")
-    write_csv(
-        module_status_path,
-        list(audit.module_rows),
-        ["module", "layer", "dimensional_status", "reason", "required_3d_action"],
-    )
-    write_csv(
-        scalar_assumption_inventory_path,
-        list(audit.scalar_assumption_rows),
-        ["module", "assumption_id", "severity", "blocking_for_3d", "current_assumption", "3d_requirement"],
-    )
-    write_csv(
-        vector_predictions_path,
-        list(audit.vector_predictions_rows),
-        [
-            "run_id",
-            "classifier_id",
-            "sensor_regime_id",
-            "trajectory_id",
-            "scenario_id",
-            "time",
-            "true_class",
-            "predicted_class",
-            "confidence",
-            "posterior_slow_linear",
-            "posterior_fast_linear",
-            "measurement_dim",
-            "coordinate_frame",
-        ],
-    )
-    write_csv(
-        vector_posterior_history_path,
-        list(audit.vector_posterior_rows),
-        [
-            "run_id",
-            "classifier_id",
-            "sensor_regime_id",
-            "trajectory_id",
-            "scenario_id",
-            "time",
-            "true_class",
-            "posterior_slow_linear",
-            "posterior_fast_linear",
-            "measurement_dim",
-            "coordinate_frame",
-        ],
-    )
-    write_csv(
-        vector_feature_matrix_path,
-        list(audit.vector_feature_rows),
-        [
-            "trajectory_id",
-            "scenario_id",
-            "true_class",
-            "measurement_dim",
-            "coordinate_frame",
-            "duration",
-            "path_length",
-            "displacement_norm",
-            "mean_dt",
-        ],
-    )
-
-    return DimensionalLiftAuditArtifacts(
-        run_dir=run_dir,
-        audit_report_path=audit_report_path,
-        module_status_path=module_status_path,
-        scalar_assumption_inventory_path=scalar_assumption_inventory_path,
-        required_adapters_path=required_adapters_path,
-        vector_predictions_path=vector_predictions_path,
-        vector_posterior_history_path=vector_posterior_history_path,
-        vector_feature_matrix_path=vector_feature_matrix_path,
-        validation_results_path=validation_results_path,
+    return DimensionalLiftAuditResult(
+        module_rows=result.module_rows,
+        scalar_assumption_rows=result.scalar_assumption_rows,
+        required_adapter_markdown=result.required_adapter_markdown,
+        audit_markdown=render_dimensional_lift_audit_report(result),
+        vector_predictions_rows=result.vector_predictions_rows,
+        vector_posterior_rows=result.vector_posterior_rows,
+        vector_feature_rows=result.vector_feature_rows,
+        validation_results=result.validation_results,
     )

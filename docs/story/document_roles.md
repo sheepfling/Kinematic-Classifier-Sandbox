@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | `docs/story/00_repo_story.md` | Front-door narrative and repo positioning | canonical |
 | `docs/story/01_methodology_map.md` | Layer map and study flow | canonical |
-| `docs/story/package_boundaries.md` | Canonical import facade and compatibility surface | canonical |
+| `docs/story/package_boundaries.md` | Canonical import facade | canonical |
 | `docs/story/related_methodological_threads.md` | Research-thread mapping and repo integration context | canonical |
 | `docs/story/02_reading_order.md` | Reader journey | canonical |
 | `docs/latex/kinematic_classifier_methodology.tex` | Methodology synthesis and math-backed paper source | supporting canonical |

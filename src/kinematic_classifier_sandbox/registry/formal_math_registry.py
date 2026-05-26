@@ -1,52 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import ast
-import csv
-import io
 import json
-import os
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 
+from ..markdown_builder import MarkdownDocument
+from ..utils.io import write_csv
+from ..utils.plotting import _figure_to_png
+from ..utils.plotting import plt
 
-PACKAGE_DIR = Path(__file__).resolve().parent
+PACKAGE_DIR = Path(__file__).resolve().parent.parent
 SRC_DIR = PACKAGE_DIR.parent
 REPO_ROOT = SRC_DIR.parent
 PACKAGE_SRC_DIR = SRC_DIR / "kinematic_classifier_sandbox"
 DOCS_MATH_DIR = REPO_ROOT / "docs" / "math"
 EQUATION_REGISTRY_PATH = DOCS_MATH_DIR / "equation_registry.yaml"
 ARTIFACT_DIR = REPO_ROOT / "artifacts" / "formal_math_registry_v1"
-
-
-def _prepare_matplotlib():
-    os.environ.setdefault("MPLCONFIGDIR", str(Path("/private/tmp/kinematic-classifier-sandbox-mpl")))
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    return plt
-
-
-def _figure_to_png(fig) -> bytes:
-    plt = _prepare_matplotlib()
-    buffer = io.BytesIO()
-    try:
-        fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
-
-
-def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
 
 
 @dataclass(frozen=True, slots=True)
@@ -210,7 +182,6 @@ def analyze_formal_math_registry() -> FormalMathRegistryResult:
 
 
 def _render_role_plot(result: FormalMathRegistryResult):
-    plt = _prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8.6, 4.8))
     roles = ["analysis", "render", "artifact_writer", "loader", "generator", "runner", "helper", "public_api", "entrypoint"]
     counts = [sum(1 for row in result.function_rows if row.role == role) for role in roles]
@@ -225,62 +196,70 @@ def _render_role_plot(result: FormalMathRegistryResult):
 
 
 def render_formal_math_registry_report(result: FormalMathRegistryResult) -> str:
-    lines = [
-        "# Formal Math Registry",
-        "",
-        "This registry is the formal inventory of math- and evaluation-facing helper functions plus the equation definitions that point back into code. It is generated from the source tree and the equation registry, so the result is auditable instead of hand-edited.",
-        "",
-        "## Summary",
-        "",
-        f"- Functions scanned: `{result.summary['function_count']}`",
-        f"- Public functions: `{result.summary['public_function_count']}`",
-        f"- Private helpers: `{result.summary['private_function_count']}`",
-        f"- Analysis functions: `{result.summary['analysis_function_count']}`",
-        f"- Render functions: `{result.summary['render_function_count']}`",
-        f"- Artifact writers: `{result.summary['artifact_writer_count']}`",
-        f"- Equation entries: `{result.summary['equation_count']}`",
-        f"- Implemented equations: `{result.summary['implemented_equation_count']}`",
-        f"- Conceptual equations: `{result.summary['conceptual_equation_count']}`",
-        f"- Linked equations: `{result.summary['linked_equation_count']}`",
-        "",
-        "## Equation Registry",
-        "",
-        "| equation_id | status | implementation | linked | artifacts | tests |",
-        "| --- | --- | --- | --- | ---: | ---: |",
+    report = MarkdownDocument("Formal Math Registry")
+    report.paragraph(
+        "This registry is the formal inventory of math- and evaluation-facing helper functions plus the equation definitions that point back into code. "
+        "It is generated from the source tree and the equation registry, so the result is auditable instead of hand-edited."
+    )
+    report.heading("Summary", level=2)
+    report.bullet_list(
+        [
+            f"Functions scanned: `{result.summary['function_count']}`",
+            f"Public functions: `{result.summary['public_function_count']}`",
+            f"Private helpers: `{result.summary['private_function_count']}`",
+            f"Analysis functions: `{result.summary['analysis_function_count']}`",
+            f"Render functions: `{result.summary['render_function_count']}`",
+            f"Artifact writers: `{result.summary['artifact_writer_count']}`",
+            f"Equation entries: `{result.summary['equation_count']}`",
+            f"Implemented equations: `{result.summary['implemented_equation_count']}`",
+            f"Conceptual equations: `{result.summary['conceptual_equation_count']}`",
+            f"Linked equations: `{result.summary['linked_equation_count']}`",
+        ]
+    )
+    report.heading("Equation Registry", level=2)
+    report.table(
+        ["equation_id", "status", "implementation", "linked", "artifacts", "tests"],
+        [
+            (
+                f"`{row.equation_id}`",
+                f"`{row.status}`",
+                f"`{row.implementation_module}::{row.implementation_function}`",
+                "yes" if row.linked_function_exists else "no",
+                row.artifact_count,
+                row.test_count,
+            )
+            for row in result.equation_rows
+        ],
+    )
+    report.heading("Function Registry", level=2)
+    report.paragraph(
+        "The table below lists every top-level function found under `src/kinematic_classifier_sandbox/`."
+    )
+    rows = [
+        (
+            f"`{row.module_path}`",
+            f"`{row.function_name}`",
+            str(row.line_number),
+            row.visibility,
+            row.role,
+            ", ".join(str(equation_id) for equation_id in row.equation_ids) or "none",
+            row.doc_summary or "none",
+        )
+        for row in result.function_rows
     ]
-    for row in result.equation_rows:
-        implementation = f"`{row.implementation_module}::{row.implementation_function}`"
-        linked = "yes" if row.linked_function_exists else "no"
-        lines.append(
-            f"| `{row.equation_id}` | `{row.status}` | {implementation} | {linked} | {row.artifact_count} | {row.test_count} |"
-        )
-    lines.extend(
+    report.table(
+        ["module", "function", "line", "visibility", "role", "equations", "doc summary"],
+        rows,
+    )
+    report.heading("Interpretation", level=2)
+    report.bullet_list(
         [
-            "",
-            "## Function Registry",
-            "",
-            "The table below lists every top-level function found under `src/kinematic_classifier_sandbox/`.",
-            "",
-            "| module | function | line | visibility | role | equations | doc summary |",
-            "| --- | --- | ---: | --- | --- | --- | --- |",
+            "The equation registry shows which mathematics are implemented versus still conceptual.",
+            "The function registry shows where the real callable surfaces live, including helpers that are not part of the public API.",
+            "The linked-function column is the bridge between derivation-level documentation and executable code.",
         ]
     )
-    for row in result.function_rows:
-        equation_ids = "<br>".join(f"`{equation_id}`" for equation_id in row.equation_ids) or "none"
-        lines.append(
-            f"| `{row.module_path}` | `{row.function_name}` | {row.line_number} | {row.visibility} | {row.role} | {equation_ids} | {row.doc_summary or 'none'} |"
-        )
-    lines.extend(
-        [
-            "",
-            "## Interpretation",
-            "",
-            "- The equation registry shows which mathematics are implemented versus still conceptual.",
-            "- The function registry shows where the real callable surfaces live, including helpers that are not part of the public API.",
-            "- The linked-function column is the bridge between derivation-level documentation and executable code.",
-        ]
-    )
-    return "\n".join(lines)
+    return report.text()
 
 
 def write_formal_math_registry_artifacts(
@@ -302,7 +281,7 @@ def write_formal_math_registry_artifacts(
 
     report_path.write_text(payload.report_markdown, encoding="utf-8")
     summary_path.write_text(json.dumps(payload.summary, indent=2, sort_keys=True), encoding="utf-8")
-    _write_csv(
+    write_csv(
         function_registry_path,
         [
             {
@@ -328,7 +307,7 @@ def write_formal_math_registry_artifacts(
             "doc_summary",
         ],
     )
-    _write_csv(
+    write_csv(
         equation_registry_path,
         [
             {
@@ -352,7 +331,7 @@ def write_formal_math_registry_artifacts(
             "test_count",
         ],
     )
-    _write_csv(
+    write_csv(
         crosswalk_path,
         [
             {

@@ -5,8 +5,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import write_abstract_inspection_artifacts
-from kinematic_classifier_sandbox.api import recommend_feature_set, recommend_hardest_class_pair
+from kinematic_classifier_sandbox.analysis.inspection_bundle import (
+    recommend_feature_set,
+    recommend_hardest_class_pair,
+    write_abstract_inspection_artifacts,
+)
 
 
 class AbstractInspectionBundleTests(unittest.TestCase):

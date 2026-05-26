@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.rl_backend_decision import (
     analyze_rl_backend_decision,
     render_rl_backend_decision_report,
     write_rl_backend_decision_artifacts,

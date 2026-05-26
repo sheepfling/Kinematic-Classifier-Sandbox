@@ -1,35 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-import csv
 import json
+from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from statistics import mean
 from typing import Any
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+from kinematic_classifier_sandbox.utils.io import write_csv
 
+from ...markdown_builder import MarkdownDocument
+from ...runtime_paths import prepare_matplotlib
+from ...utils.plotting import plt
+from ..trajectory_backend_contract import default_backend_contract_definitions
 from .backend_adapter_proof import (
     BackendCandidateSpec,
     EnvironmentAware1DAdapter,
     _environment_candidate,
 )
-from .trajectory_backend_contract import default_backend_contract_definitions
-
-
-def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-
-
-def _clamp(value: float, lower: float, upper: float) -> float:
-    return max(lower, min(upper, value))
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,7 +223,6 @@ def _render_coverage_heatmap_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     fig.colorbar(image, ax=ax, fraction=0.04, pad=0.04)
     fig.tight_layout()
 
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -257,7 +244,6 @@ def _render_leakage_plot_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     ax.legend(fontsize=8)
     fig.tight_layout()
 
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -287,7 +273,6 @@ def _render_trajectory_gallery_png() -> bytes:
     fig.suptitle("Environment-Conditioned Trajectory Gallery", fontsize=11)
     fig.tight_layout()
 
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -319,38 +304,48 @@ def analyze_environment_aware_corpus() -> EnvironmentAwareCorpusResult:
         },
         "search_objective": "target environment regimes while preserving class balance and traceable environment metadata",
     }
-
-    report_markdown = "\n".join(
+    
+    doc = MarkdownDocument("Atmosphere-Like 1D Environment Corpus")
+    doc.heading("Summary", level=2)
+    doc.bullet_list(
         [
-            "# Atmosphere-Like 1D Environment Corpus",
-            "",
-            "## Summary",
-            f"- environment regimes targeted: `{len(_environment_regimes())}`",
-            f"- generated trajectories: `{len(candidates)}`",
-            f"- selected corpus leakage flags: `{selected_flagged}`",
-            f"- biased control leakage flags: `{control_flagged}`",
-            "",
-            "## Environment Coverage",
-            "| Environment | Class | Count | Mean Density | Mean Wind Bias |",
-            "| --- | --- | --- | --- | --- |",
-            *[
-                f"| `{row['environment_id']}` | `{row['true_class']}` | `{row['trajectory_count']}` | "
-                f"`{row['mean_density']:.3f}` | `{row['mean_wind_bias']:.3f}` |"
-                for row in coverage_rows
-            ],
-            "",
-            "## Leakage Audit",
-            "| Slice | Variable | Delta Ratio | Flagged |",
-            "| --- | --- | --- | --- |",
-            *[
-                f"| `{row['slice_id']}` | `{row['variable_name']}` | `{row['delta_ratio']:.3f}` | `{row['flagged_class_linkage']}` |"
-                for row in leakage_rows
-            ],
-            "",
-            "## Notes",
-            "- The selected corpus is balanced across environment regimes and classes, so the main slice should remain mostly unflagged.",
-            "- A biased control slice is audited alongside it to prove that the leakage logic can surface class-linked environment variables when they are present.",
-            "- The same normalized runs support both environment-agnostic and environment-aware feature views because `truth_state` and `environment_trace` are preserved separately.",
+            f"environment regimes targeted: `{len(_environment_regimes())}`",
+            f"generated trajectories: `{len(candidates)}`",
+            f"selected corpus leakage flags: `{selected_flagged}`",
+            f"biased control leakage flags: `{control_flagged}`",
+        ]
+    )
+
+    doc.heading("Environment Coverage", level=2)
+    doc.table(
+        ["Environment", "Class", "Count", "Mean Density", "Mean Wind Bias"],
+        [
+            (
+                f"`{row['environment_id']}`",
+                f"`{row['true_class']}`",
+                f"`{row['trajectory_count']}`",
+                f"`{row['mean_density']:.3f}`",
+                f"`{row['mean_wind_bias']:.3f}`",
+            )
+            for row in coverage_rows
+        ]
+    )
+
+    doc.heading("Leakage Audit", level=2)
+    doc.table(
+        ["Slice", "Variable", "Delta Ratio", "Flagged"],
+        [
+            (f"`{row['slice_id']}`", f"`{row['variable_name']}`", f"`{row['delta_ratio']:.3f}`", str(row['flagged_class_linkage']))
+            for row in leakage_rows
+        ]
+    )
+
+    doc.heading("Notes", level=2)
+    doc.bullet_list(
+        [
+            "The selected corpus is balanced across environment regimes and classes, so the main slice should remain mostly unflagged.",
+            "A biased control slice is audited alongside it to prove that the leakage logic can surface class-linked environment variables when they are present.",
+            "The same normalized runs support both environment-agnostic and environment-aware feature views because `truth_state` and `environment_trace` are preserved separately.",
         ]
     )
 
@@ -358,7 +353,7 @@ def analyze_environment_aware_corpus() -> EnvironmentAwareCorpusResult:
         environment_manifest=environment_manifest,
         environment_coverage_rows=coverage_rows,
         environment_leakage_rows=leakage_rows,
-        report_markdown=report_markdown,
+        report_markdown=doc.text(),
     )
 
 
@@ -384,8 +379,8 @@ def write_environment_aware_corpus_artifacts(
 
     coverage_fieldnames = list(payload.environment_coverage_rows[0].keys()) if payload.environment_coverage_rows else []
     leakage_fieldnames = list(payload.environment_leakage_rows[0].keys()) if payload.environment_leakage_rows else []
-    _write_csv(environment_coverage_path, list(payload.environment_coverage_rows), coverage_fieldnames)
-    _write_csv(environment_leakage_audit_path, list(payload.environment_leakage_rows), leakage_fieldnames)
+    write_csv(environment_coverage_path, list(payload.environment_coverage_rows), coverage_fieldnames)
+    write_csv(environment_leakage_audit_path, list(payload.environment_leakage_rows), leakage_fieldnames)
 
     coverage_heatmap_png_path.write_bytes(_render_coverage_heatmap_png(payload.environment_coverage_rows))
     leakage_plot_png_path.write_bytes(_render_leakage_plot_png(payload.environment_leakage_rows))

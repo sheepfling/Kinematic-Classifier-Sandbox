@@ -7,7 +7,9 @@ from pathlib import Path
 
 import yaml
 
-from kinematic_classifier_sandbox.formal_math_visual_registry import analyze_formal_math_visual_registry
+from kinematic_classifier_sandbox.formal_math_visual_registry import (
+    analyze_formal_math_visual_registry,
+)
 
 
 class FormalMathVisualRegistryTests(unittest.TestCase):

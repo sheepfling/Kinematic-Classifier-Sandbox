@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.showcase_builder import (
+from kinematic_classifier_sandbox.showcase.builder import (
     build_showcase_artifacts,
     validate_showcase_artifacts,
 )

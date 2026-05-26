@@ -4,7 +4,6 @@ import os
 import tempfile
 from pathlib import Path
 
-
 _RUNTIME_ROOT_NAME = "kinematic-classifier-sandbox"
 
 

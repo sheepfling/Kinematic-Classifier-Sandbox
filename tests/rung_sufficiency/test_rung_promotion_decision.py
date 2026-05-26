@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kinematic_classifier_sandbox.rung_sufficiency.analysis import analyze_rung_sufficiency, write_rung_sufficiency_artifacts
+from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
+    analyze_rung_sufficiency,
+    write_rung_sufficiency_artifacts,
+)
 
 
 def test_promotion_rows_include_stay_and_promote():

@@ -4,11 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.inference.velocity_aided_kalman.reporting import (
-    render_velocity_aided_kalman_comparison_report,
-)
 from kinematic_classifier_sandbox.inference.velocity_aided_kalman.artifact_io import (
     write_velocity_aided_kalman_comparison_artifacts,
+)
+from kinematic_classifier_sandbox.inference.velocity_aided_kalman.reporting import (
+    render_velocity_aided_kalman_comparison_report,
 )
 from kinematic_classifier_sandbox.inference.velocity_aided_kalman.runner import (
     analyze_velocity_aided_kalman_comparison,

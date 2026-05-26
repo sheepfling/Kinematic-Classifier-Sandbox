@@ -15,7 +15,9 @@ os.environ["PYTHONPATH"] = str(SRC) if not existing_pythonpath else f"{SRC}{os.p
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox import write_functional_surface_catalog_artifacts
+from kinematic_classifier_sandbox.functional_surface_catalog import (
+    write_functional_surface_catalog_artifacts,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:

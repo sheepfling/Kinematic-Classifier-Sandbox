@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Generic, TypeVar
 
-
 ResultT = TypeVar("ResultT")
 ArtifactsT = TypeVar("ArtifactsT")
 

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from numpy import array, diag, eye, float64, log, ndarray, pi
 import numpy.linalg as linalg
+from numpy import array, eye, float64, log, pi
+
 from ..utils.types import FloatArray
 
 

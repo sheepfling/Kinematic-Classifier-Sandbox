@@ -7,6 +7,10 @@ from pathlib import Path
 
 import yaml
 
+from kinematic_classifier_sandbox.corpus.exploration.generic_corpus_exploration import (
+    DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHTS,
+    analyze_generic_corpus_exploration,
+)
 from kinematic_classifier_sandbox.corpus.policy import (
     DEFAULT_CORPUS_POLICY_PATH,
     load_corpus_policy_spec,
@@ -17,10 +21,6 @@ from kinematic_classifier_sandbox.corpus.policy import (
     score_study_candidate_static,
     validate_corpus_policy_spec,
     write_default_policy_artifacts,
-)
-from kinematic_classifier_sandbox.corpus.exploration.generic_corpus_exploration import (
-    DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHTS,
-    analyze_generic_corpus_exploration,
 )
 
 

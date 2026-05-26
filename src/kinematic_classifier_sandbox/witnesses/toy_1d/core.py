@@ -1,21 +1,21 @@
 from __future__ import annotations
 
+import argparse
+import io
+import random
+from dataclasses import dataclass, field
+from math import erf, exp, log, sqrt
+from pathlib import Path
+
 from ...analysis.classification_benchmark import (
     summarize_classification_features,
     summarize_classification_outcomes,
 )
-from ...runtime_paths import prepare_matplotlib
 from ...markdown_builder import MarkdownDocument
-from ..study_surface import NamedArtifactWriter, OneDWitnessSurface, write_one_d_surface_artifacts
 from ...utils.io import _write_csv_rows
 from ...utils.math import _clamp, _entropy, _gaussian_logpdf, _innovation_log_likelihood, _logsumexp
-from dataclasses import dataclass, field
-from math import erf, exp, log, pi, sqrt
-import argparse
-import io
-import random
-from pathlib import Path
-
+from ...utils.plotting import plt
+from ..study_surface import NamedArtifactWriter, OneDWitnessSurface, write_one_d_surface_artifacts
 
 FEATURE_NAMES = (
     "reverse_motion",
@@ -1250,7 +1250,6 @@ def _feature_detection_threshold(feature_name: str, config: ToyBenchmarkConfig) 
 
 
 def _plot_toy_benchmark(result: ToyBenchmarkResult):
-    plt = prepare_matplotlib()
     class_names = tuple(spec.name for spec in result.dataset.class_specs)
     cmap = plt.get_cmap("tab10")
     colors = {name: cmap(index % cmap.N) for index, name in enumerate(class_names)}
@@ -1299,7 +1298,6 @@ def _plot_toy_benchmark(result: ToyBenchmarkResult):
 
 
 def render_toy_benchmark_png_bytes(result: ToyBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _plot_toy_benchmark(result)
     try:
         buffer = io.BytesIO()
@@ -1310,7 +1308,6 @@ def render_toy_benchmark_png_bytes(result: ToyBenchmarkResult) -> bytes:
 
 
 def _build_toy_feature_confusion_figure(result: ToyBenchmarkResult):
-    plt = prepare_matplotlib()
     summary = result.summary
     class_names = sorted(summary.confusion_counts)
     feature_names = list(FEATURE_NAMES)
@@ -1347,7 +1344,6 @@ def _build_toy_feature_confusion_figure(result: ToyBenchmarkResult):
 
 
 def render_toy_feature_confusion_png_bytes(result: ToyBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_toy_feature_confusion_figure(result)
     try:
         buffer = io.BytesIO()

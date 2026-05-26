@@ -56,8 +56,8 @@ Validation:
 - The contract can describe a future 3D PVA backend without changing the downstream evaluation surface.
 
 Artifacts / Config:
-- `src/kinematic_classifier_sandbox/advanced_state_inference.py`
-- `tests/test_advanced_state_inference.py`
+- `src/kinematic_classifier_sandbox/inference/inference/advanced_state_inference.py`
+- `tests/test_inference/advanced_state_inference.py`
 - `artifacts/advanced_state_inference_v1/`
 - `artifacts/advanced_state_inference_contract/`
 - `docs/plans/PLN-025_advanced_state_inference_imm_1d_to_3d.md`
@@ -68,8 +68,8 @@ Dependencies:
 - `PLN-013` generic filtering contract.
 - `PLN-016` team-facing methodology showcase.
 - `PLN-023` math document hardening and equation traceability.
-- `transition_matrix_accumulator.py` for the switching witness baseline.
-- `kalman_filter_bank.py` for the model-based 1D reference surface.
+- `inference/transition_matrix_accumulator.py` for the switching witness baseline.
+- `inference/kalman_filter_bank.py` for the model-based 1D reference surface.
 - `trajectory_generator.py` for the switching witness trajectories.
 
 Milestones:

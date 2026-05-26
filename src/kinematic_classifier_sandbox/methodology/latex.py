@@ -1,21 +1,18 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import _write_text
 
-from kinematic_classifier_sandbox.utils.io import write_csv
-from kinematic_classifier_sandbox.utils.runtime import repo_root
-
-from dataclasses import dataclass
-import csv
 import os
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
-from ..validation.advanced_filter_decision import analyze_advanced_filter_decision
-from ..witnesses.toy_1d.bayesian_walkthroughs import analyze_bayesian_walkthroughs
-from ..inference.transition_matrix_accumulator import run_transition_benchmark
-from ..validation.validation_ladder import analyze_validation_ladder
+from kinematic_classifier_sandbox.utils.io import _write_text, write_csv
+from kinematic_classifier_sandbox.utils.runtime import repo_root
 
+from ..inference.transition_matrix_accumulator import run_transition_benchmark
+from ..validation.advanced_filter_decision import analyze_advanced_filter_decision
+from ..validation.validation_ladder import analyze_validation_ladder
+from ..witnesses.toy_1d.bayesian_walkthroughs import analyze_bayesian_walkthroughs
 
 ROOT = repo_root()
 DOCS_LATEX_DIR = ROOT / "docs" / "latex"

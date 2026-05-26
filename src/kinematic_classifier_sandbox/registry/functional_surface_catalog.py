@@ -1,41 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-import csv
 import importlib
-import io
 import json
-import os
+from dataclasses import dataclass
 from pathlib import Path
 
-
-def _prepare_matplotlib():
-    os.environ.setdefault("MPLCONFIGDIR", str(Path("/private/tmp/kinematic-classifier-sandbox-mpl")))
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    return plt
-
-
-def _figure_to_png(fig) -> bytes:
-    plt = _prepare_matplotlib()
-    buffer = io.BytesIO()
-    try:
-        fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
-
-
-def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
+from ..markdown_builder import MarkdownDocument
+from ..utils.io import write_csv
+from ..utils.plotting import _figure_to_png
+from ..utils.plotting import plt
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,7 +60,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="feature_analysis",
         category="evaluation",
-        module="kinematic_classifier_sandbox.feature_analysis",
+        module="kinematic_classifier_sandbox.analysis.feature_analysis",
         analysis_function="analyze_feature_datasets",
         artifact_function="write_feature_analysis_artifacts",
         artifact_outputs=("feature_excitation_matrix.csv", "feature_excitation_summary.json", "feature_excitation_heatmap.png"),
@@ -98,7 +71,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="pca_analysis",
         category="evaluation",
-        module="kinematic_classifier_sandbox.pca_analysis",
+        module="kinematic_classifier_sandbox.analysis.pca_analysis",
         analysis_function="analyze_feature_pca",
         artifact_function="write_pca_analysis_artifacts",
         artifact_outputs=("coordinates.csv", "loadings.csv", "explained_variance.csv", "scatter.png"),
@@ -109,7 +82,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="pca_dimensionality_audit",
         category="evaluation",
-        module="kinematic_classifier_sandbox.pca_dimensionality_audit",
+        module="kinematic_classifier_sandbox.analysis.pca_dimensionality_audit",
         analysis_function="analyze_pca_dimensionality",
         artifact_function="write_pca_dimensionality_audit_artifacts",
         artifact_outputs=("pca_component_sweep.csv", "pca_clusterability.csv", "variance_vs_error.png", "clusterability.png"),
@@ -120,7 +93,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="corpus_adequacy_audit",
         category="evaluation",
-        module="kinematic_classifier_sandbox.corpus_adequacy_audit",
+        module="kinematic_classifier_sandbox.corpus.adequacy_audit",
         analysis_function="analyze_corpus_adequacy",
         artifact_function="write_corpus_adequacy_artifacts",
         artifact_outputs=("class_pair_coverage.csv", "covariate_leakage.csv", "pair_status_heatmap.png"),
@@ -131,7 +104,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="coverage_report",
         category="evaluation",
-        module="kinematic_classifier_sandbox.coverage_report",
+        module="kinematic_classifier_sandbox.corpus.coverage_report",
         analysis_function="analyze_coverage_report",
         artifact_function="write_coverage_report_artifacts",
         artifact_outputs=("feature_set_summary.csv", "feature_group_summary.csv", "classifier_support.csv"),
@@ -142,7 +115,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="corpus_autodevelopment",
         category="corpus",
-        module="kinematic_classifier_sandbox.corpus_autodevelopment",
+        module="kinematic_classifier_sandbox.corpus.autodevelopment",
         analysis_function="analyze_corpus_autodevelopment",
         artifact_function="write_corpus_autodevelopment_artifacts",
         artifact_outputs=("candidate_corpus_manifest.csv", "selected_corpus_manifest.json", "feature_excitation_heatmap.png"),
@@ -153,7 +126,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="generated_corpus_features",
         category="corpus",
-        module="kinematic_classifier_sandbox.generated_corpus_features",
+        module="kinematic_classifier_sandbox.analysis.generated_corpus_features",
         analysis_function="analyze_generated_corpus_features",
         artifact_function="write_generated_corpus_feature_artifacts",
         artifact_outputs=("feature_matrix.csv", "feature_manifest.json", "selected_record_manifest.csv"),
@@ -164,7 +137,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="corpus_classifier_scoring",
         category="corpus",
-        module="kinematic_classifier_sandbox.corpus_classifier_scoring",
+        module="kinematic_classifier_sandbox.corpus.classifier_scoring",
         analysis_function="analyze_corpus_classifier_scoring",
         artifact_function="write_corpus_classifier_scoring_artifacts",
         artifact_outputs=("candidate_scores.csv", "posterior_history.csv", "stress_plot.png"),
@@ -175,7 +148,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="methodology_latex",
         category="documentation",
-        module="kinematic_classifier_sandbox.methodology_latex",
+        module="kinematic_classifier_sandbox.methodology.latex",
         analysis_function="analyze_methodology_latex",
         artifact_function="write_methodology_latex_artifacts",
         artifact_outputs=("kinematic_classifier_methodology.tex", "algorithm_ladder_table.tex", "methodology_latex.pdf"),
@@ -186,7 +159,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="advanced_filter_decision",
         category="decision_gate",
-        module="kinematic_classifier_sandbox.advanced_filter_decision",
+        module="kinematic_classifier_sandbox.validation.advanced_filter_decision",
         analysis_function="analyze_advanced_filter_decision",
         artifact_function="write_advanced_filter_decision_artifacts",
         artifact_outputs=("advanced_filter_decision_report.md", "advanced_filter_decision_summary.json", "numeric_walkthrough.md"),
@@ -197,7 +170,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="generic_inference_contract",
         category="contract",
-        module="kinematic_classifier_sandbox.generic_inference_contract",
+        module="kinematic_classifier_sandbox.methodology.inference_contract",
         analysis_function="analyze_generic_inference_contract",
         artifact_function="write_generic_inference_contract_artifacts",
         artifact_outputs=("classifier_output_schema.json", "posterior_history_schema.json", "validation_results.json"),
@@ -230,7 +203,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="generic_feature_taxonomy",
         category="taxonomy",
-        module="kinematic_classifier_sandbox.generic_feature_taxonomy",
+        module="kinematic_classifier_sandbox.methodology.feature_taxonomy",
         analysis_function="analyze_generic_feature_taxonomy",
         artifact_function="write_generic_feature_taxonomy_artifacts",
         artifact_outputs=("feature_taxonomy_report.md", "feature_taxonomy.json"),
@@ -241,7 +214,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="generic_filtering_contract",
         category="contract",
-        module="kinematic_classifier_sandbox.generic_filtering_contract",
+        module="kinematic_classifier_sandbox.methodology.filtering_contract",
         analysis_function="analyze_generic_filtering_contract",
         artifact_function="write_generic_filtering_contract_artifacts",
         artifact_outputs=("filter_backend_contract.json", "filtering_principles_report.md"),
@@ -301,7 +274,6 @@ def analyze_functional_surface_catalog() -> FunctionalSurfaceCatalogResult:
 
 
 def _render_priority_plot(result: FunctionalSurfaceCatalogResult):
-    plt = _prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8.8, 4.8))
     labels = [row.surface_id for row in result.surface_rows]
     values = [row.artifact_output_count for row in result.surface_rows]
@@ -316,43 +288,49 @@ def _render_priority_plot(result: FunctionalSurfaceCatalogResult):
 
 
 def render_functional_surface_catalog_report(result: FunctionalSurfaceCatalogResult) -> str:
-    lines = [
-        "# Functional Surface Catalog",
-        "",
-        "This catalog is the repo's functional-surface inventory: which modules have a pure analysis entrypoint, which modules expose a dedicated artifact writer, and what kinds of outputs they produce. The point is to keep the repo organized around the `analyze -> render -> write artifacts` pattern.",
-        "",
-        "## Summary",
-        "",
-        f"- Surface count: `{result.summary['surface_count']}`",
-        f"- Analysis callables found: `{result.summary['analysis_callable_count']}`",
-        f"- Artifact callables found: `{result.summary['artifact_callable_count']}`",
-        f"- High-priority showcases: `{result.summary['high_priority_count']}`",
-        f"- Categories: `{', '.join(result.summary['categories'])}`",
-        f"- Evaluation modes: `{', '.join(result.summary['evaluation_modes'])}`",
-        "",
-        "## Surface Table",
-        "",
-        "| surface_id | category | module | analysis | artifact | outputs | mode | priority |",
-        "| --- | --- | --- | --- | --- | ---: | --- | --- |",
-    ]
-    for row in result.surface_rows:
-        outputs = "<br>".join(f"`{output}`" for output in row.artifact_outputs)
-        analysis = "yes" if row.analysis_callable else "no"
-        artifact = "yes" if row.artifact_callable else "no"
-        lines.append(
-            f"| `{row.surface_id}` | {row.category} | `{row.module}` | {analysis} | {artifact} | {outputs} | {row.evaluation_mode} | {row.showcase_priority} |"
-        )
-    lines.extend(
+    report = MarkdownDocument("Functional Surface Catalog")
+    report.paragraph(
+        "This catalog is the repo's functional-surface inventory: which modules have a pure analysis entrypoint, "
+        "which modules expose a dedicated artifact writer, and what kinds of outputs they produce. "
+        "The point is to keep the repo organized around the `analyze -> render -> write artifacts` pattern."
+    )
+    report.heading("Summary", level=2)
+    report.bullet_list(
         [
-            "",
-            "## What This Surface Inventory Says",
-            "",
-            "- The repo already has a strong `analyze -> render -> write artifacts` discipline for most core evaluation modules.",
-            "- The easiest showcase candidates are the high-priority surfaces with the cleanest callable separation and the richest artifact bundles.",
-            "- The main remaining work is to keep new modules following the same pattern rather than mixing file I/O into analysis logic.",
+            f"Surface count: `{result.summary['surface_count']}`",
+            f"Analysis callables found: `{result.summary['analysis_callable_count']}`",
+            f"Artifact callables found: `{result.summary['artifact_callable_count']}`",
+            f"High-priority showcases: `{result.summary['high_priority_count']}`",
+            f"Categories: `{', '.join(result.summary['categories'])}`",
+            f"Evaluation modes: `{', '.join(result.summary['evaluation_modes'])}`",
         ]
     )
-    return "\n".join(lines)
+    report.heading("Surface Table", level=2)
+    report.table(
+        ["surface_id", "category", "module", "analysis", "artifact", "outputs", "mode", "priority"],
+        [
+            (
+                f"`{row.surface_id}`",
+                row.category,
+                f"`{row.module}`",
+                "yes" if row.analysis_callable else "no",
+                "yes" if row.artifact_callable else "no",
+                "<br>".join(f"`{output}`" for output in row.artifact_outputs),
+                row.evaluation_mode,
+                row.showcase_priority,
+            )
+            for row in result.surface_rows
+        ],
+    )
+    report.heading("What This Surface Inventory Says", level=2)
+    report.bullet_list(
+        [
+            "The repo already has a strong `analyze -> render -> write artifacts` discipline for most core evaluation modules.",
+            "The easiest showcase candidates are the high-priority surfaces with the cleanest callable separation and the richest artifact bundles.",
+            "The main remaining work is to keep new modules following the same pattern rather than mixing file I/O into analysis logic.",
+        ]
+    )
+    return report.text()
 
 
 def write_functional_surface_catalog_artifacts(
@@ -372,7 +350,7 @@ def write_functional_surface_catalog_artifacts(
 
     report_path.write_text(payload.report_markdown, encoding="utf-8")
     summary_path.write_text(json.dumps(payload.summary, indent=2, sort_keys=True), encoding="utf-8")
-    _write_csv(
+    write_csv(
         catalog_path,
         [
             {

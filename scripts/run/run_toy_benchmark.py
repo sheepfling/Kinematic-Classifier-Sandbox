@@ -14,7 +14,7 @@ os.environ["PYTHONPATH"] = (
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox import run_toy_benchmark, render_toy_benchmark_markdown
+from kinematic_classifier_sandbox.witnesses.toy_1d.core import toy_witness_surface
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,13 +25,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--obs-sigma", type=float, default=0.75)
     args = parser.parse_args(argv)
 
-    result = run_toy_benchmark(
+    surface = toy_witness_surface()
+    result = surface.run(
         seed=args.seed,
         steps=args.steps,
         tracks_per_class=args.tracks_per_class,
         obs_sigma=args.obs_sigma,
     )
-    print(render_toy_benchmark_markdown(result))
+    print(surface.render_markdown(result))
     return 0
 
 

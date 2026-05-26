@@ -9,10 +9,42 @@ description = "Survey-first sandbox for kinematic classification methods."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Rick" }]
-dependencies = ["matplotlib>=3.10", "numpy>=2.0"]
+dependencies = ["matplotlib>=3.10", "numpy>=2.0", "mdutils>=1.8.1", "pydantic>=2.11", "PyYAML>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pyright>=1.1", "ruff>=0.8"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src"]
+extend-exclude = [
+    ".cache",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "archive",
+    "artifacts",
+    "build",
+    "cache",
+    "docs",
+    "src/**/*.egg-info",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/**/*.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -3,8 +3,8 @@
 This note documents the posterior update math used by the two active benchmark
 families in the sandbox:
 
-- `toy_1d.py`: class-matched latent-state filter bank
-- `identity_1d.py`: direct speed-identity classifier over `bike`, `horse`, `car`
+- `witnesses/toy_1d/`: class-matched latent-state filter bank
+- `inference/identity_1d.py`: direct speed-identity classifier over `bike`, `horse`, `car`
 
 The goal is not to present an abstract Bayesian classifier. It is to show the
 specific scoring structure the repo is actually using today.
@@ -23,11 +23,11 @@ does this benchmark prove about the larger methodology?"
 
 Primary implementation surfaces covered explicitly by this note:
 
-- `toy_1d.py`
-- `identity_1d.py`
-- `posterior_explainer.py`
-- `identity_posterior_explainer.py`
-- `bayesian_walkthroughs.py`
+- `witnesses/toy_1d/`
+- `inference/identity_1d.py`
+- `witnesses/toy_1d/posterior_explainer.py`
+- `inference/identity_inference/posterior_explainer.py`
+- `witnesses/toy_1d/bayesian_walkthroughs.py`
 - posterior-oriented artifact writers in `artifacts.py`
 
 ## 0.1 Layered methodology view
@@ -125,17 +125,17 @@ This table is the answer to "what is `y_k`?" in practice:
 
 The math in this note maps to a few concrete implementation surfaces:
 
-- `toy_1d.gaussian_interval_probability(...)`
+- `witnesses.toy_1d.gaussian_interval_probability(...)`
   - symmetric Gaussian region mass for toy speed and acceleration envelopes
-- `toy_1d._innovation_log_likelihood(...)`
+- `witnesses.toy_1d._innovation_log_likelihood(...)`
   - Gaussian innovation log density
-- `toy_1d.run_class_bank(...)`
+- `witnesses.toy_1d.run_class_bank(...)`
   - toy recursive filter-bank classification loop
 - `identity_1d.run_identity_benchmark(...)`
   - identity recursive direct-speed classification loop
-- `posterior_explainer.py`
+- `witnesses/toy_1d/posterior_explainer.py`
   - toy success/failure/comparison/margin-trace posterior diagnostics
-- `identity_posterior_explainer.py`
+- `inference/identity_inference/posterior_explainer.py`
   - identity boundary-failure posterior diagnostics
 
 So this is not just theory. It is intended to stay close to the actual code
@@ -252,7 +252,7 @@ of only final confusion matrices.
 
 Primary recursive implementation surface:
 
-- `run_class_bank(...)` in `toy_1d.py`
+- `run_class_bank(...)` in `witnesses/toy_1d/`
 
 ### 2.2 Innovation likelihood
 
@@ -554,7 +554,7 @@ same.
 
 Primary recursive implementation surface:
 
-- `run_identity_benchmark(...)` in `identity_1d.py`
+- `run_identity_benchmark(...)` in `inference/identity_1d.py`
 
 ### 3.2 Base speed-shape likelihood
 
@@ -983,9 +983,9 @@ The present 1D work supports a few concrete claims:
 
 The posterior walkthrough artifacts are built primarily through:
 
-- `posterior_explainer.py`
-- `identity_posterior_explainer.py`
-- `bayesian_walkthroughs.py`
+- `witnesses/toy_1d/posterior_explainer.py`
+- `inference/identity_inference/posterior_explainer.py`
+- `witnesses/toy_1d/bayesian_walkthroughs.py`
 
 Those modules bridge recursive posterior math, implementation-level evidence
 terms, and team-readable success and failure artifacts.

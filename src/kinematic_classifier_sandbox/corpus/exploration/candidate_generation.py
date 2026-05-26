@@ -1,29 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-import csv
 import json
-from pathlib import Path
 import random
+from dataclasses import dataclass
+from io import BytesIO
+from pathlib import Path
 from typing import Any
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import yaml
+from kinematic_classifier_sandbox.utils.io import write_csv
 
+from ...markdown_builder import MarkdownDocument
+from ...utils.plotting import plt
+from ..objectives import (
+    CorpusObjectiveSpec,
+    default_corpus_objectives,
+    load_corpus_objectives_from_yaml,
+)
 from .backend_adapter_proof import BackendCandidateSpec
 from .capability_aware_search import analyze_capability_aware_search
-from .corpus_objectives import CorpusObjectiveSpec, default_corpus_objectives, load_corpus_objectives_from_yaml
-
-
-def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
 
 
 @dataclass(frozen=True, slots=True)
@@ -307,32 +301,38 @@ def analyze_candidate_generation() -> CandidateGenerationResult:
         "candidate_count": len(candidates),
         "objective_count": len(objectives),
     }
-    report_markdown = "\n".join(
+    
+    doc = MarkdownDocument("Candidate Generation From Objectives")
+    doc.heading("Summary", level=2)
+    doc.bullet_list(
         [
-            "# Candidate Generation From Objectives",
-            "",
-            "## Summary",
-            f"- objectives loaded: `{len(objectives)}`",
-            f"- candidates generated: `{len(candidates)}`",
-            f"- sampler families used: `{len(sampler_manifest['samplers'])}`",
-            "",
-            "## Objective Backends",
-            "| Objective | Backends | Budget |",
-            "| --- | --- | --- |",
-            *[
-                f"| `{objective.objective_id}` | `{', '.join(_backend_constraints_for_objective(objective))}` | `{objective.runtime_budget}` |"
-                for objective in objectives
-            ],
-            "",
-            "## Notes",
-            "- Candidate generation is now objective-driven and no longer relies on the fixed `_candidate_pool()` path from PLN-019.",
-            "- Mutation samplers preserve parent lineage in candidate provenance so later archive logic can build mutation histories.",
+            f"objectives loaded: `{len(objectives)}`",
+            f"candidates generated: `{len(candidates)}`",
+            f"sampler families used: `{len(sampler_manifest['samplers'])}`",
         ]
     )
+
+    doc.heading("Objective Backends", level=2)
+    doc.table(
+        ["Objective", "Backends", "Budget"],
+        [
+            (f"`{objective.objective_id}`", f"`{', '.join(_backend_constraints_for_objective(objective))}`", f"`{objective.runtime_budget}`")
+            for objective in objectives
+        ]
+    )
+
+    doc.heading("Notes", level=2)
+    doc.bullet_list(
+        [
+            "Candidate generation is now objective-driven and no longer relies on the fixed `_candidate_pool()` path from PLN-019.",
+            "Mutation samplers preserve parent lineage in candidate provenance so later archive logic can build mutation histories.",
+        ]
+    )
+    
     return CandidateGenerationResult(
         sampler_manifest=sampler_manifest,
         generated_candidate_rows=tuple(candidate_rows),
-        report_markdown=report_markdown,
+        report_markdown=doc.text(),
     )
 
 
@@ -349,7 +349,6 @@ def _render_sampler_comparison_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     ax.set_title("Sampler Family Comparison")
     ax.tick_params(axis="x", rotation=20)
     fig.tight_layout()
-    from io import BytesIO
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
     plt.close(fig)
@@ -375,7 +374,6 @@ def _render_coverage_png(rows: tuple[dict[str, Any], ...]) -> bytes:
             ax.text(column_index, row_index, f"{value}", ha="center", va="center", fontsize=8)
     fig.colorbar(image, ax=ax, fraction=0.04, pad=0.04)
     fig.tight_layout()
-    from io import BytesIO
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
     plt.close(fig)
@@ -398,7 +396,6 @@ def _render_lineage_png(rows: tuple[dict[str, Any], ...]) -> bytes:
         ax.annotate("", xy=(0.70, y), xytext=(0.30, y), arrowprops={"arrowstyle": "->", "linewidth": 1.0})
         y -= 0.10
     fig.tight_layout()
-    from io import BytesIO
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
     plt.close(fig)
@@ -424,7 +421,7 @@ def write_candidate_generation_artifacts(
     sampler_manifest_path.write_text(json.dumps(payload.sampler_manifest, indent=2), encoding="utf-8")
     report_path.write_text(payload.report_markdown, encoding="utf-8")
     fieldnames = list(payload.generated_candidate_rows[0].keys()) if payload.generated_candidate_rows else []
-    _write_csv(generated_candidates_path, list(payload.generated_candidate_rows), fieldnames)
+    write_csv(generated_candidates_path, list(payload.generated_candidate_rows), fieldnames)
     sampler_comparison_png_path.write_bytes(_render_sampler_comparison_png(payload.generated_candidate_rows))
     candidate_coverage_png_path.write_bytes(_render_coverage_png(payload.generated_candidate_rows))
     mutation_lineage_png_path.write_bytes(_render_lineage_png(payload.generated_candidate_rows))

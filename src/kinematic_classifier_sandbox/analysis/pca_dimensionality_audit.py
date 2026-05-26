@@ -1,30 +1,42 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ..runtime_paths import prepare_matplotlib
-from ..markdown_builder import MarkdownDocument
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
-from .pca_analysis import analyze_feature_pca
+from kinematic_classifier_sandbox.utils.io import write_csv
+
+from ..markdown_builder import MarkdownDocument
+from ..utils.plotting import plt
 from ..utils.math import (
-    mean as _mean,
-    std as _std,
-    dot_product as _dot,
-    euclidean_distance as _euclidean,
-    project_rows as _project_rows,
-    reconstruct_rows as _reconstruct_rows,
-    row_mean as _row_mean,
     centroid as _centroid,
-    farthest_first_initialization as _farthest_first_initialization,
-    kmeans as _kmeans,
-    silhouette_score as _silhouette_score,
-    cluster_purity as _cluster_purity,
+)
+from ..utils.math import (
     cluster_balance as _cluster_balance,
 )
+from ..utils.math import (
+    cluster_purity as _cluster_purity,
+)
+from ..utils.math import (
+    euclidean_distance as _euclidean,
+)
+from ..utils.math import (
+    kmeans as _kmeans,
+)
+from ..utils.math import (
+    mean as _mean,
+)
+from ..utils.math import (
+    project_rows as _project_rows,
+)
+from ..utils.math import (
+    reconstruct_rows as _reconstruct_rows,
+)
+from ..utils.math import (
+    silhouette_score as _silhouette_score,
+)
 from ..utils.plotting import _figure_to_png
-
+from .pca_analysis import analyze_feature_pca
 
 
 def _class_labels(coordinates: tuple[dict[str, object], ...]) -> tuple[str, ...]:
@@ -98,7 +110,6 @@ def analyze_pca_dimensionality(
         [component.loadings[feature_name] for feature_name in selected_feature_names]
         for component in pca_result.components
     ]
-    total_variance = sum(component.explained_variance for component in pca_result.components) or 1.0
     component_rows: list[PcaDimensionalityRow] = []
     for component_count in range(1, len(component_vectors) + 1):
         projected_rows = _project_rows(raw_rows, component_vectors, component_count)
@@ -123,7 +134,6 @@ def analyze_pca_dimensionality(
                 centroid_distances.append(_euclidean(class_centroids[class_a], class_centroids[class_b]))
         cluster_count = len(class_names)
         labels, _, inertia = _kmeans(projected_rows, cluster_count)
-        cluster_rows = [dict(labels=labels[index], truth=truth[index]) for index in range(len(labels))]
         component_rows.append(
             PcaDimensionalityRow(
                 component_count=component_count,
@@ -233,7 +243,6 @@ def _render_report(result: PcaDimensionalityResult) -> str:
 
 
 def _render_variance_plot(result: PcaDimensionalityResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8.0, 4.8))
     xs = [row.component_count for row in result.component_rows]
     variance = [row.cumulative_variance_ratio for row in result.component_rows]
@@ -251,7 +260,6 @@ def _render_variance_plot(result: PcaDimensionalityResult):
 
 
 def _render_clusterability_plot(result: PcaDimensionalityResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8.0, 4.8))
     xs = [row.component_count for row in result.component_rows]
     silhouette = [row.kmeans_silhouette for row in result.component_rows]
@@ -269,7 +277,6 @@ def _render_clusterability_plot(result: PcaDimensionalityResult):
 
 
 def _render_separation_plot(result: PcaDimensionalityResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8.0, 4.8))
     xs = [row.component_count for row in result.component_rows]
     centroid_separation = [row.class_centroid_separation for row in result.component_rows]

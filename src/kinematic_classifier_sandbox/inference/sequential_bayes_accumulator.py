@@ -1,16 +1,17 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import write_csv
-from ..markdown_builder import MarkdownDocument
 
-from ..runtime_paths import prepare_matplotlib
-from ..utils.math import _gaussian_logpdf, _normalize_log_scores
-from dataclasses import dataclass, asdict
-from math import exp, log, pi, sqrt
 import io
 import json
-from pathlib import Path
 import random
+from dataclasses import dataclass
+from math import exp, log
+from pathlib import Path
 
+from kinematic_classifier_sandbox.utils.io import write_csv
+
+from ..markdown_builder import MarkdownDocument
+from ..utils.plotting import plt
+from ..utils.math import _gaussian_logpdf, _normalize_log_scores
 
 
 @dataclass(frozen=True, slots=True)
@@ -411,7 +412,6 @@ def _render_report(result: AccumulatorBenchmarkResult) -> str:
 
 
 def _build_figure(result: AccumulatorBenchmarkResult):
-    plt = prepare_matplotlib()
     class_names = [spec.name for spec in result.class_specs]
     selected = []
     for target in ("easy_A_0", "easy_B_0", "ambiguous_mid", "late_flip"):
@@ -438,7 +438,6 @@ def render_accumulator_report(result: AccumulatorBenchmarkResult) -> str:
 
 
 def render_accumulator_svg(result: AccumulatorBenchmarkResult) -> str:
-    plt = prepare_matplotlib()
     fig = _build_figure(result)
     buffer = io.StringIO()
     try:
@@ -449,7 +448,6 @@ def render_accumulator_svg(result: AccumulatorBenchmarkResult) -> str:
 
 
 def render_accumulator_png_bytes(result: AccumulatorBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_figure(result)
     buffer = io.BytesIO()
     try:

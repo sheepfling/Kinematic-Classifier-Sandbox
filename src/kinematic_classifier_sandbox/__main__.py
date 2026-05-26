@@ -3,15 +3,17 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .catalog import METHOD_CATALOG
-from .coverage_report import write_coverage_report_artifacts
+from .analysis.pca_dimensionality_audit import write_pca_dimensionality_audit_artifacts
+from .corpus.coverage_report import write_coverage_report_artifacts
+from .corpus.exploration.generic_corpus_exploration import (
+    write_generic_corpus_exploration_weight_sweep_artifacts,
+)
 from .formal_math_registry import write_formal_math_registry_artifacts
 from .formal_math_visual_registry import write_formal_math_visual_registry_artifacts
 from .functional_surface_catalog import write_functional_surface_catalog_artifacts
-from .generic_corpus_exploration import write_generic_corpus_exploration_weight_sweep_artifacts
-from .rung_sufficiency import write_ladder_witness_suite_artifacts
-from .pca_dimensionality_audit import write_pca_dimensionality_audit_artifacts
-from .repo_story import write_repo_story_artifacts
+from .registry.catalog import METHOD_CATALOG
+from .rung_sufficiency.analysis import write_ladder_witness_suite_artifacts
+from .story.repo_story import write_repo_story_artifacts
 from .strict_equation_audit import write_strict_equation_audit_artifacts
 
 

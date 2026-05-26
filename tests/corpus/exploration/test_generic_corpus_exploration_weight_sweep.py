@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 import unittest
-import os
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.exploration.generic_corpus_exploration import (
     analyze_generic_corpus_exploration_weight_sweep,
     load_generic_corpus_exploration_weight_sweep_config,
     write_generic_corpus_exploration_weight_sweep_artifacts,

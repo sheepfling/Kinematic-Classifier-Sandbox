@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import io
-from dataclasses import asdict
 
 from ...markdown_builder import MarkdownDocument
 from ...runtime_paths import prepare_matplotlib
+from ...utils.plotting import plt
 from .contracts import CrossMethodPriorComparisonResult, PriorSensitivityResult
 
 
@@ -54,7 +54,6 @@ def render_prior_sensitivity_report(result: PriorSensitivityResult) -> str:
 
 
 def _build_posterior_figure(result: PriorSensitivityResult):
-    plt = prepare_matplotlib()
     trajectory_ids = [getattr(trajectory, "trajectory_id") for trajectory in result.trajectories]
     selected_ids = trajectory_ids[:4]
     rows_by_trajectory: dict[str, list] = {trajectory_id: [] for trajectory_id in trajectory_ids}
@@ -80,7 +79,6 @@ def _build_posterior_figure(result: PriorSensitivityResult):
 
 
 def _build_flip_figure(result: PriorSensitivityResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(10.0, 5.6))
     labels = [row.trajectory_id for row in result.flip_thresholds]
     values = [row.smallest_prior_shift_to_flip if row.smallest_prior_shift_to_flip is not None else 0.5 for row in result.flip_thresholds]
@@ -97,7 +95,6 @@ def _build_flip_figure(result: PriorSensitivityResult):
 
 
 def _build_heatmap_figure(result: PriorSensitivityResult):
-    plt = prepare_matplotlib()
     trajectory_ids = [getattr(trajectory, "trajectory_id") for trajectory in result.trajectories]
     prior_values = sorted({row.prior_a for row in result.sweep_rows})
     matrix = []
@@ -122,7 +119,6 @@ def _build_heatmap_figure(result: PriorSensitivityResult):
 
 
 def _build_decision_map_figure(result: PriorSensitivityResult):
-    plt = prepare_matplotlib()
     trajectory_ids = [getattr(trajectory, "trajectory_id") for trajectory in result.trajectories]
     prior_values = sorted({row.prior_a for row in result.sweep_rows})
     class_a, class_b = result.class_names
@@ -151,7 +147,6 @@ def _build_decision_map_figure(result: PriorSensitivityResult):
 
 
 def _build_decomposition_figure(result: PriorSensitivityResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8.6, 6.2))
     selected_ids = ["easy_A_0", "ambiguous_mid", "late_flip"]
     colors = {"easy_A_0": "#2563eb", "ambiguous_mid": "#d97706", "late_flip": "#7c3aed"}
@@ -174,7 +169,6 @@ def _build_decomposition_figure(result: PriorSensitivityResult):
 
 
 def _build_pairwise_flip_heatmap_figure(result: PriorSensitivityResult):
-    plt = prepare_matplotlib()
     pair_label = f"{result.class_names[0]}_vs_{result.class_names[1]}"
     trajectory_ids = [row.trajectory_id for row in result.flip_thresholds]
     matrix = [[row.smallest_prior_shift_to_flip if row.smallest_prior_shift_to_flip is not None else 0.5] for row in result.flip_thresholds]
@@ -195,7 +189,6 @@ def _build_pairwise_flip_heatmap_figure(result: PriorSensitivityResult):
 
 
 def _build_fragility_overview_figure(result: PriorSensitivityResult):
-    plt = prepare_matplotlib()
     ordered = sorted(result.flip_thresholds, key=lambda row: (row.smallest_prior_shift_to_flip is None, row.smallest_prior_shift_to_flip if row.smallest_prior_shift_to_flip is not None else 1.0, row.trajectory_id))
     labels = [row.trajectory_id for row in ordered]
     values = [row.smallest_prior_shift_to_flip if row.smallest_prior_shift_to_flip is not None else 0.50 for row in ordered]
@@ -221,7 +214,6 @@ def _build_fragility_overview_figure(result: PriorSensitivityResult):
 
 
 def _to_svg(fig) -> str:
-    plt = prepare_matplotlib()
     buffer = io.StringIO()
     try:
         fig.savefig(buffer, format="svg", bbox_inches="tight")
@@ -231,7 +223,6 @@ def _to_svg(fig) -> str:
 
 
 def _to_png(fig) -> bytes:
-    plt = prepare_matplotlib()
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
@@ -330,7 +321,6 @@ def render_cross_method_prior_comparison_report(result: CrossMethodPriorComparis
 
 
 def _build_cross_method_prior_comparison_figure(result: CrossMethodPriorComparisonResult):
-    plt = prepare_matplotlib()
     matrix = []
     for row in result.rows:
         matrix.append([float("nan") if row[f"{scenario_name}_status"] == "missing" else float(row[scenario_name]) for scenario_name in result.scenario_names])

@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-from ...markdown_builder import MarkdownDocument
+import io
+import random
+from dataclasses import dataclass
+from math import erf, exp, log, sqrt
+from pathlib import Path
+
 from ...analysis.classification_benchmark import (
     summarize_classification_features,
     summarize_classification_outcomes,
 )
-from ..study_surface import NamedArtifactWriter, OneDWitnessSurface, write_one_d_surface_artifacts
-from ...runtime_paths import prepare_matplotlib
+from ...markdown_builder import MarkdownDocument
 from ...utils.io import _write_csv_rows
 from ...utils.math import _clamp, _entropy, _gaussian_logpdf, _logsumexp
-from dataclasses import dataclass
-from math import erf, exp, log, pi, sqrt
-import io
-from pathlib import Path
-import random
+from ...utils.plotting import plt
+from ..study_surface import NamedArtifactWriter, OneDWitnessSurface, write_one_d_surface_artifacts
 
 FEATURE_NAMES = (
     "bike_envelope",
@@ -881,7 +882,6 @@ def _representative_identity_pairs(result: IdentityBenchmarkResult) -> tuple[tup
 
 
 def _build_identity_figure(result: IdentityBenchmarkResult):
-    plt = prepare_matplotlib()
     representative_pairs = _representative_identity_pairs(result)
     fig, axes = plt.subplots(len(representative_pairs), 2, figsize=(12, 3.8 * len(representative_pairs)), sharex=False)
     if len(representative_pairs) == 1:
@@ -933,7 +933,6 @@ def _build_identity_figure(result: IdentityBenchmarkResult):
 
 
 def render_identity_benchmark_png_bytes(result: IdentityBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_identity_figure(result)
     buffer = io.BytesIO()
     try:
@@ -944,7 +943,6 @@ def render_identity_benchmark_png_bytes(result: IdentityBenchmarkResult) -> byte
 
 
 def _build_identity_feature_confusion_figure(result: IdentityBenchmarkResult):
-    plt = prepare_matplotlib()
     summary = result.summary
     class_names = sorted(summary.confusion_counts)
     feature_names = list(FEATURE_NAMES)
@@ -980,7 +978,6 @@ def _build_identity_feature_confusion_figure(result: IdentityBenchmarkResult):
 
 
 def render_identity_feature_confusion_png_bytes(result: IdentityBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_identity_feature_confusion_figure(result)
     buffer = io.BytesIO()
     try:

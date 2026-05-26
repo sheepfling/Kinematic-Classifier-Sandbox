@@ -2,13 +2,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from numpy import allclose, asarray, exp, eye, float64, full, int64, log, ndarray, pi, sum as nsum, zeros, zeros_like
 import numpy.linalg as linalg
 import numpy.random as random
+from numpy import (
+    allclose,
+    asarray,
+    exp,
+    eye,
+    float64,
+    full,
+    int64,
+    log,
+    pi,
+    zeros,
+    zeros_like,
+)
 
+from ..utils.types import FloatArray, IntArray
 from .contracts import AdvancedFilterStep
 from .resampling import effective_sample_size, logsumexp, normalize_log_weights, systematic_resample
-from ..utils.types import FloatArray, IntArray
 
 
 @dataclass(frozen=True, slots=True)

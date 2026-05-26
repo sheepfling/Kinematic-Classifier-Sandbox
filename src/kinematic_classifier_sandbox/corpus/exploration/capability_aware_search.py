@@ -1,28 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-import csv
 import json
+from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+from kinematic_classifier_sandbox.utils.io import write_csv
 
-from .trajectory_backend_contract import (
+from ...markdown_builder import MarkdownDocument
+from ...utils.plotting import plt
+from ..trajectory_backend_contract import (
     TrajectoryBackendCapabilities,
     default_backend_contract_definitions,
 )
-
-
-def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,7 +215,6 @@ def _render_selection_matrix_png(rows: tuple[dict[str, Any], ...]) -> bytes:
     fig.colorbar(image, ax=ax, fraction=0.04, pad=0.04)
     fig.tight_layout()
 
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -258,7 +248,6 @@ def _render_decision_tree_png() -> bytes:
         ax.annotate("", xy=(x1, y1), xytext=(x0, y0), arrowprops={"arrowstyle": "->", "linewidth": 1.2})
     fig.tight_layout()
 
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -281,7 +270,6 @@ def _render_cost_coverage_frontier_png(rows: tuple[dict[str, Any], ...]) -> byte
     ax.grid(alpha=0.25)
     fig.tight_layout()
 
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -294,28 +282,37 @@ def analyze_capability_aware_search() -> CapabilityAwareSearchResult:
     selection_rows = _selection_matrix_rows(capabilities_list)
     backend_plan_rows = _backend_plan_rows(capabilities_list)
 
-    report_markdown = "\n".join(
+    doc = MarkdownDocument("Capability-Aware Search Method Selection")
+    doc.heading("Summary", level=2)
+    doc.bullet_list(
         [
-            "# Capability-Aware Search Method Selection",
-            "",
-            "## Summary",
-            f"- backend profiles planned: `{len(capabilities_list)}`",
-            f"- current implemented backends covered: `{len(default_backend_contract_definitions())}`",
-            f"- expensive exemplar profiles included: `{sum(1 for item in capabilities_list if item.runtime_class == 'expensive')}`",
-            "",
-            "## Search Method Selection Matrix",
-            "| Backend | Runtime | Sequential | Environment | Recommended Search |",
-            "| --- | --- | --- | --- | --- |",
-            *[
-                f"| `{row['backend_type']}` | `{row['runtime_class']}` | `{row['sequential_controls']}` | "
-                f"`{row['supports_environment']}` | `{row['recommended_search']}` |"
-                for row in selection_rows
-            ],
-            "",
-            "## Notes",
-            "- Cheap parameter-only backends receive broad search plans and explicitly do not enable sequential-control search methods.",
-            "- Sequential-control backends gain adaptive stress and cross-entropy style methods because they can express time-varying behavior.",
-            "- Expensive exemplar profiles are included so the planner can prove it avoids broad brute-force search even before a real high-fidelity backend is integrated.",
+            f"backend profiles planned: `{len(capabilities_list)}`",
+            f"current implemented backends covered: `{len(default_backend_contract_definitions())}`",
+            f"expensive exemplar profiles included: `{sum(1 for item in capabilities_list if item.runtime_class == 'expensive')}`",
+        ]
+    )
+
+    doc.heading("Search Method Selection Matrix", level=2)
+    doc.table(
+        ["Backend", "Runtime", "Sequential", "Environment", "Recommended Search"],
+        [
+            (
+                f"`{row['backend_type']}`",
+                f"`{row['runtime_class']}`",
+                str(row['sequential_controls']),
+                str(row['supports_environment']),
+                f"`{row['recommended_search']}`",
+            )
+            for row in selection_rows
+        ]
+    )
+
+    doc.heading("Notes", level=2)
+    doc.bullet_list(
+        [
+            "Cheap parameter-only backends receive broad search plans and explicitly do not enable sequential-control search methods.",
+            "Sequential-control backends gain adaptive stress and cross-entropy style methods because they can express time-varying behavior.",
+            "Expensive exemplar profiles are included so the planner can prove it avoids broad brute-force search even before a real high-fidelity backend is integrated.",
         ]
     )
 
@@ -323,7 +320,7 @@ def analyze_capability_aware_search() -> CapabilityAwareSearchResult:
         search_planner_rules=_planner_rules(),
         selection_matrix_rows=selection_rows,
         backend_plan_rows=backend_plan_rows,
-        report_markdown=report_markdown,
+        report_markdown=doc.text(),
     )
 
 
@@ -349,8 +346,8 @@ def write_capability_aware_search_artifacts(
 
     selection_fieldnames = list(payload.selection_matrix_rows[0].keys()) if payload.selection_matrix_rows else []
     backend_fieldnames = list(payload.backend_plan_rows[0].keys()) if payload.backend_plan_rows else []
-    _write_csv(search_method_selection_matrix_path, list(payload.selection_matrix_rows), selection_fieldnames)
-    _write_csv(backend_search_plan_path, list(payload.backend_plan_rows), backend_fieldnames)
+    write_csv(search_method_selection_matrix_path, list(payload.selection_matrix_rows), selection_fieldnames)
+    write_csv(backend_search_plan_path, list(payload.backend_plan_rows), backend_fieldnames)
 
     selection_matrix_png_path.write_bytes(_render_selection_matrix_png(payload.selection_matrix_rows))
     decision_tree_png_path.write_bytes(_render_decision_tree_png())

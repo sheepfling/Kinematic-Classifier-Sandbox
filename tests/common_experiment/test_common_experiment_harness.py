@@ -4,7 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.common_experiment.artifact_io import write_common_experiment_artifacts
+from kinematic_classifier_sandbox.common_experiment.artifact_io import (
+    write_common_experiment_artifacts,
+)
 from kinematic_classifier_sandbox.common_experiment.config import (
     list_common_studies,
     load_common_experiment_config,

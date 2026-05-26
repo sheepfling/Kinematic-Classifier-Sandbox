@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from numpy import abs, column_stack, exp, float64, log, maximum, pi
 import numpy.random as random
+from numpy import abs, column_stack, exp, float64, log, maximum, pi
+
 from ..utils.types import FloatArray
 
 

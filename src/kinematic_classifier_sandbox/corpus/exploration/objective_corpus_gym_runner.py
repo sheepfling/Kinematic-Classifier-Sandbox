@@ -1,20 +1,21 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from hashlib import sha256
-import json
 from typing import Any
 
-from .backend_adapter_proof import AdapterExecutionRecord, BackendCandidateSpec
-from .candidate_generation import generate_candidates_from_objectives
-from .corpus_gym import (
+from ..gym import (
     CorpusGymAction,
     CorpusGymEnvironment,
     CorpusGymReward,
     CorpusGymTarget,
 )
-from .corpus_objectives import CorpusObjectiveSpec, default_corpus_objectives
-from .trajectory_backend_contract import TrajectoryRun, validate_trajectory_run
+from ..objectives import CorpusObjectiveSpec, default_corpus_objectives
+from ..trajectory_backend_contract import TrajectoryRun
+from ..trajectory_backend_contract_utils import validate_trajectory_run
+from .backend_adapter_proof import AdapterExecutionRecord, BackendCandidateSpec
+from .candidate_generation import generate_candidates_from_objectives
 
 
 @dataclass(frozen=True, slots=True)

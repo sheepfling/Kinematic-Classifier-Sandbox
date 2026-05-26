@@ -3,13 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from numpy import arange, array, float64, mean, zeros
-
-from kinematic_classifier_sandbox.utils.io import _write_csv
-from kinematic_classifier_sandbox.utils.plotting import prepare_matplotlib
 import yaml
+from numpy import arange, array, float64, mean, ndarray, zeros
 
-from .policy_sweep import CorpusPolicyTuningArtifacts
+from kinematic_classifier_sandbox.utils.io import write_csv
+from kinematic_classifier_sandbox.utils.plotting import prepare_matplotlib
+
+from .policy_sweep_types import CorpusPolicyTuningArtifacts
 
 
 def write_corpus_policy_tuning_artifacts(
@@ -47,15 +47,15 @@ def write_corpus_policy_tuning_artifacts(
     all_rows = [baseline, *sweep_rows, *perturbation_rows]
     best_row = max(all_rows, key=lambda row: (float(row["policy_score"]), float(row.get("selected_jaccard_vs_default", 1.0))))
 
-    _write_csv(sweep_design_path, sweep_design_rows, list(sweep_design_rows[0]))
-    _write_csv(
+    write_csv(sweep_design_path, sweep_design_rows, list(sweep_design_rows[0]))
+    write_csv(
         sweep_results_path,
         [_policy_row_for_csv(baseline), *[_policy_row_for_csv(row) for row in sweep_rows]],
         _policy_result_fields(),
     )
-    _write_csv(ablation_path, ablation_rows, list(ablation_rows[0]))
+    write_csv(ablation_path, ablation_rows, list(ablation_rows[0]))
     perturbation_fields = [*_policy_result_fields(), "selected_jaccard_vs_default", "rank_spearman_vs_default", "rank_kendall_vs_default"]
-    _write_csv(
+    write_csv(
         perturbation_path,
         [
             _policy_row_for_csv(
@@ -66,12 +66,12 @@ def write_corpus_policy_tuning_artifacts(
         ],
         perturbation_fields,
     )
-    _write_csv(jaccard_path, jaccard_rows, list(jaccard_rows[0]))
-    _write_csv(rank_path, rank_rows, list(rank_rows[0]))
-    _write_csv(sampler_path, sampler_rows, list(sampler_rows[0]))
-    _write_csv(gate_path, gate_rows, list(gate_rows[0]))
-    _write_csv(dev_holdout_path, dev_holdout_rows, list(dev_holdout_rows[0]))
-    _write_csv(pareto_path, pareto_rows, list(pareto_rows[0]))
+    write_csv(jaccard_path, jaccard_rows, list(jaccard_rows[0]))
+    write_csv(rank_path, rank_rows, list(rank_rows[0]))
+    write_csv(sampler_path, sampler_rows, list(sampler_rows[0]))
+    write_csv(gate_path, gate_rows, list(gate_rows[0]))
+    write_csv(dev_holdout_path, dev_holdout_rows, list(dev_holdout_rows[0]))
+    write_csv(pareto_path, pareto_rows, list(pareto_rows[0]))
     recommended_path.write_text(yaml.safe_dump(recommended, sort_keys=False), encoding="utf-8")
     sweep_config_path.write_text(
         yaml.safe_dump({"seed": seed, "policy_ids": [row["policy_id"] for row in [baseline, *sweep_rows]]}, sort_keys=False),
@@ -296,7 +296,6 @@ def _plot_ablation(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def _barh(path: Path, labels: list[str], values: list[float], title: str, xlabel: str) -> None:
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=150)
     ax.barh(labels, values, color="#2563eb")
     ax.set_title(title, loc="left", fontweight="bold")
@@ -316,7 +315,6 @@ def _plot_heatmap(path: Path, rows: list[dict[str, Any]], title: str) -> None:
 
 
 def _plot_rank_heatmap(path: Path, rows: list[dict[str, Any]]) -> None:
-    plt = prepare_matplotlib()
     labels = [str(row["policy_id"]) for row in rows]
     matrix = array([[float(row["spearman_vs_default"]), float(row["kendall_tau_vs_default"])] for row in rows])
     fig, ax = plt.subplots(figsize=(7, 5), dpi=150)
@@ -330,7 +328,6 @@ def _plot_rank_heatmap(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def _imshow(path: Path, matrix: "ndarray", labels: list[str], title: str) -> None:
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(7, 6), dpi=150)
     ax.imshow(matrix, vmin=0, vmax=1, cmap="magma")
     ax.set_xticks(range(len(labels)), labels=labels, rotation=90, fontsize=5)
@@ -342,7 +339,6 @@ def _imshow(path: Path, matrix: "ndarray", labels: list[str], title: str) -> Non
 
 
 def _plot_pareto(path: Path, rows: list[dict[str, Any]]) -> None:
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(6, 4), dpi=150)
     colors = ["#15803d" if row["pareto_front"] else "#64748b" for row in rows]
     ax.scatter([float(row["leakage"]) for row in rows], [float(row["adequacy_score"]) for row in rows], c=colors)
@@ -359,7 +355,6 @@ def _plot_sampler(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def _plot_gate(path: Path, rows: list[dict[str, Any]]) -> None:
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=150)
     for gate in sorted({str(row["gate"]) for row in rows}):
         subset = [row for row in rows if row["gate"] == gate]
@@ -374,7 +369,6 @@ def _plot_gate(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def _plot_dev_holdout(path: Path, rows: list[dict[str, Any]]) -> None:
-    plt = prepare_matplotlib()
     labels = [str(row["policy_id"]) for row in rows]
     x = arange(len(labels))
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=150)

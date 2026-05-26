@@ -53,7 +53,7 @@ Validation:
 - Full-suite regression run with `python3 -m pytest -q`.
 Artifacts / Config:
 - `src/kinematic_classifier_sandbox/common_experiment_harness.py`
-- `src/kinematic_classifier_sandbox/shared_evaluation.py`
+- `src/kinematic_classifier_sandbox/validation/shared_evaluation.py`
 - `src/kinematic_classifier_sandbox/contracts.py`
 - `experiments/common_1d_classifier_study/common_experiment_config.yaml`
 - future study configs under `experiments/`
@@ -87,7 +87,7 @@ Last Updated: 2026-05-24
 - Delete or isolate the hardcoded executable pair specs from the core path.
 - Replace direct scalar shared-dynamics assumptions with study-provided trajectory sets and study-provided class registries.
 
-### `src/kinematic_classifier_sandbox/shared_evaluation.py`
+### `src/kinematic_classifier_sandbox/validation/shared_evaluation.py`
 
 - Expand the shared classifier adapter surface so harness execution does not depend on bespoke per-study wiring.
 - Standardize how sensor regime, measurement dimension, coordinate frame, classifier id, and feature-set id are attached to shared runs.

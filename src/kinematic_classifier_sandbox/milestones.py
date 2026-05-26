@@ -4,15 +4,21 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .contracts import write_milestone0_sample_run_artifacts
-from .feature_analysis import write_feature_analysis_artifacts
-from .kalman_filter_bank import write_kalman_bank_artifacts
-from .monte_carlo_benchmark import write_monte_carlo_artifacts
-from .pca_analysis import write_pca_analysis_artifacts
-from .pointwise_baseline import run_pointwise_benchmark, write_pointwise_benchmark_artifacts
-from .sequential_bayes_accumulator import run_accumulator_benchmark, write_accumulator_artifacts
-from .trajectory_generator import write_trajectory_generator_artifacts
-from .windowed_baseline import run_windowed_benchmark, write_windowed_benchmark_artifacts
+from .analysis.feature_analysis import write_feature_analysis_artifacts
+from .analysis.pca_analysis import write_pca_analysis_artifacts
+from .contracts_rendering import write_milestone0_sample_run_artifacts
+from .inference.kalman_filter_bank import write_kalman_bank_artifacts
+from .inference.monte_carlo_benchmark import write_monte_carlo_artifacts
+from .inference.pointwise_baseline import (
+    run_pointwise_benchmark,
+    write_pointwise_benchmark_artifacts,
+)
+from .inference.sequential_bayes_accumulator import (
+    run_accumulator_benchmark,
+    write_accumulator_artifacts,
+)
+from .inference.windowed_baseline import run_windowed_benchmark, write_windowed_benchmark_artifacts
+from .trajectory_generator_rendering import write_trajectory_generator_artifacts
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,66 +30,54 @@ class MilestoneEntry:
     artifact_dir_name: str
     command_example: str
 
-
 @dataclass(frozen=True, slots=True)
 class MilestoneRunResult:
     milestone_id: str
     artifact_dir: Path
     report_path: Path | None
 
-
 def _run_m0(output_root: Path) -> MilestoneRunResult:
     artifacts = write_milestone0_sample_run_artifacts(output_root)
     return MilestoneRunResult("m0", artifacts.run_dir, artifacts.report_path)
-
 
 def _run_m1(output_root: Path) -> MilestoneRunResult:
     result = run_pointwise_benchmark(seed=7)
     artifacts = write_pointwise_benchmark_artifacts(output_root, result=result)
     return MilestoneRunResult("m1", artifacts.run_dir, artifacts.report_path)
 
-
 def _run_m2(output_root: Path) -> MilestoneRunResult:
     result = run_windowed_benchmark(seed=7)
     artifacts = write_windowed_benchmark_artifacts(output_root, result=result)
     return MilestoneRunResult("m2", artifacts.run_dir, artifacts.report_path)
-
 
 def _run_m3(output_root: Path) -> MilestoneRunResult:
     result = run_accumulator_benchmark(seed=7)
     artifacts = write_accumulator_artifacts(output_root, result=result)
     return MilestoneRunResult("m3", artifacts.run_dir, artifacts.report_path)
 
-
 def _run_m4(output_root: Path) -> MilestoneRunResult:
     artifacts = write_monte_carlo_artifacts(output_root, result=None)
     return MilestoneRunResult("m4", artifacts.run_dir, artifacts.report_path)
-
 
 def _run_m5(output_root: Path) -> MilestoneRunResult:
     artifacts = write_trajectory_generator_artifacts(output_root, seed=7)
     return MilestoneRunResult("m5", artifacts.run_dir, artifacts.report_path)
 
-
 def _run_m6(output_root: Path) -> MilestoneRunResult:
     artifacts = write_feature_analysis_artifacts(output_root, seed=7, trajectories_per_class=5)
     return MilestoneRunResult("m6", artifacts.run_dir, artifacts.report_path)
-
 
 def _run_m7(output_root: Path) -> MilestoneRunResult:
     artifacts = write_kalman_bank_artifacts(output_root)
     return MilestoneRunResult("m7", artifacts.run_dir, artifacts.report_path)
 
-
 def _run_m8(output_root: Path) -> MilestoneRunResult:
     artifacts = write_pca_analysis_artifacts(output_root, seed=7, trajectories_per_class=5, n_components=3)
     return MilestoneRunResult("m8", artifacts.run_dir, artifacts.report_path)
 
-
 def _run_m9(output_root: Path) -> MilestoneRunResult:
     artifacts = write_trajectory_generator_artifacts(output_root, seed=7, trajectories_per_class=5)
     return MilestoneRunResult("m9", artifacts.run_dir, artifacts.report_path)
-
 
 MILESTONE_REGISTRY: tuple[MilestoneEntry, ...] = (
     MilestoneEntry(
@@ -168,7 +162,6 @@ MILESTONE_REGISTRY: tuple[MilestoneEntry, ...] = (
     ),
 )
 
-
 _RUNNERS: dict[str, Callable[[Path], MilestoneRunResult]] = {
     "m0": _run_m0,
     "m1": _run_m1,
@@ -182,10 +175,8 @@ _RUNNERS: dict[str, Callable[[Path], MilestoneRunResult]] = {
     "m9": _run_m9,
 }
 
-
 def list_milestones() -> tuple[MilestoneEntry, ...]:
     return MILESTONE_REGISTRY
-
 
 def resolve_milestone_ids(requested: str) -> tuple[str, ...]:
     normalized = requested.strip().lower()
@@ -199,11 +190,10 @@ def resolve_milestone_ids(requested: str) -> tuple[str, ...]:
         return (normalized,)
     raise KeyError(f"unknown milestone selection: {requested}")
 
-
 def run_milestones(
-    output_dir: str | Path,
-    *,
-    selection: str,
+        output_dir: str | Path,
+        *,
+        selection: str,
 ) -> tuple[MilestoneRunResult, ...]:
     output_root = Path(output_dir)
     results: list[MilestoneRunResult] = []

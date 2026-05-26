@@ -25,10 +25,10 @@ Validation:
 - Manual review of `docs/plans/PLN-002_kinematic_classification_roadmap.md`
 - Manual review of the current milestone and common-study surfaces
 Artifacts / Config:
-- `src/kinematic_classifier_sandbox/pointwise_baseline.py`
-- `src/kinematic_classifier_sandbox/windowed_baseline.py`
-- `src/kinematic_classifier_sandbox/sequential_bayes_accumulator.py`
-- `src/kinematic_classifier_sandbox/monte_carlo_benchmark.py`
+- `src/kinematic_classifier_sandbox/inference/inference/pointwise_baseline.py`
+- `src/kinematic_classifier_sandbox/inference/inference/windowed_baseline.py`
+- `src/kinematic_classifier_sandbox/inference/inference/sequential_bayes_accumulator.py`
+- `src/kinematic_classifier_sandbox/inference/inference/monte_carlo_benchmark.py`
 - `src/kinematic_classifier_sandbox/trajectory_generator.py`
 - `src/kinematic_classifier_sandbox/feature_analysis.py`
 - `src/kinematic_classifier_sandbox/pca_analysis.py`

@@ -102,17 +102,17 @@ The ladder reuses a small number of methodological assumptions:
 
 The methods differ in their stronger assumptions:
 
-- `pointwise_baseline.py`: observation at time `t` is sufficient evidence
-- `windowed_baseline.py`: a short feature window is a sufficient summary
+- `inference/pointwise_baseline.py`: observation at time `t` is sufficient evidence
+- `inference/windowed_baseline.py`: a short feature window is a sufficient summary
 - `state_estimate_evidence.py`: a filtered state and covariance are already
   provided
-- `sequential_bayes_accumulator.py`: likelihood streams can be accumulated with
+- `inference/sequential_bayes_accumulator.py`: likelihood streams can be accumulated with
   optional forgetting
-- `kalman_filter_bank.py`: each class or motion hypothesis induces a
+- `inference/kalman_filter_bank.py`: each class or motion hypothesis induces a
   linear-Gaussian state-space model
-- `transition_matrix_accumulator.py`: mode persistence and switching can be
+- `inference/transition_matrix_accumulator.py`: mode persistence and switching can be
   represented with a finite transition matrix and emission model
-- `advanced_state_inference.py`: IMM mixes multiple linear-Gaussian mode
+- `inference/advanced_state_inference.py`: IMM mixes multiple linear-Gaussian mode
   models while preserving the same posterior/evidence/diagnostic contract and
   emits the current 1D proof artifacts for advanced switching inference
 
@@ -120,12 +120,12 @@ The methods differ in their stronger assumptions:
 
 The current ladder is:
 
-1. `pointwise_baseline.py`
-2. `windowed_baseline.py`
-3. `sequential_bayes_accumulator.py`
-4. `kalman_filter_bank.py`
-5. `transition_matrix_accumulator.py`
-6. `advanced_state_inference.py`
+1. `inference/pointwise_baseline.py`
+2. `inference/windowed_baseline.py`
+3. `inference/sequential_bayes_accumulator.py`
+4. `inference/kalman_filter_bank.py`
+5. `inference/transition_matrix_accumulator.py`
+6. `inference/advanced_state_inference.py`
 
 The upgrade path is deliberate:
 
@@ -156,7 +156,7 @@ The reader-facing ladder is therefore:
 
 ### 5.1 Problem
 
-`pointwise_baseline.py` asks the simplest possible question:
+`inference/pointwise_baseline.py` asks the simplest possible question:
 
 ```tex
 \text{How far can direct observation evidence go without explicit memory?}
@@ -208,7 +208,7 @@ instantaneous. It cannot represent trend, persistence, or switching.
 
 ### 6.1 Problem
 
-`windowed_baseline.py` addresses the first weakness of pointwise scoring:
+`inference/windowed_baseline.py` addresses the first weakness of pointwise scoring:
 classes may separate only after short-history statistics are computed.
 
 ### 6.2 Variables
@@ -260,8 +260,8 @@ compressed summary of recent trajectory geometry.
 
 ### 6.5 Implementation Mapping
 
-- `windowed_baseline.py`
-- `irregular_window_comparison.py`
+- `inference/windowed_baseline.py`
+- `inference/irregular_window_comparison.py`
 - `common_experiment_classifier_registry.py`
 
 ### 6.6 Failure Mode
@@ -320,7 +320,7 @@ Kalman filtering.
 
 ### 7.1 Problem
 
-`sequential_bayes_accumulator.py` turns the evidence-combination rule itself
+`inference/sequential_bayes_accumulator.py` turns the evidence-combination rule itself
 into a first-class module.
 
 ### 7.2 Derivation
@@ -370,7 +370,7 @@ ambiguity from error.
 
 - `SequentialBayesAccumulator.update_with_likelihoods(...)`
 - `SequentialBayesAccumulator.update_with_gaussian_observation(...)`
-- `monte_carlo_benchmark.py`
+- `inference/monte_carlo_benchmark.py`
 
 ### 7.5 Failure Mode
 
@@ -382,7 +382,7 @@ the strengths and weaknesses of the upstream evidence provider.
 
 ### 8.1 Problem
 
-`kalman_filter_bank.py` handles the case where the class distinction is not
+`inference/kalman_filter_bank.py` handles the case where the class distinction is not
 just about feature statistics but about consistency with a dynamics model.
 
 ### 8.2 State-Space Assumptions
@@ -431,10 +431,10 @@ measurement is under that model's predicted state.
 ### 8.4 Implementation Mapping
 
 - `_innovation_log_likelihood(...)`
-- model-bank normalization logic in `kalman_filter_bank.py`
-- `kalman_variant_comparison.py`
-- `kalman_observable_comparison.py`
-- `velocity_aided_kalman_comparison.py`
+- model-bank normalization logic in `inference/kalman_filter_bank.py`
+- `inference/kalman_variant_comparison.py`
+- `inference/kalman_observable_comparison.py`
+- `inference/velocity_aided_kalman_comparison.py`
 
 ### 8.5 Failure Mode
 
@@ -446,7 +446,7 @@ likelihood can become systematically misleading even when numerically stable.
 
 ### 9.1 Problem
 
-`transition_matrix_accumulator.py` addresses mode persistence and switching
+`inference/transition_matrix_accumulator.py` addresses mode persistence and switching
 before the repo commits to a full IMM-style design.
 
 ### 9.2 Variables
@@ -487,7 +487,7 @@ Then the mode posterior update is
 
 ### 9.4 Implementation Mapping
 
-- finite-difference feature derivation in `transition_matrix_accumulator.py`
+- finite-difference feature derivation in `inference/transition_matrix_accumulator.py`
 - transition propagation through the configured `T`
 - normalization over modes after adding emission terms
 
@@ -658,7 +658,7 @@ The practical repo contract is:
 - `generic_filtering_contract.py`
 - `trajectory_backend_contract.py`
 - `backend_adapter_proof.py`
-- `advanced_state_inference.py`
+- `inference/advanced_state_inference.py`
 
 ### 10.3 Why This Matters
 

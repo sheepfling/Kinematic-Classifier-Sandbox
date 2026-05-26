@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import unittest
 
-from kinematic_classifier_sandbox.utils.types import FloatArray, IntArray, LogLikelihoodFn, TransitionFn
+from kinematic_classifier_sandbox.utils.types import (
+    FloatArray,
+    IntArray,
+    LogLikelihoodFn,
+    TransitionFn,
+)
 
 
 class UtilsTypesTests(unittest.TestCase):

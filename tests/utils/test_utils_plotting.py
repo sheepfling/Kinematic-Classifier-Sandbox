@@ -7,7 +7,7 @@ from kinematic_classifier_sandbox.utils.plotting import figure_to_png_bytes, pre
 
 class UtilsPlottingTests(unittest.TestCase):
     def test_figure_to_png_bytes(self) -> None:
-        plt = plt
+        plt = prepare_matplotlib()
         fig, ax = plt.subplots(figsize=(2.0, 1.5))
         ax.plot([0.0, 1.0], [1.0, 0.0])
 

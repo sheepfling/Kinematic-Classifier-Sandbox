@@ -1,29 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import csv
-import json
+from io import BytesIO
 from pathlib import Path
 from statistics import mean
 from typing import Any
 
-import matplotlib
+from kinematic_classifier_sandbox.utils.io import write_csv
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-from .corpus_classifier_scoring import analyze_corpus_classifier_scoring
-from .corpus_policy import CorpusPolicySpec, load_corpus_policy_spec, score_qd_archive_elite
-from .generated_corpus_features import collect_generated_corpus_records
-
-
-def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
+from ...analysis.generated_corpus_features import collect_generated_corpus_records
+from ...runtime_paths import prepare_matplotlib
+from ..classifier_scoring import analyze_corpus_classifier_scoring
+from ..policy import CorpusPolicySpec, load_corpus_policy_spec, score_qd_archive_elite
+from ...utils.plotting import plt
 
 
 def _fieldnames(rows: tuple[dict[str, Any], ...]) -> list[str]:
@@ -243,7 +232,6 @@ def _render_coverage(rows: tuple[dict[str, Any], ...]) -> bytes:
     ax.set_ylabel("Coverage Fraction")
     ax.legend()
     fig.tight_layout()
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -259,7 +247,6 @@ def _render_elites(rows: tuple[dict[str, Any], ...]) -> bytes:
     ax.set_ylabel("Archive Utility")
     ax.set_xlabel("Elite Index")
     fig.tight_layout()
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -282,7 +269,6 @@ def _render_lineage(rows: tuple[dict[str, Any], ...]) -> bytes:
         ax.annotate("", xy=(0.70, y), xytext=(0.30, y), arrowprops={"arrowstyle": "->", "linewidth": 1.0})
         y -= 0.09
     fig.tight_layout()
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -308,10 +294,10 @@ def write_objective_driven_qd_archive_artifacts(
     elite_distribution_path = run_dir / "elite_score_distribution.png"
     lineage_plot_path = run_dir / "mutation_lineage_graph.png"
 
-    _write_csv(archive_cells_path, list(payload.archive_cell_rows), _fieldnames(payload.archive_cell_rows))
-    _write_csv(archive_elites_path, list(payload.archive_elite_rows), _fieldnames(payload.archive_elite_rows))
-    _write_csv(coverage_path, list(payload.coverage_rows), _fieldnames(payload.coverage_rows))
-    _write_csv(lineage_path, list(payload.lineage_rows), _fieldnames(payload.lineage_rows))
+    write_csv(archive_cells_path, list(payload.archive_cell_rows), _fieldnames(payload.archive_cell_rows))
+    write_csv(archive_elites_path, list(payload.archive_elite_rows), _fieldnames(payload.archive_elite_rows))
+    write_csv(coverage_path, list(payload.coverage_rows), _fieldnames(payload.coverage_rows))
+    write_csv(lineage_path, list(payload.lineage_rows), _fieldnames(payload.lineage_rows))
     report_path.write_text(payload.report_markdown, encoding="utf-8")
     coverage_plot_path.write_bytes(_render_coverage(payload.coverage_rows))
     elite_distribution_path.write_bytes(_render_elites(payload.archive_elite_rows))

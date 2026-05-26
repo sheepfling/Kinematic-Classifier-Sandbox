@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
-from kinematic_classifier_sandbox.utils.io import _write_text
-from kinematic_classifier_sandbox.utils.runtime import repo_root
-
 from dataclasses import dataclass
 from pathlib import Path
 
+from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.utils.io import _write_text
+from kinematic_classifier_sandbox.utils.runtime import repo_root
 
 ROOT = repo_root()
 DOCS_SURVEYS_DIR = ROOT / "docs" / "surveys"

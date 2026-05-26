@@ -3,10 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..utils.types import FloatArray
-
-from .protocols import validate_advanced_filter_step
 from ..inference.transition_matrix_accumulator import SwitchingScenario
+from ..utils.types import FloatArray
 
 DiagnosticValue = float | int | str | bool
 

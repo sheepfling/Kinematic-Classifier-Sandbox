@@ -3,10 +3,10 @@ from __future__ import annotations
 import unittest
 
 from kinematic_classifier_sandbox.utils.math import (
+    centroid,
     clamp,
     cluster_balance,
     cluster_purity,
-    centroid,
     covariance_matrix,
     dot_product,
     euclidean_distance,
@@ -25,7 +25,6 @@ from kinematic_classifier_sandbox.utils.math import (
     power_iteration,
     project_rows,
     reconstruct_rows,
-    row_mean,
     safe_log,
     silhouette_score,
     std,

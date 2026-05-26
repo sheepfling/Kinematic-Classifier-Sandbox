@@ -9,8 +9,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import yaml
+from numpy import array, corrcoef, isfinite
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
@@ -22,19 +22,6 @@ os.environ.setdefault(
     str(Path("/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox/.pycache")),
 )
 os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "kinematic-classifier-sandbox-mpl"))
-
-from kinematic_classifier_sandbox import (  # noqa: E402
-    write_candidate_generation_artifacts,
-    write_common_experiment_artifacts,
-    write_corpus_adequacy_artifacts,
-    write_corpus_autodevelopment_artifacts,
-    write_corpus_policy_tuning_artifacts,
-    write_feature_analysis_artifacts,
-    write_generated_corpus_feature_artifacts,
-    write_generic_corpus_exploration_weight_sweep_artifacts,
-    write_rung_sufficiency_artifacts,
-    write_selected_generated_corpus_artifacts,
-)
 
 
 PHASES = (
@@ -217,13 +204,13 @@ def write_feature_redundancy_matrix(feature_matrix_path: Path, study: dict[str, 
     if not feature_names:
         write_csv(output_path, [], ["feature_name"])
         return
-    data = np.array([[float(row[name]) for name in feature_names] for row in rows], dtype=float)
-    matrix = np.corrcoef(data, rowvar=False)
+    data = array([[float(row[name]) for name in feature_names] for row in rows], dtype=float)
+    matrix = corrcoef(data, rowvar=False)
     output_rows: list[dict[str, object]] = []
     for row_index, feature_name in enumerate(feature_names):
         output_row: dict[str, object] = {"feature_name": feature_name}
         for col_index, other_name in enumerate(feature_names):
-            value = float(matrix[row_index, col_index]) if np.isfinite(matrix[row_index, col_index]) else 0.0
+            value = float(matrix[row_index, col_index]) if isfinite(matrix[row_index, col_index]) else 0.0
             output_row[other_name] = round(value, 6)
         output_rows.append(output_row)
     write_csv(output_path, output_rows, ["feature_name", *feature_names])

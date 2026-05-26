@@ -2,15 +2,23 @@ from __future__ import annotations
 
 import io
 import math
-import os
 from collections import defaultdict
 from pathlib import Path
 
-from .catalog import METHOD_CATALOG, MethodEntry
-from .identity_posterior_explainer import _select_failure_walkthrough as _select_identity_failure_walkthrough
-from .identity_1d import IdentityBenchmarkResult, run_identity_benchmark
-from .posterior_explainer import _select_failure_walkthrough as _select_toy_failure_walkthrough
-from .toy_1d import ToyBenchmarkResult, run_toy_benchmark
+from matplotlib.patches import FancyBboxPatch
+
+from .markdown_builder import MarkdownDocument
+from .registry.catalog import METHOD_CATALOG, MethodEntry
+from .utils.math import _logsumexp
+from .utils.plotting import plt
+from .witnesses.identity_1d.core import IdentityBenchmarkResult, run_identity_benchmark
+from .witnesses.identity_1d.posterior_explainer import (
+    _select_failure_walkthrough as _select_identity_failure_walkthrough,
+)
+from .witnesses.toy_1d.core import ToyBenchmarkResult, run_toy_benchmark
+from .witnesses.toy_1d.posterior_explainer import (
+    _select_failure_walkthrough as _select_toy_failure_walkthrough,
+)
 
 
 def render_method_survey_markdown(entries: tuple[MethodEntry, ...] = METHOD_CATALOG) -> str:
@@ -18,40 +26,35 @@ def render_method_survey_markdown(entries: tuple[MethodEntry, ...] = METHOD_CATA
     for entry in entries:
         grouped[entry.family].append(entry)
 
-    lines = [
-        "# Kinematic Method Survey Summary",
-        "",
-        "This generated summary groups the initial sandbox method landscape by family.",
-        "",
-    ]
+    report = MarkdownDocument("Kinematic Method Survey Summary")
+    report.paragraph("This generated summary groups the initial sandbox method landscape by family.")
+
     for family in sorted(grouped):
-        lines.append(f"## {family.replace('_', ' ').title()}")
-        lines.append("")
+        report.heading(family.replace("_", " ").title(), level=2)
         for entry in grouped[family]:
             strengths = "; ".join(entry.strengths)
             limits = "; ".join(entry.limits)
             use_cases = ", ".join(entry.typical_use_cases)
             inputs = ", ".join(entry.typical_inputs)
-            lines.append(f"### {entry.name}")
-            lines.append("")
-            lines.append(f"- Style: `{entry.style}`")
-            lines.append(f"- Typical inputs: {inputs}")
-            lines.append(f"- Typical use cases: {use_cases}")
-            lines.append(f"- Strengths: {strengths}")
-            lines.append(f"- Limits: {limits}")
-            lines.append("")
-    lines.extend(
-        [
-            "## Current Recommended Sandbox Baseline",
-            "",
-            "The strongest initial model-based baseline is a Bayesian joint tracking and",
-            "classification stack with a class-matched filter bank, IMM-style within-class",
-            "mode switching, covariance-aware constraint likelihoods, optional aerodynamic",
-            "parameter evidence, and explicit unknown-class handling.",
-            "",
-        ]
+            report.heading(entry.name, level=3)
+            report.bullet_list(
+                [
+                    f"Style: `{entry.style}`",
+                    f"Typical inputs: {inputs}",
+                    f"Typical use cases: {use_cases}",
+                    f"Strengths: {strengths}",
+                    f"Limits: {limits}",
+                ]
+            )
+
+    report.heading("Current Recommended Sandbox Baseline", level=2)
+    report.paragraph(
+        "The strongest initial model-based baseline is a Bayesian joint tracking and"
+        "classification stack with a class-matched filter bank, IMM-style within-class"
+        "mode switching, covariance-aware constraint likelihoods, optional aerodynamic"
+        "parameter evidence, and explicit unknown-class handling."
     )
-    return "\n".join(lines)
+    return report.text()
 
 
 def write_method_survey_artifact(output_dir: str | Path) -> Path:
@@ -68,25 +71,7 @@ def render_posterior_math_markdown() -> str:
     return note_path.read_text(encoding="utf-8")
 
 
-def _prepare_matplotlib():
-    os.environ.setdefault("MPLCONFIGDIR", str(Path("/private/tmp/kinematic-classifier-sandbox-mpl")))
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    return plt
-
-
-def _logsumexp(values: list[float]) -> float:
-    if not values:
-        return float("-inf")
-    pivot = max(values)
-    return pivot + math.log(sum(math.exp(value - pivot) for value in values))
-
-
 def _draw_box(ax, xy: tuple[float, float], width: float, height: float, text: str, facecolor: str) -> None:
-    from matplotlib.patches import FancyBboxPatch
 
     patch = FancyBboxPatch(
         xy,
@@ -120,7 +105,6 @@ def _draw_arrow(ax, start: tuple[float, float], end: tuple[float, float]) -> Non
 
 
 def _build_posterior_math_figure():
-    plt = _prepare_matplotlib()
     fig, axes = plt.subplots(2, 1, figsize=(13, 9))
     toy_ax, identity_ax = axes
 
@@ -223,7 +207,6 @@ def _build_posterior_math_figure():
 
 
 def render_posterior_math_png_bytes() -> bytes:
-    plt = _prepare_matplotlib()
     fig = _build_posterior_math_figure()
     buffer = io.BytesIO()
     try:
@@ -254,34 +237,36 @@ def _normal_cdf(x: float, mean: float, sigma: float) -> float:
 
 
 def render_probability_primitives_markdown() -> str:
-    lines = [
-        "# Probability Primitive Charts",
-        "",
-        "This artifact isolates the simple probability shapes used inside the 1D classifiers.",
-        "",
-        "## What The Charts Show",
-        "",
-        "- `Innovation density`: a Gaussian measurement-fit term. This is a PDF-shaped score on the residual itself.",
-        "- `Symmetric soft limit`: interval probability mass inside `[-c, c]`. This is how toy envelope terms act on velocity or acceleration.",
-        "- `One-sided soft limit`: cumulative Gaussian mass below an upper bound. This is how identity speed validity acts.",
-        "- `Prior plus score to posterior`: one concrete bar-chart example showing how prior class mass and composite score combine into posterior mass.",
-        "",
-        "## PDF Versus CDF",
-        "",
-        "- The innovation chart is a PDF or log-PDF style term: it scores one exact residual.",
-        "- The soft-limit charts are CDF-derived region-probability terms: they integrate mass over an allowed region.",
-        "",
-        "## Why This Matters",
-        "",
-        "- Farther residuals get lower innovation likelihood.",
-        "- Broader uncertainty can still earn useful soft-limit mass if much of the distribution remains inside the valid region.",
-        "- Small violations of a hard bound are not collapsed to zero. They are penalized softly through remaining probability mass.",
-    ]
-    return "\n".join(lines)
+    report = MarkdownDocument("Probability Primitive Charts")
+    report.paragraph("This artifact isolates the simple probability shapes used inside the 1D classifiers.")
+    report.heading("What The Charts Show", level=2)
+    report.bullet_list(
+        [
+            "`Innovation density`: a Gaussian measurement-fit term. This is a PDF-shaped score on the residual itself.",
+            "`Symmetric soft limit`: interval probability mass inside `[-c, c]`. This is how toy envelope terms act on velocity or acceleration.",
+            "`One-sided soft limit`: cumulative Gaussian mass below an upper bound. This is how identity speed validity acts.",
+            "`Prior plus score to posterior`: one concrete bar-chart example showing how prior class mass and composite score combine into posterior mass.",
+        ]
+    )
+    report.heading("PDF Versus CDF", level=2)
+    report.bullet_list(
+        [
+            "The innovation chart is a PDF or log-PDF style term: it scores one exact residual.",
+            "The soft-limit charts are CDF-derived region-probability terms: they integrate mass over an allowed region.",
+        ]
+    )
+    report.heading("Why This Matters", level=2)
+    report.bullet_list(
+        [
+            "Farther residuals get lower innovation likelihood.",
+            "Broader uncertainty can still earn useful soft-limit mass if much of the distribution remains inside the valid region.",
+            "Small violations of a hard bound are not collapsed to zero. They are penalized softly through remaining probability mass.",
+        ]
+    )
+    return report.text()
 
 
 def _build_probability_primitives_figure():
-    plt = _prepare_matplotlib()
     toy_benchmark = run_toy_benchmark()
     identity_benchmark = run_identity_benchmark()
     toy_walkthrough = _select_toy_failure_walkthrough(toy_benchmark)
@@ -379,7 +364,6 @@ def _build_probability_primitives_figure():
 
 
 def render_probability_primitives_png_bytes() -> bytes:
-    plt = _prepare_matplotlib()
     fig = _build_probability_primitives_figure()
     buffer = io.BytesIO()
     try:
@@ -426,34 +410,26 @@ def _equation_case_rows(
     return rows, _logsumexp(log_numerators)
 
 
-def _render_equation_rows_markdown(
-    title: str,
+def _render_equation_rows(
     rows: list[dict[str, float | str]],
-    log_norm: float,
-    *,
     highlight_classes: tuple[str, ...],
-) -> list[str]:
-    lines = [
-        f"### {title}",
-        "",
-        "| Class | Prior | log prior | total score | log numerator | posterior |",
-        "| --- | ---: | ---: | ---: | ---: | ---: |",
-    ]
+) -> list[tuple[str, ...]]:
     row_by_name = {str(row["class_name"]): row for row in rows}
     ordered_names = list(highlight_classes) + [name for name in row_by_name if name not in highlight_classes]
+    table_rows = []
     for class_name in ordered_names:
         row = row_by_name[class_name]
-        lines.append(
-            f"| `{class_name}` | {row['prior']:.3f} | {row['log_prior']:.3f} | {row['total']:.3f} | {row['log_numerator']:.3f} | {row['posterior']:.3f} |"
+        table_rows.append(
+            (
+                f"`{class_name}`",
+                f"{row['prior']:.3f}",
+                f"{row['log_prior']:.3f}",
+                f"{row['total']:.3f}",
+                f"{row['log_numerator']:.3f}",
+                f"{row['posterior']:.3f}",
+            )
         )
-    lines.extend(
-        [
-            "",
-            f"Normalizer: `log Z = {log_norm:.3f}`",
-            "",
-        ]
-    )
-    return lines
+    return table_rows
 
 
 def render_posterior_numeric_walkthrough_markdown(
@@ -483,85 +459,72 @@ def render_posterior_numeric_walkthrough_markdown(
     identity_true = identity_walkthrough.run.expected_class
     identity_pred = identity_walkthrough.run.aggregate_map_class
 
-    lines = [
-        "# Posterior Equation Numeric Walkthrough",
-        "",
-        "This artifact ties the implemented posterior equations directly to real numeric values from one toy failure case and one identity failure case.",
-        "",
-        "## Generic Update",
-        "",
-        "`log numerator_i = log prior_i + total_i`",
-        "",
-        "`posterior_i = exp(log numerator_i - log Z)`",
-        "",
-        "where `log Z = logsumexp(log numerator_j)` across all classes.",
-        "",
-        "## Toy Case",
-        "",
-        f"- Scenario: `{toy_walkthrough.run.scenario_name}`",
-        f"- True class: `{toy_true}`",
-        f"- Aggregate predicted class: `{toy_pred}`",
-        f"- Step: `{toy_walkthrough.step_index + 1}`",
-        f"- Measurement: `{toy_walkthrough.measurement:.3f}`",
-        "",
-        "Toy total score definition:",
-        "",
-        "`total_i = dyn_i + speed_i + accel_i + behavior_i + observed_i + mode_i - unknown_penalty_i`",
-        "",
-    ]
-    lines.extend(
-        _render_equation_rows_markdown(
-            "Toy numeric substitution",
-            toy_rows,
-            toy_log_norm,
-            highlight_classes=(toy_true, toy_pred),
-        )
+    report = MarkdownDocument("Posterior Equation Numeric Walkthrough")
+    report.paragraph(
+        "This artifact ties the implemented posterior equations directly to real numeric values from one toy failure case and one identity failure case."
     )
-    lines.extend(
+    report.heading("Generic Update", level=2)
+    report.paragraph("`log numerator_i = log prior_i + total_i`")
+    report.paragraph("`posterior_i = exp(log numerator_i - log Z)`")
+    report.paragraph("where `log Z = logsumexp(log numerator_j)` across all classes.")
+    report.heading("Toy Case", level=2)
+    report.bullet_list(
         [
-            "Key toy interpretation:",
-            "",
-            f"- `{toy_true}` loses when its `log prior + total` stays below `{toy_pred}` after normalization.",
-            f"- The existing toy posterior artifacts break `total` into `dyn`, `speed`, `accel`, behavior, observed, and mode terms.",
-            "",
-            "## Identity Case",
-            "",
-            f"- Scenario: `{identity_walkthrough.run.scenario_name}`",
-            f"- True class: `{identity_true}`",
-            f"- Aggregate predicted class: `{identity_pred}`",
-            f"- Step: `{identity_walkthrough.step_index + 1}`",
-            f"- Measurement: `{identity_walkthrough.measurement:.3f} mph`",
-            "",
-            "Identity total score definition:",
-            "",
-            "`total_i = speed_shape_i + speed_validity_i + history_shape_i + mode_shape_i + dynamics_shape_i`",
-            "",
+            f"Scenario: `{toy_walkthrough.run.scenario_name}`",
+            f"True class: `{toy_true}`",
+            f"Aggregate predicted class: `{toy_pred}`",
+            f"Step: `{toy_walkthrough.step_index + 1}`",
+            f"Measurement: `{toy_walkthrough.measurement:.3f}`",
         ]
     )
-    lines.extend(
-        _render_equation_rows_markdown(
-            "Identity numeric substitution",
-            identity_rows,
-            identity_log_norm,
-            highlight_classes=(identity_true, identity_pred),
-        )
+    report.paragraph("Toy total score definition:")
+    report.paragraph("`total_i = dyn_i + speed_i + accel_i + behavior_i + observed_i + mode_i - unknown_penalty_i`")
+    report.heading("Toy numeric substitution", level=3)
+    report.table(
+        ["Class", "Prior", "log prior", "total score", "log numerator", "posterior"],
+        _render_equation_rows(toy_rows, (toy_true, toy_pred)),
     )
-    lines.extend(
+    report.paragraph(f"Normalizer: `log Z = {toy_log_norm:.3f}`")
+    report.bullet_list(
         [
-            "Key identity interpretation:",
-            "",
-            f"- `{identity_true}` loses when its combined speed-shape and short-window terms remain below `{identity_pred}`.",
-            f"- In the current identity boundary failures, the decisive term is usually the base `speed_shape` score.",
-            "",
-            "## How To Read This With The Other Artifacts",
-            "",
-            "- Use this note for the scalar algebra at one update step.",
-            "- Use the posterior walkthrough artifacts for the full per-term decomposition by class.",
-            "- Use the margin-trace artifacts to see when the sign of the decision margin flips over time.",
-            "- Use the confusion matrices to see how those local update behaviors accumulate over many runs.",
+            f"`{toy_true}` loses when its `log prior + total` stays below `{toy_pred}` after normalization.",
+            "The existing toy posterior artifacts break `total` into `dyn`, `speed`, `accel`, behavior, observed, and mode terms.",
         ]
     )
-    return "\n".join(lines)
+    report.heading("Identity Case", level=2)
+    report.bullet_list(
+        [
+            f"Scenario: `{identity_walkthrough.run.scenario_name}`",
+            f"True class: `{identity_true}`",
+            f"Aggregate predicted class: `{identity_pred}`",
+            f"Step: `{identity_walkthrough.step_index + 1}`",
+            f"Measurement: `{identity_walkthrough.measurement:.3f} mph`",
+        ]
+    )
+    report.paragraph("Identity total score definition:")
+    report.paragraph("`total_i = speed_shape_i + speed_validity_i + history_shape_i + mode_shape_i + dynamics_shape_i`")
+    report.heading("Identity numeric substitution", level=3)
+    report.table(
+        ["Class", "Prior", "log prior", "total score", "log numerator", "posterior"],
+        _render_equation_rows(identity_rows, (identity_true, identity_pred)),
+    )
+    report.paragraph(f"Normalizer: `log Z = {identity_log_norm:.3f}`")
+    report.bullet_list(
+        [
+            f"`{identity_true}` loses when its combined speed-shape and short-window terms remain below `{identity_pred}`.",
+            "In the current identity boundary failures, the decisive term is usually the base `speed_shape` score.",
+        ]
+    )
+    report.heading("How To Read This With The Other Artifacts", level=2)
+    report.bullet_list(
+        [
+            "Use this note for the scalar algebra at one update step.",
+            "Use the posterior walkthrough artifacts for the full per-term decomposition by class.",
+            "Use the margin-trace artifacts to see when the sign of the decision margin flips over time.",
+            "Use the confusion matrices to see how those local update behaviors accumulate over many runs.",
+        ]
+    )
+    return report.text()
 
 
 def _build_numeric_walkthrough_table(ax, title: str, rows: list[dict[str, float | str]], log_norm: float) -> None:
@@ -594,7 +557,6 @@ def render_posterior_numeric_walkthrough_png_bytes(
     toy_result: ToyBenchmarkResult | None = None,
     identity_result: IdentityBenchmarkResult | None = None,
 ) -> bytes:
-    plt = _prepare_matplotlib()
     toy_benchmark = toy_result or run_toy_benchmark()
     identity_benchmark = identity_result or run_identity_benchmark()
     toy_walkthrough = _select_toy_failure_walkthrough(toy_benchmark)

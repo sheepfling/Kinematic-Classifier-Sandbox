@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.search_baseline import (
     analyze_corpus_search_baseline,
     write_corpus_search_baseline_artifacts,
 )

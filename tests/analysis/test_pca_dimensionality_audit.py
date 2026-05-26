@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.analysis.pca_dimensionality_audit import (
     analyze_pca_dimensionality,
     write_pca_dimensionality_audit_artifacts,
 )

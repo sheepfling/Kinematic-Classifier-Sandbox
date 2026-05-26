@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.validation.class_validity import (
     analyze_class_validity,
     write_class_validity_artifacts,
 )

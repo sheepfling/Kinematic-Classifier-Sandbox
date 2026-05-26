@@ -1,8 +1,15 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import write_csv
-from ..markdown_builder import MarkdownDocument
 
-from ..runtime_paths import prepare_matplotlib
+import io
+import json
+import random
+from dataclasses import asdict, dataclass
+from math import log, sqrt
+from pathlib import Path
+
+from kinematic_classifier_sandbox.utils.io import write_csv
+
+from ..markdown_builder import MarkdownDocument
 from ..utils.math import (
     _gaussian_logpdf,
     _least_squares_slope,
@@ -13,12 +20,7 @@ from ..utils.math import (
     _sign_change_count,
     _trimmed_quantile,
 )
-from dataclasses import asdict, dataclass
-from math import log, pi, sqrt
-import io
-import json
-from pathlib import Path
-import random
+from ..utils.plotting import plt
 
 
 @dataclass(frozen=True, slots=True)
@@ -457,7 +459,6 @@ def _render_report(result: WindowedBenchmarkResult) -> str:
 
 
 def _build_figure(result: WindowedBenchmarkResult):
-    plt = prepare_matplotlib()
     spike_run = next(run for run in result.raw_runs if "spike" in run.scenario_name)
     raw_run = spike_run
     robust_run = next(run for run in result.robust_runs if run.scenario_name == spike_run.scenario_name)
@@ -510,7 +511,6 @@ def render_windowed_benchmark_report(result: WindowedBenchmarkResult) -> str:
 
 
 def render_windowed_benchmark_svg(result: WindowedBenchmarkResult) -> str:
-    plt = prepare_matplotlib()
     fig = _build_figure(result)
     buffer = io.StringIO()
     try:
@@ -521,7 +521,6 @@ def render_windowed_benchmark_svg(result: WindowedBenchmarkResult) -> str:
 
 
 def render_windowed_benchmark_png_bytes(result: WindowedBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_figure(result)
     buffer = io.BytesIO()
     try:

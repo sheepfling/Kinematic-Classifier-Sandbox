@@ -4,11 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.analysis.feature_analysis import (
     BaseFeatureComputationContext,
-    analyze_feature_datasets,
     FeatureComputationContext,
     OneDimensionalFeatureComputationContext,
+    analyze_feature_datasets,
     load_feature_registry,
     load_feature_set_manifest,
     resolve_feature_names,

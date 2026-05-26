@@ -1,16 +1,32 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
-from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ..runtime_paths import prepare_matplotlib
+import csv
+import time as wall_time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-import time as wall_time
-import csv
 
-from numpy import arange, array, asarray, average, diag, exp, float64, int64, mean, ndarray, repeat, sqrt, zeros
 import numpy.random as random
+from numpy import (
+    arange,
+    array,
+    asarray,
+    average,
+    diag,
+    exp,
+    float64,
+    int64,
+    mean,
+    ndarray,
+    repeat,
+    sqrt,
+    zeros,
+)
 
+from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.utils.io import write_csv
+from kinematic_classifier_sandbox.utils.plotting import plt
+
+from .linear_gaussian import KalmanModeState, kalman_predict, kalman_update
 from .models_1d import (
     constant_velocity_transition,
     make_initial_particles_1d,
@@ -20,8 +36,7 @@ from .models_1d import (
 )
 from .particle_filter import BootstrapParticleFilter, ParticleFilterConfig
 from .particle_filter_bank import ParticleFilterBank
-from .linear_gaussian import KalmanModeState, kalman_predict, kalman_update
-from .rbpf import RBPFConfig, RaoBlackwellizedParticleFilter
+from .rbpf import RaoBlackwellizedParticleFilter, RBPFConfig
 from .rbpf_models_1d import default_mode_transition_matrix_1d, make_rbpf_1d_mode_models
 from .surface import AdvancedFilterSurface
 
@@ -561,7 +576,6 @@ def _render_advanced_filter_comparison_report(method_rows: list[dict[str, object
 
 
 def _plot_series(path: Path, times: ndarray, series: list[tuple[ndarray, str]], title: str) -> None:
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(8, 4), dpi=150)
     for values, label in series:
         ax.plot(times, values, label=label)

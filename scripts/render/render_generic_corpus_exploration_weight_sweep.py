@@ -14,7 +14,9 @@ os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "kinemat
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox.generic_corpus_exploration import write_generic_corpus_exploration_weight_sweep_artifacts
+from kinematic_classifier_sandbox.corpus.exploration.generic_corpus_exploration import (
+    write_generic_corpus_exploration_weight_sweep_artifacts,
+)
 
 
 def main() -> int:

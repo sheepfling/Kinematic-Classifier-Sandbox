@@ -4,7 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.analysis.common_dataset_comparison import default_shared_classifier_adapters
+from kinematic_classifier_sandbox.analysis.common_dataset_comparison import (
+    default_shared_classifier_adapters,
+)
 from kinematic_classifier_sandbox.validation.technique_comparison import (
     analyze_technique_comparison,
     default_technique_definitions,

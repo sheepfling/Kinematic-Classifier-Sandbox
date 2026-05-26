@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.study_candidate_generation import (
     analyze_study_candidate_generation,
     write_study_candidate_generation_artifacts,
 )

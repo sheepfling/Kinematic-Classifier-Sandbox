@@ -12,7 +12,8 @@ os.environ["PYTHONPATH"] = str(SRC) if not existing_pythonpath else f"{SRC}{os.p
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox import write_corpus_adequacy_artifacts, write_coverage_report_artifacts
+from kinematic_classifier_sandbox.corpus.adequacy_audit import write_corpus_adequacy_artifacts
+from kinematic_classifier_sandbox.corpus.coverage_report import write_coverage_report_artifacts
 
 
 def main(argv: list[str] | None = None) -> int:

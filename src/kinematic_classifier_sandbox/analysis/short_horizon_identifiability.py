@@ -1,40 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from ..scenarios import get_scenario_dynamics, get_scenario_times
-
-
-@dataclass(frozen=True, slots=True)
-class ShortHorizonTimeRow:
-    time: float
-    constant_velocity_position: float
-    constant_acceleration_position: float
-    absolute_gap: float
-    normalized_gap_at_nominal_noise: float
-
-
-@dataclass(frozen=True, slots=True)
-class ShortHorizonNoiseRow:
-    measurement_sigma: float
-    mean_normalized_gap: float
-    max_normalized_gap: float
-    final_step_normalized_gap: float
-
-
-@dataclass(frozen=True, slots=True)
-class ShortHorizonDurationThresholdRow:
-    measurement_sigma: float
-    first_time_at_1sigma: float | None
-    first_time_at_2sigma: float | None
-
-
-@dataclass(frozen=True, slots=True)
-class ShortHorizonIdentifiabilityResult:
-    nominal_measurement_sigma: float
-    times: tuple[ShortHorizonTimeRow, ...]
-    noise_sweep: tuple[ShortHorizonNoiseRow, ...]
-    duration_thresholds: tuple[ShortHorizonDurationThresholdRow, ...]
+from .short_horizon_identifiability_contracts import (
+    ShortHorizonDurationThresholdRow,
+    ShortHorizonIdentifiabilityArtifacts,
+    ShortHorizonIdentifiabilityResult,
+    ShortHorizonNoiseRow,
+    ShortHorizonTimeRow,
+)
 
 
 def _position_at_time(class_name: str, time: float, scenario_name: str) -> float:
@@ -104,9 +77,7 @@ def analyze_short_horizon_identifiability() -> ShortHorizonIdentifiabilityResult
         duration_thresholds=tuple(duration_threshold_rows),
     )
 
-
-from .short_horizon_identifiability_rendering import (  # noqa: E402
-    ShortHorizonIdentifiabilityArtifacts,
+from .short_horizon_identifiability_artifact_io import (  # noqa: E402
     render_short_horizon_identifiability_report,
     write_short_horizon_identifiability_artifacts,
 )

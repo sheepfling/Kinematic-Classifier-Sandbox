@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.exploration.backend_adapter_proof import (
     analyze_backend_adapter_proof,
     write_backend_adapter_proof_artifacts,
 )

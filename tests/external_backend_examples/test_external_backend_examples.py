@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
-from kinematic_classifier_sandbox.api import analyze_external_backend_examples, write_external_backend_examples_artifacts
+from kinematic_classifier_sandbox.corpus.exploration.external_backend_examples import (
+    analyze_external_backend_examples,
+)
+from kinematic_classifier_sandbox.corpus.exploration.external_backend_examples_rendering import (
+    write_external_backend_examples_artifacts,
+)
 
 
 class ExternalBackendExampleTests(unittest.TestCase):

@@ -15,6 +15,5 @@ if str(SRC) not in sys.path:
 
 from kinematic_classifier_sandbox.__main__ import main
 
-
 if __name__ == "__main__":
     raise SystemExit(main(["coverage-report", *sys.argv[1:]]))

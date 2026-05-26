@@ -4,10 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.utils.io import _read_csv
 import yaml
 
 from kinematic_classifier_sandbox.corpus.policy_sweep import write_corpus_policy_tuning_artifacts
+from kinematic_classifier_sandbox.utils.io import _read_csv
 
 
 class CorpusPolicySweepTests(unittest.TestCase):

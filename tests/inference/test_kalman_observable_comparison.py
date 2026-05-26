@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.inference.kalman_observable_comparison import (
     analyze_kalman_observable_comparison,
     render_kalman_observable_comparison_report,
     write_kalman_observable_comparison_artifacts,

@@ -1,100 +1,50 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ..runtime_paths import prepare_matplotlib
-from ..markdown_builder import MarkdownDocument
-from ..utils.math import (
-    gaussian_logpdf as _gaussian_logpdf,
-    logsumexp as _logsumexp,
-    normalize_log_scores as _normalize_log_scores,
-    normalize_prior as _lib_normalize_prior,
-    _median3 as _median3,
-)
-from dataclasses import dataclass
-import csv
-from math import exp, log, pi
 import io
-import json
-import os
-from pathlib import Path
 import random
+from math import log
 
-from ..inference.kalman_filter_bank import KalmanModelSpec, KalmanTrajectory as SharedKalmanTrajectory, run_kalman_filter_bank
-from ..validation.shared_evaluation import (
-    CallableSharedClassifierAdapter,
-    SharedClassifierRun,
-    evaluate_shared_classifier_registry,
-    sensor_regime_summary_rows,
-)
-from ..utils.plotting import _figure_to_png
+from ..inference.kalman_filter_bank import KalmanModelSpec, run_kalman_filter_bank
+from ..inference.kalman_filter_bank import KalmanTrajectory as SharedKalmanTrajectory
 from ..scenarios import (
     SCENARIO_MEASUREMENT_SIGMA,
     SCENARIO_TIMES,
+)
+from ..scenarios import (
     get_scenario_dynamics as _scenario_dynamics,
 )
-
+from ..utils.math import (
+    _median3 as _median3,
+)
+from ..utils.math import (
+    gaussian_logpdf as _gaussian_logpdf,
+)
+from ..utils.math import (
+    normalize_log_scores as _normalize_log_scores,
+)
+from ..utils.math import (
+    normalize_prior as _lib_normalize_prior,
+)
+from ..utils.plotting import plt
+from ..validation.shared_evaluation import (
+    CallableSharedClassifierAdapter,
+    evaluate_shared_classifier_registry,
+)
+from .common_dataset_comparison_artifact_io import write_common_dataset_comparison_artifacts
+from .common_dataset_comparison_contracts import (
+    CommonComparisonArtifacts,
+    CommonComparisonResult,
+    CommonComparisonRow,
+    CommonMethodRun,
+    SharedDynamicsTrajectory,
+)
+from .common_dataset_comparison_reporting import render_common_dataset_comparison_report
 
 
 def _normalize_prior(prior: dict[str, float] | None) -> dict[str, float]:
     return _lib_normalize_prior(prior, CLASS_NAMES)
 
 
-@dataclass(frozen=True, slots=True)
-class SharedDynamicsTrajectory:
-    trajectory_id: str
-    true_class: str
-    scenario_name: str
-    seed: int
-    times: tuple[float, ...]
-    measurements: tuple[float, ...]
-    true_position: tuple[float, ...]
-    true_velocity: tuple[float, ...]
-    true_acceleration: tuple[float, ...]
-    measurement_dim: int = 1
-    coordinate_frame: str = "scalar_line"
-
-
-CommonMethodRun = SharedClassifierRun
-
-
-@dataclass(frozen=True, slots=True)
-class CommonComparisonRow:
-    method_name: str
-    overall_accuracy: float
-    easy_accuracy: float
-    irregular_accuracy: float
-    endpoint_match_accuracy: float
-    short_accuracy: float
-    noisy_accuracy: float
-    outlier_accuracy: float
-    prior_flip_fraction: float
-
-
-@dataclass(frozen=True, slots=True)
-class CommonComparisonResult:
-    trajectories: tuple[SharedDynamicsTrajectory, ...]
-    runs: tuple[CommonMethodRun, ...]
-    rows: tuple[CommonComparisonRow, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class CommonComparisonArtifacts:
-    run_dir: Path
-    report_path: Path
-    trajectory_path: Path
-    run_summary_path: Path
-    method_summary_path: Path
-    sensor_regimes_path: Path
-    sensor_regime_metrics_path: Path
-    heatmap_png_path: Path
-    confusion_png_path: Path
-    plots_dir: Path
-    overview_balance_png_path: Path
-    overview_covariates_png_path: Path
-    scenario_profile_png_path: Path
-    prior_sensitivity_png_path: Path
-    trajectory_examples_png_path: Path
-    final_confusion_png_path: Path
 CLASS_NAMES = ("constant_velocity", "constant_acceleration")
 
 
@@ -504,81 +454,7 @@ def analyze_common_dataset_comparison(*, seed: int = 7, trajectories_per_case: i
     return CommonComparisonResult(trajectories=trajectories, runs=tuple(runs), rows=tuple(rows))
 
 
-def render_common_dataset_comparison_report(result: CommonComparisonResult) -> str:
-    report = MarkdownDocument("Common-Dataset Technique Comparison")
-    report.paragraph(
-        "This artifact evaluates the current technique families on the same shared binary dynamics corpus: "
-        "constant velocity versus constant acceleration with easy, irregular-`dt`, matched-endpoint irregular, "
-        "short-horizon boundary, short-horizon noisy, and outlier-corrupted scenarios."
-    )
-    report.heading("Method Metrics", level=2)
-    report.table(
-        [
-            "method",
-            "overall",
-            "easy",
-            "irregular",
-            "endpoint_match",
-            "short",
-            "short_noisy",
-            "outlier",
-            "prior_flip_fraction",
-        ],
-        [
-            (
-                row.method_name,
-                f"{row.overall_accuracy:.3f}",
-                f"{row.easy_accuracy:.3f}",
-                f"{row.irregular_accuracy:.3f}",
-                f"{row.endpoint_match_accuracy:.3f}",
-                f"{row.short_accuracy:.3f}",
-                f"{row.noisy_accuracy:.3f}",
-                f"{row.outlier_accuracy:.3f}",
-                f"{row.prior_flip_fraction:.3f}",
-            )
-            for row in result.rows
-        ],
-    )
-    report.heading("Interpretation", level=2)
-    report.bullet_list(
-        [
-            "This is the first apples-to-apples technique comparison on one shared corpus.",
-            "Pointwise should act as the weak lower bound because it only uses the last measurement.",
-            "The matched-endpoint irregular case removes most endpoint information, so methods need the time history rather than just the last sample.",
-            "Short-horizon cases are boundary cases: there is not much elapsed time for acceleration to separate from constant velocity.",
-            "The outlier case is there to expose the difference between raw feature accumulation and more robust temporal/model-based methods.",
-            "`kalman_bank` remains a position-only sensing regime, even when it uses derived pseudo-observations.",
-            "`kalman_bank_velocity_aided` is a separate sensor regime with an actual extra velocity stream.",
-        ]
-    )
-    return report.text()
-
-
-def _sensor_regime_metadata() -> tuple[dict[str, object], ...]:
-    return (
-        {
-            "sensor_regime_id": "position_only",
-            "description": "Position measurements only; derived pseudo-observations may be allowed but no independent auxiliary sensor is present.",
-            "same_sensor_fairness_bucket": "position_only",
-            "supported_measurement_dims": [1],
-            "supported_coordinate_frames": ["scalar_line"],
-        },
-        {
-            "sensor_regime_id": "position_plus_direct_velocity",
-            "description": "Position measurements plus an independent direct velocity sensor stream.",
-            "same_sensor_fairness_bucket": "position_plus_direct_velocity",
-            "supported_measurement_dims": [1],
-            "supported_coordinate_frames": ["scalar_line"],
-        },
-    )
-
-
-def _sensor_regime_summary_rows(result: CommonComparisonResult) -> list[dict[str, object]]:
-    return sensor_regime_summary_rows(result.runs)
-
-
 def _render_common_metric_heatmap(result: CommonComparisonResult):
-    plt = prepare_matplotlib()
     fields = (
         "overall_accuracy",
         "easy_accuracy",
@@ -606,7 +482,6 @@ def _render_common_metric_heatmap(result: CommonComparisonResult):
 
 
 def _render_common_confusion_bars(result: CommonComparisonResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(10.6, 5.0))
     method_names = [row.method_name for row in result.rows]
     overall = [row.overall_accuracy for row in result.rows]
@@ -632,7 +507,6 @@ def _render_common_confusion_bars(result: CommonComparisonResult):
 
 
 def _render_dataset_balance(result: CommonComparisonResult):
-    plt = prepare_matplotlib()
     scenario_names = sorted({trajectory.scenario_name for trajectory in result.trajectories})
     fig, ax = plt.subplots(figsize=(9.5, 4.8))
     class_counts = {
@@ -654,7 +528,6 @@ def _render_dataset_balance(result: CommonComparisonResult):
 
 
 def _render_covariate_audit(result: CommonComparisonResult):
-    plt = prepare_matplotlib()
     scenario_names = sorted({trajectory.scenario_name for trajectory in result.trajectories})
     metrics = ("duration", "sample_count", "mean_dt", "measurement_rmse")
     matrix: list[list[float]] = []
@@ -697,7 +570,6 @@ def _render_covariate_audit(result: CommonComparisonResult):
 
 
 def _render_scenario_profile(result: CommonComparisonResult):
-    plt = prepare_matplotlib()
     scenario_order = ["easy", "irregular", "endpoint_match", "short", "short_noisy", "outlier"]
     palette = {
         "pointwise": "#2563eb",
@@ -748,7 +620,6 @@ def _render_scenario_profile(result: CommonComparisonResult):
 
 
 def _render_prior_flip_tradeoff(result: CommonComparisonResult):
-    plt = prepare_matplotlib()
     palette = {
         "pointwise": "#2563eb",
         "windowed_raw": "#dc2626",
@@ -785,7 +656,6 @@ def _render_prior_flip_tradeoff(result: CommonComparisonResult):
 
 
 def _render_trajectory_examples(result: CommonComparisonResult):
-    plt = prepare_matplotlib()
     scenario_names = sorted({trajectory.scenario_name for trajectory in result.trajectories})
     fig, axes = plt.subplots(len(scenario_names), 1, figsize=(10.5, 2.5 * len(scenario_names)), sharex=False)
     axes_list = list(axes.flat) if hasattr(axes, "flat") else [axes]
@@ -814,7 +684,6 @@ def _render_trajectory_examples(result: CommonComparisonResult):
 
 
 def _render_method_confusion_heatmaps(result: CommonComparisonResult):
-    plt = prepare_matplotlib()
     method_names = [row.method_name for row in result.rows]
     fig, axes = plt.subplots(1, len(method_names), figsize=(3.2 * len(method_names), 4.2))
     axes_list = list(axes.flat) if hasattr(axes, "flat") else [axes]
@@ -841,147 +710,3 @@ def _render_method_confusion_heatmaps(result: CommonComparisonResult):
     fig.suptitle("Final Confusion by Method", fontsize=14, fontweight="bold")
     fig.tight_layout(rect=(0, 0, 1, 0.94))
     return fig
-
-
-def _figure_to_svg(fig) -> str:
-    plt = prepare_matplotlib()
-    buffer = io.StringIO()
-    try:
-        fig.savefig(buffer, format="svg", bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
-
-
-def write_common_dataset_comparison_artifacts(
-    output_dir: str | Path,
-    *,
-    seed: int = 7,
-    result: CommonComparisonResult | None = None,
-) -> CommonComparisonArtifacts:
-    comparison = result or analyze_common_dataset_comparison(seed=seed)
-    output_root = Path(output_dir)
-    run_dir = output_root / "common_dataset_comparison_v1"
-    run_dir.mkdir(parents=True, exist_ok=True)
-
-    report_path = run_dir / "common_dataset_comparison_report.md"
-    trajectory_path = run_dir / "shared_trajectories.csv"
-    run_summary_path = run_dir / "method_run_summary.csv"
-    method_summary_path = run_dir / "method_summary.csv"
-    sensor_regimes_path = run_dir / "sensor_regimes.json"
-    sensor_regime_metrics_path = run_dir / "metrics_by_sensor_regime.csv"
-    heatmap_png_path = run_dir / "common_dataset_metric_heatmap.png"
-    confusion_png_path = run_dir / "shared_accuracy_bars.png"
-    plots_dir = run_dir / "plots"
-    overview_dir = plots_dir / "overview"
-    single_trajectory_dir = plots_dir / "single_trajectory"
-    confusion_dir = plots_dir / "confusion"
-    diagnostics_dir = plots_dir / "diagnostics"
-    overview_dir.mkdir(parents=True, exist_ok=True)
-    single_trajectory_dir.mkdir(parents=True, exist_ok=True)
-    confusion_dir.mkdir(parents=True, exist_ok=True)
-    diagnostics_dir.mkdir(parents=True, exist_ok=True)
-    overview_balance_png_path = overview_dir / "dataset_class_balance.png"
-    overview_covariates_png_path = overview_dir / "covariate_leakage_audit.png"
-    scenario_profile_png_path = diagnostics_dir / "scenario_accuracy_profile.png"
-    prior_sensitivity_png_path = diagnostics_dir / "accuracy_vs_prior_sensitivity.png"
-    trajectory_examples_png_path = single_trajectory_dir / "trajectory_examples_by_scenario.png"
-    final_confusion_png_path = confusion_dir / "final_confusion_by_method.png"
-
-    report_path.write_text(render_common_dataset_comparison_report(comparison), encoding="utf-8")
-    write_csv(
-        trajectory_path,
-        [
-            {
-                "trajectory_id": trajectory.trajectory_id,
-                "true_class": trajectory.true_class,
-                "scenario_name": trajectory.scenario_name,
-                "seed": trajectory.seed,
-                "measurement_dim": trajectory.measurement_dim,
-                "coordinate_frame": trajectory.coordinate_frame,
-                "times": " ".join(f"{value:.3f}" for value in trajectory.times),
-                "measurements": " ".join(f"{value:.3f}" for value in trajectory.measurements),
-            }
-            for trajectory in comparison.trajectories
-        ],
-        ["trajectory_id", "true_class", "scenario_name", "seed", "measurement_dim", "coordinate_frame", "times", "measurements"],
-    )
-    write_csv(
-        run_summary_path,
-        [
-            {
-                "method_name": run.method_name,
-                "sensor_regime_id": run.sensor_regime_id,
-                "measurement_dim": run.measurement_dim,
-                "coordinate_frame": run.coordinate_frame,
-                "trajectory_id": run.trajectory_id,
-                "true_class": run.true_class,
-                "scenario_name": run.scenario_name,
-                "final_predicted_class": run.final_predicted_class,
-                "final_confidence": run.final_confidence,
-                **{f"posterior_{class_name}": run.final_weights[class_name] for class_name in CLASS_NAMES},
-            }
-            for run in comparison.runs
-        ],
-        ["method_name", "sensor_regime_id", "measurement_dim", "coordinate_frame", "trajectory_id", "true_class", "scenario_name", "final_predicted_class", "final_confidence", "posterior_constant_velocity", "posterior_constant_acceleration"],
-    )
-    write_csv(
-        method_summary_path,
-        [
-            {
-                "method_name": row.method_name,
-                "overall_accuracy": row.overall_accuracy,
-                "easy_accuracy": row.easy_accuracy,
-                "irregular_accuracy": row.irregular_accuracy,
-                "endpoint_match_accuracy": row.endpoint_match_accuracy,
-                "short_accuracy": row.short_accuracy,
-                "noisy_accuracy": row.noisy_accuracy,
-                "outlier_accuracy": row.outlier_accuracy,
-                "prior_flip_fraction": row.prior_flip_fraction,
-            }
-            for row in comparison.rows
-        ],
-        [
-            "method_name",
-            "overall_accuracy",
-            "easy_accuracy",
-            "irregular_accuracy",
-            "endpoint_match_accuracy",
-            "short_accuracy",
-            "noisy_accuracy",
-            "outlier_accuracy",
-            "prior_flip_fraction",
-        ],
-    )
-    sensor_regimes_path.write_text(json.dumps(_sensor_regime_metadata(), indent=2), encoding="utf-8")
-    write_csv(
-        sensor_regime_metrics_path,
-        _sensor_regime_summary_rows(comparison),
-        ["sensor_regime_id", "num_predictions", "mean_accuracy", "mean_confidence", "measurement_dims", "coordinate_frames", "methods"],
-    )
-    heatmap_png_path.write_bytes(_figure_to_png(_render_common_metric_heatmap(comparison)))
-    confusion_png_path.write_bytes(_figure_to_png(_render_common_confusion_bars(comparison)))
-    overview_balance_png_path.write_bytes(_figure_to_png(_render_dataset_balance(comparison)))
-    overview_covariates_png_path.write_bytes(_figure_to_png(_render_covariate_audit(comparison)))
-    scenario_profile_png_path.write_bytes(_figure_to_png(_render_scenario_profile(comparison)))
-    prior_sensitivity_png_path.write_bytes(_figure_to_png(_render_prior_flip_tradeoff(comparison)))
-    trajectory_examples_png_path.write_bytes(_figure_to_png(_render_trajectory_examples(comparison)))
-    final_confusion_png_path.write_bytes(_figure_to_png(_render_method_confusion_heatmaps(comparison)))
-    return CommonComparisonArtifacts(
-        run_dir=run_dir,
-        report_path=report_path,
-        trajectory_path=trajectory_path,
-        run_summary_path=run_summary_path,
-        method_summary_path=method_summary_path,
-        sensor_regimes_path=sensor_regimes_path,
-        sensor_regime_metrics_path=sensor_regime_metrics_path,
-        heatmap_png_path=heatmap_png_path,
-        confusion_png_path=confusion_png_path,
-        plots_dir=plots_dir,
-        overview_balance_png_path=overview_balance_png_path,
-        overview_covariates_png_path=overview_covariates_png_path,
-        scenario_profile_png_path=scenario_profile_png_path,
-        prior_sensitivity_png_path=prior_sensitivity_png_path,
-        trajectory_examples_png_path=trajectory_examples_png_path,
-        final_confusion_png_path=final_confusion_png_path,
-    )

@@ -1,85 +1,321 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from dataclasses import replace
-import csv
 import io
 import json
 import math
-import os
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from statistics import mean
 from typing import Any, Iterable
 
-import numpy as np
 import yaml
+from numpy import zeros
 
-from ..advanced_state_inference import analyze_advanced_state_inference
-from ..common_experiment_harness import analyze_common_experiment
-from ..corpus_adequacy_audit import analyze_corpus_adequacy
-from ..transition_matrix_accumulator import run_transition_benchmark
-from ..validation_ladder import analyze_validation_ladder
-from .capability_matrix import capability_rows, capability_lookup, canonicalize_rung_id, next_rung_id
-from .contracts import LadderWitnessSuiteArtifacts, RungSufficiencyArtifacts, RungSufficiencyThresholds, RungThresholdConfig
+from kinematic_classifier_sandbox.utils.io import _write_text, write_csv
 
-ROOT = Path(__file__).resolve().parents[2]
+from ..common_experiment.runner import analyze_common_experiment
+from ..corpus.adequacy_audit import analyze_corpus_adequacy
+from ..inference.advanced_state_inference import analyze_advanced_state_inference
+from ..inference.transition_matrix_accumulator import run_transition_benchmark
+from ..markdown_builder import MarkdownDocument
+from ..utils.math import _entropy, _mean
+from ..utils.plotting import plt
+from ..validation.validation_ladder import analyze_validation_ladder
+from .capability_matrix import (
+    canonicalize_rung_id,
+    capability_lookup,
+    capability_rows,
+    next_rung_id,
+)
+from .contracts import (
+    LadderWitnessSuiteArtifacts,
+    RungSufficiencyArtifacts,
+    RungSufficiencyThresholds,
+    RungThresholdConfig,
+)
+
+ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_LADDER_WITNESS_SUITE_CONFIG_PATH = ROOT / "experiments" / "ladder_witness_suite" / "ladder_witness_suite.yaml"
 LADDER_WITNESS_SUITE_RUN_DIR_NAME = "ladder_witness_suite_v1"
 
 
-def _prepare_matplotlib():
-    os.environ.setdefault("MPLCONFIGDIR", str(Path("/private/tmp/kinematic-classifier-sandbox-mpl")))
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    return plt
-
-
-def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    resolved_fieldnames = list(fieldnames)
-    seen = set(resolved_fieldnames)
-    for row in rows:
-        for key in row.keys():
-            if key not in seen:
-                resolved_fieldnames.append(key)
-                seen.add(key)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=resolved_fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
+@dataclass(frozen=True, slots=True)
+class BinaryPredictionRow:
+    class_a: str
+    class_b: str
+    true_class: str
+    predicted_class: str
+    confidence: float
+    posterior_class_a: float
+    posterior_class_b: float
 
 
-def _write_text(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+@dataclass(frozen=True, slots=True)
+class RungThresholdRow:
+    rung_id: str
+    min_corpus_score: float
+    min_feature_score: float
+    min_oracle_score: float
+    min_oracle_gap_for_algorithm_failure: float
+    max_prior_flip_fraction: float
+    max_confident_error_rate: float
+    min_improvement_to_promote: float
+    max_runtime_cost_ratio: float
+    max_overlap_for_learnable: float
+    min_confusability_for_feature_limited: float
+    min_pairwise_auc_for_learnable: float
+    min_posterior_margin_for_learnable: float
 
 
-def _mean(values: list[float]) -> float:
-    return sum(values) / max(len(values), 1)
+@dataclass(frozen=True, slots=True)
+class SwitchingCorpusRow:
+    study_id: str
+    corpus_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    corpus_status: str
+    class_validity_status: str
+    feature_excitation_status: str
+    leakage_status: str
+    boundary_coverage_status: str
+    identifiability_status: str
+    confusability_score: float
+    overlap_estimate: float
+    can_evaluate_classifier: bool
+    blocking_reason: str
 
 
-def _entropy(probabilities: Iterable[float]) -> float:
-    total = 0.0
-    for probability in probabilities:
-        probability = max(float(probability), 1.0e-12)
-        total -= probability * math.log(probability)
-    return total
+@dataclass(frozen=True, slots=True)
+class SwitchingOracleRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    oracle_accuracy: float
+    best_oracle_accuracy_for_pair: float
+    current_accuracy: float
+    oracle_gap: float
+    mean_posterior_margin: float
+    overlap_estimate: float
+    learnability_status: str
+    learnable: bool
 
 
-def _ece(rows: list[dict[str, object]], bins: int = 10) -> float:
+@dataclass(frozen=True, slots=True)
+class SwitchingLearnabilityRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    corpus_status: str
+    feature_excitation_status: str
+    class_validity_status: str
+    oracle_accuracy: float
+    best_oracle_accuracy_for_pair: float
+    current_accuracy: float
+    oracle_gap: float
+    mean_posterior_margin: float
+    pairwise_auc: float
+    overlap_estimate: float
+    confusability_score: float
+    oracle_status: str
+    pairwise_status: str
+    posterior_margin_status: str
+    overlap_status: str
+    learnability_status: str
+    learnable: bool
+    oracle_threshold: float
+    pairwise_auc_threshold: float
+    posterior_margin_threshold: float
+    overlap_threshold: float
+    threshold_rung_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class SwitchingPosteriorRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    current_accuracy: float
+    balanced_accuracy: float
+    nll: float
+    brier: float
+    ece: float
+    mean_entropy: float
+    mean_confidence: float
+    confident_error_rate: float
+    prior_flip_fraction: float
+    posterior_quality_score: float
+    posterior_quality_status: str
+
+
+@dataclass(frozen=True, slots=True)
+class SwitchingFailureRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    current_rung_id: str
+    candidate_next_rung_id: str
+    failure_mode: str
+    failure_rationale: str
+
+
+@dataclass(frozen=True, slots=True)
+class SwitchingPromotionRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    current_rung_id: str
+    candidate_next_rung_id: str
+    current_accuracy: float
+    oracle_accuracy: float
+    oracle_gap: float
+    measured_next_accuracy: float | str
+    measured_improvement: float | str
+    runtime_cost_ratio: float
+    decision: str
+    rationale: str
+
+
+@dataclass(frozen=True, slots=True)
+class SpecialCorpusRow:
+    study_id: str
+    corpus_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    corpus_status: str
+    class_validity_status: str
+    feature_excitation_status: str
+    leakage_status: str
+    boundary_coverage_status: str
+    identifiability_status: str
+    confusability_score: float
+    overlap_estimate: float
+    can_evaluate_classifier: bool
+    blocking_reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class SpecialOracleRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    oracle_accuracy: float
+    best_oracle_accuracy_for_pair: float
+    current_accuracy: float
+    oracle_gap: float
+    mean_posterior_margin: float
+    overlap_estimate: float
+    learnability_status: str
+    learnable: bool
+
+
+@dataclass(frozen=True, slots=True)
+class SpecialLearnabilityRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    corpus_status: str
+    feature_excitation_status: str
+    class_validity_status: str
+    oracle_accuracy: float
+    best_oracle_accuracy_for_pair: float
+    current_accuracy: float
+    oracle_gap: float
+    mean_posterior_margin: float
+    pairwise_auc: float
+    overlap_estimate: float
+    confusability_score: float
+    oracle_status: str
+    pairwise_status: str
+    posterior_margin_status: str
+    overlap_status: str
+    learnability_status: str
+    learnable: bool
+    oracle_threshold: float
+    pairwise_auc_threshold: float
+    posterior_margin_threshold: float
+    overlap_threshold: float
+    threshold_rung_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class SpecialPosteriorRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    current_accuracy: float
+    balanced_accuracy: float
+    nll: float
+    brier: float
+    ece: float
+    mean_entropy: float
+    mean_confidence: float
+    confident_error_rate: float
+    prior_flip_fraction: float
+    posterior_quality_score: float
+    posterior_quality_status: str
+
+
+@dataclass(frozen=True, slots=True)
+class SpecialFailureRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    current_rung_id: str
+    candidate_next_rung_id: str
+    failure_mode: str
+    failure_rationale: str
+
+
+@dataclass(frozen=True, slots=True)
+class SpecialPromotionRow:
+    study_id: str
+    class_pair_id: str
+    feature_set_id: str
+    classifier_id: str
+    current_rung_id: str
+    candidate_next_rung_id: str
+    current_accuracy: float
+    oracle_accuracy: float
+    oracle_gap: float
+    measured_next_accuracy: float
+    measured_improvement: float
+    runtime_cost_ratio: float
+    decision: str
+    rationale: str
+
+
+def _binary_prediction_row(row: dict[str, object]) -> BinaryPredictionRow:
+    return BinaryPredictionRow(
+        class_a=str(row["class_a"]),
+        class_b=str(row["class_b"]),
+        true_class=str(row["true_class"]),
+        predicted_class=str(row["predicted_class"]),
+        confidence=float(row["confidence"]),
+        posterior_class_a=float(row["posterior_class_a"]),
+        posterior_class_b=float(row["posterior_class_b"]),
+    )
+
+
+def _ece(rows: list[BinaryPredictionRow], bins: int = 10) -> float:
     if not rows:
         return 0.0
     bin_totals = [0 for _ in range(bins)]
     bin_confidence = [0.0 for _ in range(bins)]
     bin_accuracy = [0.0 for _ in range(bins)]
     for row in rows:
-        confidence = float(row["confidence"])
-        predicted = str(row["predicted_class"])
-        true_class = str(row["true_class"])
+        confidence = row.confidence
+        predicted = row.predicted_class
+        true_class = row.true_class
         bin_index = min(bins - 1, int(confidence * bins))
         bin_totals[bin_index] += 1
         bin_confidence[bin_index] += confidence
@@ -95,7 +331,7 @@ def _ece(rows: list[dict[str, object]], bins: int = 10) -> float:
     return error
 
 
-def _binary_prediction_metrics(rows: list[dict[str, object]]) -> dict[str, float]:
+def _binary_prediction_metrics(rows: list[BinaryPredictionRow]) -> dict[str, float]:
     if not rows:
         return {
             "accuracy": 0.0,
@@ -118,13 +354,12 @@ def _binary_prediction_metrics(rows: list[dict[str, object]]) -> dict[str, float
     brier = 0.0
     entropy = 0.0
     for row in rows:
-        class_a = str(row["class_a"])
-        class_b = str(row["class_b"])
-        true_class = str(row["true_class"])
-        predicted_class = str(row["predicted_class"])
-        confidence = float(row["confidence"])
-        posterior_true = float(row["posterior_class_a"]) if true_class == class_a else float(row["posterior_class_b"])
-        posterior_false = float(row["posterior_class_b"]) if true_class == class_a else float(row["posterior_class_a"])
+        class_a = row.class_a
+        true_class = row.true_class
+        predicted_class = row.predicted_class
+        confidence = row.confidence
+        posterior_true = row.posterior_class_a if true_class == class_a else row.posterior_class_b
+        posterior_false = row.posterior_class_b if true_class == class_a else row.posterior_class_a
         if predicted_class == true_class:
             hits += 1
         if confidence >= 0.80 and predicted_class != true_class:
@@ -218,26 +453,26 @@ def default_rung_threshold_config() -> RungThresholdConfig:
 
 
 def rung_threshold_rows(threshold_config: RungThresholdConfig) -> tuple[dict[str, object], ...]:
-    rows: list[dict[str, object]] = []
+    rows: list[RungThresholdRow] = []
     for rung_id, profile in threshold_config.rung_profiles:
         rows.append(
-            {
-                "rung_id": rung_id,
-                "min_corpus_score": profile.min_corpus_score,
-                "min_feature_score": profile.min_feature_score,
-                "min_oracle_score": profile.min_oracle_score,
-                "min_oracle_gap_for_algorithm_failure": profile.min_oracle_gap_for_algorithm_failure,
-                "max_prior_flip_fraction": profile.max_prior_flip_fraction,
-                "max_confident_error_rate": profile.max_confident_error_rate,
-                "min_improvement_to_promote": profile.min_improvement_to_promote,
-                "max_runtime_cost_ratio": profile.max_runtime_cost_ratio,
-                "max_overlap_for_learnable": profile.max_overlap_for_learnable,
-                "min_confusability_for_feature_limited": profile.min_confusability_for_feature_limited,
-                "min_pairwise_auc_for_learnable": profile.min_pairwise_auc_for_learnable,
-                "min_posterior_margin_for_learnable": profile.min_posterior_margin_for_learnable,
-            }
+            RungThresholdRow(
+                rung_id=rung_id,
+                min_corpus_score=profile.min_corpus_score,
+                min_feature_score=profile.min_feature_score,
+                min_oracle_score=profile.min_oracle_score,
+                min_oracle_gap_for_algorithm_failure=profile.min_oracle_gap_for_algorithm_failure,
+                max_prior_flip_fraction=profile.max_prior_flip_fraction,
+                max_confident_error_rate=profile.max_confident_error_rate,
+                min_improvement_to_promote=profile.min_improvement_to_promote,
+                max_runtime_cost_ratio=profile.max_runtime_cost_ratio,
+                max_overlap_for_learnable=profile.max_overlap_for_learnable,
+                min_confusability_for_feature_limited=profile.min_confusability_for_feature_limited,
+                min_pairwise_auc_for_learnable=profile.min_pairwise_auc_for_learnable,
+                min_posterior_margin_for_learnable=profile.min_posterior_margin_for_learnable,
+            )
         )
-    return tuple(rows)
+    return tuple(asdict(row) for row in rows)
 
 
 def _best_lookup(rows: Iterable[dict[str, object]], *, class_pair_id: str, feature_set_id: str, classifier_family: str) -> dict[str, object] | None:
@@ -275,7 +510,6 @@ def _corpus_precondition_row(
 ) -> dict[str, object]:
     class_pair_id = str(validation_row["class_pair_id"])
     feature_set_id = str(validation_row["feature_set_id"])
-    corpus_score = float(validation_row["corpus_score"])
     pair_row = pair_lookup.get(class_pair_id)
     ident_row = ident_lookup.get((class_pair_id, feature_set_id))
     feature_gate_status = feature_status
@@ -420,7 +654,7 @@ def _learnability_surface_row(
 def _posterior_quality_row(
     *,
     validation_row: dict[str, object],
-    prediction_rows: list[dict[str, object]],
+    prediction_rows: list[BinaryPredictionRow],
     thresholds: RungSufficiencyThresholds,
 ) -> dict[str, object]:
     metrics = _binary_prediction_metrics(prediction_rows)
@@ -863,9 +1097,9 @@ def analyze_rung_sufficiency(
         (str(row["class_pair_id"]), str(row["feature_set_id"])): dict(row)
         for row in common.oracle_rows
     }
-    pair_prediction_lookup: dict[tuple[str, str, str], list[dict[str, object]]] = {}
+    pair_prediction_lookup: dict[tuple[str, str, str], list[BinaryPredictionRow]] = {}
     for row in common.pair_prediction_rows:
-        pair_prediction_lookup.setdefault((str(row["classifier_id"]), str(row["class_pair_id"]), str(row["feature_set_id"])), []).append(dict(row))
+        pair_prediction_lookup.setdefault((str(row["classifier_id"]), str(row["class_pair_id"]), str(row["feature_set_id"])), []).append(_binary_prediction_row(dict(row)))
 
     capability_rows_out = list(capability_rows())
     corpus_precondition_rows: list[dict[str, object]] = []
@@ -874,8 +1108,6 @@ def analyze_rung_sufficiency(
     posterior_quality_rows: list[dict[str, object]] = []
     failure_mode_rows: list[dict[str, object]] = []
     promotion_rows: list[dict[str, object]] = []
-
-    study_lookup = {str(row["study_id"]): dict(row) for row in validation_rows}
 
     for row in validation_rows:
         current_family = canonicalize_rung_id(str(row["classifier_id"]))
@@ -1008,7 +1240,6 @@ def analyze_rung_sufficiency(
 
 
 def _plot_bytes(fig) -> bytes:
-    plt = _prepare_matplotlib()
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
@@ -1018,7 +1249,6 @@ def _plot_bytes(fig) -> bytes:
 
 
 def _render_plots(output_dir: Path, result: RungSufficiencyResult) -> dict[str, Path]:
-    plt = _prepare_matplotlib()
     plots_dir = output_dir / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1061,7 +1291,7 @@ def _render_plots(output_dir: Path, result: RungSufficiencyResult) -> dict[str, 
     fig, ax = plt.subplots(figsize=(10.0, 5.5))
     current_rungs = [spec.rung_id for spec in capability_lookup().values()]
     failure_modes = sorted({str(row["failure_mode"]) for row in result.failure_mode_rows})
-    matrix = np.zeros((len(failure_modes), len(current_rungs)), dtype=float)
+    matrix = zeros((len(failure_modes), len(current_rungs)), dtype=float)
     for row in result.failure_mode_rows:
         x = current_rungs.index(str(row["current_rung_id"]))
         y = failure_modes.index(str(row["failure_mode"]))
@@ -1080,7 +1310,7 @@ def _render_plots(output_dir: Path, result: RungSufficiencyResult) -> dict[str, 
     fig, ax = plt.subplots(figsize=(10.5, 6.0))
     candidate_rungs = [spec.rung_id for spec in capability_lookup().values()]
     decision_rank = {"promote": 3, "stay": 2, "defer_advanced": 1, "revise_corpus": 0, "revise_features": 0, "revise_prior": 0, "feature_limited": 0, "corpus_limited": 0, "reject_escalation": 0}
-    matrix = np.zeros((len(candidate_rungs), len(current_rungs)), dtype=float)
+    matrix = zeros((len(candidate_rungs), len(current_rungs)), dtype=float)
     for row in result.promotion_rows:
         if str(row["candidate_next_rung_id"]) not in candidate_rungs:
             continue
@@ -1151,86 +1381,91 @@ def _report(
     promote_examples = [row for row in promotion_rows if str(row["decision"]) == "promote"][:5]
     stay_examples = [row for row in promotion_rows if str(row["decision"]) == "stay"][:5]
     threshold_rows = list(rung_threshold_rows(threshold_config))
-    return "\n".join(
+    
+    doc = MarkdownDocument("Rung Sufficiency And Escalation Evaluator")
+    doc.paragraph(
+        "This artifact decides whether the current rung is sufficient for the evidence available in a corpus + feature + class + prior study, or whether escalation is justified."
+    )
+    
+    doc.heading("Summary", level=2)
+    doc.bullet_list(
         [
-            "# Rung Sufficiency And Escalation Evaluator",
-            "",
-            "This artifact decides whether the current rung is sufficient for the evidence available in a corpus + feature + class + prior study, or whether escalation is justified.",
-            "",
-            "## Summary",
-            "",
-            f"- Validation studies analyzed: `{len(validation_rows)}`",
-            f"- Learnable cases: `{corpus_gate_passes}`",
-            f"- Promotion decisions: `{decision_counts.get('promote', 0)}`",
-            f"- Stay decisions: `{decision_counts.get('stay', 0)}`",
-            f"- Revise corpus decisions: `{decision_counts.get('revise_corpus', 0)}`",
-            f"- Revise feature decisions: `{decision_counts.get('revise_features', 0)}`",
-            f"- Revise prior decisions: `{decision_counts.get('revise_prior', 0)}`",
-            f"- Defer decisions: `{decision_counts.get('defer_advanced', 0)}`",
-            f"- Reject decisions: `{decision_counts.get('reject_escalation', 0)}`",
-            f"- Learnable rows: `{sum(1 for row in learnability_surface_rows if bool(row['learnable']))}`",
-            "",
-            "## Threshold Profiles",
-            "",
-        ]
-        + [
-            f"- `{row['rung_id']}`: oracle>={row['min_oracle_score']}, gap>={row['min_oracle_gap_for_algorithm_failure']}, improvement>={row['min_improvement_to_promote']}, pairwise_auc>={row['min_pairwise_auc_for_learnable']}, margin>={row['min_posterior_margin_for_learnable']}"
-            for row in threshold_rows
-        ]
-        + [
-            "",
-            "## Corpus Gate",
-            "",
-            f"- Corpus status: `{corpus.summary.overall_status}`",
-            f"- Feature status: `{corpus.summary.feature_status}`",
-            "",
-            "## Learnability Surfaces",
-            "",
-        ]
-        + [
-            f"- `{status}`: `{count}`"
-            for status, count in sorted(learnability_counts.items(), key=lambda item: item[0])
-        ]
-        + [
-            "",
-            "## Switching Evidence",
-            "",
-            f"- Transition vs Kalman post-switch accuracy: `{transition.summary.transition_post_switch_accuracy:.3f}` vs `{transition.summary.kalman_post_switch_accuracy:.3f}`",
-            f"- IMM vs transition post-switch accuracy: `{imm.summary.imm_post_switch_accuracy:.3f}` vs `{imm.summary.transition_post_switch_accuracy:.3f}`",
-            f"- IMM mean state RMSE: `{imm.summary.mean_state_rmse:.3f}`",
-            "",
-            "## Top Failure Modes",
-            "",
-        ]
-        + [f"- `{mode}`: `{count}`" for mode, count in top_failures[:8]]
-        + [
-            "",
-            "## Example Promotions",
-            "",
-        ]
-        + [
-            f"- `{row['study_id']}` -> `{row['decision']}` ({row['current_rung_id']} -> {row['candidate_next_rung_id']}, improvement={row['measured_improvement']})"
-            for row in promote_examples
-        ]
-        + [
-            "",
-            "## Example Stay Decisions",
-            "",
-        ]
-        + [
-            f"- `{row['study_id']}` -> `{row['decision']}` ({row['current_rung_id']} near oracle gap {row['oracle_gap']:.3f})"
-            for row in stay_examples
-        ]
-        + [
-            "",
-            "## Interpretation",
-            "",
-            "- Corpus or feature failures are reported before algorithm escalation is considered.",
-            "- Oracle gap, pairwise AUC, overlap, confusability, and posterior margin are reported explicitly so the evaluator can separate learnability limits from model limits.",
-            "- IMM is only treated as justified when the switching witness shows a measurable post-switch improvement over the transition-matrix rung.",
-            "- PF and RBPF remain deferred until a nonlinear or latent-structure witness is added with measurable evidence.",
+            f"Validation studies analyzed: `{len(validation_rows)}`",
+            f"Learnable cases: `{corpus_gate_passes}`",
+            f"Promotion decisions: `{decision_counts.get('promote', 0)}`",
+            f"Stay decisions: `{decision_counts.get('stay', 0)}`",
+            f"Revise corpus decisions: `{decision_counts.get('revise_corpus', 0)}`",
+            f"Revise feature decisions: `{decision_counts.get('revise_features', 0)}`",
+            f"Revise prior decisions: `{decision_counts.get('revise_prior', 0)}`",
+            f"Defer decisions: `{decision_counts.get('defer_advanced', 0)}`",
+            f"Reject decisions: `{decision_counts.get('reject_escalation', 0)}`",
+            f"Learnable rows: `{sum(1 for row in learnability_surface_rows if bool(row['learnable']))}`",
         ]
     )
+
+    doc.heading("Threshold Profiles", level=2)
+    doc.bullet_list(
+        [
+            f"`{row['rung_id']}`: oracle>={row['min_oracle_score']}, gap>={row['min_oracle_gap_for_algorithm_failure']}, improvement>={row['min_improvement_to_promote']}, pairwise_auc>={row['min_pairwise_auc_for_learnable']}, margin>={row['min_posterior_margin_for_learnable']}"
+            for row in threshold_rows
+        ]
+    )
+
+    doc.heading("Corpus Gate", level=2)
+    doc.bullet_list(
+        [
+            f"Corpus status: `{corpus.summary.overall_status}`",
+            f"Feature status: `{corpus.summary.feature_status}`",
+        ]
+    )
+
+    doc.heading("Learnability Surfaces", level=2)
+    doc.bullet_list(
+        [
+            f"`{status}`: `{count}`"
+            for status, count in sorted(learnability_counts.items(), key=lambda item: item[0])
+        ]
+    )
+
+    doc.heading("Switching Evidence", level=2)
+    doc.bullet_list(
+        [
+            f"Transition vs Kalman post-switch accuracy: `{transition.summary.transition_post_switch_accuracy:.3f}` vs `{transition.summary.kalman_post_switch_accuracy:.3f}`",
+            f"IMM vs transition post-switch accuracy: `{imm.summary.imm_post_switch_accuracy:.3f}` vs `{imm.summary.transition_post_switch_accuracy:.3f}`",
+            f"IMM mean state RMSE: `{imm.summary.mean_state_rmse:.3f}`",
+        ]
+    )
+
+    doc.heading("Top Failure Modes", level=2)
+    doc.bullet_list([f"`{mode}`: `{count}`" for mode, count in top_failures[:8]])
+
+    doc.heading("Example Promotions", level=2)
+    doc.bullet_list(
+        [
+            f"`{row['study_id']}` -> `{row['decision']}` ({row['current_rung_id']} -> {row['candidate_next_rung_id']}, improvement={row['measured_improvement']})"
+            for row in promote_examples
+        ]
+    )
+
+    doc.heading("Example Stay Decisions", level=2)
+    doc.bullet_list(
+        [
+            f"`{row['study_id']}` -> `{row['decision']}` ({row['current_rung_id']} near oracle gap {row['oracle_gap']:.3f})"
+            for row in stay_examples
+        ]
+    )
+
+    doc.heading("Interpretation", level=2)
+    doc.bullet_list(
+        [
+            "Corpus or feature failures are reported before algorithm escalation is considered.",
+            "Oracle gap, pairwise AUC, overlap, confusability, and posterior margin are reported explicitly so the evaluator can separate learnability limits from model limits.",
+            "IMM is only treated as justified when the switching witness shows a measurable post-switch improvement over the transition-matrix rung.",
+            "PF and RBPF remain deferred until a nonlinear or latent-structure witness is added with measurable evidence.",
+        ]
+    )
+
+    return doc.text()
 
 
 def write_rung_sufficiency_artifacts(
@@ -1256,21 +1491,15 @@ def write_rung_sufficiency_artifacts(
     promotion_matrix_path = run_dir / "rung_promotion_matrix.csv"
     report_path = run_dir / "rung_sufficiency_report.md"
 
-    score_vs_oracle_plot_path = run_dir / "plots" / "rung_score_vs_oracle.png"
-    oracle_gap_plot_path = run_dir / "plots" / "oracle_gap_by_class_pair.png"
-    failure_mode_heatmap_path = run_dir / "plots" / "failure_mode_heatmap.png"
-    promotion_decision_plot_path = run_dir / "plots" / "promotion_decision_matrix.png"
-    posterior_quality_plot_path = run_dir / "plots" / "posterior_quality_by_rung.png"
-
     threshold_rows = list(rung_threshold_rows(threshold_config))
-    _write_csv(threshold_profile_path, threshold_rows, list(threshold_rows[0].keys()))
-    _write_csv(capability_matrix_path, list(analysis.capability_rows), list(analysis.capability_rows[0].keys()))
-    _write_csv(corpus_precondition_path, list(analysis.corpus_precondition_rows), list(analysis.corpus_precondition_rows[0].keys()))
-    _write_csv(oracle_gap_path, list(analysis.oracle_gap_rows), list(analysis.oracle_gap_rows[0].keys()))
-    _write_csv(learnability_surface_path, list(analysis.learnability_surface_rows), list(analysis.learnability_surface_rows[0].keys()))
-    _write_csv(posterior_quality_path, list(analysis.posterior_quality_rows), list(analysis.posterior_quality_rows[0].keys()))
-    _write_csv(failure_mode_path, list(analysis.failure_mode_rows), list(analysis.failure_mode_rows[0].keys()))
-    _write_csv(promotion_matrix_path, list(analysis.promotion_rows), list(analysis.promotion_rows[0].keys()))
+    write_csv(threshold_profile_path, threshold_rows, list(threshold_rows[0].keys()))
+    write_csv(capability_matrix_path, list(analysis.capability_rows), list(analysis.capability_rows[0].keys()))
+    write_csv(corpus_precondition_path, list(analysis.corpus_precondition_rows), list(analysis.corpus_precondition_rows[0].keys()))
+    write_csv(oracle_gap_path, list(analysis.oracle_gap_rows), list(analysis.oracle_gap_rows[0].keys()))
+    write_csv(learnability_surface_path, list(analysis.learnability_surface_rows), list(analysis.learnability_surface_rows[0].keys()))
+    write_csv(posterior_quality_path, list(analysis.posterior_quality_rows), list(analysis.posterior_quality_rows[0].keys()))
+    write_csv(failure_mode_path, list(analysis.failure_mode_rows), list(analysis.failure_mode_rows[0].keys()))
+    write_csv(promotion_matrix_path, list(analysis.promotion_rows), list(analysis.promotion_rows[0].keys()))
     _write_text(report_path, analysis.report_markdown)
     _write_text(
         config_path,
@@ -1489,32 +1718,50 @@ def _witness_suite_index_markdown(config: dict[str, Any], matrix_rows: list[dict
     for witness in config["witnesses"]:
         claim_counts[witness["claim_type"]] = claim_counts.get(witness["claim_type"], 0) + 1
         rung_counts[witness["rung_under_test"]] = rung_counts.get(witness["rung_under_test"], 0) + 1
-    lines = [
-        "# Ladder Witness Corpus Suite",
-        "",
-        f"- suite id: `{config['suite_id']}`",
-        f"- witnesses declared: `{len(config['witnesses'])}`",
-        f"- sufficiency claims: `{claim_counts.get('sufficiency', 0)}`",
-        f"- insufficiency claims: `{claim_counts.get('insufficiency', 0)}`",
-        "",
-        "## Witness Matrix",
-        "| Witness | Rung | Claim | Comparison | Difficulty | Evidence |",
-        "| --- | --- | --- | --- | --- | --- |",
-        *[
-            f"| `{row['witness_id']}` | `{row['rung_under_test']}` | `{row['claim_type']}` | `{row['comparison_method']}` | `{row['difficulty']}` | `{row['evidence_strength']}` |"
+    
+    doc = MarkdownDocument("Ladder Witness Corpus Suite")
+    doc.bullet_list(
+        [
+            f"suite id: `{config['suite_id']}`",
+            f"witnesses declared: `{len(config['witnesses'])}`",
+            f"sufficiency claims: `{claim_counts.get('sufficiency', 0)}`",
+            f"insufficiency claims: `{claim_counts.get('insufficiency', 0)}`",
+        ]
+    )
+
+    doc.heading("Witness Matrix", level=2)
+    doc.table(
+        ["Witness", "Rung", "Claim", "Comparison", "Difficulty", "Evidence"],
+        [
+            (
+                f"`{row['witness_id']}`",
+                f"`{row['rung_under_test']}`",
+                f"`{row['claim_type']}`",
+                f"`{row['comparison_method']}`",
+                f"`{row['difficulty']}`",
+                f"`{row['evidence_strength']}`",
+            )
             for row in matrix_rows
-        ],
-        "",
-        "## Rung Coverage",
-        "| Rung | Witness Count |",
-        "| --- | --- |",
-        *[f"| `{rung}` | `{count}` |" for rung, count in sorted(rung_counts.items())],
-        "",
-        "## Notes",
-        "- Witness corpora are controlled 1D proof cases, not benchmark vanity sets.",
-        "- Each witness declares the methods it compares, the claim it is proving, and the evidence story the later milestones will render into plots and tables.",
-    ]
-    return "\n".join(lines)
+        ]
+    )
+
+    doc.heading("Rung Coverage", level=2)
+    doc.table(
+        ["Rung", "Witness Count"],
+        [
+            (f"`{rung}`", f"`{count}`")
+            for rung, count in sorted(rung_counts.items())
+        ]
+    )
+
+    doc.heading("Notes", level=2)
+    doc.bullet_list(
+        [
+            "Witness corpora are controlled 1D proof cases, not benchmark vanity sets.",
+            "Each witness declares the methods it compares, the claim it is proving, and the evidence story the later milestones will render into plots and tables.",
+        ]
+    )
+    return doc.text()
 
 
 def write_ladder_witness_suite_artifacts(
@@ -1561,7 +1808,7 @@ def write_ladder_witness_suite_artifacts(
     schema_path.write_text(json.dumps(_ladder_witness_schema(), indent=2, sort_keys=True), encoding="utf-8")
     manifest_path.write_text(json.dumps(normalized_config, indent=2, sort_keys=True), encoding="utf-8")
     claim_rows = _witness_claim_matrix_rows(resolved_config)
-    _write_csv(claim_matrix_path, claim_rows, list(claim_rows[0].keys()))
+    write_csv(claim_matrix_path, claim_rows, list(claim_rows[0].keys()))
     index_path.write_text(_witness_suite_index_markdown(resolved_config, claim_rows), encoding="utf-8")
     config_copy_path.write_text(yaml.safe_dump(normalized_config, sort_keys=False), encoding="utf-8")
 

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 import unittest
-import os
 from pathlib import Path
 
 from kinematic_classifier_sandbox.strict_equation_audit import analyze_strict_equation_audit

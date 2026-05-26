@@ -9,7 +9,11 @@ from .contracts import (
     TransitionBenchmarkResult,
     TransitionRun,
 )
-from .runner import _emission_term_breakdown, default_switching_mode_specs, default_transition_matrix
+from .runner import (
+    _emission_term_breakdown,
+    default_switching_mode_specs,
+    default_transition_matrix,
+)
 
 
 def render_transition_benchmark_report(result: TransitionBenchmarkResult) -> str:

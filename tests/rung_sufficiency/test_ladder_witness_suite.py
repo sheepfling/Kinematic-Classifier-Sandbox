@@ -8,7 +8,7 @@ import unittest
 from collections import defaultdict
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
     load_ladder_witness_suite_config,
     write_ladder_witness_suite_artifacts,
 )

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.coverage_report import (
     analyze_coverage_report,
     write_coverage_report_artifacts,
 )

@@ -42,6 +42,6 @@ The Corpus Explorer produces `D` for the study candidate `s = (D, f, C, m, pi, b
 The repo already has 1D examples of the external-backend interface shape that a future TAOS, TGx, or similar 3D trajectory generator should satisfy:
 
 - `backend_adapter_proof.py` shows the adapter lifecycle: `prepare -> run -> normalize_output -> validate`.
-- `external_backend_examples.py` packages that lifecycle into TAOS-like and TGx-like 1D examples with explicit input-deck, execution-log, raw-output, normalized-output, and validation-report artifacts.
+- `corpus/exploration/external_backend_examples.py` packages that lifecycle into TAOS-like and TGx-like 1D examples with explicit input-deck, execution-log, raw-output, normalized-output, and validation-report artifacts.
 
 That means the 3D lift does not need a new interface design. It needs a richer backend implementation behind the same contract.

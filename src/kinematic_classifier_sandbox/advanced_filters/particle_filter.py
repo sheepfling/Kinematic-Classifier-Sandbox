@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from numpy import average, exp, float64, full, log, maximum, sum as nsum
 import numpy.random as random
+from numpy import average, exp, float64, full, log, maximum
+from numpy import sum as nsum
 
-from .resampling import effective_sample_size, normalize_log_weights, systematic_resample
 from ..utils.types import FloatArray, LogLikelihoodFn, TransitionFn
+from .resampling import effective_sample_size, normalize_log_weights, systematic_resample
 
 
 @dataclass(frozen=True, slots=True)

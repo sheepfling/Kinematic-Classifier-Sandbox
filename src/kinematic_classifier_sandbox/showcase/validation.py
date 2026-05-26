@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from kinematic_classifier_sandbox.utils.io import _read_csv, _read_json
+
 from ..story.repo_story import CLAIMS as REPO_STORY_CLAIMS
 from .contracts import ROOT, ShowcaseValidationResult
 
@@ -192,4 +194,3 @@ def validate_showcase_artifacts(showcase_dir: str | Path) -> ShowcaseValidationR
         dimensional_status_present=dimensional_status_present,
         errors=tuple(errors),
     )
-from kinematic_classifier_sandbox.utils.io import _read_csv, _read_json

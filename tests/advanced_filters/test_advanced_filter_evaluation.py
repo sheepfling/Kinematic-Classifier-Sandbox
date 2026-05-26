@@ -12,7 +12,11 @@ from kinematic_classifier_sandbox.advanced_filters.evaluation import (
     write_particle_filter_witness_artifacts,
     write_rbpf_witness_artifacts,
 )
-from kinematic_classifier_sandbox.advanced_filters.runner import imm_witness_surface, run_advanced_filter_comparison, write_imm_artifacts
+from kinematic_classifier_sandbox.advanced_filters.runner import (
+    imm_witness_surface,
+    run_advanced_filter_comparison,
+    write_imm_artifacts,
+)
 from kinematic_classifier_sandbox.witnesses.surface import WitnessSurface
 
 

@@ -4,7 +4,6 @@ from dataclasses import asdict
 
 from .contracts import RungCapabilitySpec
 
-
 _CAPABILITY_SPECS: tuple[RungCapabilitySpec, ...] = (
     RungCapabilitySpec(
         rung_id="pointwise",

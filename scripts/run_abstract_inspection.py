@@ -15,7 +15,9 @@ def main() -> int:
     if str(src) not in sys.path:
         sys.path.insert(0, str(src))
 
-    from kinematic_classifier_sandbox import write_abstract_inspection_artifacts
+    from kinematic_classifier_sandbox.analysis.inspection_bundle import (
+        write_abstract_inspection_artifacts,
+    )
 
     artifacts = write_abstract_inspection_artifacts(
         root / "artifacts",

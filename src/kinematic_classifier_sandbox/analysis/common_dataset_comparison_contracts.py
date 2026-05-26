@@ -1,0 +1,73 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from ..validation.shared_evaluation import SharedClassifierRun
+
+
+@dataclass(frozen=True, slots=True)
+class SharedDynamicsTrajectory:
+    trajectory_id: str
+    true_class: str
+    scenario_name: str
+    seed: int
+    times: tuple[float, ...]
+    measurements: tuple[float, ...]
+    true_position: tuple[float, ...]
+    true_velocity: tuple[float, ...]
+    true_acceleration: tuple[float, ...]
+    measurement_dim: int = 1
+    coordinate_frame: str = "scalar_line"
+
+
+CommonMethodRun = SharedClassifierRun
+
+
+@dataclass(frozen=True, slots=True)
+class CommonComparisonRow:
+    method_name: str
+    overall_accuracy: float
+    easy_accuracy: float
+    irregular_accuracy: float
+    endpoint_match_accuracy: float
+    short_accuracy: float
+    noisy_accuracy: float
+    outlier_accuracy: float
+    prior_flip_fraction: float
+
+
+@dataclass(frozen=True, slots=True)
+class CommonComparisonResult:
+    trajectories: tuple[SharedDynamicsTrajectory, ...]
+    runs: tuple[CommonMethodRun, ...]
+    rows: tuple[CommonComparisonRow, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CommonComparisonArtifacts:
+    run_dir: Path
+    report_path: Path
+    trajectory_path: Path
+    run_summary_path: Path
+    method_summary_path: Path
+    sensor_regimes_path: Path
+    sensor_regime_metrics_path: Path
+    heatmap_png_path: Path
+    confusion_png_path: Path
+    plots_dir: Path
+    overview_balance_png_path: Path
+    overview_covariates_png_path: Path
+    scenario_profile_png_path: Path
+    prior_sensitivity_png_path: Path
+    trajectory_examples_png_path: Path
+    final_confusion_png_path: Path
+
+
+__all__ = [
+    "CommonComparisonArtifacts",
+    "CommonComparisonResult",
+    "CommonComparisonRow",
+    "CommonMethodRun",
+    "SharedDynamicsTrajectory",
+]

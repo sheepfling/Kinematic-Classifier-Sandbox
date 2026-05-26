@@ -69,8 +69,8 @@ Dependencies:
 - `validation_ladder.py`
 - `corpus_adequacy_audit.py`
 - `common_experiment_harness.py`
-- `transition_matrix_accumulator.py`
-- `advanced_state_inference.py`
+- `inference/transition_matrix_accumulator.py`
+- `inference/advanced_state_inference.py`
 
 Milestones:
 - `M62`: Rung capability matrix.

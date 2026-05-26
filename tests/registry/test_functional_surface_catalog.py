@@ -5,7 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.functional_surface_catalog import analyze_functional_surface_catalog, write_functional_surface_catalog_artifacts
+from kinematic_classifier_sandbox.functional_surface_catalog import (
+    analyze_functional_surface_catalog,
+    write_functional_surface_catalog_artifacts,
+)
 
 
 class FunctionalSurfaceCatalogTests(unittest.TestCase):

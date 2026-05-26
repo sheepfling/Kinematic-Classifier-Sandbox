@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.inference.advanced_state_inference import (
     analyze_advanced_filter_contract,
     analyze_advanced_state_inference,
     write_advanced_filter_contract_artifacts,

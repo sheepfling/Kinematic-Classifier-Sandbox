@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.analysis.generated_corpus_features import (
     analyze_generated_corpus_features,
     write_generated_corpus_feature_artifacts,
 )

@@ -1,14 +1,23 @@
 from __future__ import annotations
+
+import io
+import random
+from dataclasses import asdict, dataclass
+from math import log
+from pathlib import Path
+
 from kinematic_classifier_sandbox.utils.io import write_csv
 
 from ..markdown_builder import MarkdownDocument
-from ..runtime_paths import prepare_matplotlib
-from dataclasses import asdict, dataclass
-from ..utils.math import _gaussian_logpdf, _least_squares_slope, _mean, _normalize, _quadratic_fit, _std
-import io
-from math import exp, pi
-from pathlib import Path
-import random
+from ..utils.plotting import plt
+from ..utils.math import (
+    _gaussian_logpdf,
+    _least_squares_slope,
+    _mean,
+    _normalize,
+    _quadratic_fit,
+    _std,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -269,7 +278,6 @@ def render_irregular_window_report(result: WindowRegimeComparisonResult) -> str:
 
 
 def _build_figure(result: WindowRegimeComparisonResult):
-    plt = prepare_matplotlib()
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
     gap_ax, accuracy_ax = axes
     feature_order = ("slope", "curvature_proxy", "position_range")
@@ -349,7 +357,6 @@ def write_irregular_window_artifacts(
             "position_range",
         ],
     )
-    plt = prepare_matplotlib()
     fig = _build_figure(analysis)
     buffer = io.BytesIO()
     try:

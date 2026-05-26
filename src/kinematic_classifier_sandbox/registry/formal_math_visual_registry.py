@@ -1,57 +1,31 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-import csv
-import io
 import json
 import math
-import os
 import shutil
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
-from .corpus_classifier_scoring import analyze_corpus_classifier_scoring
-from .corpus_gym import CorpusGymAction, CorpusGymEnvironment, default_corpus_gym_targets
-from .artifacts import render_posterior_numeric_walkthrough_png_bytes
-from .feature_analysis import write_feature_analysis_artifacts
+from ..analysis.feature_analysis import write_feature_analysis_artifacts
+from ..analysis.generated_corpus_features import select_generated_corpus_records
+from ..artifacts import render_posterior_numeric_walkthrough_png_bytes
+from ..corpus.exploration.candidate_generation import analyze_candidate_generation
+from ..corpus.gym import CorpusGymAction, CorpusGymEnvironment, default_corpus_gym_targets
+from ..inference.monte_carlo_benchmark import (
+    render_monte_carlo_calibration_png_bytes,
+    run_accumulator_monte_carlo_benchmark,
+)
+from ..inference.transition_matrix_accumulator import write_transition_benchmark_artifacts
+from ..markdown_builder import MarkdownDocument
+from ..rung_sufficiency.analysis import write_rung_sufficiency_artifacts
+from ..utils.io import write_csv
+from ..utils.plotting import _figure_to_png
+from ..utils.plotting import plt
 from .formal_math_registry import load_equation_registry
-from .generated_corpus_features import select_generated_corpus_records
-from .monte_carlo_benchmark import render_monte_carlo_calibration_png_bytes, run_accumulator_monte_carlo_benchmark
-from .rung_sufficiency import write_rung_sufficiency_artifacts
-from .transition_matrix_accumulator import write_transition_benchmark_artifacts
 
-
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 ARTIFACT_DIR = ROOT / "artifacts" / "formal_math_visual_registry_v1"
-
-
-def _prepare_matplotlib():
-    os.environ.setdefault("MPLCONFIGDIR", str(Path("/private/tmp/kinematic-classifier-sandbox-mpl")))
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    return plt
-
-
-def _figure_to_png(fig) -> bytes:
-    plt = _prepare_matplotlib()
-    buffer = io.BytesIO()
-    try:
-        fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
-        return buffer.getvalue()
-    finally:
-        plt.close(fig)
-
-
-def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
 
 
 @dataclass(frozen=True, slots=True)
@@ -430,7 +404,6 @@ def _plot_registry_card(equation_id: str) -> bytes:
         impl = equation["implementation"]
         implementation = f"{impl['module']}::{impl['function']}"
     source_artifacts = [str(item) for item in equation.get("artifacts", ())] if equation else []
-    plt = _prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(9.5, 5.8))
     ax.axis("off")
     ax.set_title(spec.title, loc="left", fontsize=15, fontweight="bold")
@@ -483,9 +456,6 @@ def _plot_gaussian_feature_likelihood() -> bytes:
         measurements = record.execution.trajectory_run.observations.get("position", ())
         class_values.setdefault(record.assigned_class, []).extend(float(value) for value in measurements)
 
-    plt = _prepare_matplotlib()
-    import matplotlib.pyplot as plt  # type: ignore[no-redef]
-
     classes = sorted((name, values) for name, values in class_values.items() if values)
     if not classes:
         classes = [("unknown", [0.0, 0.5, 1.0])]
@@ -500,7 +470,6 @@ def _plot_gaussian_feature_likelihood() -> bytes:
     summary_rows: list[tuple[str, float, float, int]] = []
     max_density = 0.0
     for index, (label, values) in enumerate(classes):
-        sorted_values = sorted(values)
         mean_value = sum(values) / len(values)
         variance = sum((value - mean_value) ** 2 for value in values) / max(len(values), 1)
         sigma = max(variance ** 0.5, 0.08)
@@ -533,9 +502,6 @@ def _plot_calibration_metrics() -> bytes:
 
 
 def _plot_corpus_gym_reward() -> bytes:
-    plt = _prepare_matplotlib()
-    import matplotlib.pyplot as plt  # type: ignore[no-redef]
-
     labels = [
         "class_validity",
         "feature_excitation",
@@ -594,11 +560,7 @@ def _plot_corpus_gym_reward() -> bytes:
 
 
 def _plot_sampler_mixture() -> bytes:
-    from .candidate_generation import analyze_candidate_generation
-
     result = analyze_candidate_generation()
-    plt = _prepare_matplotlib()
-    import matplotlib.pyplot as plt  # type: ignore[no-redef]
 
     rows = list(result.generated_candidate_rows)
     scenario_families = sorted({str(row.get("scenario_family", "unknown")) for row in rows})
@@ -688,53 +650,52 @@ def analyze_formal_math_visual_registry() -> FormalMathVisualRegistryResult:
 
 
 def render_formal_math_visual_registry_report(result: FormalMathVisualRegistryResult) -> str:
-    lines = [
-        "# Formal Math Visual Registry",
-        "",
-        "This gallery pairs the equation registry with representative charts and records the exact source artifact or source data used for each visual. There are no anonymous placeholder charts in the bundle.",
-        "",
-        "## Summary",
-        "",
-        f"- Visual count: `{result.summary['visual_count']}`",
-        f"- Generated visuals: `{result.summary['generated_visual_count']}`",
-        f"- Implemented visuals: `{result.summary['implemented_visual_count']}`",
-        f"- Illustrative visuals: `{result.summary['illustrative_visual_count']}`",
-        f"- Missing visuals: `{result.summary['missing_visual_count']}`",
-        f"- Copied visuals: `{result.summary['copied_visual_count']}`",
-        f"- Implemented equations covered: `{result.summary['implemented_equation_count']}`",
-        f"- Conceptual equations covered: `{result.summary['conceptual_equation_count']}`",
-        f"- Source artifact references: `{result.summary['source_artifact_count']}`",
-        f"- Source-data references: `{result.summary['source_data_reference_count']}`",
-        "",
-        "## Provenance",
-        "",
-        "Every row in the provenance CSV points to the exact visual artifact and the data sources used to generate or copy it. The canonical rerun command is recorded in the runbook.",
-        "",
-        "## Gallery",
-        "",
-    ]
+    doc = MarkdownDocument("Formal Math Visual Registry")
+    doc.paragraph(
+        "This gallery pairs the equation registry with representative charts and records the exact source artifact or source data used for each visual. There are no anonymous placeholder charts in the bundle."
+    )
+    
+    doc.heading("Summary", level=2)
+    doc.bullet_list(
+        [
+            f"Visual count: `{result.summary['visual_count']}`",
+            f"Generated visuals: `{result.summary['generated_visual_count']}`",
+            f"Implemented visuals: `{result.summary['implemented_visual_count']}`",
+            f"Illustrative visuals: `{result.summary['illustrative_visual_count']}`",
+            f"Missing visuals: `{result.summary['missing_visual_count']}`",
+            f"Copied visuals: `{result.summary['copied_visual_count']}`",
+            f"- Implemented equations covered: `{result.summary['implemented_equation_count']}`",
+            f"Conceptual equations covered: `{result.summary['conceptual_equation_count']}`",
+            f"Source artifact references: `{result.summary['source_artifact_count']}`",
+            f"Source-data references: `{result.summary['source_data_reference_count']}`",
+        ]
+    )
+
+    doc.heading("Provenance", level=2)
+    doc.paragraph(
+        "Every row in the provenance CSV points to the exact visual artifact and the data sources used to generate or copy it. The canonical rerun command is recorded in the runbook."
+    )
+
+    doc.heading("Gallery", level=2)
     for row in result.rows:
-        lines.extend(
+        doc.heading(f"`{row.equation_id}`", level=3)
+        doc.bullet_list(
             [
-                f"### `{row.equation_id}`",
-                "",
-                f"- Status: `{row.status}`",
-                f"- Visual status: `{row.visual_status}`",
-                f"- Visual kind: `{row.visual_kind}`",
-                f"- Visual source: `{row.source_type}`",
-                f"- Visual path: `{row.visual_path}`",
-                f"- Source artifact: `{row.source_artifact}`" if row.source_artifact else "- Source artifact: generated",
-                f"- Source data: `{', '.join(row.source_data_artifacts)}`" if row.source_data_artifacts else "- Source data: n/a",
-                f"- Rerun command: `{row.rerun_command}`",
-                f"- Implementation: `{row.implementation}`" if row.implementation else "- Implementation: missing",
-                "",
-                f"![{row.equation_id}]({row.visual_path})",
-                "",
-                row.caption,
-                "",
+                f"Status: `{row.status}`",
+                f"Visual status: `{row.visual_status}`",
+                f"Visual kind: `{row.visual_kind}`",
+                f"Visual source: `{row.source_type}`",
+                f"Visual path: `{row.visual_path}`",
+                f"Source artifact: `{row.source_artifact or 'generated'}`",
+                f"Source data: `{', '.join(row.source_data_artifacts) if row.source_data_artifacts else 'n/a'}`",
+                f"Rerun command: `{row.rerun_command}`",
+                f"Implementation: `{row.implementation or 'missing'}`",
             ]
         )
-    return "\n".join(lines)
+        doc.paragraph(f"![{row.equation_id}]({row.visual_path})")
+        doc.paragraph(row.caption)
+        
+    return doc.text()
 
 
 def write_formal_math_visual_registry_artifacts(
@@ -758,7 +719,7 @@ def write_formal_math_visual_registry_artifacts(
 
     report_path.write_text(payload.report_markdown, encoding="utf-8")
     summary_path.write_text(json.dumps(payload.summary, indent=2, sort_keys=True), encoding="utf-8")
-    _write_csv(
+    write_csv(
         gallery_csv_path,
         [
             {
@@ -784,7 +745,7 @@ def write_formal_math_visual_registry_artifacts(
             "notes",
         ],
     )
-    _write_csv(
+    write_csv(
         provenance_path,
         [
             {
@@ -816,39 +777,33 @@ def write_formal_math_visual_registry_artifacts(
             "generated_visual",
         ],
     )
-    runbook_lines = [
-        "# Formal Math Visual Registry Runbook",
-        "",
-        "The canonical rerun command is:",
-        "",
-        "```bash",
+    runbook_doc = MarkdownDocument("Formal Math Visual Registry Runbook")
+    runbook_doc.paragraph("The canonical rerun command is:")
+    runbook_doc.fence(
         "python3 scripts/render/render_formal_math_visual_registry.py --output-dir artifacts",
-        "```",
-        "",
-        "The table below tells you what each equation visual is sourced from.",
-        "",
-        "| equation_id | visual_status | visual_kind | source artifact | source data | rerun command |",
-        "| --- | --- | --- | --- | --- | --- |",
-    ]
-    for row in payload.rows:
-        runbook_lines.append(
-            f"| `{row.equation_id}` | `{row.visual_status}` | `{row.visual_kind}` | `{row.source_artifact or 'generated'}` | "
-            f"{', '.join(f'`{path}`' for path in row.source_data_artifacts) if row.source_data_artifacts else 'n/a'} | `{row.rerun_command}` |"
-        )
-    runbook_lines.extend(
+        language="bash"
+    )
+    runbook_doc.paragraph("The table below tells you what each equation visual is sourced from.")
+    runbook_doc.table(
+        ["equation_id", "visual_status", "visual_kind", "source artifact", "source data", "rerun command"],
         [
-            "",
-            "Rows marked `illustrative` are explicit documentation visuals and are not counted as implemented equation coverage.",
+            (
+                f"`{row.equation_id}`",
+                f"`{row.visual_status}`",
+                f"`{row.visual_kind}`",
+                f"`{row.source_artifact or 'generated'}`",
+                f"{', '.join(f'`{path}`' for path in row.source_data_artifacts) if row.source_data_artifacts else 'n/a'}",
+                f"`{row.rerun_command}`",
+            )
+            for row in payload.rows
         ]
     )
-    runbook_path.write_text("\n".join(runbook_lines) + "\n", encoding="utf-8")
+    runbook_doc.paragraph("Rows marked `illustrative` are explicit documentation visuals and are not counted as implemented equation coverage.")
+    runbook_path.write_text(runbook_doc.text() + "\n", encoding="utf-8")
 
     coverage_labels = [row.equation_id for row in payload.rows]
     generated = [1 if row.generated_visual else 0 for row in payload.rows]
     copied = [1 if not row.generated_visual else 0 for row in payload.rows]
-    plt = _prepare_matplotlib()
-    import matplotlib.pyplot as plt  # type: ignore[no-redef]
-
     fig, ax = plt.subplots(figsize=(11.0, 4.8))
     ax.bar(coverage_labels, copied, color="#2563eb", label="copied")
     ax.bar(coverage_labels, generated, bottom=copied, color="#0f766e", label="generated")

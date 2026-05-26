@@ -12,7 +12,9 @@ os.environ["PYTHONPATH"] = str(SRC) if not existing_pythonpath else f"{SRC}{os.p
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox import write_pca_dimensionality_audit_artifacts
+from kinematic_classifier_sandbox.analysis.pca_dimensionality_audit import (
+    write_pca_dimensionality_audit_artifacts,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:

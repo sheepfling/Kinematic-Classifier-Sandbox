@@ -1,19 +1,23 @@
 from __future__ import annotations
-import csv
+
+import io
+import json
+import random
+from dataclasses import dataclass
+from math import log
+from pathlib import Path
+
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.math import (
     gaussian_logpdf as _gaussian_logpdf,
+)
+from kinematic_classifier_sandbox.utils.math import (
     normalize_log_scores as _normalize_log_scores,
 )
+from kinematic_classifier_sandbox.utils.plotting import plt
+
 from ..markdown_builder import MarkdownDocument
 
-from ..runtime_paths import prepare_matplotlib
-from dataclasses import dataclass
-from math import log
-import io
-import json
-from pathlib import Path
-import random
 
 @dataclass(frozen=True, slots=True)
 class PointwiseClassSpec:
@@ -283,7 +287,6 @@ def render_pointwise_benchmark_report(result: PointwiseBenchmarkResult) -> str:
 
 
 def _build_diagnostic_figure(result: PointwiseBenchmarkResult):
-    plt = prepare_matplotlib()
     easy_run = next(run for run in result.runs if run.scenario_name == "easy" and run.true_class == result.class_specs[0].name)
     overlap_run = next(run for run in result.runs if run.scenario_name == "overlap" and run.true_class == result.class_specs[0].name)
     fig, axes = plt.subplots(2, 2, figsize=(13.0, 7.5), sharex="col")
@@ -317,7 +320,6 @@ def _build_diagnostic_figure(result: PointwiseBenchmarkResult):
 
 
 def render_pointwise_benchmark_svg(result: PointwiseBenchmarkResult) -> str:
-    plt = prepare_matplotlib()
     fig = _build_diagnostic_figure(result)
     buffer = io.StringIO()
     try:
@@ -328,7 +330,6 @@ def render_pointwise_benchmark_svg(result: PointwiseBenchmarkResult) -> str:
 
 
 def render_pointwise_benchmark_png_bytes(result: PointwiseBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_diagnostic_figure(result)
     buffer = io.BytesIO()
     try:

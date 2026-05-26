@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from kinematic_classifier_sandbox.utils.io import write_csv
+from kinematic_classifier_sandbox.utils.plotting import plt
 
-from ..runtime_paths import prepare_matplotlib
 from .contracts import IMMArtifacts, IMMBenchmarkResult
 from .reporting import render_imm_report
 
@@ -178,7 +178,6 @@ evaluation:
 
 
 def _render_imm_plots(result: IMMBenchmarkResult, mode_probability_path: Path, state_path: Path) -> None:
-    plt = prepare_matplotlib()
     run = result.runs[0]
     fig, ax = plt.subplots(figsize=(8, 4), dpi=150)
     labels = list(run.steps[0].posterior_by_label)

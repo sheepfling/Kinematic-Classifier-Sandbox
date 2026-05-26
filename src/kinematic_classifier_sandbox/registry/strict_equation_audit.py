@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-import csv
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
+from ..markdown_builder import MarkdownDocument
+from ..utils.io import write_csv
+from ..utils.plotting import plt
 from .formal_math_registry import load_equation_registry
 
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,14 +38,6 @@ class StrictEquationAuditArtifacts:
     rows_path: Path
     status_plot_path: Path
 
-
-def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
 
 
 IMPLEMENTED_SOURCE_DATA: dict[str, tuple[str, ...]] = {
@@ -341,38 +334,35 @@ def _status_summary_line(summary: dict[str, object]) -> str:
 
 
 def render_strict_equation_audit_report(result: StrictEquationAuditResult) -> str:
-    lines = [
-        "# Formal Math Strict Audit",
-        "",
-        "This audit enumerates every equation in `docs/math/equation_registry.yaml` and labels it strictly as implemented, illustrative, or missing. Conceptual entries are not counted as implemented just because a nearby plot exists.",
-        "",
-        "## Summary",
-        "",
-        f"- Equation count: `{result.summary['equation_count']}`",
-        f"- {_status_summary_line(result.summary)}",
-        "",
-        "## Equation Audit",
-        "",
-        "| equation_id | registry_status | strict_label | implementation | exact_artifacts | source_data | notes |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
-    ]
-    for row in result.rows:
-        lines.append(
-            "| "
-            + " | ".join(
-                [
-                    f"`{row.equation_id}`",
-                    f"`{row.registry_status}`",
-                    f"`{row.strict_label}`",
-                    f"`{row.implementation}`",
-                    "<br>".join(f"`{artifact}`" for artifact in row.exact_artifacts) or "_none_",
-                    "<br>".join(f"`{data}`" for data in row.source_data) or "_none_",
-                    row.notes,
-                ]
+    report = MarkdownDocument("Formal Math Strict Audit")
+    report.paragraph(
+        "This audit enumerates every equation in `docs/math/equation_registry.yaml` and labels it strictly as implemented, illustrative, or missing. "
+        "Conceptual entries are not counted as implemented just because a nearby plot exists."
+    )
+    report.heading("Summary", level=2)
+    report.bullet_list(
+        [
+            f"Equation count: `{result.summary['equation_count']}`",
+            _status_summary_line(result.summary),
+        ]
+    )
+    report.heading("Equation Audit", level=2)
+    report.table(
+        ["equation_id", "registry_status", "strict_label", "implementation", "exact_artifacts", "source_data", "notes"],
+        [
+            (
+                f"`{row.equation_id}`",
+                f"`{row.registry_status}`",
+                f"`{row.strict_label}`",
+                f"`{row.implementation}`",
+                "<br>".join(f"`{artifact}`" for artifact in row.exact_artifacts) or "_none_",
+                "<br>".join(f"`{data}`" for data in row.source_data) or "_none_",
+                row.notes,
             )
-            + " |"
-        )
-    return "\n".join(lines)
+            for row in result.rows
+        ],
+    )
+    return report.text()
 
 
 def write_strict_equation_audit_artifacts(output_dir: str | Path) -> StrictEquationAuditArtifacts:
@@ -387,7 +377,7 @@ def write_strict_equation_audit_artifacts(output_dir: str | Path) -> StrictEquat
 
     report_path.write_text(payload.report_markdown, encoding="utf-8")
     summary_path.write_text(json.dumps(payload.summary, indent=2, sort_keys=True), encoding="utf-8")
-    _write_csv(
+    write_csv(
         rows_path,
         [
             {
@@ -412,10 +402,6 @@ def write_strict_equation_audit_artifacts(output_dir: str | Path) -> StrictEquat
         ],
     )
 
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
 
     colors = {"implemented": "#0f766e", "illustrative": "#d97706", "missing": "#dc2626"}
     fig, ax = plt.subplots(figsize=(11.5, 5.2))

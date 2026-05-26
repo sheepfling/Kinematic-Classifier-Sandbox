@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from numpy import arange, cumsum, exp, float64, int64, log, max as amax, sum as nsum, zeros
 import numpy.random as random
+from numpy import arange, cumsum, exp, int64, log, zeros
+from numpy import max as amax
+from numpy import sum as nsum
+
 from ..utils.types import FloatArray, IntArray
 
 

@@ -10,7 +10,7 @@ import yaml
 
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import _figure_to_png
-from kinematic_classifier_sandbox.runtime_paths import prepare_matplotlib
+from kinematic_classifier_sandbox.utils.plotting import plt
 from kinematic_classifier_sandbox.utils.runtime import repo_root
 
 from ...markdown_builder import MarkdownDocument
@@ -24,8 +24,6 @@ ROOT = repo_root()
 DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHT_SWEEP_CONFIG_PATH = (
     ROOT / "experiments" / "generic_corpus_exploration_weight_sweep" / "generic_corpus_exploration_weight_sweep.yaml"
 )
-
-plt = prepare_matplotlib()
 
 
 def _normalize_weights(weights: GenericCorpusExplorationWeights) -> GenericCorpusExplorationWeights:

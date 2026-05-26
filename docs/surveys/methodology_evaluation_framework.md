@@ -102,7 +102,7 @@ That layering matters because a failure can happen at any stage.
 
 ### 3.1 Problem
 
-`prior_sensitivity_analysis.py` asks whether a decision is being driven by data
+`inference/prior_sensitivity_analysis.py` asks whether a decision is being driven by data
 or by the prior regime.
 
 ### 3.2 Derivation
@@ -139,7 +139,7 @@ rerun the classifier, and record:
 
 ### 3.4 Implementation Mapping
 
-- `prior_sensitivity_analysis.py`
+- `inference/prior_sensitivity_analysis.py`
 - `inspection_bundle.py` for bundle-level summary surfacing
 
 ### 3.5 Methodological Use

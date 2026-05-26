@@ -13,7 +13,10 @@ from kinematic_classifier_sandbox.advanced_filters.particle_filter import (
     BootstrapParticleFilter,
     ParticleFilterConfig,
 )
-from kinematic_classifier_sandbox.advanced_filters.resampling import effective_sample_size, systematic_resample
+from kinematic_classifier_sandbox.advanced_filters.resampling import (
+    effective_sample_size,
+    systematic_resample,
+)
 
 
 class ParticleFilterTests(unittest.TestCase):

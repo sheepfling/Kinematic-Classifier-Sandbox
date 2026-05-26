@@ -2,22 +2,36 @@
 
 Methodology workbench for kinematic classification studies.
 
-This repository now has one front-door story: a study candidate combines a corpus, feature set, class set, classifier/filter family, prior, and optional backend. The Corpus Explorer generates or selects trajectories that exercise intended class boundaries and feature families while auditing leakage, validity, and difficulty. The classifier/filter ladder turns observations, features, or filter residuals into class evidence, then shared posterior machinery applies priors and produces comparable posterior histories. The evaluation layer inspects prior sensitivity, separability, calibration, confusion, corpus adequacy, and oracle gaps before assigning a promote/revise/reject/defer decision. The current 1D problems are witness problems, not final deployment corpora.
+This repository is a reusable kinematic-classification framework, not a single toy benchmark. It defines studies through contracts and manifests, generates or selects corpora that exercise intended boundaries, runs multiple classifier and filter families on the same evidence surface, and audits feature coverage, confusability, leakage, adequacy, and promotion decisions. The current 1D problems are witness problems, not final deployment corpora; they live under `kinematic_classifier_sandbox.witnesses`.
+
+For the longer narrative, start with [docs/story/00_repo_story.md](docs/story/00_repo_story.md).
 
 Start here:
 
 - [Documentation front door](docs/README.md)
+- [Experiment front door](experiments/README.md)
+- [Package map](src/kinematic_classifier_sandbox/README.md)
+- [Test suite map](tests/README.md)
 - [Canonical repo story](docs/story/00_repo_story.md)
 - [Canonical reading order](docs/story/02_reading_order.md)
 - [Claim evidence matrix](docs/story/claim_evidence_matrix.md)
 
-## What this repo contains
+## Repo map
 
-- `docs/surveys/`: method surveys and framing notes
-- `src/kinematic_classifier_sandbox/`: small method catalog and artifact helpers
-- `tests/`: standard-library tests for the catalog and artifact exporter
-- `scripts/`: repeatable validation and export entrypoints
-- `artifacts/`: generated survey outputs that sync via the filesystem but are ignored by git
+- `docs/`: narrative front doors, plans, surveys, witness notes, and showcase/story material
+- `experiments/`: config-driven study definitions, feature-set manifests, class-pair manifests, and corpus-policy inputs
+- `src/kinematic_classifier_sandbox/`: package code, grouped into inference, corpus, analysis, validation, and advanced-filter layers
+- `scripts/`: runnable entrypoints and grouped helpers under `audit/`, `build/`, `render/`, `run/`, and `workflows/`
+- `tests/`: regression suite, mostly one test module per source module or artifact family
+- `templates/`: starter manifests and YAML templates for new studies and corpus/class/feature/prior definitions
+- `artifacts/`: generated outputs that sync via the filesystem but are ignored by git
+
+If you are new to the repo, read these in order:
+
+1. [docs/README.md](docs/README.md)
+2. [experiments/README.md](experiments/README.md)
+3. [src/kinematic_classifier_sandbox/README.md](src/kinematic_classifier_sandbox/README.md)
+4. [tests/README.md](tests/README.md)
 
 ## Initial scope
 
@@ -42,6 +56,21 @@ python3 scripts/check_env.py
 PYTHONPYCACHEPREFIX=/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox/.pycache python3 scripts/all.py
 PYTHONPYCACHEPREFIX=/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox/.pycache python3 scripts/export_artifacts.py
 ```
+
+## Tooling
+
+Use these commands from the repo root:
+
+```bash
+python3 -m pip install -e '.[dev]'
+python3 scripts/check.py
+python3 scripts/check.py --fix
+python3 scripts/lint.py
+python3 scripts/lint.py --fix
+python3 scripts/format.py
+```
+
+The `--fix` flag applies available Ruff fixes before rerunning checks. Pyright itself is still read-only at the CLI level.
 
 ## Cache policy
 

@@ -14,7 +14,7 @@ os.environ["PYTHONPATH"] = (
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox import list_milestones, run_milestones
+from kinematic_classifier_sandbox.milestones import list_milestones, run_milestones
 
 
 def _build_parser() -> argparse.ArgumentParser:

@@ -5,12 +5,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
-    TrajectoryArtifact,
+from kinematic_classifier_sandbox.analysis.dimensional_lift_audit import (
     analyze_dimensional_lift_audit,
-    validate_trajectory_artifact,
     write_dimensional_lift_audit_artifacts,
 )
+from kinematic_classifier_sandbox.contracts import TrajectoryArtifact, validate_trajectory_artifact
 
 
 class DimensionalLiftAuditTests(unittest.TestCase):

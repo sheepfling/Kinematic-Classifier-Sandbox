@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.exploration.objective_driven_qd_archive import (
     analyze_objective_driven_qd_archive,
     write_objective_driven_qd_archive_artifacts,
 )

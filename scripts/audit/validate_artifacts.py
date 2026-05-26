@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
 import json
 import os
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,7 +14,7 @@ os.environ["PYTHONPATH"] = str(SRC) if not existing_pythonpath else f"{SRC}{os.p
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox.showcase_builder import validate_showcase_artifacts
+from kinematic_classifier_sandbox.showcase.builder import validate_showcase_artifacts
 
 
 def main(argv: list[str] | None = None) -> int:

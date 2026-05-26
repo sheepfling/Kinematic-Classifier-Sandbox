@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-import subprocess
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.methodology_latex import analyze_methodology_latex, write_methodology_latex_artifacts
+from kinematic_classifier_sandbox.methodology_latex import (
+    analyze_methodology_latex,
+    write_methodology_latex_artifacts,
+)
 
 
 class MethodologyLatexTests(unittest.TestCase):

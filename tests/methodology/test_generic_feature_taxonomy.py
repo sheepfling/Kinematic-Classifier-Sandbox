@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.methodology.feature_taxonomy import (
     analyze_generic_feature_taxonomy,
     write_generic_feature_taxonomy_artifacts,
 )

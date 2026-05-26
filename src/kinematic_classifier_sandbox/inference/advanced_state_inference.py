@@ -1,34 +1,48 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import _write_json
 
-from kinematic_classifier_sandbox.utils.io import write_csv
+import io
+from dataclasses import asdict, dataclass
+from math import log
+from pathlib import Path
+from statistics import median
+from typing import Sequence
+
+import numpy.linalg as linalg
+from numpy import (
+    arange,
+    array,
+    asarray,
+    diag,
+    divide,
+    eye,
+    full,
+    maximum,
+    ndarray,
+    outer,
+    sqrt,
+    tile,
+    zeros,
+    zeros_like,
+)
+from numpy import mean as nmean
+
+from kinematic_classifier_sandbox.utils.io import _write_json, write_csv
+
 from ..markdown_builder import MarkdownDocument
-
 from ..runtime_paths import prepare_matplotlib
+from ..trajectory_generator import generate_switching_scenarios
+from ..utils.plotting import plt
 from ..utils.io import _write_yaml_like
 from ..utils.math import (
-    _as_array,
     _as_tuple,
     _as_tuple_matrix,
     _block_diag,
     _gaussian_logpdf,
     _logsumexp,
-    _normalize_log_scores,
     _mean,
+    _normalize_log_scores,
 )
-from dataclasses import asdict, dataclass
-import io
-import json
-from math import log
-from pathlib import Path
-from statistics import mean, median
-from typing import Sequence
-
-from numpy import arange, array, asarray, diag, divide, eye, full, maximum, mean as nmean, ndarray, outer, pi, sqrt, tile, zeros, zeros_like
-import numpy.linalg as linalg
-
-from ..trajectory_generator import generate_switching_scenarios
-from .transition_matrix_accumulator import default_transition_matrix, run_transition_benchmark
+from .transition_matrix_accumulator import run_transition_benchmark
 
 
 def _kalman_predict(
@@ -556,8 +570,8 @@ def _contract_report(contract: AdvancedFilterContract, output_schema: dict[str, 
             "",
             "## Output Schema",
             "",
-            f"- Posterior rows include posterior columns for each mode in the witness set.",
-            f"- State rows use `state_mean_i` and `state_cov_diag_i` fields so the same schema can hold 1D and 3D PVA states.",
+            "- Posterior rows include posterior columns for each mode in the witness set.",
+            "- State rows use `state_mean_i` and `state_cov_diag_i` fields so the same schema can hold 1D and 3D PVA states.",
             f"- Future extensions: `{', '.join(contract.future_extensions)}`",
             "",
             "## Diagnostics Schema",
@@ -1001,7 +1015,6 @@ def render_advanced_state_inference_report(result: AdvancedStateInferenceResult)
 
 
 def _render_diagnostics_figure(result: AdvancedStateInferenceResult):
-    plt = prepare_matplotlib()
     representative = _representative_run(result)
     transition_lookup = {run.trajectory_id: run for run in result.transition_result.transition_runs} if hasattr(result.transition_result, "transition_runs") else {}
     fig, axes = plt.subplots(2, 2, figsize=(13.0, 9.0))
@@ -1059,7 +1072,6 @@ def _render_diagnostics_figure(result: AdvancedStateInferenceResult):
 
 
 def _render_mode_probability_figure(result: AdvancedStateInferenceResult):
-    plt = prepare_matplotlib()
     representative = _representative_run(result)
     fig, ax = plt.subplots(figsize=(10.5, 5.5))
     mode_names = list(representative.mode_names)
@@ -1083,7 +1095,6 @@ def _render_mode_probability_figure(result: AdvancedStateInferenceResult):
 
 
 def _render_mixing_probability_figure(result: AdvancedStateInferenceResult):
-    plt = prepare_matplotlib()
     representative = _representative_run(result)
     mode_names = list(representative.mode_names)
     matrix = zeros((len(mode_names), len(mode_names)), dtype=float)
@@ -1109,7 +1120,6 @@ def _render_mixing_probability_figure(result: AdvancedStateInferenceResult):
 
 
 def _render_mode_likelihood_figure(result: AdvancedStateInferenceResult):
-    plt = prepare_matplotlib()
     representative = _representative_run(result)
     fig, ax = plt.subplots(figsize=(10.5, 5.5))
     mode_names = list(representative.mode_names)
@@ -1132,7 +1142,6 @@ def _render_mode_likelihood_figure(result: AdvancedStateInferenceResult):
 
 
 def _render_state_estimate_figure(result: AdvancedStateInferenceResult):
-    plt = prepare_matplotlib()
     representative = _representative_run(result)
     witness = _witness_lookup(result.witnesses)[representative.trajectory_id]
     fig, ax = plt.subplots(figsize=(10.5, 5.5))
@@ -1159,7 +1168,6 @@ def _render_state_estimate_figure(result: AdvancedStateInferenceResult):
 
 
 def _render_switch_delay_figure(result: AdvancedStateInferenceResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(10.5, 5.0))
     delays = [run.switch_detection_delay for run in result.runs]
     ax.set_title("Switch detection delay", loc="left", fontsize=12, fontweight="bold")
@@ -1172,7 +1180,6 @@ def _render_switch_delay_figure(result: AdvancedStateInferenceResult):
 
 
 def _render_comparison_figure(result: AdvancedStateInferenceResult):
-    plt = prepare_matplotlib()
     transition_lookup = {run.trajectory_id: run for run in result.transition_result.transition_runs} if hasattr(result.transition_result, "transition_runs") else {}
     fig, ax = plt.subplots(figsize=(10.5, 5.5))
     labels = [run.scenario_name for run in result.runs[:8]]
@@ -1198,7 +1205,6 @@ def _witness_lookup(witnesses: tuple[SwitchingWitness, ...]) -> dict[str, Switch
 
 
 def render_advanced_state_inference_png_bytes(result: AdvancedStateInferenceResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _render_diagnostics_figure(result)
     buffer = io.BytesIO()
     try:
@@ -1209,7 +1215,6 @@ def render_advanced_state_inference_png_bytes(result: AdvancedStateInferenceResu
 
 
 def render_advanced_state_inference_mode_probability_png_bytes(result: AdvancedStateInferenceResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _render_mode_probability_figure(result)
     buffer = io.BytesIO()
     try:
@@ -1220,7 +1225,6 @@ def render_advanced_state_inference_mode_probability_png_bytes(result: AdvancedS
 
 
 def render_advanced_state_inference_mixing_probability_png_bytes(result: AdvancedStateInferenceResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _render_mixing_probability_figure(result)
     buffer = io.BytesIO()
     try:
@@ -1231,7 +1235,6 @@ def render_advanced_state_inference_mixing_probability_png_bytes(result: Advance
 
 
 def render_advanced_state_inference_mode_likelihood_png_bytes(result: AdvancedStateInferenceResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _render_mode_likelihood_figure(result)
     buffer = io.BytesIO()
     try:
@@ -1242,7 +1245,6 @@ def render_advanced_state_inference_mode_likelihood_png_bytes(result: AdvancedSt
 
 
 def render_advanced_state_inference_state_estimate_png_bytes(result: AdvancedStateInferenceResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _render_state_estimate_figure(result)
     buffer = io.BytesIO()
     try:
@@ -1253,7 +1255,6 @@ def render_advanced_state_inference_state_estimate_png_bytes(result: AdvancedSta
 
 
 def render_advanced_state_inference_switch_delay_png_bytes(result: AdvancedStateInferenceResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _render_switch_delay_figure(result)
     buffer = io.BytesIO()
     try:
@@ -1264,7 +1265,6 @@ def render_advanced_state_inference_switch_delay_png_bytes(result: AdvancedState
 
 
 def render_advanced_state_inference_comparison_png_bytes(result: AdvancedStateInferenceResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _render_comparison_figure(result)
     buffer = io.BytesIO()
     try:
@@ -1350,7 +1350,6 @@ def write_advanced_state_inference_artifacts(
         ],
     )
 
-    witness_lookup = _witness_lookup(analysis.witnesses)
     mode_names = [spec.name for spec in analysis.mode_specs]
     class_names = list(analysis.runs[0].class_names)
     state_dim = len(analysis.runs[0].state_labels)
@@ -1364,7 +1363,6 @@ def write_advanced_state_inference_artifacts(
     transition_lookup = {run.trajectory_id: run for run in analysis.transition_result.transition_runs} if hasattr(analysis.transition_result, "transition_runs") else {}
 
     for run in analysis.runs:
-        witness = witness_lookup[run.trajectory_id]
         transition_run = transition_lookup.get(run.trajectory_id)
         comparison_rows.append(
             AdvancedStateComparisonRow(

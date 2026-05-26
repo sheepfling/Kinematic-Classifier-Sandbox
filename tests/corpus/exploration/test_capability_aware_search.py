@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.exploration.capability_aware_search import (
     analyze_capability_aware_search,
     write_capability_aware_search_artifacts,
 )

@@ -1,28 +1,33 @@
 from __future__ import annotations
+
+import io
+import json
+import random
+from dataclasses import dataclass
+from math import log
+from pathlib import Path
+
 from kinematic_classifier_sandbox.utils.io import write_csv
 
 from ..markdown_builder import MarkdownDocument
-from ..runtime_paths import prepare_matplotlib
-from dataclasses import dataclass, asdict
-from math import log, pi
-import io
-import json
-from pathlib import Path
-import random
 from ..utils.math import (
     _add_matrices,
     _identity,
     _innovation_log_likelihood,
+    _least_squares_slope,
+    _local_quadratic_acceleration,
     _logsumexp,
     _matmul,
     _matvec,
-    _outer,
-    _subtract_matrices,
+    _transpose,
     kalman_transition_and_noise,
     kalman_update_scalar,
+)
+from ..utils.plotting import plt
+from ..utils.math import (
     normalize_log_scores as _normalize_log_scores,
 )
-from ..utils.math import _least_squares_slope, _local_quadratic_acceleration, _transpose
+
 
 def _unique_class_names(model_specs: tuple[KalmanModelSpec, ...]) -> tuple[str, ...]:
     ordered: list[str] = []
@@ -623,7 +628,6 @@ def render_kalman_bank_report(result: KalmanBenchmarkResult) -> str:
 
 
 def _build_kalman_bank_figure(result: KalmanBenchmarkResult):
-    plt = prepare_matplotlib()
     selected = (
         next(run for run in result.runs if run.scenario_name == "constant_velocity_regular"),
         next(run for run in result.runs if run.scenario_name == "constant_velocity_irregular"),
@@ -655,7 +659,6 @@ def _build_kalman_bank_figure(result: KalmanBenchmarkResult):
 
 
 def render_kalman_bank_svg(result: KalmanBenchmarkResult) -> str:
-    plt = prepare_matplotlib()
     fig = _build_kalman_bank_figure(result)
     buffer = io.StringIO()
     try:
@@ -666,7 +669,6 @@ def render_kalman_bank_svg(result: KalmanBenchmarkResult) -> str:
 
 
 def render_kalman_bank_png_bytes(result: KalmanBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_kalman_bank_figure(result)
     buffer = io.BytesIO()
     try:

@@ -17,7 +17,7 @@ os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "kinemat
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox.repo_story import write_repo_story_artifacts
+from kinematic_classifier_sandbox.story.repo_story import write_repo_story_artifacts
 
 
 def main() -> int:

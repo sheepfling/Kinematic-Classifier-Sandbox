@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 from pydantic import BaseModel, ConfigDict
 
-from ..markdown_builder import MarkdownDocument
-
-from ..analysis.common_dataset_comparison import generate_shared_dynamics_dataset, _shared_kalman_model_specs, _shared_kalman_trajectory
+from ..analysis.common_dataset_comparison import (
+    _shared_kalman_model_specs,
+    _shared_kalman_trajectory,
+    generate_shared_dynamics_dataset,
+)
 from ..common_experiment.runner import analyze_common_experiment
 from ..contracts import ClassifierOutputArtifact, validate_classifier_output_artifact
 from ..inference.kalman_filter_bank import run_kalman_filter_bank
+from ..markdown_builder import MarkdownDocument
 
 
 class GenericInferenceContractResult(BaseModel):

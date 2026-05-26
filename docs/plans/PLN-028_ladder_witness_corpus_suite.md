@@ -97,13 +97,13 @@ Build a suite of controlled 1D witness corpora that proves, visually and quantit
 - `coverage_report.py`
 - `feature_analysis.py`
 - `pca_analysis.py`
-- `prior_sensitivity_analysis.py`
+- `inference/prior_sensitivity_analysis.py`
 - `inspection_bundle.py`
 - `validation_ladder.py`
 - `common_experiment_harness.py`
-- `transition_matrix_accumulator.py`
-- `kalman_filter_bank.py`
-- `advanced_state_inference.py`
+- `inference/transition_matrix_accumulator.py`
+- `inference/kalman_filter_bank.py`
+- `inference/advanced_state_inference.py`
 - `advanced_filters/`
 - `corpus_policy.py`
 - `corpus_policy_sweep.py`

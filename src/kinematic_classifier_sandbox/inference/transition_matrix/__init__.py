@@ -10,7 +10,10 @@ from .contracts import (
     TransitionPosteriorStep,
     TransitionRun,
 )
-from .reporting import render_transition_benchmark_report, render_transition_numeric_walkthrough_markdown
+from .reporting import (
+    render_transition_benchmark_report,
+    render_transition_numeric_walkthrough_markdown,
+)
 from .runner import (
     _run_mode_accumulator,
     default_switching_mode_specs,

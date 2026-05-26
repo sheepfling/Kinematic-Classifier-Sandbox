@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
 import yaml
-
 
 ROOT = Path(__file__).resolve().parents[2]
 DOCS_MATH_DIR = ROOT / "docs" / "math"

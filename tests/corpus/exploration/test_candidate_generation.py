@@ -5,12 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.exploration.candidate_generation import (
     analyze_candidate_generation,
     generate_candidates_from_objective_file,
     write_candidate_generation_artifacts,
-    write_corpus_objective_artifacts,
 )
+from kinematic_classifier_sandbox.corpus.objectives import write_corpus_objective_artifacts
 
 
 class CandidateGenerationTests(unittest.TestCase):

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from ...runtime_paths import prepare_matplotlib
-from dataclasses import dataclass
 import io
+from dataclasses import dataclass
 from pathlib import Path
-from ...markdown_builder import MarkdownDocument
 
+from ...markdown_builder import MarkdownDocument
+from ...utils.plotting import plt
 from .core import (
     ClassificationRun,
     ToyBenchmarkResult,
@@ -167,9 +167,7 @@ def render_posterior_failure_markdown(result: ToyBenchmarkResult) -> str:
 
 
 def _build_posterior_explainer_figure(walkthrough: PosteriorWalkthrough):
-    plt = prepare_matplotlib()
     class_names = list(walkthrough.class_names)
-    step = walkthrough.run.steps[walkthrough.step_index]
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.8))
 
     prior_ax, score_ax, posterior_ax = axes
@@ -209,7 +207,6 @@ def _build_posterior_explainer_figure(walkthrough: PosteriorWalkthrough):
 
 
 def render_posterior_explainer_png_bytes(result: ToyBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_posterior_explainer_figure(_select_success_walkthrough(result))
     buffer = io.BytesIO()
     try:
@@ -220,7 +217,6 @@ def render_posterior_explainer_png_bytes(result: ToyBenchmarkResult) -> bytes:
 
 
 def render_posterior_failure_png_bytes(result: ToyBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_posterior_explainer_figure(_select_failure_walkthrough(result))
     buffer = io.BytesIO()
     try:
@@ -313,7 +309,6 @@ def render_posterior_comparison_markdown(result: ToyBenchmarkResult) -> str:
 
 
 def _build_posterior_comparison_figure(result: ToyBenchmarkResult):
-    plt = prepare_matplotlib()
     success = _select_success_walkthrough(result)
     failure = _select_failure_walkthrough(result)
     class_names = list(success.class_names)
@@ -348,7 +343,6 @@ def _build_posterior_comparison_figure(result: ToyBenchmarkResult):
 
 
 def render_posterior_comparison_png_bytes(result: ToyBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_posterior_comparison_figure(result)
     buffer = io.BytesIO()
     try:
@@ -438,7 +432,6 @@ def render_posterior_margin_trace_markdown(result: ToyBenchmarkResult) -> str:
 
 
 def _build_posterior_margin_trace_figure(result: ToyBenchmarkResult):
-    plt = prepare_matplotlib()
     failure = _select_failure_walkthrough(result)
     true_class = failure.run.true_class
     predicted_class = failure.run.aggregate_map_class
@@ -481,7 +474,6 @@ def _build_posterior_margin_trace_figure(result: ToyBenchmarkResult):
 
 
 def render_posterior_margin_trace_png_bytes(result: ToyBenchmarkResult) -> bytes:
-    plt = prepare_matplotlib()
     fig = _build_posterior_margin_trace_figure(result)
     buffer = io.BytesIO()
     try:

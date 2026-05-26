@@ -1,17 +1,19 @@
 from __future__ import annotations
+
+import io
+import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from statistics import median
+
 from kinematic_classifier_sandbox.utils.io import write_csv
 
 from ..markdown_builder import MarkdownDocument
 from ..runtime_paths import prepare_matplotlib
+from ..utils.plotting import plt
 from ..utils.math import _mean, _percentile, _safe_log
-from dataclasses import dataclass, asdict
-from math import exp, log
-import io
-import json
-from pathlib import Path
-from statistics import median
-
 from .sequential_bayes_accumulator import AccumulatorBenchmarkResult, run_accumulator_benchmark
+
 
 def _normalize_rows(confusion: dict[str, dict[str, int]], class_names: tuple[str, ...]) -> dict[str, dict[str, float]]:
     normalized: dict[str, dict[str, float]] = {}
@@ -94,7 +96,6 @@ def _gated_confusion_from_runs(
 
 
 def _aggregate_time_series(result: AccumulatorBenchmarkResult) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-    class_names = tuple(result.summary.confusion_counts)
     max_steps = max((len(run.steps) for run in result.runs), default=0)
     metrics_by_time: list[dict[str, object]] = []
     calibration_rows: list[dict[str, object]] = []
@@ -521,7 +522,6 @@ def _render_report(result: MonteCarloBenchmarkResult) -> str:
 
 
 def _build_accuracy_figure(result: MonteCarloBenchmarkResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(7.2, 4.8))
     times = [row["time"] for row in result.metrics_by_time]
     accuracy = [row["accuracy"] for row in result.metrics_by_time]
@@ -536,7 +536,6 @@ def _build_accuracy_figure(result: MonteCarloBenchmarkResult):
 
 
 def _build_posterior_figure(result: MonteCarloBenchmarkResult):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(7.2, 4.8))
     times = [row["time"] for row in result.metrics_by_time]
     mean_posterior = [row["mean_true_class_posterior"] for row in result.metrics_by_time]
@@ -560,7 +559,6 @@ def _build_histogram_figure(
     title: str,
     xlabel: str,
 ):
-    plt = prepare_matplotlib()
     fig, ax = plt.subplots(figsize=(7.2, 4.8))
     values = [float(row[key]) for row in rows if row[key] != ""]
     ax.hist(values, bins=min(10, max(len(values), 1)), color="#2563eb", alpha=0.85, edgecolor="white")
@@ -573,7 +571,6 @@ def _build_histogram_figure(
 
 
 def _build_calibration_figure(result: MonteCarloBenchmarkResult):
-    plt = prepare_matplotlib()
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.8))
     xs = [row["mean_confidence"] for row in result.calibration_bins if row["count"]]
     ys = [row["accuracy"] for row in result.calibration_bins if row["count"]]
@@ -598,7 +595,6 @@ def _build_calibration_figure(result: MonteCarloBenchmarkResult):
 
 
 def _build_confusion_figure(result: MonteCarloBenchmarkResult):
-    plt = prepare_matplotlib()
     class_names = tuple(result.final_confusion)
     final_normalized = _normalize_rows(result.final_confusion, class_names)
     gated_normalized = _normalize_rows(result.confidence_gated_confusion, class_names)
@@ -624,7 +620,6 @@ def _build_confusion_figure(result: MonteCarloBenchmarkResult):
 
 
 def _render_figure_svg(fig) -> str:
-    plt = prepare_matplotlib()
     buffer = io.StringIO()
     try:
         fig.savefig(buffer, format="svg", bbox_inches="tight")
@@ -634,7 +629,6 @@ def _render_figure_svg(fig) -> str:
 
 
 def _render_figure_png(fig) -> bytes:
-    plt = prepare_matplotlib()
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")

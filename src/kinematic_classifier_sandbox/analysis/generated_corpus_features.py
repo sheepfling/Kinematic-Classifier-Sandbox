@@ -1,30 +1,28 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ..runtime_paths import prepare_matplotlib
-from dataclasses import dataclass
-import csv
 import json
-import os
-from pathlib import Path
+from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 
-from ..corpus.exploration.backend_adapter_proof import AdapterExecutionRecord, BackendCandidateSpec
-from ..markdown_builder import MarkdownDocument
-from ..validation.class_validity import analyze_class_validity
+from kinematic_classifier_sandbox.utils.io import write_csv
+
 from ..contracts import TrajectoryArtifact
-from .feature_analysis import FEATURE_REGISTRY, analyze_feature_datasets
-from ..corpus.exploration.objective_corpus_gym_runner import execute_objective_candidates_via_corpus_gym
+from ..corpus.exploration.backend_adapter_proof import AdapterExecutionRecord, BackendCandidateSpec
+from ..corpus.exploration.objective_corpus_gym_runner import (
+    execute_objective_candidates_via_corpus_gym,
+)
+from ..markdown_builder import MarkdownDocument
 from ..trajectory_generator import (
     DatasetTierDefinition,
     GeneratedTrajectoryDataset,
     default_dataset_tiers,
     default_trajectory_class_definitions,
 )
-
-plt = prepare_matplotlib()
-
+from ..validation.class_validity import analyze_class_validity
+from .feature_analysis import FEATURE_REGISTRY, analyze_feature_datasets
+from ..utils.plotting import plt
 
 
 @dataclass(frozen=True, slots=True)

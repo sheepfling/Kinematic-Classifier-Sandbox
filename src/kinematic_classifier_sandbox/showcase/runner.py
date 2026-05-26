@@ -1,41 +1,39 @@
 from __future__ import annotations
 
-from dataclasses import asdict
-from pathlib import Path
 import shutil
 import subprocess
 import zipfile
+from dataclasses import asdict
+from pathlib import Path
 
-from kinematic_classifier_sandbox.utils.io import _write_json, _write_text
 from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.utils.io import _write_json, _write_text
 
 from ..story.repo_story import (
     render_story_index as render_repo_story_index,
+)
+from ..story.repo_story import (
     render_team_packet_index as render_repo_story_team_packet_index,
 )
 from .assets import (
     _algorithm_report_data,
-    _advanced_filter_summary,
     _build_run_cards,
-    _corpus_report_data,
     _copy_showcase_plots,
     _copy_showcase_sources,
     _copy_showcase_tables,
+    _corpus_report_data,
     _dimensional_lift_report_data,
     _feature_report_data,
     _filtering_report_data,
     _generate_showcase_derived_plots,
     _headline_summary,
     _open_risks_data,
-    _read_csv,
-    _read_json,
     _render_proof_gallery,
 )
 from .contracts import ARTIFACTS_ROOT, ROOT, ShowcaseArtifacts
 from .reporting import (
     _render_3d_transition_report,
     _render_algorithm_ladder_report,
-    _render_corpus_report,
     _render_executive_report,
     _render_feature_report,
     _render_filtering_report,
@@ -80,7 +78,7 @@ def build_showcase_artifacts(
     algorithm_data = _algorithm_report_data()
     feature_data = _feature_report_data()
     filtering_data = _filtering_report_data()
-    corpus_data = _corpus_report_data()
+    _corpus_report_data()
     dimensional_lift_data = _dimensional_lift_report_data()
     open_risks_data = _open_risks_data()
 

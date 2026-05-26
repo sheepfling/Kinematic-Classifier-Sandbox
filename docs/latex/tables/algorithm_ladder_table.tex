@@ -9,7 +9,7 @@ level & algorithm & new\_capability & failure\_mode\_addressed & promotion\_stat
 1 & pointwise & Instantaneous class likelihood baseline & No baseline for ambiguity & promote \\
 2 & windowed & History-derived engineered features & Pointwise noise sensitivity & revise \\
 3 & sequential\_bayes & Recursive posterior accumulation & History ignored by pointwise baseline & promote \\
-4 & kalman\_bank & Model-based innovation evidence & Endpoint ambiguity under irregular timing & promote \\
+4 & kalman\_bank & Model-based innovation evidence & Endpoint ambiguity under irregular timing & reject \\
 5 & transition\_matrix & Explicit mode switching before IMM & Static accumulator under switching trajectories & pass \\
 6 & advanced\_filter\_gate & Evidence-based go/no-go decision for IMM/PF & Premature complexity escalation & defer \\
 \bottomrule

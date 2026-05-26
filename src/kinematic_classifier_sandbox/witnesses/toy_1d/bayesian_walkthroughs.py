@@ -1,26 +1,43 @@
 from __future__ import annotations
-from ...utils.io import write_csv
 
-from ...markdown_builder import MarkdownDocument
-from ...utils.plotting import prepare_matplotlib, write_plot
 from dataclasses import dataclass
 from math import exp, log, pi, sqrt
 from pathlib import Path
 
+from ...analysis.feature_analysis import (
+    load_feature_registry,
+    load_feature_set_manifest,
+    resolve_feature_names,
+)
 from ...common_experiment.config import load_common_experiment_config, resolve_common_study_adapter
 from ...common_experiment.pair_evaluation import (
-    classifier_scores_for_prefix as _classifier_scores_for_prefix,
-    feature_set_scores_for_prefix as _feature_set_scores_for_prefix,
-    feature_sigma as _feature_sigma,
     _gaussian_logpdf,
     _normalize_scores,
+)
+from ...common_experiment.pair_evaluation import (
+    classifier_scores_for_prefix as _classifier_scores_for_prefix,
+)
+from ...common_experiment.pair_evaluation import (
+    feature_set_scores_for_prefix as _feature_set_scores_for_prefix,
+)
+from ...common_experiment.pair_evaluation import (
+    feature_sigma as _feature_sigma,
+)
+from ...common_experiment.pair_evaluation import (
     pair_priors as _pair_priors,
+)
+from ...common_experiment.pair_evaluation import (
     reference_trajectory as _reference_trajectory,
+)
+from ...common_experiment.pair_evaluation import (
     trajectory_features as _trajectory_features,
 )
 from ...common_experiment.runner import analyze_common_experiment
 from ...corpus.coverage_report import load_classifier_manifest
-from ...analysis.feature_analysis import load_feature_registry, load_feature_set_manifest, resolve_feature_names
+from ...markdown_builder import MarkdownDocument
+from ...utils.io import write_csv
+from ...utils.plotting import plt, write_plot
+
 
 @dataclass(frozen=True, slots=True)
 class BayesianWalkthroughResult:
@@ -39,6 +56,7 @@ class BayesianWalkthroughArtifacts:
     report_path: Path
     bayesian_step_tables_path: Path
     prior_sweep_examples_path: Path
+    prior_sweep_examples_png_path: Path
     feature_contribution_examples_path: Path
     posterior_flip_thresholds_path: Path
     plots_dir: Path
@@ -532,7 +550,6 @@ def analyze_bayesian_walkthroughs(
 
 
 def _plot_prior_to_posterior_single_step(result: BayesianWalkthroughResult):
-    plt = prepare_matplotlib()
     row = next(row for row in result.bayesian_step_rows if str(row["example_type"]) == "trajectory_walkthrough")
     class_names = [str(row["class_a"]), str(row["class_b"])]
     fig, axes = plt.subplots(1, 2, figsize=(8.5, 4.0))
@@ -550,7 +567,6 @@ def _plot_prior_to_posterior_single_step(result: BayesianWalkthroughResult):
 
 
 def _plot_likelihood_curves_with_feature_value(result: BayesianWalkthroughResult):
-    plt = prepare_matplotlib()
     row = max(result.feature_contribution_rows, key=lambda item: abs(float(item["log_likelihood_ratio_ab"])))
     observed = float(row["observed_value"])
     mean_a = float(row["class_a_reference"])
@@ -575,7 +591,6 @@ def _plot_likelihood_curves_with_feature_value(result: BayesianWalkthroughResult
 
 
 def _plot_posterior_timeline(result: BayesianWalkthroughResult):
-    plt = prepare_matplotlib()
     rows = [row for row in result.bayesian_step_rows if str(row["example_type"]) == "trajectory_walkthrough"]
     class_a = str(rows[0]["class_a"])
     class_b = str(rows[0]["class_b"])
@@ -593,7 +608,6 @@ def _plot_posterior_timeline(result: BayesianWalkthroughResult):
 
 
 def _plot_log_odds_timeline(result: BayesianWalkthroughResult):
-    plt = prepare_matplotlib()
     rows = [row for row in result.bayesian_step_rows if str(row["example_type"]) == "trajectory_walkthrough"]
     fig, ax = plt.subplots(figsize=(8.0, 4.2))
     ax.plot([float(row["time"]) for row in rows], [float(row["log_posterior_odds"]) for row in rows], color="#0f766e", linewidth=2.2)
@@ -607,7 +621,6 @@ def _plot_log_odds_timeline(result: BayesianWalkthroughResult):
 
 
 def _plot_bayes_factor_timeline(result: BayesianWalkthroughResult):
-    plt = prepare_matplotlib()
     rows = [row for row in result.bayesian_step_rows if str(row["example_type"]) == "trajectory_walkthrough"]
     fig, ax = plt.subplots(figsize=(8.0, 4.2))
     ax.bar([float(row["time"]) for row in rows], [float(row["log_bayes_factor_ab"]) for row in rows], width=0.09, color="#f59e0b")
@@ -621,7 +634,6 @@ def _plot_bayes_factor_timeline(result: BayesianWalkthroughResult):
 
 
 def _plot_prior_sensitivity_curve(result: BayesianWalkthroughResult):
-    plt = prepare_matplotlib()
     rows = sorted(result.prior_sweep_rows, key=lambda row: float(row["prior_a"]))
     fig, ax = plt.subplots(figsize=(8.0, 4.2))
     ax.plot([float(row["prior_a"]) for row in rows], [float(row["posterior_a"]) for row in rows], color="#2563eb", linewidth=2.2, label=str(rows[0]["class_a"]))
@@ -639,7 +651,6 @@ def _plot_prior_sensitivity_curve(result: BayesianWalkthroughResult):
 
 
 def _plot_feature_ablation_posterior(result: BayesianWalkthroughResult):
-    plt = prepare_matplotlib()
     rows = sorted(result.feature_contribution_rows, key=lambda row: float(row["posterior_true_without_feature"]))
     labels = ["full_set"] + [str(row["feature_name"]) for row in rows]
     values = [float(result.feature_example["full_posterior_true"])] + [float(row["posterior_true_without_feature"]) for row in rows]
@@ -655,7 +666,6 @@ def _plot_feature_ablation_posterior(result: BayesianWalkthroughResult):
 
 
 def _plot_confidence_threshold_crossing(result: BayesianWalkthroughResult):
-    plt = prepare_matplotlib()
     rows = [row for row in result.bayesian_step_rows if str(row["example_type"]) == "trajectory_walkthrough"]
     confidence = [max(float(row["posterior_a"]), float(row["posterior_b"])) for row in rows]
     fig, ax = plt.subplots(figsize=(8.0, 4.2))
@@ -791,6 +801,7 @@ def write_bayesian_walkthrough_artifacts(
     log_odds_timeline_path = plots_dir / "log_odds_timeline.png"
     bayes_factor_timeline_path = plots_dir / "bayes_factor_timeline.png"
     prior_sensitivity_curve_path = plots_dir / "prior_sensitivity_curve.png"
+    prior_sweep_examples_png_path = run_dir / "prior_sweep_examples.png"
     feature_ablation_posterior_path = plots_dir / "feature_ablation_posterior.png"
     confidence_threshold_crossing_path = plots_dir / "confidence_threshold_crossing.png"
 
@@ -800,6 +811,7 @@ def write_bayesian_walkthrough_artifacts(
     write_plot(_plot_log_odds_timeline(result), log_odds_timeline_path)
     write_plot(_plot_bayes_factor_timeline(result), bayes_factor_timeline_path)
     write_plot(_plot_prior_sensitivity_curve(result), prior_sensitivity_curve_path)
+    write_plot(_plot_prior_sensitivity_curve(result), prior_sweep_examples_png_path)
     write_plot(_plot_feature_ablation_posterior(result), feature_ablation_posterior_path)
     write_plot(_plot_confidence_threshold_crossing(result), confidence_threshold_crossing_path)
 
@@ -817,6 +829,7 @@ def write_bayesian_walkthrough_artifacts(
         log_odds_timeline_path=log_odds_timeline_path,
         bayes_factor_timeline_path=bayes_factor_timeline_path,
         prior_sensitivity_curve_path=prior_sensitivity_curve_path,
+        prior_sweep_examples_png_path=prior_sweep_examples_png_path,
         feature_ablation_posterior_path=feature_ablation_posterior_path,
         confidence_threshold_crossing_path=confidence_threshold_crossing_path,
     )

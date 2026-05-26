@@ -1,10 +1,9 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import write_csv, _write_json, _write_text
-from kinematic_classifier_sandbox.utils.text import markdown_table_preview
-from kinematic_classifier_sandbox.utils.plotting import write_plot
-from kinematic_classifier_sandbox.runtime_paths import prepare_matplotlib
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+
 from pathlib import Path
+
+from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.utils.text import markdown_table_preview
 
 from .contracts import (
     ShowcaseAlgorithmReportData,

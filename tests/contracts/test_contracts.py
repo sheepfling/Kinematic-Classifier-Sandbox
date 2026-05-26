@@ -4,14 +4,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.contracts import (
     ClassifierOutputArtifact,
     TrajectoryArtifact,
     validate_classifier_output_artifact,
     validate_milestone0_sample_run_artifacts,
     validate_trajectory_artifact,
-    write_milestone0_sample_run_artifacts,
 )
+from kinematic_classifier_sandbox.contracts_rendering import write_milestone0_sample_run_artifacts
 
 
 class ContractTests(unittest.TestCase):

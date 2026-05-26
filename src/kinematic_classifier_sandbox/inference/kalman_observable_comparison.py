@@ -1,14 +1,22 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ..runtime_paths import prepare_matplotlib
 from dataclasses import dataclass
 from pathlib import Path
+
+from kinematic_classifier_sandbox.utils.io import write_csv
+
+from ..analysis.common_dataset_comparison import (
+    SharedDynamicsTrajectory,
+    generate_shared_dynamics_dataset,
+)
 from ..markdown_builder import MarkdownDocument
-
-from ..analysis.common_dataset_comparison import SharedDynamicsTrajectory, generate_shared_dynamics_dataset
-from .kalman_filter_bank import KalmanClassificationRun, KalmanModelSpec, KalmanTrajectory, run_kalman_filter_bank
-
+from ..utils.plotting import plt
+from .kalman_filter_bank import (
+    KalmanClassificationRun,
+    KalmanModelSpec,
+    KalmanTrajectory,
+    run_kalman_filter_bank,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -243,7 +251,6 @@ def render_kalman_observable_comparison_report(result: KalmanObservableCompariso
 
 
 def _render_heatmap(result: KalmanObservableComparisonResult):
-    plt = prepare_matplotlib()
     fields = (
         "overall_accuracy",
         "endpoint_match_accuracy",
@@ -268,7 +275,6 @@ def _render_heatmap(result: KalmanObservableComparisonResult):
 
 
 def _render_diagnostics(result: KalmanObservableComparisonResult):
-    plt = prepare_matplotlib()
     scenario_names = ("endpoint_match", "short_noisy", "outlier")
     fig, axes = plt.subplots(len(scenario_names), 1, figsize=(9.6, 8.8), sharex=False)
     color_map = {
@@ -377,7 +383,6 @@ def write_kalman_observable_comparison_artifacts(
     heatmap_figure = _render_heatmap(comparison)
     heatmap_figure.savefig(heatmap_png_path, format="png", dpi=160, bbox_inches="tight")
     heatmap_figure.clf()
-    plt = prepare_matplotlib()
     plt.close(heatmap_figure)
 
     diagnostics_figure = _render_diagnostics(comparison)

@@ -1,24 +1,26 @@
 from __future__ import annotations
-from kinematic_classifier_sandbox.utils.io import _read_csv, _read_json, write_csv, _write_json, _write_text
-from kinematic_classifier_sandbox.utils.io import _copy_file
-from kinematic_classifier_sandbox.utils.text import markdown_table_preview
-from kinematic_classifier_sandbox.utils.plotting import write_plot
-from kinematic_classifier_sandbox.runtime_paths import prepare_matplotlib
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
 
 import math
-import os
 from pathlib import Path
-import subprocess
-import zipfile
+
+from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.runtime_paths import prepare_matplotlib
+from kinematic_classifier_sandbox.utils.io import (
+    _copy_file,
+    _read_csv,
+    _read_json,
+    _write_text,
+    write_csv,
+)
+from kinematic_classifier_sandbox.utils.plotting import write_plot
+from kinematic_classifier_sandbox.utils.plotting import plt
+from kinematic_classifier_sandbox.utils.text import markdown_table_preview
 
 from ..inference.kalman_filter_bank import run_kalman_bank_benchmark
-from ..study_candidate_generation import write_study_candidate_generation_artifacts
 from ..story.repo_story import (
     render_proof_gallery as render_repo_story_proof_gallery,
-    render_story_index as render_repo_story_index,
-    render_team_packet_index as render_repo_story_team_packet_index,
 )
+from ..study_candidate_generation import write_study_candidate_generation_artifacts
 from .contracts import (
     ARTIFACTS_ROOT,
     ROOT,
@@ -41,7 +43,8 @@ from .contracts import (
     ShowcaseTableSpec,
     ShowcaseTopResult,
 )
-from .validation import required_report_names, validate_showcase_artifacts
+
+
 def _manifest_entry(
     *,
     kind: str,
@@ -583,7 +586,6 @@ def _copy_showcase_plots(plots_dir: Path) -> list[dict[str, object]]:
 
 
 def _render_pointwise_vs_accumulator_posterior_timelines(plots_dir: Path) -> ShowcaseDerivedPlotArtifact:
-    plt = prepare_matplotlib()
     posterior_rows = _read_csv(ARTIFACTS_ROOT / "common_1d_classifier_study" / "unified_posterior_history.csv")
     candidates = [
         row
@@ -599,7 +601,6 @@ def _render_pointwise_vs_accumulator_posterior_timelines(plots_dir: Path) -> Sho
     colors = {"pointwise": "#dc2626", "bayes_accumulator": "#2563eb"}
     for classifier_id, rows in sorted(grouped.items()):
         ordered = sorted(rows, key=lambda row: float(row["time"]))
-        true_class = ordered[0]["class_b"]
         ax.plot(
             [float(row["time"]) for row in ordered],
             [float(row["posterior_class_b"]) for row in ordered],
@@ -629,7 +630,6 @@ def _render_pointwise_vs_accumulator_posterior_timelines(plots_dir: Path) -> Sho
 
 
 def _render_feature_distribution_by_class(plots_dir: Path) -> ShowcaseDerivedPlotArtifact:
-    plt = prepare_matplotlib()
     rows = _read_csv(ARTIFACTS_ROOT / "feature_analysis_v1" / "feature_matrix.csv")
     selected_features = ("position_range", "acceleration_variance", "linear_fit_residual")
     classes = sorted({row["true_class"] for row in rows})
@@ -661,7 +661,6 @@ def _render_feature_distribution_by_class(plots_dir: Path) -> ShowcaseDerivedPlo
 
 
 def _render_feature_correlation_heatmap(plots_dir: Path) -> ShowcaseDerivedPlotArtifact:
-    plt = prepare_matplotlib()
     rows = _read_csv(ARTIFACTS_ROOT / "feature_analysis_v1" / "feature_matrix.csv")
     feature_names = (
         "position_range",
@@ -708,7 +707,6 @@ def _render_feature_correlation_heatmap(plots_dir: Path) -> ShowcaseDerivedPlotA
 
 
 def _render_duration_sensitivity_by_class_pair(plots_dir: Path) -> ShowcaseDerivedPlotArtifact:
-    plt = prepare_matplotlib()
     rows = _read_csv(ARTIFACTS_ROOT / "common_1d_classifier_study" / "class_pair_duration_study.csv")
     grouped: dict[str, list[dict[str, str]]] = {}
     for row in rows:
@@ -744,7 +742,6 @@ def _render_duration_sensitivity_by_class_pair(plots_dir: Path) -> ShowcaseDeriv
 
 
 def _render_corpus_adequacy_scorecard(plots_dir: Path) -> ShowcaseDerivedPlotArtifact:
-    plt = prepare_matplotlib()
     rows = _read_csv(ARTIFACTS_ROOT / "corpus_autodevelopment_v1" / "corpus_candidate_scores.csv")
     top_rows = sorted(rows, key=lambda row: float(row["overall_score"]), reverse=True)[:5]
     metrics = ["balance_score", "boundary_coverage_score", "feature_excitation_score", "difficulty_diversity_score"]
@@ -773,7 +770,6 @@ def _render_corpus_adequacy_scorecard(plots_dir: Path) -> ShowcaseDerivedPlotArt
 
 
 def _render_kalman_innovation_likelihood_timeline(plots_dir: Path) -> ShowcaseDerivedPlotArtifact:
-    plt = prepare_matplotlib()
     rows = _read_csv(ARTIFACTS_ROOT / "kalman_filter_bank" / "innovation_history.csv")
     selected = [row for row in rows if row["trajectory_id"] == "constant_velocity_regular_0"]
     class_names = ("stationary", "constant_velocity", "constant_acceleration")
@@ -805,7 +801,6 @@ def _render_kalman_innovation_likelihood_timeline(plots_dir: Path) -> ShowcaseDe
 
 
 def _render_kalman_state_estimate_vs_truth(plots_dir: Path) -> list[ShowcaseDerivedPlotArtifact]:
-    plt = prepare_matplotlib()
     benchmark = run_kalman_bank_benchmark(seed=7, trajectories_per_class=4)
     run = next(item for item in benchmark.runs if item.scenario_name == "constant_velocity_regular" and item.true_class == "constant_velocity")
     trajectory = next(item for item in benchmark.trajectories if item.trajectory_id == run.trajectory_id)
@@ -889,7 +884,6 @@ def _render_kalman_vs_windowed_comparison(plots_dir: Path) -> ShowcaseDerivedPlo
 
 
 def _render_advanced_filter_decision_matrix(plots_dir: Path) -> list[dict[str, object]]:
-    plt = prepare_matplotlib()
     method_rows = _load_advanced_filter_method_rows()
     source_path = "artifacts/advanced_filter_comparison_v1/method_comparison.csv"
     if not method_rows:
@@ -954,7 +948,6 @@ def _render_advanced_filter_decision_matrix(plots_dir: Path) -> list[dict[str, o
 
 
 def _render_dimensional_lift_plots(plots_dir: Path) -> list[ShowcaseDerivedPlotArtifact]:
-    plt = prepare_matplotlib()
     rows = _read_csv(ARTIFACTS_ROOT / "dimensional_lift_audit" / "module_dimension_status.csv")
     counts: dict[str, int] = {}
     for row in rows:

@@ -33,10 +33,10 @@ Implementation Steps:
    - Emit `artifacts/latex/methodology_doc_coverage.md`.
 3. Expand `posterior_update_math.{tex,md}`.
    - Keep it focused on recursive inference mechanics and posterior artifact generation.
-   - Cover `toy_1d.py`, `identity_1d.py`, `posterior_explainer.py`, `identity_posterior_explainer.py`, `bayesian_walkthroughs.py`, and posterior-oriented artifact writers.
+   - Cover `inference/toy_1d.py`, `inference/identity_1d.py`, `inference/posterior_explainer.py`, `inference/identity_inference/posterior_explainer.py`, `inference/bayesian_walkthroughs.py`, and posterior-oriented artifact writers.
 4. Expand `methodology_evaluation_framework.{tex,md}`.
    - Keep it focused on priors, AUC/overlap/confusion, PCA, corpus adequacy, coverage, and feature taxonomy internals.
-   - Cover `prior_sensitivity_analysis.py`, `feature_analysis.py`, `pca_analysis.py`, `short_horizon_identifiability.py`, `corpus_adequacy_audit.py`, `coverage_report.py`, `inspection_bundle.py`, and `generic_feature_taxonomy.py`.
+   - Cover `inference/prior_sensitivity_analysis.py`, `feature_analysis.py`, `pca_analysis.py`, `short_horizon_identifiability.py`, `corpus_adequacy_audit.py`, `coverage_report.py`, `inspection_bundle.py`, and `generic_feature_taxonomy.py`.
 5. Add `classifier_ladder_and_contracts.{tex,md}`.
    - Document the pointwise/windowed/accumulator/Kalman/transition ladder.
    - Document shared schemas, common harness flow, backend adapter logic, and contract proofs.

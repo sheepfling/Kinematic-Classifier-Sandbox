@@ -125,7 +125,7 @@ That principle is only credible if the failure evidence is measured.
 ## 5. IMM As An Actual Algorithm Family
 
 The repo now has an explicit IMM proof surface in
-`advanced_state_inference.py`. That means IMM should no longer be documented
+`inference/advanced_state_inference.py`. That means IMM should no longer be documented
 only as a gate label. It should be documented as a switching linear-Gaussian
 algorithm whose justification is still evidence-gated.
 
@@ -743,7 +743,7 @@ that the implementation is necessary.
 - `analyze_advanced_filter_decision()`
 - `run_transition_benchmark(...)`
 - `run_imm_filter(...)`
-- `advanced_state_inference.py`
+- `inference/advanced_state_inference.py`
 
 ## 8. Particle-Filter Gate
 
@@ -775,8 +775,8 @@ bottleneck is not yet “we need a particle filter.”
 
 - short-horizon identifiability metrics from
   `short_horizon_identifiability.py`
-- velocity-aided comparison from `velocity_aided_kalman_comparison.py`
-- robust Kalman comparison from `kalman_variant_comparison.py`
+- velocity-aided comparison from `inference/velocity_aided_kalman_comparison.py`
+- robust Kalman comparison from `inference/kalman_variant_comparison.py`
 - gate assembly in `advanced_filter_decision.py`
 
 ## 9. RBPF Gate

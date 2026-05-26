@@ -5,15 +5,18 @@ import json
 from pathlib import Path
 
 from kinematic_classifier_sandbox.utils.io import write_csv
-
 from ...runtime_paths import prepare_matplotlib
+from ...utils.plotting import plt
+
 from .contracts import TransitionBenchmarkArtifacts, TransitionBenchmarkResult
-from .reporting import render_transition_benchmark_report, render_transition_numeric_walkthrough_markdown
+from .reporting import (
+    render_transition_benchmark_report,
+    render_transition_numeric_walkthrough_markdown,
+)
 from .runner import run_transition_benchmark
 
 
 def _build_figure(result: TransitionBenchmarkResult):
-    plt = prepare_matplotlib()
     fig, axes = plt.subplots(2, 2, figsize=(13, 8.0))
     selected_names = ("stationary_then_moving", "constant_velocity_then_braking", "constant_velocity_then_maneuver")
     colors = {"stationary": "#6b7280", "constant_velocity": "#2563eb", "braking": "#dc2626", "maneuver": "#7c3aed"}
@@ -97,7 +100,6 @@ def write_transition_benchmark_artifacts(
     mode_names = list(analysis.static_runs[0].steps[0].posterior_weights) if analysis.static_runs else []
     write_csv(posterior_history_path, posterior_rows, ["trajectory_id", "scenario_name", "mode", "step", "time", "measurement", "estimated_speed", "estimated_accel", "true_mode", "predicted_mode", "confidence", *[f"posterior_{name}" for name in mode_names]])
     write_csv(scenario_summary_path, scenario_rows, ["scenario_name", "trajectory_id", "static_accuracy", "transition_accuracy", "kalman_accuracy", "static_post_switch_accuracy", "transition_post_switch_accuracy", "kalman_post_switch_accuracy"])
-    plt = prepare_matplotlib()
     fig = _build_figure(analysis)
     buffer = io.BytesIO()
     try:

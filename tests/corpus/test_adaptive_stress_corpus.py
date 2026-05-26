@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.adaptive_stress import (
     analyze_adaptive_stress_corpus,
     write_adaptive_stress_corpus_artifacts,
 )

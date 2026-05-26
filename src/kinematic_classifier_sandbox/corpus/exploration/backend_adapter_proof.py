@@ -1,37 +1,25 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-import csv
 import hashlib
 import json
+import random
+from dataclasses import dataclass, field
+from io import BytesIO
 from math import sin
 from pathlib import Path
-import random
 from typing import Any
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+from kinematic_classifier_sandbox.utils.io import write_csv
 
-from .trajectory_backend_contract import (
+from ...markdown_builder import MarkdownDocument, MermaidEdge, MermaidFlow, MermaidNode
+from ...runtime_paths import prepare_matplotlib
+from ...utils.plotting import plt
+from ..trajectory_backend_contract import (
     BackendContractDefinition,
     TrajectoryRun,
     default_backend_contract_definitions,
-    validate_trajectory_run,
 )
-
-
-def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-
-
-def _clamp(value: float, lower: float, upper: float) -> float:
-    return max(lower, min(upper, value))
+from ..trajectory_backend_contract_utils import validate_trajectory_run
 
 
 @dataclass(frozen=True, slots=True)
@@ -674,7 +662,6 @@ def _render_telemetry_comparison_png(shared_records: tuple[AdapterExecutionRecor
     axes[0].legend(fontsize=8)
     fig.tight_layout()
 
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -697,7 +684,6 @@ def _render_failure_taxonomy_png(failure_rows: tuple[dict[str, Any], ...]) -> by
     ax.tick_params(axis="x", rotation=20)
     fig.tight_layout()
 
-    from io import BytesIO
 
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=180)
@@ -773,62 +759,87 @@ def analyze_backend_adapter_proof() -> BackendAdapterProofResult:
         "structured_failure_count": len(failure_rows),
     }
 
-    report_markdown = "\n".join(
+    report = MarkdownDocument()
+    report.heading("Backend Adapter Proof", level=1)
+    report.heading("Summary", level=2)
+    report.bullet_list(
         [
-            "# Backend Adapter Proof",
-            "",
-            "## Summary",
-            f"- adapters exercised: `{len(adapters)}`",
-            f"- shared scenario executed across compatible backends: `{', '.join(shared_backend_ids)}`",
-            f"- structured failures captured: `{len(failure_rows)}`",
-            f"- stable cache key proven: `{cache_probe['stable_cache_key']}`",
-            f"- second repeated execution served from cache: `{cache_probe['second_run_cache_hit']}`",
-            "",
-            "## Shared Compatible Scenario",
-            "| Backend | Success | Samples | Final Position | Observation Fields |",
-            "| --- | --- | --- | --- | --- |",
-            *[
-                f"| `{record.backend_id}` | `{record.trajectory_run.success}` | `{len(record.trajectory_run.times)}` | "
-                f"`{record.trajectory_run.truth_state.get('position', ('',))[-1] if record.trajectory_run.truth_state.get('position') else ''}` | "
-                f"`{', '.join(sorted(record.trajectory_run.observations))}` |"
-                for record in shared_records
-            ],
-            "",
-            "## Adapter Flow",
-            "```mermaid",
-            'graph TD',
-            '    A["BackendCandidateSpec"] --> B["prepare(input_bundle)"]',
-            '    B --> C["cache_key / cache lookup"]',
-            '    C --> D["run simulator or reuse cache"]',
-            '    D --> E["raw output"]',
-            '    E --> F["normalize_output()"]',
-            '    F --> G["TrajectoryRun"]',
-            '    G --> H["validation + artifact rows"]',
-            "```",
-            "",
-            "## Output Equivalence",
-            "| Baseline | Comparison | Same Samples | Max Position Delta | Common Observations |",
-            "| --- | --- | --- | --- | --- |",
-            *[
-                f"| `{row['baseline_backend_id']}` | `{row['comparison_backend_id']}` | `{row['same_num_samples']}` | "
-                f"`{row['max_position_delta']:.4f}` | `{row['common_observation_fields']}` |"
-                for row in equivalence_rows
-            ],
-            "",
-            "## Failure Cases",
-            "| Backend | Candidate | Failure Reason |",
-            "| --- | --- | --- |",
-            *[
-                f"| `{row['backend_id']}` | `{row['candidate_id']}` | `{row['failure_reason']}` |"
-                for row in failure_rows
-            ],
-            "",
-            "## Notes",
-            "- This milestone proves adapter execution, normalization, cache-key stability, and structured failures with 1D backends only.",
-            "- The mock file backend remains synthetic, but it now follows the same prepare, run, normalize, and failure-capture flow expected of a future external simulator adapter.",
-            "- The shared boundary scenario is intentionally run across multiple backends so the proof covers execution equivalence rather than only schema compatibility.",
+            f"adapters exercised: `{len(adapters)}`",
+            f"shared scenario executed across compatible backends: `{', '.join(shared_backend_ids)}`",
+            f"structured failures captured: `{len(failure_rows)}`",
+            f"stable cache key proven: `{cache_probe['stable_cache_key']}`",
+            f"second repeated execution served from cache: `{cache_probe['second_run_cache_hit']}`",
         ]
     )
+    report.heading("Shared Compatible Scenario", level=2)
+    report.table(
+        ["Backend", "Success", "Samples", "Final Position", "Observation Fields"],
+        [
+            (
+                f"`{record.backend_id}`",
+                f"{record.trajectory_run.success}",
+                f"{len(record.trajectory_run.times)}",
+                f"`{record.trajectory_run.truth_state.get('position', ('',))[-1] if record.trajectory_run.truth_state.get('position') else ''}`",
+                f"`{', '.join(sorted(record.trajectory_run.observations))}`",
+            )
+            for record in shared_records
+        ],
+    )
+    report.heading("Adapter Flow", level=2)
+    report.mermaid(
+        MermaidFlow(
+            nodes=(
+                MermaidNode("A", "BackendCandidateSpec"),
+                MermaidNode("B", "prepare(input_bundle)"),
+                MermaidNode("C", "cache_key / cache lookup"),
+                MermaidNode("D", "run simulator or reuse cache"),
+                MermaidNode("E", "raw output"),
+                MermaidNode("F", "normalize_output()"),
+                MermaidNode("G", "TrajectoryRun"),
+                MermaidNode("H", "validation + artifact rows"),
+            ),
+            edges=(
+                MermaidEdge("A", "B"),
+                MermaidEdge("B", "C"),
+                MermaidEdge("C", "D"),
+                MermaidEdge("D", "E"),
+                MermaidEdge("E", "F"),
+                MermaidEdge("F", "G"),
+                MermaidEdge("G", "H"),
+            ),
+        )
+    )
+    report.heading("Output Equivalence", level=2)
+    report.table(
+        ["Baseline", "Comparison", "Same Samples", "Max Position Delta", "Common Observations"],
+        [
+            (
+                f"`{row['baseline_backend_id']}`",
+                f"`{row['comparison_backend_id']}`",
+                f"`{row['same_num_samples']}`",
+                f"`{row['max_position_delta']:.4f}`",
+                f"`{row['common_observation_fields']}`",
+            )
+            for row in equivalence_rows
+        ],
+    )
+    report.heading("Failure Cases", level=2)
+    report.table(
+        ["Backend", "Candidate", "Failure Reason"],
+        [
+            (f"`{row['backend_id']}`", f"`{row['candidate_id']}`", f"`{row['failure_reason']}`")
+            for row in failure_rows
+        ],
+    )
+    report.heading("Notes", level=2)
+    report.bullet_list(
+        [
+            "This milestone proves adapter execution, normalization, cache-key stability, and structured failures with 1D backends only.",
+            "The mock file backend remains synthetic, but it now follows the same prepare, run, normalize, and failure-capture flow expected of a future external simulator adapter.",
+            "The shared boundary scenario is intentionally run across multiple backends so the proof covers execution equivalence rather than only schema compatibility.",
+        ]
+    )
+    report_markdown = report.text()
 
     return BackendAdapterProofResult(
         backend_manifest=backend_manifest,
@@ -859,10 +870,10 @@ def write_backend_adapter_proof_artifacts(
     backend_output_equivalence_report_path.write_text(payload.report_markdown, encoding="utf-8")
 
     run_fieldnames = list(payload.backend_run_rows[0].keys()) if payload.backend_run_rows else []
-    _write_csv(backend_run_examples_path, list(payload.backend_run_rows), run_fieldnames)
+    write_csv(backend_run_examples_path, list(payload.backend_run_rows), run_fieldnames)
 
     failure_fieldnames = list(payload.failure_rows[0].keys()) if payload.failure_rows else run_fieldnames
-    _write_csv(adapter_failure_cases_path, list(payload.failure_rows), failure_fieldnames)
+    write_csv(adapter_failure_cases_path, list(payload.failure_rows), failure_fieldnames)
 
     adapters = _adapter_map()
     shared_candidate = _shared_boundary_candidate()

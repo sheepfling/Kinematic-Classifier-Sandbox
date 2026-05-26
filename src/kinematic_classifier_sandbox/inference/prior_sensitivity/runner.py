@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ...utils.math import _binary_log_odds, _log_odds_from_prior
 from ..pointwise_baseline import (
     PointwiseClassSpec,
     PointwiseTrajectory,
@@ -22,7 +23,6 @@ from ..windowed_baseline import (
     extract_windowed_feature_rows,
     generate_windowed_trajectories,
 )
-from ...utils.math import _binary_log_odds, _log_odds_from_prior
 from .contracts import (
     CrossMethodPriorComparisonResult,
     PriorFlipThreshold,

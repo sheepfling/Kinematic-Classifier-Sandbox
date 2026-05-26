@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import kinematic_classifier_sandbox.trajectory_generator as tg
 from kinematic_classifier_sandbox.trajectory_generator import (
     default_dataset_tiers,
     default_trajectory_class_definitions,
@@ -13,7 +14,6 @@ from kinematic_classifier_sandbox.trajectory_generator import (
     generate_trajectory_dataset,
     generate_trajectory_datasets,
 )
-import kinematic_classifier_sandbox.trajectory_generator as tg
 from kinematic_classifier_sandbox.trajectory_generator_rendering import write_trajectory_generator_artifacts
 
 

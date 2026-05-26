@@ -4,14 +4,13 @@ from pathlib import Path
 
 from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ...runtime_paths import prepare_matplotlib
+from ...utils.plotting import plt
 from .contracts import VelocityAidedComparisonArtifacts, VelocityAidedComparisonResult
 from .reporting import render_velocity_aided_kalman_comparison_report
 from .runner import analyze_velocity_aided_kalman_comparison
 
 
 def _render_heatmap(result: VelocityAidedComparisonResult):
-    plt = prepare_matplotlib()
     fields = ("overall_accuracy", "endpoint_match_accuracy", "short_accuracy", "short_noisy_accuracy", "outlier_accuracy")
     matrix = [[getattr(row, field) for field in fields] for row in result.rows]
     fig, ax = plt.subplots(figsize=(8.0, 3.4))
@@ -30,7 +29,6 @@ def _render_heatmap(result: VelocityAidedComparisonResult):
 
 
 def _render_diagnostics(result: VelocityAidedComparisonResult):
-    plt = prepare_matplotlib()
     scenario_names = ("short_noisy", "endpoint_match", "outlier")
     fig, axes = plt.subplots(len(scenario_names), 1, figsize=(9.6, 8.8), sharex=False)
     color_map = {"position_only": "#2563eb", "position_plus_direct_velocity": "#dc2626"}
@@ -116,7 +114,6 @@ def write_velocity_aided_kalman_comparison_artifacts(
     diagnostics_figure.savefig(diagnostics_png_path, format="png", dpi=160, bbox_inches="tight")
     diagnostics_figure.clf()
 
-    plt = prepare_matplotlib()
     plt.close(heatmap_figure)
     plt.close(diagnostics_figure)
 

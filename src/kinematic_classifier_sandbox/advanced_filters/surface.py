@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Callable, Generic, TypeVar
+from typing import Generic, TypeVar
 
-from ..witnesses.surface import WitnessSurface, run_surface, write_surface_artifacts
-
+from ..witnesses.surface import WitnessSurface
 
 ResultT = TypeVar("ResultT")
 ArtifactsT = TypeVar("ArtifactsT")

@@ -5,16 +5,14 @@ import unittest
 from pathlib import Path
 
 from kinematic_classifier_sandbox.inference.windowed_baseline import (
-    default_windowed_class_specs,
+    WindowedTrajectory,
     extract_windowed_feature_rows,
-    generate_windowed_trajectories,
     render_windowed_benchmark_png_bytes,
     render_windowed_benchmark_report,
     render_windowed_benchmark_svg,
     run_windowed_benchmark,
     write_windowed_benchmark_artifacts,
 )
-from kinematic_classifier_sandbox.inference.windowed_baseline import WindowedTrajectory
 
 
 class WindowedBaselineTests(unittest.TestCase):

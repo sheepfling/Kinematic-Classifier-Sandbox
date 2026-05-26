@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.corpus.synthesis_comparison import (
     analyze_corpus_synthesis_comparison,
     write_corpus_synthesis_comparison_artifacts,
 )

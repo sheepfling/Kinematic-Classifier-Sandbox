@@ -2,8 +2,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from numpy import allclose, argmax, array, asarray, diag, exp, float64, full, log, maximum, stack, sum as nsum, zeros_like
+from numpy import (
+    allclose,
+    argmax,
+    array,
+    asarray,
+    diag,
+    exp,
+    float64,
+    full,
+    log,
+    maximum,
+    stack,
+    zeros_like,
+)
+from numpy import sum as nsum
 
+from ..utils.types import FloatArray
 from .contracts import AdvancedFilterStep, AdvancedStateSummary
 from .linear_gaussian import (
     KalmanModeState,
@@ -12,7 +27,6 @@ from .linear_gaussian import (
     kalman_update,
 )
 from .resampling import logsumexp
-from ..utils.types import FloatArray
 
 
 @dataclass(slots=True)

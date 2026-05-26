@@ -61,7 +61,7 @@ Dependencies:
 - `PLN-002_kinematic_classification_roadmap.md`
 - later `PLN-014` dimensional lift audit
 - shared contract layer in `src/kinematic_classifier_sandbox/contracts.py`
-- shared evaluator layer in `src/kinematic_classifier_sandbox/shared_evaluation.py`
+- shared evaluator layer in `src/kinematic_classifier_sandbox/validation/shared_evaluation.py`
 - common comparison harness in `src/kinematic_classifier_sandbox/common_dataset_comparison.py`
 
 Last Updated: 2026-05-24

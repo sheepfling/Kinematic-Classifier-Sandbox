@@ -1,16 +1,24 @@
 from __future__ import annotations
+
+import io
+from dataclasses import dataclass
+from pathlib import Path
+
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import _figure_to_png
 
-from ..runtime_paths import prepare_matplotlib
+from ..analysis.common_dataset_comparison import (
+    SharedDynamicsTrajectory,
+    generate_shared_dynamics_dataset,
+)
 from ..markdown_builder import MarkdownDocument
-from dataclasses import dataclass
-import io
-from pathlib import Path
-
-from ..analysis.common_dataset_comparison import SharedDynamicsTrajectory, generate_shared_dynamics_dataset
-from .kalman_filter_bank import KalmanClassificationRun, KalmanModelSpec, KalmanTrajectory, run_kalman_filter_bank
-
+from ..utils.plotting import plt
+from .kalman_filter_bank import (
+    KalmanClassificationRun,
+    KalmanModelSpec,
+    KalmanTrajectory,
+    run_kalman_filter_bank,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -273,7 +281,6 @@ def render_kalman_variant_comparison_report(result: KalmanVariantComparisonResul
 
 
 def _render_heatmap(result: KalmanVariantComparisonResult):
-    plt = prepare_matplotlib()
     fields = ("overall_accuracy", "endpoint_match_accuracy", "short_accuracy", "short_noisy_accuracy", "outlier_accuracy")
     matrix = [[getattr(row, field) for field in fields] for row in result.rows]
     fig, ax = plt.subplots(figsize=(8.2, 3.8))
@@ -292,7 +299,6 @@ def _render_heatmap(result: KalmanVariantComparisonResult):
 
 
 def _render_diagnostics(result: KalmanVariantComparisonResult):
-    plt = prepare_matplotlib()
     scenario_names = ["short_noisy", "outlier"]
     variant_order = ["plain", "robust_measurement", "robust_plus_adaptive_process"]
     colors = {
@@ -332,7 +338,6 @@ def _render_diagnostics(result: KalmanVariantComparisonResult):
 
 
 def _render_delta_vs_plain(result: KalmanVariantComparisonResult):
-    plt = prepare_matplotlib()
     fields = [
         ("endpoint_match_accuracy", "endpoint"),
         ("short_accuracy", "short"),
@@ -371,7 +376,6 @@ def _render_delta_vs_plain(result: KalmanVariantComparisonResult):
 
 
 def _figure_to_svg(fig) -> str:
-    plt = prepare_matplotlib()
     buffer = io.StringIO()
     try:
         fig.savefig(buffer, format="svg", bbox_inches="tight")

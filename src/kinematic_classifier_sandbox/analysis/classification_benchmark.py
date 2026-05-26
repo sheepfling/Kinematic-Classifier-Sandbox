@@ -4,7 +4,6 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import TypeVar
 
-
 TRun = TypeVar("TRun")
 TStep = TypeVar("TStep")
 

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from kinematic_classifier_sandbox.api import execute_objective_candidates_via_corpus_gym, objective_to_corpus_gym_target
+from kinematic_classifier_sandbox.corpus.exploration.objective_corpus_gym_runner import (
+    execute_objective_candidates_via_corpus_gym,
+    objective_to_corpus_gym_target,
+)
 from kinematic_classifier_sandbox.corpus.objectives import default_corpus_objectives
 
 

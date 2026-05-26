@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from kinematic_classifier_sandbox.api import METHOD_CATALOG, method_families
+from kinematic_classifier_sandbox.registry.catalog import METHOD_CATALOG, method_families
 
 
 class CatalogTests(unittest.TestCase):

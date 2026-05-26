@@ -12,7 +12,9 @@ os.environ["PYTHONPATH"] = str(SRC) if not existing_pythonpath else f"{SRC}{os.p
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox import write_dimensional_lift_audit_artifacts
+from kinematic_classifier_sandbox.analysis.dimensional_lift_audit import (
+    write_dimensional_lift_audit_artifacts,
+)
 
 
 def main(argv: list[str] | None = None) -> int:

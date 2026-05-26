@@ -6,7 +6,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.repo_story import ARTIFACT_MANIFEST, CLAIMS, WITNESSES, render_proof_gallery, validate_repo_story_references, write_repo_story_artifacts
+from kinematic_classifier_sandbox.repo_story import (
+    ARTIFACT_MANIFEST,
+    CLAIMS,
+    WITNESSES,
+    render_proof_gallery,
+    validate_repo_story_references,
+    write_repo_story_artifacts,
+)
 
 
 class RepoStoryTests(unittest.TestCase):

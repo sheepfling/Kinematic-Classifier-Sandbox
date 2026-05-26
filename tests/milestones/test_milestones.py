@@ -4,7 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.milestones import list_milestones, resolve_milestone_ids, run_milestones
+from kinematic_classifier_sandbox.milestones import (
+    list_milestones,
+    resolve_milestone_ids,
+    run_milestones,
+)
 
 
 class MilestoneRunnerTests(unittest.TestCase):

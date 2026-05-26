@@ -8,7 +8,6 @@ from pathlib import Path
 from new_study_workflow_common import (
     copy_file,
     ensure_declaration_artifacts,
-    filter_common_rows,
     load_study_config,
     phase_dir,
     requested_feature_names,

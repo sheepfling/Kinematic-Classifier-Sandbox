@@ -5,7 +5,6 @@ import os
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
 existing_pythonpath = os.environ.get("PYTHONPATH")
@@ -14,7 +13,7 @@ os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/kinematic-classifier-sandbox
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox.corpus_policy_sweep import write_corpus_policy_tuning_artifacts
+from kinematic_classifier_sandbox.corpus.policy_sweep import write_corpus_policy_tuning_artifacts
 
 
 def main() -> int:

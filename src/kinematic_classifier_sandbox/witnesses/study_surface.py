@@ -4,8 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Generic, TypeVar
 
-from .surface import WitnessSurface, run_surface, write_surface_artifacts
-
+from .surface import WitnessSurface, run_surface
 
 ResultT = TypeVar("ResultT")
 ClassSpecT = TypeVar("ClassSpecT")

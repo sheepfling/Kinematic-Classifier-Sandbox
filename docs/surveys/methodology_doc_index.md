@@ -43,11 +43,11 @@ Use this when you want:
 
 Primary module families:
 
-- `toy_1d.py`
-- `identity_1d.py`
-- `posterior_explainer.py`
-- `identity_posterior_explainer.py`
-- `bayesian_walkthroughs.py`
+- `inference/toy_1d.py`
+- `inference/identity_1d.py`
+- `inference/posterior_explainer.py`
+- `inference/identity_inference/posterior_explainer.py`
+- `inference/bayesian_walkthroughs.py`
 - posterior-oriented artifact writers in `artifacts.py`
 
 Primary artifacts:
@@ -69,7 +69,7 @@ Use this when you want:
 
 Primary module families:
 
-- `prior_sensitivity_analysis.py`
+- `inference/prior_sensitivity_analysis.py`
 - `feature_analysis.py`
 - `pca_analysis.py`
 - `short_horizon_identifiability.py`
@@ -100,11 +100,11 @@ Use this when you want:
 
 Primary module families:
 
-- `pointwise_baseline.py`
-- `windowed_baseline.py`
-- `sequential_bayes_accumulator.py`
-- `kalman_filter_bank.py`
-- `transition_matrix_accumulator.py`
+- `inference/pointwise_baseline.py`
+- `inference/windowed_baseline.py`
+- `inference/sequential_bayes_accumulator.py`
+- `inference/kalman_filter_bank.py`
+- `inference/transition_matrix_accumulator.py`
 - `common_dataset_comparison.py`
 - `common_experiment_harness.py`
 - `generic_inference_contract.py`
@@ -169,7 +169,7 @@ Primary module families:
 - `dimensional_lift_audit.py`
 - `pca_dimensionality_audit.py`
 - `advanced_filter_decision.py`
-- `advanced_state_inference.py`
+- `inference/advanced_state_inference.py`
 - `rl_backend_decision.py`
 - advanced-filter portions of `generic_filtering_contract.py`
 
@@ -188,10 +188,10 @@ same treatment.
 
 Good candidates for a worked numeric example:
 
-- `sequential_bayes_accumulator.py`
+- `inference/sequential_bayes_accumulator.py`
   - Worth it because the forgetting-factor and abstention threshold can be shown
     on one short trajectory with explicit posterior values.
-- `transition_matrix_accumulator.py`
+- `inference/transition_matrix_accumulator.py`
   - Worth it because one mode-switch trajectory can show prior propagation,
     transition mixing, and emission terms numerically.
 - `corpus_autodevelopment.py`

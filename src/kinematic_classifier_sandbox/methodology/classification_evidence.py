@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from math import log
-import json
 from pathlib import Path
 
-from ..markdown_builder import MarkdownDocument
-from ..analysis.common_dataset_comparison import default_shared_classifier_adapters
 from ..common_experiment.runner import analyze_common_experiment
+from ..markdown_builder import MarkdownDocument
 from ..utils.math import _normalize_log_scores
 
 

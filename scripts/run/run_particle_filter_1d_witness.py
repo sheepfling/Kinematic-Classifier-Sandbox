@@ -5,7 +5,6 @@ import os
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
 existing_pythonpath = os.environ.get("PYTHONPATH")
@@ -14,17 +13,17 @@ os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/kinematic-classifier-sandbox
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kinematic_classifier_sandbox.advanced_filters.evaluation import write_particle_filter_witness_artifacts
+from kinematic_classifier_sandbox.advanced_filters.evaluation import particle_filter_witness_surface
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(prog="python3 scripts/run/run_particle_filter_1d_witness.py")
     parser.add_argument("--output-dir", default="artifacts")
     args = parser.parse_args()
-    artifacts = write_particle_filter_witness_artifacts(args.output_dir)
-    print(artifacts.run_dir)
-    print(artifacts.report_path)
-    print(artifacts.metrics_path)
+    surface = particle_filter_witness_surface()
+    artifacts = surface.write_artifacts(args.output_dir)
+    for line in surface.describe_artifacts(artifacts):
+        print(line)
     return 0
 
 
