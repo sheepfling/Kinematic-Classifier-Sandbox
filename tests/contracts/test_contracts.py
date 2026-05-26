@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
+from kinematic_classifier_sandbox.api import (
     ClassifierOutputArtifact,
     TrajectoryArtifact,
     validate_classifier_output_artifact,

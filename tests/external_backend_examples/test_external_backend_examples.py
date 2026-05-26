@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from kinematic_classifier_sandbox import analyze_external_backend_examples, write_external_backend_examples_artifacts
+from kinematic_classifier_sandbox.api import analyze_external_backend_examples, write_external_backend_examples_artifacts
 
 
 class ExternalBackendExampleTests(unittest.TestCase):

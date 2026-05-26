@@ -11,7 +11,7 @@ import yaml
 class MathMetadataTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.root = Path(__file__).resolve().parents[1]
+        cls.root = Path(__file__).resolve().parents[2]
         cls.symbol_glossary_path = cls.root / "docs" / "math" / "symbol_glossary.tex"
         cls.equation_registry_path = cls.root / "docs" / "math" / "equation_registry.yaml"
         cls.crosswalk_path = cls.root / "docs" / "math" / "code_equation_crosswalk.md"

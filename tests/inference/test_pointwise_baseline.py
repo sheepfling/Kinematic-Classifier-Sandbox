@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.inference.pointwise_baseline import (
     GaussianPointwiseClassifier,
     PointwiseClassSpec,
     PointwiseTrajectory,

@@ -5,7 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import *
+from kinematic_classifier_sandbox.methodology.filtering_contract import (
+    analyze_generic_filtering_contract,
+    write_generic_filtering_contract_artifacts,
+)
 
 
 class GenericFilteringContractTests(unittest.TestCase):

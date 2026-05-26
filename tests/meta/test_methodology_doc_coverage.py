@@ -9,7 +9,7 @@ from pathlib import Path
 class MethodologyDocCoverageTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.root = Path(__file__).resolve().parents[1]
+        cls.root = Path(__file__).resolve().parents[2]
         cls.manifest_path = cls.root / "docs" / "surveys" / "methodology_doc_coverage.yaml"
         cls.payload = json.loads(cls.manifest_path.read_text(encoding="utf-8"))
         cls.modules = cls.payload["modules"]
@@ -17,7 +17,7 @@ class MethodologyDocCoverageTests(unittest.TestCase):
     def test_every_src_module_is_in_manifest(self) -> None:
         src_modules = sorted(
             str(path.relative_to(self.root)).replace("\\", "/")
-            for path in (self.root / "src" / "kinematic_classifier_sandbox").glob("*.py")
+            for path in (self.root / "src" / "kinematic_classifier_sandbox").rglob("*.py")
         )
         manifest_modules = sorted(row["module_path"] for row in self.modules)
         self.assertEqual(src_modules, manifest_modules)

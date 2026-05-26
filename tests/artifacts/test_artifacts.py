@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox import (
+from kinematic_classifier_sandbox.artifacts import (
     render_method_survey_markdown,
     render_posterior_numeric_walkthrough_markdown,
     render_posterior_numeric_walkthrough_png_bytes,

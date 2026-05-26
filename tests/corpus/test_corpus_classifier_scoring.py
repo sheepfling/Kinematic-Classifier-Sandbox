@@ -4,7 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import *
+from kinematic_classifier_sandbox.corpus.classifier_scoring import (
+    analyze_corpus_classifier_scoring,
+    write_corpus_classifier_scoring_artifacts,
+)
 
 
 class CorpusClassifierScoringTests(unittest.TestCase):

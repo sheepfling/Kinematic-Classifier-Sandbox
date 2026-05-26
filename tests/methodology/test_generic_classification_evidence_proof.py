@@ -5,7 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import *
+from kinematic_classifier_sandbox.methodology.classification_evidence import (
+    EvidenceStep,
+    analyze_generic_classification_evidence_proof,
+    posterior_history_from_evidence_stream,
+    write_generic_classification_evidence_proof_artifacts,
+)
 
 
 class GenericClassificationEvidenceProofTests(unittest.TestCase):

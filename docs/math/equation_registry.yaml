@@ -8,13 +8,13 @@
     "Z_k": normalizing constant at step k
     "\\mathcal{C}": active class set
   implementation:
-    module: src/kinematic_classifier_sandbox/sequential_bayes_accumulator.py
+    module: src/kinematic_classifier_sandbox/inference/sequential_bayes_accumulator.py
     function: run_accumulator
   artifacts:
     - artifacts/corpus_classifier_scoring/posterior_history.csv
     - artifacts/bayesian_walkthroughs/bayesian_step_tables.csv
   tests:
-    - tests/test_corpus_classifier_scoring.py
+    - tests/corpus/test_corpus_classifier_scoring.py
 
 - id: two_class_log_odds
   status: implemented
@@ -25,13 +25,13 @@
     "\\pi(b)": prior probability of class b
     "y_i": evidence input at step i
   implementation:
-    module: src/kinematic_classifier_sandbox/bayesian_walkthroughs.py
+    module: src/kinematic_classifier_sandbox/witnesses/toy_1d/bayesian_walkthroughs.py
     function: analyze_bayesian_walkthroughs
   artifacts:
     - artifacts/bayesian_walkthroughs/posterior_flip_thresholds.csv
     - artifacts/bayesian_walkthroughs/bayesian_step_tables.csv
   tests:
-    - tests/test_bayesian_walkthroughs.py
+    - tests/witnesses/toy_1d/test_bayesian_walkthroughs.py
 
 - id: transition_matrix_update
   status: implemented
@@ -41,13 +41,13 @@
     "T_{c'c}": class transition probability from c' to c
     "p(y_k\\mid c)": class-conditioned evidence likelihood at step k
   implementation:
-    module: src/kinematic_classifier_sandbox/transition_matrix_accumulator.py
+    module: src/kinematic_classifier_sandbox/inference/transition_matrix/runner.py
     function: run_transition_benchmark
   artifacts:
     - artifacts/transition_matrix_accumulator_v1/transition_matrix_accumulator_report.md
     - artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md
   tests:
-    - tests/test_transition_matrix_accumulator.py
+    - tests/inference/test_transition_matrix_accumulator.py
 
 - id: gaussian_feature_likelihood
   status: conceptual
@@ -72,12 +72,12 @@
     "S_{k,c}": innovation covariance for class c at step k
     "d_z": observation dimension
   implementation:
-    module: src/kinematic_classifier_sandbox/kalman_filter_bank.py
+    module: src/kinematic_classifier_sandbox/inference/kalman_filter_bank.py
     function: run_kalman_filter_bank
   artifacts:
     - artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv
   tests:
-    - tests/test_corpus_classifier_scoring.py
+    - tests/corpus/test_corpus_classifier_scoring.py
 
 - id: imm_mode_mixing_recursion
   status: implemented
@@ -89,13 +89,13 @@
     "\\omega_{ij}^{(k)}": mixing weight from source mode i into target mode j
     "\\Lambda_k^{(j)}": mode-conditioned likelihood at step k
   implementation:
-    module: src/kinematic_classifier_sandbox/advanced_state_inference.py
+    module: src/kinematic_classifier_sandbox/inference/advanced_state_inference.py
     function: analyze_advanced_state_inference
   artifacts:
     - artifacts/advanced_state_inference/mixing_probability_history.csv
     - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
   tests:
-    - tests/test_advanced_state_inference.py
+    - tests/advanced_filters/test_advanced_state_inference.py
 
 - id: pf_importance_weight_update
   status: implemented
@@ -112,7 +112,7 @@
   artifacts:
     - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
   tests:
-    - tests/test_particle_filter.py
+    - tests/advanced_filters/test_particle_filter.py
 
 - id: pf_class_evidence_extraction
   status: implemented
@@ -128,7 +128,7 @@
   artifacts:
     - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
   tests:
-    - tests/test_particle_filter.py
+    - tests/advanced_filters/test_particle_filter.py
 
 - id: rbpf_conditional_weight_update
   status: implemented
@@ -145,7 +145,7 @@
   artifacts:
     - artifacts/dimensional_lift_and_advanced_filter_gates.pdf
   tests:
-    - tests/test_rbpf.py
+    - tests/advanced_filters/test_rbpf.py
 
 - id: calibration_metrics
   status: conceptual
@@ -189,13 +189,13 @@
     "T_k": triviality penalty
     "G_k": degeneracy penalty
   implementation:
-    module: src/kinematic_classifier_sandbox/corpus_autodevelopment.py
+    module: src/kinematic_classifier_sandbox/corpus/autodevelopment.py
     function: analyze_corpus_autodevelopment
   artifacts:
     - artifacts/corpus_autodevelopment_v1/candidate_scores.csv
     - artifacts/corpus_autodevelopment_v1/corpus_autodevelopment_numeric_walkthrough.md
   tests:
-    - tests/test_corpus_autodevelopment.py
+    - tests/corpus/test_corpus_autodevelopment.py
 
 - id: pareto_dominance
   status: implemented
@@ -204,12 +204,12 @@
     "o_i^{(r)}": value of objective component r for candidate i
     "o_j^{(r)}": value of objective component r for candidate j
   implementation:
-    module: src/kinematic_classifier_sandbox/corpus_autodevelopment.py
+    module: src/kinematic_classifier_sandbox/corpus/autodevelopment.py
     function: analyze_corpus_autodevelopment
   artifacts:
     - artifacts/corpus_autodevelopment_v1/pareto_front.csv
   tests:
-    - tests/test_corpus_autodevelopment.py
+    - tests/corpus/test_corpus_autodevelopment.py
 
 - id: corpus_gym_reward
   status: implemented
@@ -224,13 +224,13 @@
     "L": leakage penalty
     "I": physical-invalidity penalty
   implementation:
-    module: src/kinematic_classifier_sandbox/corpus_gym.py
+    module: src/kinematic_classifier_sandbox/corpus/gym.py
     function: _reward_from_components
   artifacts:
     - artifacts/corpus_gym/corpus_gym_report.md
     - artifacts/corpus_gym/corpus_gym_numeric_walkthrough.md
   tests:
-    - tests/test_corpus_gym.py
+    - tests/corpus/test_corpus_gym.py
 
 - id: corpus_explorer_utility
   status: implemented
@@ -243,13 +243,13 @@
     "E": environment score
     "P": provenance score
   implementation:
-    module: src/kinematic_classifier_sandbox/generic_corpus_exploration.py
+    module: src/kinematic_classifier_sandbox/corpus/exploration/generic_corpus_exploration.py
     function: analyze_generic_corpus_exploration
   artifacts:
     - artifacts/generic_corpus_exploration/generic_corpus_exploration_report.md
     - artifacts/generic_corpus_exploration/generic_corpus_explorer_numeric_walkthrough.md
   tests:
-    - tests/test_generic_corpus_exploration.py
+    - tests/corpus/exploration/test_generic_corpus_exploration.py
 
 - id: qd_archive_utility
   status: implemented
@@ -260,12 +260,12 @@
     "\\text{stress}": classifier-stress contribution
     "\\text{mean margin}": average posterior margin
   implementation:
-    module: src/kinematic_classifier_sandbox/objective_driven_qd_archive.py
+    module: src/kinematic_classifier_sandbox/corpus/exploration/objective_driven_qd_archive.py
     function: analyze_objective_driven_qd_archive
   artifacts:
     - artifacts/quality_diversity_corpus_v1/archive_elites.csv
   tests:
-    - tests/test_objective_driven_qd_archive.py
+    - tests/corpus/exploration/test_objective_driven_qd_archive.py
 
 - id: qd_cell_mapping
   status: implemented
@@ -277,12 +277,12 @@
     "b_{\\text{entropy}}": entropy bucket
     "b_{\\text{prior}}": prior-flip bucket
   implementation:
-    module: src/kinematic_classifier_sandbox/objective_driven_qd_archive.py
+    module: src/kinematic_classifier_sandbox/corpus/exploration/objective_driven_qd_archive.py
     function: analyze_objective_driven_qd_archive
   artifacts:
     - artifacts/quality_diversity_corpus_v1/archive_cells.csv
   tests:
-    - tests/test_objective_driven_qd_archive.py
+    - tests/corpus/exploration/test_objective_driven_qd_archive.py
 
 - id: corpus_policy_normalization
   status: implemented
@@ -291,12 +291,12 @@
     "w_r": raw weight for policy term r
     "\\bar{w}_r": normalized weight for policy term r
   implementation:
-    module: src/kinematic_classifier_sandbox/corpus_policy.py
+    module: src/kinematic_classifier_sandbox/corpus/policy.py
     function: normalize_corpus_policy_spec
   artifacts:
     - artifacts/corpus_hyperparameter_tuning_v1/default_weight_spec.yaml
   tests:
-    - tests/test_corpus_policy.py
+    - tests/corpus/test_corpus_policy.py
 
 - id: corpus_policy_score
   status: implemented
@@ -309,12 +309,12 @@
     "\\text{provenance}": selected-corpus provenance completeness
     "\\text{leakage}": selected-corpus leakage proxy
   implementation:
-    module: src/kinematic_classifier_sandbox/corpus_policy_sweep.py
+    module: src/kinematic_classifier_sandbox/corpus/policy_sweep.py
     function: _evaluate_policy
   artifacts:
     - artifacts/corpus_hyperparameter_tuning_v1/sweep_results.csv
   tests:
-    - tests/test_corpus_policy_sweep.py
+    - tests/corpus/test_corpus_policy_sweep.py
 
 - id: rung_sufficiency_promotion_rule
   status: implemented
@@ -332,7 +332,7 @@
     - artifacts/rung_sufficiency/rung_promotion_matrix.csv
     - artifacts/rung_sufficiency/rung_sufficiency_report.md
   tests:
-    - tests/test_rung_sufficiency.py
+    - tests/rung_sufficiency/test_rung_sufficiency.py
 
 - id: sampler_mixture
   status: implemented
@@ -342,12 +342,12 @@
     "\\pi_s": budget-derived mixture weight for sampler family s
     "n_s": configured candidate budget for sampler family s
   implementation:
-    module: src/kinematic_classifier_sandbox/candidate_generation.py
+    module: src/kinematic_classifier_sandbox/corpus/exploration/candidate_generation.py
     function: generate_candidates_from_objectives
   artifacts:
     - artifacts/candidate_generation/generated_candidates.csv
   tests:
-    - tests/test_candidate_generation.py
+    - tests/corpus/exploration/test_candidate_generation.py
 
 - id: class_validity_status
   status: implemented
@@ -360,12 +360,12 @@
     "\\beta": invalidity threshold
     "\\delta": ambiguity margin threshold
   implementation:
-    module: src/kinematic_classifier_sandbox/class_validity.py
+    module: src/kinematic_classifier_sandbox/validation/class_validity.py
     function: _status_for_row
   artifacts:
     - artifacts/class_validity/class_validity_scores.csv
   tests:
-    - tests/test_class_validity.py
+    - tests/validation/test_class_validity.py
 
 - id: advanced_filter_gate
   status: implemented
@@ -375,10 +375,10 @@
     "M_1": candidate advanced method
     "\\mathcal{D}": evaluation corpus or study surface
   implementation:
-    module: src/kinematic_classifier_sandbox/advanced_filter_decision.py
+    module: src/kinematic_classifier_sandbox/validation/advanced_filter_decision.py
     function: analyze_advanced_filter_decision
   artifacts:
     - artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md
     - artifacts/advanced_filter_decision_v1/advanced_filter_decision_numeric_walkthrough.md
   tests:
-    - tests/test_advanced_filter_decision.py
+    - tests/advanced_filters/test_advanced_filter_decision.py

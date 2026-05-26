@@ -9,7 +9,6 @@ from .analysis.common_dataset_comparison import (
     analyze_common_dataset_comparison,
     write_common_dataset_comparison_artifacts,
 )
-from .artifacts import render_method_survey_markdown, render_posterior_math_markdown, render_posterior_numeric_walkthrough_markdown, render_posterior_numeric_walkthrough_png_bytes
 from .corpus.exploration.backend_adapter_proof import analyze_backend_adapter_proof, write_backend_adapter_proof_artifacts
 from .corpus.exploration.candidate_generation import generate_candidates_from_objective_file
 from .corpus.exploration.capability_aware_search import analyze_capability_aware_search
@@ -28,8 +27,8 @@ from .analysis.feature_analysis import (
 )
 from .analysis.dimensional_lift_audit import analyze_dimensional_lift_audit, write_dimensional_lift_audit_artifacts
 from .corpus.exploration.environment_aware_corpus import analyze_environment_aware_corpus
-from .analysis.generated_corpus_features import analyze_generated_corpus_features
-from .corpus.exploration.generic_corpus_exploration import analyze_generic_corpus_exploration_weight_sweep
+from .analysis.generated_corpus_features import analyze_generated_corpus_features, write_generated_corpus_feature_artifacts
+from .corpus.exploration.generic_corpus_exploration import analyze_generic_corpus_exploration_weight_sweep, write_generic_corpus_exploration_weight_sweep_artifacts
 from .analysis.inspection_bundle import recommend_feature_set, recommend_hardest_class_pair, write_abstract_inspection_artifacts
 from .analysis.pca_analysis import analyze_feature_pca, write_pca_analysis_artifacts
 from .analysis.pca_dimensionality_audit import analyze_pca_dimensionality, write_pca_dimensionality_audit_artifacts
@@ -52,19 +51,15 @@ from .common_experiment.runner import analyze_common_experiment, analyze_common_
 from .common_experiment.artifact_io import write_common_experiment_artifacts
 from .corpus.adequacy_audit import analyze_corpus_adequacy, write_corpus_adequacy_artifacts
 from .corpus.autodevelopment import analyze_corpus_autodevelopment, write_corpus_autodevelopment_artifacts
-from .corpus.classifier_scoring import analyze_corpus_classifier_scoring, write_corpus_classifier_scoring_artifacts
 from .corpus.coverage_report import analyze_coverage_report, write_coverage_report_artifacts
 from .corpus.gym import CorpusGymAction, CorpusGymEnvironment, CorpusGymTarget, analyze_corpus_gym_contract, write_corpus_gym_artifacts
-from .corpus.objectives import analyze_corpus_objectives, default_corpus_objectives, load_corpus_objectives_from_yaml, validate_corpus_objective, write_corpus_objective_artifacts
+from .corpus.objectives import analyze_corpus_objectives, load_corpus_objectives_from_yaml, validate_corpus_objective, write_corpus_objective_artifacts
 from .corpus.exploration.objective_corpus_gym_runner import execute_objective_candidates_via_corpus_gym
 from .corpus.exploration.objective_driven_qd_archive import analyze_objective_driven_qd_archive
 from .corpus.policy_sweep import write_corpus_policy_tuning_artifacts
-from .corpus.quality_diversity import analyze_quality_diversity_corpus, write_quality_diversity_corpus_artifacts
-from .corpus.selected_generated_corpus import analyze_selected_generated_corpus, write_selected_generated_corpus_artifacts
 from .corpus.rl_backend_decision import analyze_rl_backend_decision
 from .corpus.trajectory_backend_contract import (
     analyze_trajectory_backend_contract,
-    default_backend_contract_definitions,
     validate_backend_contract_definition,
 )
 from .external_backend_examples import analyze_external_backend_examples
@@ -78,12 +73,19 @@ from .inference.advanced_state_inference import (
     write_advanced_filter_contract_artifacts,
     write_advanced_state_inference_artifacts,
 )
-from .inference.irregular_window_comparison import analyze_irregular_window_comparison, render_irregular_window_report, write_irregular_window_artifacts
-from .inference.kalman_filter_bank import KalmanTrajectory, default_kalman_model_specs, render_kalman_bank_png_bytes, render_kalman_bank_report
+from .inference.irregular_window_comparison import analyze_irregular_window_comparison, write_irregular_window_artifacts
+from .inference.kalman_filter_bank import KalmanTrajectory
 from .inference.kalman_observable_comparison import analyze_kalman_observable_comparison
 from .inference.kalman_variant_comparison import analyze_kalman_variant_comparison
-from .inference.monte_carlo_benchmark import render_monte_carlo_accuracy_png_bytes
-from .inference.pointwise_baseline import GaussianPointwiseClassifier
+from .inference.pointwise_baseline import (
+    GaussianPointwiseClassifier,
+    PointwiseClassSpec,
+    PointwiseTrajectory,
+    generate_pointwise_benchmark_trajectories,
+    run_pointwise_benchmark,
+    run_pointwise_classifier,
+    write_pointwise_benchmark_artifacts,
+)
 from .inference.prior_sensitivity_analysis import (
     analyze_cross_method_prior_comparison,
     analyze_pointwise_prior_sensitivity,
@@ -92,30 +94,21 @@ from .inference.prior_sensitivity_analysis import (
     write_cross_method_prior_comparison_artifacts,
     write_prior_sensitivity_artifacts,
 )
-from .inference.sequential_bayes_accumulator import SequentialBayesAccumulator, default_accumulator_class_specs, render_accumulator_png_bytes, render_accumulator_report, run_accumulator, run_accumulator_benchmark
+from .inference.monte_carlo_benchmark import run_accumulator_monte_carlo_benchmark
+from .inference.sequential_bayes_accumulator import SequentialBayesAccumulator, run_accumulator, run_accumulator_benchmark
 from .inference.transition_matrix_accumulator import (
     run_transition_benchmark,
     write_transition_benchmark_artifacts,
 )
 from .validation.shared_evaluation import CallableSharedClassifierAdapter
-from .inference.velocity_aided_kalman_comparison import (
-    analyze_velocity_aided_kalman_comparison,
-    render_velocity_aided_kalman_comparison_report,
-    write_velocity_aided_kalman_comparison_artifacts,
-)
-from .inference.windowed_baseline import default_windowed_class_specs, extract_windowed_feature_rows, generate_windowed_trajectories, render_windowed_benchmark_png_bytes, run_windowed_benchmark, write_windowed_benchmark_artifacts
-from .methodology.classification_evidence import (
-    EvidenceStep,
-    analyze_generic_classification_evidence_proof,
-    posterior_history_from_evidence_stream,
-    write_generic_classification_evidence_proof_artifacts,
-)
+from .inference.velocity_aided_kalman.artifact_io import write_velocity_aided_kalman_comparison_artifacts
+from .inference.velocity_aided_kalman.runner import analyze_velocity_aided_kalman_comparison
+from .inference.windowed_baseline import extract_windowed_feature_rows, generate_windowed_trajectories, run_windowed_benchmark, write_windowed_benchmark_artifacts
+from .methodology.classification_evidence import EvidenceStep, posterior_history_from_evidence_stream
 from .methodology.feature_taxonomy import (
     analyze_generic_feature_taxonomy,
     write_generic_feature_taxonomy_artifacts,
 )
-from .methodology.filtering_contract import analyze_generic_filtering_contract, write_generic_filtering_contract_artifacts
-from .methodology.inference_contract import analyze_generic_inference_contract, write_generic_inference_contract_artifacts
 from .rung_sufficiency.analysis import analyze_rung_sufficiency, load_ladder_witness_suite_config, write_ladder_witness_suite_artifacts
 from .study_candidate_generation import analyze_study_candidate_generation, write_study_candidate_generation_artifacts
 from .study_candidate_protocol import analyze_study_candidate_protocol, write_study_candidate_protocol_artifacts
@@ -151,7 +144,6 @@ __all__ = [
     "analyze_common_dataset_comparison",
     "analyze_corpus_adequacy",
     "analyze_corpus_autodevelopment",
-    "analyze_corpus_classifier_scoring",
     "analyze_corpus_gym_contract",
     "analyze_corpus_objectives",
     "analyze_corpus_search_baseline",
@@ -163,19 +155,15 @@ __all__ = [
     "analyze_environment_aware_corpus",
     "analyze_generated_corpus_features",
     "analyze_generic_corpus_exploration_weight_sweep",
+    "run_accumulator_monte_carlo_benchmark",
     "analyze_feature_datasets",
     "analyze_pca_dimensionality",
     "analyze_feature_pca",
-    "analyze_generic_classification_evidence_proof",
     "analyze_generic_corpus_exploration",
     "analyze_generic_feature_taxonomy",
-    "analyze_generic_filtering_contract",
-    "analyze_generic_inference_contract",
     "analyze_pointwise_prior_sensitivity",
     "analyze_prior_sensitivity",
-    "analyze_quality_diversity_corpus",
     "analyze_rung_sufficiency",
-    "analyze_selected_generated_corpus",
     "analyze_short_horizon_identifiability",
     "analyze_study_candidate_generation",
     "analyze_study_candidate_protocol",
@@ -184,7 +172,6 @@ __all__ = [
     "analyze_trajectory_backend_contract",
     "analyze_windowed_prior_sensitivity",
     "analyze_irregular_window_comparison",
-    "render_irregular_window_report",
     "analyze_kalman_observable_comparison",
     "analyze_kalman_variant_comparison",
     "analyze_objective_driven_qd_archive",
@@ -193,13 +180,11 @@ __all__ = [
     "CorpusGymAction",
     "CorpusGymEnvironment",
     "CorpusGymTarget",
-    "default_corpus_objectives",
-    "default_kalman_model_specs",
-    "default_accumulator_class_specs",
-    "default_windowed_class_specs",
     "EvidenceStep",
     "BaseFeatureComputationContext",
     "GaussianPointwiseClassifier",
+    "PointwiseClassSpec",
+    "PointwiseTrajectory",
     "ClassifierOutputArtifact",
     "FeatureComputationContext",
     "KalmanTrajectory",
@@ -212,25 +197,17 @@ __all__ = [
     "load_ladder_witness_suite_config",
     "method_families",
     "OneDimensionalFeatureComputationContext",
-    "render_method_survey_markdown",
-    "render_posterior_math_markdown",
-    "render_posterior_numeric_walkthrough_markdown",
-    "render_posterior_numeric_walkthrough_png_bytes",
+    "generate_pointwise_benchmark_trajectories",
     "posterior_history_from_evidence_stream",
-    "render_monte_carlo_accuracy_png_bytes",
     "execute_objective_candidates_via_corpus_gym",
-    "render_kalman_bank_report",
-    "render_accumulator_png_bytes",
-    "render_accumulator_report",
-    "render_kalman_bank_png_bytes",
-    "render_velocity_aided_kalman_comparison_report",
     "resolve_feature_names",
     "run_accumulator",
     "run_accumulator_benchmark",
+    "run_pointwise_benchmark",
+    "run_pointwise_classifier",
     "run_transition_benchmark",
     "analyze_velocity_aided_kalman_comparison",
     "run_windowed_benchmark",
-    "render_windowed_benchmark_png_bytes",
     "extract_windowed_feature_rows",
     "generate_windowed_trajectories",
     "generate_candidates_from_objective_file",
@@ -238,6 +215,7 @@ __all__ = [
     "recommend_feature_set",
     "recommend_hardest_class_pair",
     "write_abstract_inspection_artifacts",
+    "write_generated_corpus_feature_artifacts",
     "write_backend_adapter_proof_artifacts",
     "write_dimensional_lift_audit_artifacts",
     "write_pca_analysis_artifacts",
@@ -259,7 +237,6 @@ __all__ = [
     "write_common_dataset_comparison_artifacts",
     "write_corpus_adequacy_artifacts",
     "write_corpus_autodevelopment_artifacts",
-    "write_corpus_classifier_scoring_artifacts",
     "write_corpus_gym_artifacts",
     "write_corpus_objective_artifacts",
     "write_corpus_policy_tuning_artifacts",
@@ -267,15 +244,12 @@ __all__ = [
     "write_cross_method_prior_comparison_artifacts",
     "write_feature_analysis_artifacts",
     "write_pca_dimensionality_audit_artifacts",
-    "write_generic_classification_evidence_proof_artifacts",
     "write_generic_corpus_exploration_artifacts",
+    "write_generic_corpus_exploration_weight_sweep_artifacts",
     "write_generic_feature_taxonomy_artifacts",
-    "write_generic_filtering_contract_artifacts",
-    "write_generic_inference_contract_artifacts",
     "write_ladder_witness_suite_artifacts",
     "write_prior_sensitivity_artifacts",
-    "write_quality_diversity_corpus_artifacts",
-    "write_selected_generated_corpus_artifacts",
+    "write_pointwise_benchmark_artifacts",
     "write_study_candidate_generation_artifacts",
     "write_study_candidate_protocol_artifacts",
     "write_short_horizon_identifiability_artifacts",
@@ -289,6 +263,5 @@ __all__ = [
     "write_windowed_benchmark_artifacts",
     "write_external_backend_examples_artifacts",
     "list_common_studies",
-    "default_backend_contract_definitions",
     "TrajectoryArtifact",
 ]

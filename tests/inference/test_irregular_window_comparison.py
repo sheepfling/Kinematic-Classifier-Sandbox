@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import (
+from kinematic_classifier_sandbox.inference.irregular_window_comparison import (
     analyze_irregular_window_comparison,
     render_irregular_window_report,
     write_irregular_window_artifacts,

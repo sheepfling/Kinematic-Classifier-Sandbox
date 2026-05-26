@@ -5,7 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.api import *
+from kinematic_classifier_sandbox.methodology.inference_contract import (
+    analyze_generic_inference_contract,
+    write_generic_inference_contract_artifacts,
+)
 
 
 class GenericInferenceContractTests(unittest.TestCase):

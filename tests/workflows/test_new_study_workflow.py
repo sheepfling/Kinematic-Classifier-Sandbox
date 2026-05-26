@@ -10,7 +10,7 @@ from pathlib import Path
 class NewStudyWorkflowTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.root = Path(__file__).resolve().parents[1]
+        cls.root = Path(__file__).resolve().parents[2]
         cls.study_path = cls.root / "experiments" / "new_study_workflow_demo" / "new_study_workflow_demo.yaml"
 
     def test_templates_and_docs_exist(self) -> None:
