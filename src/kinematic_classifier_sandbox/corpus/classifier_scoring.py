@@ -1,22 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
-from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.math import _entropy
-from kinematic_classifier_sandbox.utils.math import _mean
-from ..runtime_paths import prepare_matplotlib
-from ..utils.plotting import figure_to_png_bytes
-from ..utils.plotting import plt
 
 from ..analysis.generated_corpus_features import select_generated_corpus_records
-from .classifier_scoring_rendering import (
-    _render_disagreement_plot,
-    _render_posterior_plot,
-    _render_stress_plot,
-)
+from .classifier_scoring_artifact_io import write_corpus_classifier_scoring_artifacts
+from .classifier_scoring_reporting import render_corpus_classifier_scoring_report
 from .classifier_scoring_types import CorpusClassifierScoringArtifacts, CorpusClassifierScoringResult
 from .classifier_scoring_utils import (
     _accumulator_specs,
@@ -246,27 +237,11 @@ def analyze_corpus_classifier_scoring() -> CorpusClassifierScoringResult:
             }
         )
 
-    report_markdown = "\n".join(
-        [
-            "# Corpus Classifier Scoring",
-            "",
-            "## Summary",
-            f"- scored trajectories: `{len(records)}`",
-            f"- classifier result rows: `{len(candidate_score_rows)}`",
-            f"- posterior history rows: `{len(posterior_rows)}`",
-            f"- disagreement cases: `{sum(1 for row in disagreement_rows if row['has_disagreement'])}`",
-            "",
-            "## Methods",
-            "- `pointwise`",
-            "- `sequential_bayes`",
-            "- `windowed_raw`",
-            "- `windowed_robust`",
-            "- `kalman_bank`",
-            "",
-            "## Notes",
-            "- Classifier stress is now measured from real posterior outputs, margins, and errors rather than assigned from scenario family heuristics.",
-            "- The class-model parameters are fit from the generated corpus slice so this milestone can score objective-driven trajectories without pretending the benchmark defaults apply unchanged.",
-        ]
+    report_markdown = render_corpus_classifier_scoring_report(
+        record_count=len(records),
+        candidate_score_rows=tuple(candidate_score_rows),
+        posterior_rows=tuple(posterior_rows),
+        disagreement_rows=tuple(disagreement_rows),
     )
     return CorpusClassifierScoringResult(
         candidate_score_rows=tuple(candidate_score_rows),
@@ -294,81 +269,3 @@ def _rerun_windowed(
         final_predicted_class: str
 
     return _Run(final_weights=classifier.posterior(), final_predicted_class=classifier.predict())
-
-
-def _render_posterior_plot(rows: tuple[dict[str, Any], ...]) -> bytes:
-    selected = [row for row in rows if row["method_name"] == "sequential_bayes"][:24]
-    fig, ax = plt.subplots(figsize=(8.5, 4.0))
-    ax.plot([row["time"] for row in selected], [row["confidence"] for row in selected], marker="o", linewidth=1.0)
-    ax.set_title("Posterior Confidence Trace Preview")
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Confidence")
-    fig.tight_layout()
-
-    return figure_to_png_bytes(fig, dpi=180)
-
-
-def _render_disagreement_plot(rows: tuple[dict[str, Any], ...]) -> bytes:
-    labels = [str(row["trajectory_id"]).split("_", 1)[-1] for row in rows[:12]]
-    values = [int(row["unique_prediction_count"]) for row in rows[:12]]
-    fig, ax = plt.subplots(figsize=(8.5, 4.0))
-    ax.bar(labels, values, color="#b56b4d")
-    ax.set_title("Method Disagreement By Trajectory")
-    ax.set_ylabel("Unique Final Predictions")
-    ax.tick_params(axis="x", rotation=35)
-    fig.tight_layout()
-
-    return figure_to_png_bytes(fig, dpi=180)
-
-
-def _render_stress_plot(rows: tuple[dict[str, Any], ...]) -> bytes:
-    methods = sorted({str(row["method_name"]) for row in rows})
-    values = [_mean([float(row["measured_classifier_stress"]) for row in rows if row["method_name"] == method]) for method in methods]
-    fig, ax = plt.subplots(figsize=(8.0, 4.0))
-    ax.bar(methods, values, color="#5c7ea5")
-    ax.set_title("Measured Classifier Stress By Method")
-    ax.set_ylabel("Mean Stress")
-    ax.tick_params(axis="x", rotation=20)
-    fig.tight_layout()
-
-    return figure_to_png_bytes(fig, dpi=180)
-
-
-def write_corpus_classifier_scoring_artifacts(
-    base_dir: str | Path,
-    *,
-    result: CorpusClassifierScoringResult | None = None,
-) -> CorpusClassifierScoringArtifacts:
-    run_dir = Path(base_dir) / "corpus_classifier_scoring"
-    run_dir.mkdir(parents=True, exist_ok=True)
-    payload = result or analyze_corpus_classifier_scoring()
-
-    candidate_scores_path = run_dir / "classifier_candidate_scores.csv"
-    posterior_history_path = run_dir / "posterior_history.csv"
-    prior_sensitivity_path = run_dir / "prior_sensitivity_scores.csv"
-    disagreement_path = run_dir / "method_disagreement_scores.csv"
-    report_path = run_dir / "classifier_scoring_report.md"
-    posterior_plot_path = run_dir / "posterior_confidence_preview.png"
-    disagreement_plot_path = run_dir / "method_disagreement_preview.png"
-    stress_plot_path = run_dir / "classifier_stress_by_method.png"
-
-    write_csv(candidate_scores_path, list(payload.candidate_score_rows), list(payload.candidate_score_rows[0].keys()) if payload.candidate_score_rows else [])
-    write_csv(posterior_history_path, list(payload.posterior_rows), list(payload.posterior_rows[0].keys()) if payload.posterior_rows else [])
-    write_csv(prior_sensitivity_path, list(payload.prior_sensitivity_rows), list(payload.prior_sensitivity_rows[0].keys()) if payload.prior_sensitivity_rows else [])
-    write_csv(disagreement_path, list(payload.disagreement_rows), list(payload.disagreement_rows[0].keys()) if payload.disagreement_rows else [])
-    report_path.write_text(payload.report_markdown, encoding="utf-8")
-    posterior_plot_path.write_bytes(_render_posterior_plot(payload.posterior_rows))
-    disagreement_plot_path.write_bytes(_render_disagreement_plot(payload.disagreement_rows))
-    stress_plot_path.write_bytes(_render_stress_plot(payload.candidate_score_rows))
-
-    return CorpusClassifierScoringArtifacts(
-        run_dir=run_dir,
-        candidate_scores_path=candidate_scores_path,
-        posterior_history_path=posterior_history_path,
-        prior_sensitivity_path=prior_sensitivity_path,
-        disagreement_path=disagreement_path,
-        report_path=report_path,
-        posterior_plot_path=posterior_plot_path,
-        disagreement_plot_path=disagreement_plot_path,
-        stress_plot_path=stress_plot_path,
-    )

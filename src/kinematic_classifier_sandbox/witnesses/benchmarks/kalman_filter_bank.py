@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from math import log
 from pathlib import Path
 
-from kinematic_classifier_sandbox.utils.io import write_csv
+from ...utils.io import write_csv
 
-from ..markdown_builder import MarkdownDocument
-from ..utils.math import (
+from ...markdown_builder import MarkdownDocument
+from ...utils.math import (
     _add_matrices,
     _identity,
     _innovation_log_likelihood,
@@ -23,8 +23,8 @@ from ..utils.math import (
     kalman_transition_and_noise,
     kalman_update_scalar,
 )
-from ..utils.plotting import plt
-from ..utils.math import (
+from ...utils.plotting import plt
+from ...utils.math import (
     normalize_log_scores as _normalize_log_scores,
 )
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .prior_sensitivity import (
+from ...inference.prior_sensitivity import (
     CrossMethodPriorComparisonArtifacts,
     CrossMethodPriorComparisonResult,
     PriorFlipThreshold,

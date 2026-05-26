@@ -14,7 +14,7 @@ from ...utils.math import (
     _normalize_log_scores,
     _transpose,
 )
-from .contracts import (
+from .transition_matrix_contracts import (
     SwitchingModeSpec,
     SwitchingScenario,
     TransitionBenchmarkResult,

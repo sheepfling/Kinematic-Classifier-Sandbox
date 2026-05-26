@@ -6,11 +6,11 @@ from dataclasses import asdict, dataclass
 from math import log
 from pathlib import Path
 
-from kinematic_classifier_sandbox.utils.io import write_csv
+from ...utils.io import write_csv
 
-from ..markdown_builder import MarkdownDocument
-from ..utils.plotting import plt
-from ..utils.math import (
+from ...markdown_builder import MarkdownDocument
+from ...utils.plotting import plt
+from ...utils.math import (
     _gaussian_logpdf,
     _least_squares_slope,
     _mean,

@@ -27,6 +27,7 @@ from ..inference.irregular_window_comparison import (
 from ..inference.irregular_window_comparison import (
     _gaussian_logpdf as _window_gaussian_logpdf,
 )
+from ..inference.prior_sensitivity_types import PriorSweepPredictions
 from ..inference.irregular_window_comparison import (
     _normalize as _window_normalize,
 )
@@ -232,7 +233,7 @@ def _classify_window_row(row, stats: dict[str, dict[str, float]]) -> tuple[str, 
     return predicted, weights[predicted]
 
 
-def _prior_sweep_predictions(shared: SharedDynamicsTrajectory) -> tuple[tuple[float, str, float], ...]:
+def _prior_sweep_predictions(shared: SharedDynamicsTrajectory) -> PriorSweepPredictions:
     rows = []
     for prior_cv in (0.10, 0.25, 0.40, 0.50, 0.60, 0.75, 0.90):
         run = _accumulator_predict(
@@ -240,7 +241,7 @@ def _prior_sweep_predictions(shared: SharedDynamicsTrajectory) -> tuple[tuple[fl
             prior={"constant_velocity": prior_cv, "constant_acceleration": 1.0 - prior_cv},
         )
         rows.append((prior_cv, run.final_predicted_class, run.final_confidence))
-    return tuple(rows)
+    return PriorSweepPredictions(tuple(rows))
 
 
 def _accumulator_trace(shared: SharedDynamicsTrajectory, prior: dict[str, float] | None = None) -> tuple[dict[str, object], ...]:
@@ -325,8 +326,9 @@ def _high_entropy_score(shared: SharedDynamicsTrajectory) -> tuple[float, dict[s
 
 def _prior_flip_score(shared: SharedDynamicsTrajectory) -> tuple[float, dict[str, object], dict[str, object]]:
     sweep = _prior_sweep_predictions(shared)
-    reference = sweep[2][1] if len(sweep) >= 3 else sweep[0][1]
-    flipped = [row for row in sweep if row[1] != reference]
+    rows = sweep.rows
+    reference = rows[2][1] if len(rows) >= 3 else rows[0][1]
+    flipped = [row for row in rows if row[1] != reference]
     if flipped:
         smallest_shift = min(abs(row[0] - 0.5) for row in flipped)
         score = 1.0 - min(1.0, smallest_shift * 2.0)
@@ -499,7 +501,7 @@ def _high_entropy_score(shared: SharedDynamicsTrajectory) -> tuple[float, dict[s
 
 def _prior_flip_score(shared: SharedDynamicsTrajectory) -> tuple[float, dict[str, float], dict[str, object]]:
     sweep = _prior_sweep_predictions(shared)
-    predicted_classes = {row[1] for row in sweep}
+    predicted_classes = {row[1] for row in sweep.rows}
     score = 1.0 if len(predicted_classes) > 1 else 0.0
     payload = {
         "failure_mode": "prior_flip",

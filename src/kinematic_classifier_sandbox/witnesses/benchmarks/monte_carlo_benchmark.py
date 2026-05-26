@@ -6,12 +6,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import median
 
-from kinematic_classifier_sandbox.utils.io import write_csv
+from ...utils.io import write_csv
 
-from ..markdown_builder import MarkdownDocument
-from ..runtime_paths import prepare_matplotlib
-from ..utils.plotting import plt
-from ..utils.math import _mean, _percentile, _safe_log
+from ...markdown_builder import MarkdownDocument
+from ...utils.plotting import plt
+from ...utils.math import _mean, _percentile, _safe_log
 from .sequential_bayes_accumulator import AccumulatorBenchmarkResult, run_accumulator_benchmark
 
 
