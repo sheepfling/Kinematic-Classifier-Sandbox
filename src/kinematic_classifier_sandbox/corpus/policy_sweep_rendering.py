@@ -11,6 +11,8 @@ from kinematic_classifier_sandbox.utils.plotting import prepare_matplotlib
 
 from .policy_sweep_types import CorpusPolicyTuningArtifacts
 
+plt = prepare_matplotlib()
+
 
 def write_corpus_policy_tuning_artifacts(
     run_dir: Path,
