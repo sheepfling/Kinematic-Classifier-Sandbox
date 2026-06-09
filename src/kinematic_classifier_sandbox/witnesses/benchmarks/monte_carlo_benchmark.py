@@ -5,6 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import median
+from typing import NamedTuple
 
 from ...utils.io import write_csv
 
@@ -12,6 +13,21 @@ from ...markdown_builder import MarkdownDocument
 from ...utils.plotting import plt
 from ...utils.math import _mean, _percentile, _safe_log
 from .sequential_bayes_accumulator import AccumulatorBenchmarkResult, run_accumulator_benchmark
+
+
+class TimeSeriesAggregate(NamedTuple):
+    metrics_by_time: list[dict[str, object]]
+    calibration_rows: list[dict[str, object]]
+
+
+class ThresholdRows(NamedTuple):
+    time_to_confidence_rows: list[dict[str, object]]
+    time_to_correct_rows: list[dict[str, object]]
+
+
+class CalibrationBinSummary(NamedTuple):
+    rows: list[dict[str, object]]
+    ece: float
 
 
 def _normalize_rows(confusion: dict[str, dict[str, int]], class_names: tuple[str, ...]) -> dict[str, dict[str, float]]:
@@ -94,7 +110,7 @@ def _gated_confusion_from_runs(
     return confusion
 
 
-def _aggregate_time_series(result: AccumulatorBenchmarkResult) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+def _aggregate_time_series(result: AccumulatorBenchmarkResult) -> TimeSeriesAggregate:
     max_steps = max((len(run.steps) for run in result.runs), default=0)
     metrics_by_time: list[dict[str, object]] = []
     calibration_rows: list[dict[str, object]] = []
@@ -147,7 +163,7 @@ def _aggregate_time_series(result: AccumulatorBenchmarkResult) -> tuple[list[dic
                 "abstain_rate": _mean([1.0 if run.steps[step_index].abstained else 0.0 for run in result.runs if step_index < len(run.steps)]),
             }
         )
-    return metrics_by_time, calibration_rows
+    return TimeSeriesAggregate(metrics_by_time=metrics_by_time, calibration_rows=calibration_rows)
 
 
 def _threshold_rows(
@@ -189,14 +205,17 @@ def _threshold_rows(
                 "final_class": run.final_predicted_class,
             }
         )
-    return time_to_confidence_rows, time_to_correct_rows
+    return ThresholdRows(
+        time_to_confidence_rows=time_to_confidence_rows,
+        time_to_correct_rows=time_to_correct_rows,
+    )
 
 
 def _calibration_bins(
     calibration_rows: list[dict[str, object]],
     *,
     bin_count: int = 10,
-) -> tuple[list[dict[str, object]], float]:
+) -> CalibrationBinSummary:
     bins: list[list[dict[str, object]]] = [[] for _ in range(bin_count)]
     for row in calibration_rows:
         confidence = float(row["confidence"])
@@ -231,7 +250,7 @@ def _calibration_bins(
                 "gap": gap,
             }
         )
-    return output_rows, ece
+    return CalibrationBinSummary(rows=output_rows, ece=ece)
 
 
 def _multiclass_brier(probabilities: dict[str, float], true_class: str, class_names: tuple[str, ...]) -> float:
@@ -252,9 +271,15 @@ def _summarize(
     dict[str, object],
 ]:
     class_names = tuple(result.summary.confusion_counts)
-    metrics_by_time, calibration_rows = _aggregate_time_series(result)
-    time_to_confidence_rows, time_to_correct_rows = _threshold_rows(result, gate_threshold=gate_threshold)
-    calibration_bins, ece = _calibration_bins(calibration_rows)
+    time_series = _aggregate_time_series(result)
+    metrics_by_time = time_series.metrics_by_time
+    calibration_rows = time_series.calibration_rows
+    threshold_rows = _threshold_rows(result, gate_threshold=gate_threshold)
+    time_to_confidence_rows = threshold_rows.time_to_confidence_rows
+    time_to_correct_rows = threshold_rows.time_to_correct_rows
+    calibration_summary = _calibration_bins(calibration_rows)
+    calibration_bins = calibration_summary.rows
+    ece = calibration_summary.ece
     final_confusion = _final_confusion_from_runs(result)
     gated_confusion = _gated_confusion_from_runs(result, gate_threshold=gate_threshold)
 
