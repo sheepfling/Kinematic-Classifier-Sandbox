@@ -1,0 +1,12 @@
+modules:
+  src/kinematic_classifier_sandbox/markdown_builder.py:
+    specificity: generic
+    rationale: Shared markdown construction helper used across reports and artifact writers.
+  src/kinematic_classifier_sandbox/artifacts.py:
+    specificity: generic
+    rationale: Shared artifact-export support rather than a witness- or scenario-specific module.
+
+functions:
+  src/kinematic_classifier_sandbox/corpus/gym.py::CorpusGymEnvironment.score:
+    specificity: study_specific
+    rationale: CorpusGym scoring is repo-specific environment logic, but not tied to one named witness scenario.
