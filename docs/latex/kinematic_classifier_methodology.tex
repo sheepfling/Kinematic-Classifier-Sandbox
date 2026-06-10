@@ -8,8 +8,25 @@
 \usepackage{hyperref}
 \usepackage{longtable}
 \usepackage{tabularx}
+\usepackage{xurl}
 \usepackage{xcolor}
 \graphicspath{{figures/}}
+
+\newcommand{\codepath}[1]{\nolinkurl{#1}}
+\newcommand{\sectionsymbol}[3]{#1 & #2 & #3 \\}
+\newcommand{\sectionsymbols}[1]{%
+\begin{center}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{0.95\textwidth}{>{\raggedright\arraybackslash}p{0.16\textwidth}X>{\raggedright\arraybackslash}p{0.18\textwidth}}
+\toprule
+Symbol & Local meaning in this section & Notes \\
+\midrule
+#1
+\bottomrule
+\end{tabularx}
+\end{center}
+}
 
 \title{Kinematic Classifier Methodology: Automated Study Design, Corpus Synthesis, and Evidence-Grounded Promotion}
 \author{kinematic-classifier-sandbox}
@@ -36,11 +53,11 @@ This paper is now meant to be both a synthesis document and a standalone math re
 \section{Companion Deep-Dive Documents}
 The implementation-linked derivations live in the survey stack. This paper integrates them at the architectural level:
 \begin{itemize}
-  \item \texttt{posterior\_update\_math} for recursive inference mechanics and walkthrough artifacts,
-  \item \texttt{methodology\_evaluation\_framework} for priors, AUC, confusion, PCA, adequacy, and leakage methodology,
-  \item \texttt{classifier\_ladder\_and\_contracts} for the pointwise/windowed/accumulator/Kalman/transition ladder and shared contracts,
-  \item \texttt{corpus\_generation\_and\_search} for trajectory generation, corpus search, and candidate promotion logic,
-  \item \texttt{dimensional\_lift\_and\_advanced\_filter\_gates} for 3D-readiness auditing and IMM/PF/RBPF decision gates.
+  \item \textbf{Posterior update math}: recursive inference mechanics and walkthrough artifacts.
+  \item \textbf{Methodology evaluation framework}: priors, AUC, confusion, PCA, adequacy, and leakage methodology.
+  \item \textbf{Classifier ladder and contracts}: the pointwise, windowed, accumulator, Kalman, and transition ladder with shared contracts.
+  \item \textbf{Corpus generation and search}: trajectory generation, corpus search, and candidate promotion logic.
+  \item \textbf{Dimensional lift and advanced-filter gates}: 3D-readiness auditing and IMM/PF/RBPF decision gates.
 \end{itemize}
 
 \section{Related Methodological Threads}
@@ -49,9 +66,10 @@ The repository sits at the intersection of several established research threads.
 \begin{table}[htbp]
 \centering
 \small
+\setlength{\tabcolsep}{4pt}
 \caption{Methodological threads near the repo and how they map into this work.}
 \label{tab:related_methodological_threads}
-\begin{tabularx}{\textwidth}{lXX}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.22\textwidth}XX}
 \toprule
 Thread & What the repo borrows & What the repo does not claim \\
 \midrule
@@ -69,12 +87,13 @@ Benchmark / test-suite construction & use witness problems to prove each methodo
 
 The short version is:
 \begin{align}
-\text{feature/class geometry}
-\rightarrow
+\text{study declaration}
+&\rightarrow
 \text{corpus objective and search}
 \rightarrow
 \text{adequacy and leakage}
-\rightarrow
+\notag \\
+&\rightarrow
 \text{evidence providers}
 \rightarrow
 \text{posterior quality}
@@ -82,10 +101,75 @@ The short version is:
 \text{promotion decision}.
 \end{align}
 The companion narrative version of this mapping lives in
-\texttt{docs/story/related\_methodological\_threads.md}.
+\codepath{docs/story/related_methodological_threads.md}.
 
 \section{Problem Formulation}
 The active repository goal is not only to maximize one benchmark score, but to prove that a study candidate can be declared, screened, executed, audited, and promoted through a reusable methodology surface. A study candidate combines a corpus, feature set, class set, classifier family, prior specification, and optional filtering backend.
+Formally, the repo is solving a constrained study-selection problem rather than
+a naked classifier-optimization problem. Let
+\begin{equation}
+s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b)
+\end{equation}
+be a declared study. The desired outcome is not
+\begin{equation}
+\max_m \mathrm{Accuracy}(m),
+\end{equation}
+but rather
+\begin{equation}
+\max_{s \in \mathcal{S}}
+U(s)
+\quad
+\text{subject to}
+\quad
+\mathcal{G}(s)=\mathrm{pass},
+\end{equation}
+where \(U(s)\) is a methodology utility and \(\mathcal{G}(s)\) is the joint
+gate that enforces corpus adequacy, label validity, feature support, posterior
+quality, and architectural compatibility.
+
+A useful abstract decomposition is
+\begin{align}
+U(s)
+&=
+w_A A(s)
++ w_C C(s)
++ w_R R(s)
++ w_T T(s)
+- w_F F(s),
+\end{align}
+where:
+\begin{align}
+A(s) &:= \text{task performance under the chosen metrics}, \\
+C(s) &:= \text{calibration and posterior quality}, \\
+R(s) &:= \text{robustness to priors, corruption, and sampling variation}, \\
+T(s) &:= \text{transferability of the study logic to later lifts}, \\
+F(s) &:= \text{fragility, leakage, and unsupported-claim penalties}.
+\end{align}
+The point of this decomposition is that the repo does not treat a study with
+high endpoint accuracy but poor adequacy, high prior sensitivity, or obvious
+leakage as a successful result.
+
+The classification subproblem inside one study remains standard. For trajectory
+\(\tau_i\) and time \(k\), the system emits
+\begin{equation}
+\hat{c}_{ik}
+=
+\arg\max_{c \in \mathcal{C}} p_{ik}(c),
+\end{equation}
+with posterior
+\begin{equation}
+p_{ik}(c)
+=
+p(c \mid y_{i,1:k}, s),
+\end{equation}
+but the study-level methodology question is broader:
+\begin{quote}
+\textit{when is this posterior history evidence for a trustworthy study claim,
+rather than evidence only that one implementation can separate one curated
+dataset?}
+\end{quote}
+That question is the reason the rest of the paper includes corpus, feature,
+promotion, and transfer logic rather than only classifier equations.
 
 \section{Canonical Repo Story}
 The repository now has one intended front-door story:
@@ -106,6 +190,181 @@ with
 d \in \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}.
 \end{equation}
 This split is the coherence rule for the repository: the corpus side is responsible for producing a credible and auditable dataset, while the study-evaluator side is responsible for deciding whether a particular feature/class/classifier/prior combination is methodologically supported.
+
+\section{Canonical Workflow Order}
+The repository is easiest to understand when it is read as one ordered study
+workflow rather than as a list of adjacent subsystems. The canonical order is:
+\begin{center}
+\texttt{Declare \(\rightarrow\) Analyze \(\rightarrow\) Generate \(\rightarrow\) Audit \(\rightarrow\) Evaluate \(\rightarrow\) Decide \(\rightarrow\) Package.}
+\end{center}
+
+In study notation, the workflow begins with a declared study object
+\begin{equation}
+s_0 = (\mathcal{C}, f, m, \pi, o, b),
+\end{equation}
+where the corpus itself has not yet been fixed. The later stages progressively
+refine this declaration into an executed and judged study:
+\begin{align}
+s_0
+&\rightarrow
+g(s_0)
+\rightarrow
+\mathcal{D}^{\star}(s_0)
+\rightarrow
+\widehat{\mathcal{D}}(s_0)
+\notag \\
+&\rightarrow
+R(s_0, \widehat{\mathcal{D}})
+\rightarrow
+d(s_0, \widehat{\mathcal{D}}, R)
+\rightarrow
+\mathcal{P}(s_0, \widehat{\mathcal{D}}, R, d),
+\end{align}
+where:
+\begin{align}
+g(s_0) &:= \text{feature/class geometry and static compatibility analysis}, \\
+\mathcal{D}^{\star}(s_0) &:= \text{selected or generated candidate corpus}, \\
+\widehat{\mathcal{D}}(s_0) &:= \text{audited corpus after validity and leakage gates}, \\
+R(s_0, \widehat{\mathcal{D}}) &:= \text{evaluation records, posterior histories, and diagnostics}, \\
+d(\cdot) &:= \text{promotion decision in } \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}, \\
+\mathcal{P}(\cdot) &:= \text{packaged artifact bundle and report surface}.
+\end{align}
+
+This ordered view matters because the repository is not supposed to jump
+directly from a trajectory generator to a classifier score. The intended claim
+is stronger:
+\begin{quote}
+\textit{the study declaration, feature geometry, corpus adequacy, evidence
+construction, posterior behavior, and final promotion decision should all be
+mutually consistent and auditable.}
+\end{quote}
+
+\subsection{Stage 1: Declare}
+The first stage defines the claim before any classifier is run. A declaration
+chooses:
+\begin{itemize}[leftmargin=1.5em]
+  \item a class set or class pair \(\mathcal{C}\),
+  \item a feature family or feature set \(f\),
+  \item a classifier or filtering family \(m\),
+  \item a prior regime \(\pi\),
+  \item a corpus objective \(o\),
+  \item and an optional backend or dynamics family \(b\).
+\end{itemize}
+This is why the declared study object is not yet
+\((\mathcal{D}, f, \mathcal{C}, m, \pi, b)\), but rather a study intent that
+still requires corpus selection and validation.
+
+\subsection{Stage 2: Analyze}
+Before more trajectories are generated, the workflow inspects whether the
+declared feature/class geometry is even promising. In abstract form, this stage
+asks whether
+\begin{equation}
+g(s_0) =
+\left(
+\text{separability},
+\text{overlap},
+\text{dependency risk},
+\text{oracle preview},
+\text{prior fragility preview}
+\right)
+\end{equation}
+is methodologically plausible. The main point is to distinguish two different
+failure modes early:
+\begin{align}
+\text{classifier weakness}
+\qquad\text{vs.}\qquad
+\text{feature or class-definition weakness}.
+\end{align}
+This is the role of feature AUC, overlap, PCA, identifiability, and class-pair
+inspection before the ladder is trusted.
+
+\subsection{Stage 3: Generate}
+Once the study declaration is geometrically plausible, the corpus side produces
+or selects candidate datasets. The generic object is
+\begin{equation}
+\tau \sim p(\tau \mid \theta, c, b, \eta),
+\end{equation}
+where \(\theta\) are scenario variables, \(c \in \mathcal{C}\) is a class or
+mode template, \(b\) is an optional backend, and \(\eta\) captures corruption,
+stress, or sensor-regime settings. The selected corpus is then
+\begin{equation}
+\mathcal{D}^{\star}
+=
+\operatorname*{arg\,max}_{\mathcal{D}_k \in \mathfrak{D}(o,b)}
+Q_{\mathrm{corpus}}(\mathcal{D}_k),
+\end{equation}
+with a score that rewards balance, boundary coverage, feature excitation, and
+difficulty diversity while penalizing leakage, invalidity, and triviality.
+
+\subsection{Stage 4: Audit}
+The workflow refuses to treat \(\mathcal{D}^{\star}\) as trustworthy until it
+passes explicit gates. In compact form,
+\begin{equation}
+\widehat{\mathcal{D}}
+=
+\mathcal{D}^{\star}
+\;\text{such that}\;
+\bigwedge_{j=1}^{J} G_j(\mathcal{D}^{\star}) = \mathrm{pass},
+\end{equation}
+where the gates include class validity, balance, coverage, feature excitation,
+boundary support, and leakage. This stage is upstream of classifier claims:
+\begin{equation}
+\text{good classifier metrics on a leaky corpus}
+\not\Rightarrow
+\text{good study}.
+\end{equation}
+
+\subsection{Stage 5: Evaluate}
+Only after the audited corpus exists does the classifier ladder run. The
+generic evidence-provider contract emits
+\begin{equation}
+\mathcal{E}(y_k, \mathcal{H}_{k-1}, c) \rightarrow \ell_k(c),
+\end{equation}
+and the shared posterior contract then updates
+\begin{equation}
+p_k(c) \propto p_{k-1}(c)\exp(\ell_k(c)).
+\end{equation}
+This stage includes both static and dynamic evaluation:
+\begin{align}
+\text{static: }&
+\text{feature overlap, oracle separability, pair hardness}, \\
+\text{dynamic: }&
+\text{posterior quality, confusion, calibration, prior sensitivity, robustness}.
+\end{align}
+The key design principle is that methods are compared through the same
+evaluation surfaces even when their evidence atoms differ.
+
+\subsection{Stage 6: Decide}
+The decision layer integrates corpus, feature, and posterior evidence instead
+of overtrusting any one artifact. In compact form,
+\begin{equation}
+d
+=
+\Delta(
+g(s_0),
+\widehat{\mathcal{D}},
+R,
+\text{fragility},
+\text{robustness}
+),
+\end{equation}
+with
+\begin{equation}
+d \in \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}.
+\end{equation}
+This is the layer that makes the repository a methodology lab rather than a
+plot factory.
+
+\subsection{Stage 7: Package}
+The final stage is not mathematically deep, but it is methodologically
+important. The study is only reusable if it can be inspected after the run.
+The packaged bundle
+\begin{equation}
+\mathcal{P}(s_0, \widehat{\mathcal{D}}, R, d)
+\end{equation}
+contains the declaration, feature geometry, corpus audit, ladder evaluation,
+and decision report in a stable artifact family. That packaging step is how the
+repo turns math and code into a durable evidence record.
 
 \section{Five Methodology Pillars}
 The current repository should be read through five stable pillars:
@@ -160,9 +419,13 @@ currently claims to implement.
 \section{Global Methodology Flow}
 The repository is best understood as one compositional flow rather than separate notebooks. In compact form,
 \begin{align}
-\text{corpus objectives}
+\text{study declaration}
 &\rightarrow
+\text{feature/class geometry}
+\rightarrow
 \text{generated corpus}
+\rightarrow
+\text{audited corpus}
 \rightarrow
 \text{feature table and evidence streams}
 \notag \\
@@ -195,7 +458,17 @@ The same flow can be restated in pillar language:
 \end{align}
 This is the central claim of the repository: classifiers, filters, and feature families are valuable insofar as they can plug into this shared flow without rewriting the downstream evaluation and reporting machinery.
 
-\section{Shared Objects And Notation}
+\section{Stage I Foundations: Shared Objects And Notation}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\mathcal{C}\)}{active class set}{label universe used across studies}
+\sectionsymbol{\(\tau_i\)}{trajectory \(i\)}{time-ordered kinematic sample record}
+\sectionsymbol{\(\phi_{ik}\)}{feature vector at trajectory \(i\), step \(k\)}{evidence-ready representation}
+\sectionsymbol{\(p_k(c)\)}{posterior probability of class \(c\) after step \(k\)}{shared decision state}
+\sectionsymbol{\(\ell_k(c)\)}{log evidence increment for class \(c\)}{common additive score across methods}
+}
+
+\noindent
 The notation surface is large enough now that it should be explicit rather than implied by adjacent prose. Table~\ref{tab:symbol_glossary} is the central glossary for the current methodology stack.
 \begin{table}[htbp]
 \centering
@@ -203,6 +476,22 @@ The notation surface is large enough now that it should be explicit rather than 
 \label{tab:symbol_glossary}
 \input{../math/symbol_glossary.tex}
 \end{table}
+
+\paragraph{Section-Level Symbol Policy.}
+The global glossary is necessary but not sufficient once the paper becomes
+mathematically dense. The manuscript is easiest to audit when each technical
+section also begins with a \emph{local symbol table} that lists only the
+symbols introduced, overloaded, or used in a section-specific way. In practice,
+that means each major algorithm, feature, promotion, or contract section should
+open with a short three-column table:
+\begin{enumerate}[leftmargin=1.5em]
+  \item the symbol,
+  \item its meaning in that section,
+  \item and a brief note on shape, scope, or interpretation.
+\end{enumerate}
+The global glossary then answers ``what does this symbol mean anywhere in the
+paper?'' while the local table answers ``what exactly is this symbol doing
+here?''.
 
 The most important disambiguation is between raw observations, derived features, and evidence-provider inputs:
 \begin{align}
@@ -218,7 +507,68 @@ z_k, & \text{pointwise observation classifier}, \\
 \end{align}
 This convention lets one posterior section cover pointwise baselines, windowed summaries, sequential Bayes accumulation, Kalman innovation evidence, and transition-aware accumulation without pretending they all consume the same primitive signal.
 
-\section{Trajectory, Observation, And Feature Model}
+The same symbols also define the repo's layer boundaries. A corpus produces
+trajectory and metadata records,
+\begin{equation}
+\mathcal{D}
+=
+\left\{
+    (\tau_i, c_i^\star, s_i, m_i)
+\right\}_{i=1}^N,
+\end{equation}
+where \(\tau_i\) is a trajectory, \(c_i^\star\) is the truth class, \(s_i\) is
+scenario metadata, and \(m_i\) collects corruption, backend, and provenance
+tags. A feature layer maps
+\begin{equation}
+(\tau_i, s_i, m_i) \mapsto \Phi_i,
+\end{equation}
+an evidence provider maps
+\begin{equation}
+(\Phi_i \text{ or } z_i \text{ or } \nu_i, \mathcal{H}_{k-1}) \mapsto \ell_k(c),
+\end{equation}
+and the posterior layer maps
+\begin{equation}
+(\pi, \ell_{1:k}) \mapsto p_k(c).
+\end{equation}
+This decomposition matters because the methodology claim is precisely that each
+layer can change while the surrounding contracts remain stable.
+
+\subsection*{Time, History, And Window Semantics}
+The repository also needs explicit time semantics because irregular sampling is
+one of the reasons simple feature choices can fail. For trajectory \(i\), let
+\begin{equation}
+\Delta t_{ik} = t_{ik} - t_{i,k-1}.
+\end{equation}
+A sample-count window of width \(w\) is
+\begin{equation}
+W^{\mathrm{count}}_{ik}(w) = \{k-w+1,\dots,k\},
+\end{equation}
+while a duration window of span \(T_w\) is
+\begin{equation}
+W^{\mathrm{time}}_{ik}(T_w)
+=
+\{j \le k : t_{ik} - t_{ij} \le T_w\}.
+\end{equation}
+This distinction is not cosmetic. If sampling is irregular, then
+\begin{equation}
+|W^{\mathrm{count}}_{ik}(w)| = w
+\qquad \text{does not imply} \qquad
+t_{ik} - t_{i,k-w+1} \approx \text{constant}.
+\end{equation}
+That is why the later feature-taxonomy and corpus-audit sections track both
+sample-count sensitivity and duration sensitivity.
+
+\section{Stage I Foundations: Trajectory, Observation, And Feature Model}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\tau_i\)}{trajectory \(i\) as a time-ordered observation sequence}{current observable object}
+\sectionsymbol{\(x_{ik}\)}{latent kinematic state at sample \(k\)}{position, velocity, and acceleration in the 1D witnesses}
+\sectionsymbol{\(z_{ik}\)}{observation at sample \(k\)}{typically scalar position in the present corpus}
+\sectionsymbol{\(\Phi\)}{feature-extraction operator}{maps trajectory history into evidence-ready summaries}
+\sectionsymbol{\(\phi_{ik}\)}{feature vector emitted at sample \(k\)}{output consumed by downstream evidence providers}
+}
+
+\noindent
 For the current scalar witness problems, one trajectory is
 \begin{equation}
 \tau_i = \{(t_{ik}, z_{ik})\}_{k=1}^{n_i},
@@ -234,14 +584,85 @@ a_{ik}
 \qquad
 z_{ik} = h(x_{ik}) + \epsilon_{ik}.
 \end{equation}
+The underlying continuous-time intent is that there exists a latent process
+\(x_i(t)\) and an observation process \(z_i(t)\) such that the stored samples
+are evaluations at \(t_{ik}\). The current 1D witness stack usually assumes
+\begin{equation}
+\epsilon_{ik} \sim \mathcal{N}(0, R_{ik}),
+\qquad
+x_{i,k+1} = f_{\theta_i,c_i}(x_{ik}, \Delta t_{i,k+1}) + w_{i,k+1},
+\end{equation}
+with class-conditioned motion law \(f_{\theta_i,c_i}\) and process noise
+\(w_{ik}\). Even when no explicit filter is used, this latent-state notation is
+still useful because it makes clear which later features are geometric summaries
+of observations and which are approximations to latent kinematic quantities.
+
+For the scalar 1D witnesses, the most common measurement map is
+\begin{equation}
+h(x_{ik}) = p_{ik},
+\end{equation}
+so direct velocity and acceleration are not observed. They are inferred either
+through finite-difference features or through a state estimator. This is one of
+the main reasons the ladder has both engineered-feature and model-based rungs.
+
 The current feature pipeline then exposes
 \begin{equation}
 \phi_{ik} = \Phi(z_{i,1:k}, t_{i,1:k}),
 \end{equation}
 where \(\Phi\) may produce instantaneous, fixed-window, cumulative, robust-summary, derivative-based, or model-residual evidence.
+More explicitly, the feature layer can be decomposed as
+\begin{equation}
+\Phi
+=
+(\Phi^{\mathrm{inst}},
+\Phi^{\mathrm{window}},
+\Phi^{\mathrm{cum}},
+\Phi^{\mathrm{robust}},
+\Phi^{\mathrm{deriv}},
+\Phi^{\mathrm{resid}}),
+\end{equation}
+with each component mapping a trajectory prefix into a feature subvector.
+Examples include
+\begin{align}
+\Phi^{\mathrm{inst}}_{ik} &= z_{ik}, \\
+\Phi^{\mathrm{window}}_{ik} &= \bigl(\max_{j \in W_k} z_{ij},\ \min_{j \in W_k} z_{ij},\ \mathrm{range}(z_{i,W_k}),\ \mathrm{slope}(z_{i,W_k})\bigr), \\
+\Phi^{\mathrm{cum}}_{ik} &= \sum_{j=1}^k g(z_{ij}, \Delta t_{ij}), \\
+\Phi^{\mathrm{deriv}}_{ik} &= \left(\frac{z_{ik}-z_{i,k-1}}{\Delta t_{ik}},\ \frac{z_{ik}-2z_{i,k-1}+z_{i,k-2}}{\Delta t_{ik}^2}\right), \\
+\Phi^{\mathrm{resid}}_{ik} &= \nu_{ik,c} \text{ or } \|\nu_{ik,c}\|_{S^{-1}}.
+\end{align}
+This decomposition makes later feature-taxonomy claims concrete: every feature
+family corresponds to a distinct type of history use and a distinct failure
+mode under noise, duration variation, or irregular sampling.
 
-\section{Study Candidate Evaluator}
-The machine-readable study candidate schema and validation-ladder schema are implemented in the repository and exercised by the current artifact generation path. The workflow is checklist-driven: static compatibility, corpus adequacy, feature separability, oracle separability, classifier performance, posterior quality, prior sensitivity, robustness, dimensional transfer, and final promotion decision.
+\subsection*{Class-Conditional Evidence Geometry}
+The feature layer is not only a convenience transformation. It defines the
+geometry of the classification problem. For class \(c\), the methodology
+implicitly studies the class-conditional feature distribution
+\begin{equation}
+\phi_{ik} \mid c \sim p_c(\phi),
+\end{equation}
+and the class-pair geometry is then about the overlap structure of
+\(\{p_a, p_b\}\). In the Gaussian approximation used by several diagnostics,
+\begin{equation}
+\phi \mid c \approx \mathcal{N}(\mu_c, \Sigma_c),
+\end{equation}
+so separation can be summarized by distances, overlaps, and principal axes.
+That is why PCA, oracle AUC, and overlap studies belong upstream of classifier
+promotion: they characterize the evidence geometry before one commits to a
+specific recursive combiner.
+
+\section{Stage I Declare: Study Candidate Evaluator}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(s\)}{declared study candidate}{bundles corpus, feature set, class set, method, prior, and backend}
+\sectionsymbol{\(\mathcal{D}\)}{active corpus for the study}{data object being evaluated}
+\sectionsymbol{\(\mathcal{C}\)}{class set or class pair}{target label universe}
+\sectionsymbol{\(\pi\)}{prior regime}{class prior used during evaluation}
+\sectionsymbol{\(d\)}{final decision attached to the study}{promotion outcome after validation}
+}
+
+\noindent
+The machine-readable study candidate schema and validation-ladder schema are implemented in the repository and exercised by the current artifact generation path. The workflow is checklist-driven in the same declared order used by the user-facing study guide: declaration, feature/class analysis, corpus generation, corpus audit, ladder evaluation, and final decision packaging. In validation terms, that means static compatibility, corpus adequacy, feature separability, oracle separability, classifier performance, posterior quality, prior sensitivity, robustness, dimensional transfer, and final promotion decision.
 In abstract form, a study candidate is a tuple
 \begin{equation}
 s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b),
@@ -259,7 +680,33 @@ The important interpretation is that the repository is not just running benchmar
   \item what promotion decision is justified?
 \end{enumerate}
 
-\section{Bayesian Evidence Model}
+\subsection*{Ordered Reading Guide For The Remaining Chapters}
+The rest of this paper contains reusable derivation chapters, so it is not laid
+out as a perfectly linear notebook. The intended thesis-style reading order for
+the remaining sections is still the workflow order:
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Stage II Analyze}: feature taxonomy; feature and class-pair analysis.
+  \item \textbf{Stage III Generate}: corpus adequacy-driven corpus synthesis.
+  \item \textbf{Stage IV Audit}: class validity; generated-corpus-to-study promotion bridge.
+  \item \textbf{Stage V Evaluate}: Bayesian evidence, transition recursion, feature likelihoods, Kalman innovation likelihoods, algorithm ladder, posterior walkthroughs, and calibration.
+  \item \textbf{Stage VI Decide}: automated study promotion, advanced-filter gates, and result interpretation.
+  \item \textbf{Stage VII Package}: code/equation crosswalk and proof-artifact bundle.
+\end{enumerate}
+That is the order in which the methodology should be understood, even where
+some mathematical chapters are kept modular for reuse across related documents.
+
+\section{Stage V Evaluate: Bayesian Evidence Model}
+The repository treats posterior updating as a reusable evidence-provider contract. Let
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\ell_k(c)\)}{log evidence increment for class \(c\) at step \(k\)}{section-local evidence atom}
+\sectionsymbol{\(\mathcal{H}_{k-1}\)}{history available before the current update}{may be observations, features, or residuals}
+\sectionsymbol{\(\tilde{r}_k(c)\)}{unnormalized log posterior score}{pre-normalization quantity}
+\sectionsymbol{\(Z_k\)}{normalization constant}{shared across classes at step \(k\)}
+\sectionsymbol{\(\lambda_k^{ab}\)}{log odds for class \(a\) versus \(b\)}{used for prior-flip reasoning}
+}
+
+\noindent
 The repository treats posterior updating as a reusable evidence-provider contract. Let
 \begin{equation}
 \ell_k(c) = \log p(y_k \mid c, \mathcal{H}_{k-1}),
@@ -324,7 +771,16 @@ p_1(a) &= \frac{1}{1+\exp(-\lambda_1^{ab})} = \frac{1}{1+\exp(0.143)} \approx 0.
 \end{align}
 This matches the promoted walkthrough table and makes the update numerically reproducible without inspecting the implementation.
 
-\section{Transition-Aware Posterior Update}
+\section{Stage V Evaluate: Transition-Aware Posterior Update}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\bar{p}_k(c)\)}{predicted class probability before seeing step \(k\)}{transition-propagated prior}
+\sectionsymbol{\(T_{c'c}\)}{class transition probability from \(c'\) to \(c\)}{switching model parameter}
+\sectionsymbol{\(p_k(c)\)}{updated posterior after the evidence step}{shared class-belief state}
+\sectionsymbol{\(\mathcal{C}\)}{active class set}{summation domain for transitions}
+}
+
+\noindent
 The ordinary Bayesian accumulator is the special case where class identity is assumed static. The transition-aware accumulator instead predicts the next class distribution before applying observation evidence:
 \begin{align}
 \bar{p}_k(c)
@@ -340,7 +796,17 @@ T_{c'c} = p(c_k = c \mid c_{k-1} = c').
 \end{equation}
 If \(T\) is the identity matrix, the update reduces to the static-class accumulator. This is the mathematical reason the switching diagnostics figure is a real bridge artifact rather than just a plot of another heuristic score.
 
-\section{Feature Likelihoods And Dependence Warnings}
+\section{Stage V Evaluate: Feature Likelihoods And Dependence Warnings}
+When the evidence provider consumes feature vectors, the current math should be read as a likelihood over \(\phi_k\), not over raw measurements:
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\phi_k\)}{feature vector at step \(k\)}{engineered evidence summary}
+\sectionsymbol{\(\mu_c, \Sigma_c\)}{class-conditional feature mean and covariance}{feature-distribution parameters}
+\sectionsymbol{\(d_\phi\)}{feature dimension}{size of the active feature set}
+\sectionsymbol{\(p(\phi_k \mid c)\)}{feature likelihood under class \(c\)}{may be full-covariance or factorized}
+}
+
+\noindent
 When the evidence provider consumes feature vectors, the current math should be read as a likelihood over \(\phi_k\), not over raw measurements:
 \begin{equation}
 \phi_k \mid c \sim \mathcal{N}(\mu_c, \Sigma_c),
@@ -383,7 +849,17 @@ as independent is generally invalid because each \(\phi_i^{\mathrm{cum}}\) alrea
   \item keep \texttt{history\_behavior} metadata in the feature manifest.
 \end{enumerate}
 
-\section{Kalman-Bank Innovation Likelihood}
+\section{Stage V Evaluate: Kalman-Bank Innovation Likelihood}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(F_c, H_c\)}{class-conditioned state and measurement operators}{dynamics and observation maps}
+\sectionsymbol{\(Q_c, R_c\)}{process and measurement noise covariances}{uncertainty models for class \(c\)}
+\sectionsymbol{\(\nu_{k,c}\)}{innovation residual for class \(c\)}{observation surprise under the predicted state}
+\sectionsymbol{\(S_{k,c}\)}{innovation covariance for class \(c\)}{normalizer for Mahalanobis evidence}
+\sectionsymbol{\(\hat{x}_{k|k-1,c}, P_{k|k-1,c}\)}{predicted state mean and covariance}{filter prediction outputs before update}
+}
+
+\noindent
 The Kalman bank is the clearest example of model-based evidence rather than feature-summary evidence. For class \(c\), define
 \begin{align}
 x_k &= F_c(\Delta t_k)x_{k-1} + w_k, \qquad w_k \sim \mathcal{N}(0, Q_c), \\
@@ -416,12 +892,200 @@ d_z \log(2\pi)
 \end{equation}
 Posterior recursion then reuses the same log-sum-exp normalization from the generic evidence contract. This is the main mathematical distinction between the Kalman bank and the purely feature-based classifiers.
 
-\section{Feature Taxonomy}
-The methodology distinguishes instantaneous, windowed, cumulative, robust-summary, derivative-based, and model-residual evidence. Instantaneous features look the most like fresh evidence. Windowed and robust features are summary evidence. Cumulative features can double-count prior signal if they are treated as independent measurements. Model-residual features compare observations against class-conditioned dynamics and are therefore the natural bridge toward filtering backends.
-If \(\phi(\tau)\) denotes a feature extractor applied to trajectory \(\tau\), then the feature layer is not only a convenience transformation. It defines the evidence geometry that later AUC, overlap, PCA, and separability studies inspect.
+\section{Stage II Analyze: Feature Taxonomy}
+The methodology distinguishes feature families because they make different
+claims about history, geometry, and transferability. A feature is not only a
+column name. It is a declared mapping
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(f_j\)}{individual feature extractor \(j\)}{maps trajectory context to one feature output}
+\sectionsymbol{\(\mathcal{F}\)}{full feature family universe}{partitioned into instantaneous, windowed, cumulative, robust, derivative, and residual sets}
+\sectionsymbol{\(\mathcal{W}\)}{history window descriptor}{sample-count or duration based}
+\sectionsymbol{\(\sigma(f_j)\)}{feature sensitivity vector}{summarizes nuisance sensitivity}
+\sectionsymbol{\(T_{1\mathrm{D}\rightarrow 3\mathrm{D}}(f_j)\)}{transfer class of a feature principle}{direct, projected, model-specific, or rewrite-required}
+}
+
+\noindent
+The methodology distinguishes feature families because they make different
+claims about history, geometry, and transferability. A feature is not only a
+column name. It is a declared mapping
+\begin{equation}
+f_j :
+(\tau,\ t,\ \mathcal{W},\ b)
+\mapsto
+\mathbb{R}^{d_j},
+\end{equation}
+where \(\mathcal{W}\) describes the history window and \(b\) is any required
+model or backend context. The full feature table for trajectory \(i\) at time
+\(k\) is then
+\begin{equation}
+\phi_{ik}
+=
+\bigl[
+f_1(\tau_i,t_{ik},\mathcal{W}_{ik},b_i),\dots,f_J(\tau_i,t_{ik},\mathcal{W}_{ik},b_i)
+\bigr].
+\end{equation}
+
+The current taxonomy separates feature families by the kind of evidence they
+encode:
+\begin{align}
+\mathcal{F}
+=
+\mathcal{F}_{\mathrm{inst}}
+\cup
+\mathcal{F}_{\mathrm{window}}
+\cup
+\mathcal{F}_{\mathrm{cum}}
+\cup
+\mathcal{F}_{\mathrm{robust}}
+\cup
+\mathcal{F}_{\mathrm{deriv}}
+\cup
+\mathcal{F}_{\mathrm{resid}}.
+\end{align}
+These are not interchangeable labels. Each family carries a different history
+behavior:
+\begin{align}
+f_j \in \mathcal{F}_{\mathrm{inst}}
+&\Rightarrow
+f_j(\tau,t) = g(z(t)), \\
+f_j \in \mathcal{F}_{\mathrm{window}}
+&\Rightarrow
+f_j(\tau,t) = g(z_{W(t)}, t_{W(t)}), \\
+f_j \in \mathcal{F}_{\mathrm{cum}}
+&\Rightarrow
+f_j(\tau,t_k) = \sum_{r=1}^k g(z_r, \Delta t_r), \\
+f_j \in \mathcal{F}_{\mathrm{robust}}
+&\Rightarrow
+f_j(\tau,t) = g_{\mathrm{robust}}(z_{W(t)}), \\
+f_j \in \mathcal{F}_{\mathrm{deriv}}
+&\Rightarrow
+f_j(\tau,t) = g\!\left(\frac{\Delta z}{\Delta t}, \frac{\Delta^2 z}{\Delta t^2}, \dots\right), \\
+f_j \in \mathcal{F}_{\mathrm{resid}}
+&\Rightarrow
+f_j(\tau,t,b) = g(z_t - \hat{z}_{t|t-1}^{(b)}, S_t^{(b)}).
+\end{align}
+
+This classification immediately explains several methodological warnings. If
+\(f_j \in \mathcal{F}_{\mathrm{cum}}\), then successive time steps are not
+independent evidence atoms:
+\begin{equation}
+f_j(\tau,t_{k+1})
+\neq
+f_j(\tau,t_k) + \text{independent increment}
+\quad \text{in general}.
+\end{equation}
+If \(f_j \in \mathcal{F}_{\mathrm{deriv}}\), then irregular sampling perturbs
+its numerical stability through \(\Delta t_k\). If
+\(f_j \in \mathcal{F}_{\mathrm{resid}}\), then the feature inherits the
+assumptions of the backend model that produced \(\hat{z}_{t|t-1}\) and \(S_t\).
+
+\subsection*{Sensitivity And Dependence Semantics}
+The reason the taxonomy matters is that feature performance is conditional on
+which nuisances it amplifies. A useful abstract description is the feature
+sensitivity vector
+\begin{equation}
+\sigma(f_j)
+=
+\bigl(
+s_{\mathrm{noise}}(f_j),
+s_{\mathrm{duration}}(f_j),
+s_{\mathrm{count}}(f_j),
+s_{\mathrm{outlier}}(f_j),
+s_{\mathrm{model}}(f_j)
+\bigr),
+\end{equation}
+where each component records how strongly the feature is expected to move under
+that nuisance. A raw maximum, for example, tends to have high outlier and
+duration sensitivity; a trimmed-range feature has lower outlier sensitivity but
+may lose boundary information; an innovation norm has explicit model
+sensitivity because its meaning depends on the assumed dynamics and noise.
+
+Dependence also matters because several classifiers use diagonal or naive-Bayes
+likelihood approximations. For feature set \(F \subseteq \mathcal{F}\), a
+useful warning statistic is
+\begin{equation}
+\mathrm{Dep}(F)
+=
+\frac{1}{|F|(|F|-1)}
+\sum_{f_i \neq f_j}
+\left|
+\mathrm{corr}(f_i, f_j)
+\right|,
+\end{equation}
+or a stronger mutual-information analogue when available. High dependence does
+not invalidate the feature set, but it changes how later likelihood models and
+importance claims should be interpreted.
+
+\subsection*{Transferability To 3D}
+The taxonomy is also the bridge to dimensional lift. A feature should not be
+judged by whether its current \(1\text{D}\) formula can be copied verbatim.
+It should be judged by whether the underlying geometric idea transfers. The
+transfer map is
+\begin{equation}
+T_{1\mathrm{D}\rightarrow 3\mathrm{D}}(f_j)
+\in
+\{\text{direct},\ \text{via norm/projection},\ \text{model-specific},\ \text{rewrite required}\}.
+\end{equation}
+For example, scalar velocity becomes speed \(\|v\|\), signed vertical velocity
+becomes \(\langle v, \hat{u}_{\mathrm{up}}\rangle\), and scalar innovation can
+be lifted to Mahalanobis innovation norm
+\begin{equation}
+\|\nu_k\|_{S_k^{-1}}^2 = \nu_k^\top S_k^{-1}\nu_k.
+\end{equation}
+This is the real feature-taxonomy claim: the repo is trying to declare
+\emph{feature principles}, not only a bag of scalar formulas.
 
 \section{Witness Problems}
 The repository uses small 1D witness problems as methodological proofs. Their purpose is to isolate one layer of reasoning at a time rather than to claim a finished deployment-grade taxonomy.
+\begin{equation}
+w_r = (\mathcal{D}_r, f_r, \mathcal{C}_r, m_r, q_r),
+\end{equation}
+where \(w_r\) is the witness attached to methodology rung \(r\) and \(q_r\) is
+the narrow claim that witness is supposed to test. The witness methodology is
+therefore closer to a proof obligation than to a benchmark:
+\begin{equation}
+w_r \models q_r
+\qquad \text{means} \qquad
+\text{the generated artifacts supply evidence for claim } q_r.
+\end{equation}
+This is intentionally weaker than saying the witness proves the whole
+repository. A witness only needs to isolate one layer cleanly enough that the
+success or failure can be interpreted.
+
+The internal structure of a good witness is:
+\begin{align}
+\text{minimal scenario complexity}
+&\land
+\text{controlled class contrast}
+\land
+\text{targeted failure mode}
+\notag \\
+&\land
+\text{interpretable metrics}
+\land
+\text{artifact traceability}.
+\end{align}
+That is why the current repo prefers small 1D witnesses over immediately
+jumping to 3D mixtures. If the rung fails on a minimal interpretable witness,
+adding dimensional complexity would only blur the diagnosis.
+
+\subsection*{Witness Acceptance Logic}
+For a witness \(w_r\), let \(\mathcal{M}_r\) denote the metric family tied to
+its claim and let \(B_r\) denote the baseline or previous rung. A simplified
+acceptance relation is
+\begin{equation}
+w_r \models q_r
+\iff
+\mathcal{G}(w_r)=\mathrm{pass}
+\land
+\Delta \mathcal{M}_r(B_r,m_r) \ge \tau_r
+\land
+\text{failure mode addressed}(r).
+\end{equation}
+The last clause matters. A rung is not accepted only because it scores higher.
+It is accepted because it addresses the specific weakness the witness was
+constructed to expose.
 \input{tables/toy_problem_summary_table.tex}
 The witness problems therefore act as explicit claim checks rather than
 illustrative demos. Table~\ref{tab:witness_claim_matrix} is the compact mapping
@@ -449,14 +1113,261 @@ This is why the repo uses the term \textit{witness problem} rather than
 \textit{toy problem}: each case exists to prove one narrow layer of the generic
 methodology stack before the project claims a broader lift.
 
-\section{Algorithm Ladder}
+In practical terms, the witness suite supplies the paper's algorithmic
+progression. Pointwise witnesses prove local likelihood logic. Windowed
+witnesses prove that feature geometry can rescue outlier-fragile local scoring.
+Sequential witnesses prove that recursive accumulation adds value when time
+history matters. Kalman witnesses prove that dynamics-consistency evidence is a
+distinct information source. Switching witnesses prove that transition-aware
+updates are not just cosmetic reweightings. Generated-corpus witnesses prove
+that the data layer itself can be optimized and audited. Without these witness
+problems, the ladder would be a sequence of implementation names rather than a
+sequence of justified methodological promotions.
+
+\section{Stage V Evaluate: Algorithm Ladder}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\ell_k(c)\)}{per-step evidence increment at rung-specific class \(c\)}{shared scalar score consumed by the posterior updater}
+\sectionsymbol{\(p_k(c)\)}{posterior over classes at step \(k\)}{common decision state across rungs}
+\sectionsymbol{\(\phi_k\)}{engineered feature vector at step \(k\)}{windowed or derived evidence summary}
+\sectionsymbol{\(\nu_k^{(m)}, S_k^{(m)}\)}{innovation residual and covariance for model \(m\)}{Kalman-rung evidence atom}
+\sectionsymbol{\(\mu_k^{(j)}, w_k^{(i)}\)}{mode posterior and particle weight symbols}{advanced-filter notation used only when justified}
+}
+
+\noindent
 The classifier ladder is the main experimental spine. Each rung adds one capability and is supposed to address one previously identified failure mode rather than add complexity for its own sake.
 \input{tables/algorithm_ladder_table.tex}
 
-\section{Bayesian Update Walkthrough}
-The current repository emits representative Bayesian walkthroughs from promoted and revised study candidates. These use real common-study trajectories and expose prior odds, class-score increments, posterior odds, prior sweeps, and flip thresholds. The step table below is a compact numeric witness of that process.
+\subsection{Pointwise Evidence Baseline}
+The pointwise rung asks the weakest credible classification question:
+\begin{quote}
+\textit{How far can direct local evidence go without explicit temporal memory or
+state dynamics?}
+\end{quote}
+For class \(c\), let the current observation or local scalar evidence be
+\(z_k\). The pointwise baseline assumes
+\begin{equation}
+z_k \mid c \sim \mathcal{N}(\mu_c, \sigma_c^2),
+\end{equation}
+so the per-step log evidence is
+\begin{equation}
+\ell_k(c)
+=
+-\frac{1}{2}
+\left[
+\log(2\pi \sigma_c^2)
++
+\frac{(z_k-\mu_c)^2}{\sigma_c^2}
+\right].
+\end{equation}
+Combined with the shared posterior recursion, this becomes
+\begin{equation}
+p_k(c) \propto p_{k-1}(c)\exp(\ell_k(c)).
+\end{equation}
+The pointwise method is therefore already recursive, but the only memory it
+retains is the posterior vector itself. It cannot represent trend, persistence,
+or switching except through repeated accumulation of independent local scores.
+
+\subsection{Windowed Feature Evidence}
+The next rung addresses the failure mode where classes differ only after short
+temporal structure is summarized. Let
+\begin{equation}
+\phi_k = g(z_{1:k}) \qquad \text{or} \qquad \phi_k = g(z_{k-w+1:k}),
+\end{equation}
+where \(g\) extracts a short-history feature vector and \(w\) is the effective
+window. The current repository uses features such as extrema, range, slope,
+monotonicity, sign changes, and robust summary variants.
+
+The simplest likelihood factorization is a naive-Bayes approximation across
+feature coordinates:
+\begin{equation}
+p(\phi_k \mid c) \approx \prod_{j=1}^{d_\phi} p(\phi_{k,j} \mid c),
+\end{equation}
+which yields
+\begin{equation}
+\ell_k(c)
+=
+\sum_{j=1}^{d_\phi}
+\log \mathcal{N}(\phi_{k,j}; \mu_{c,j}, \sigma_{c,j}^2).
+\end{equation}
+This rung is stronger than pointwise scoring because the evidence atom is no
+longer one raw sample. It is a compressed local geometry summary. Its main risk
+is methodological rather than numerical: the features may be under-expressive,
+or they may look artificially strong because the corpus makes the task too
+easy.
+
+\subsection{Sequential Bayesian Accumulator}
+The sequential Bayes rung turns recursive evidence combination into a first-
+class algorithm surface. If a provider emits direct likelihoods \(L_k(c)\), the
+accumulator writes
+\begin{equation}
+\log \tilde{p}_k(c)
+=
+\lambda \log p_{k-1}(c) + \log L_k(c),
+\end{equation}
+where \(\lambda \in (0,1]\) is the forgetting factor and the normalized
+posterior is
+\begin{equation}
+p_k(c)
+=
+\frac{\tilde{p}_k(c)}{\sum_{c' \in \mathcal{C}} \tilde{p}_k(c')}.
+\end{equation}
+When \(L_k(c)\) is itself Gaussian observation likelihood,
+\begin{equation}
+L_k(c) = \mathcal{N}(z_k; \mu_c, \sigma_c^2),
+\end{equation}
+the accumulator can be read as the pure recursive shell between local evidence
+construction and posterior normalization. This rung improves on pointwise
+classification when history matters, but it also amplifies calibration errors:
+bad evidence gets accumulated just as efficiently as good evidence.
+
+\subsection{Covariance-Aware State Evidence}
+There is a useful intermediate case between pure feature likelihoods and a full
+Kalman bank: the classifier may receive a filtered state estimate
+\((x_k, P_k)\) from elsewhere. In that case the right evidence atom is not a
+new innovation residual but a covariance-aware state-likelihood score:
+\begin{equation}
+\ell_k(c)
+=
+-\frac{1}{2}
+\left[
+(x_k-\mu_c)^\top \Sigma_{k,c}^{-1}(x_k-\mu_c)
++
+\log |\Sigma_{k,c}|
++
+d_x \log(2\pi)
+\right],
+\end{equation}
+where \(\Sigma_{k,c}\) is the supplied covariance or a class-conditioned
+inflated version of it. This rung is conceptually important because it shows
+that not every model-based method must rerun tracking internally.
+
+\subsection{Kalman Innovation Bank}
+The Kalman bank is the first rung where class evidence is explicitly tied to a
+dynamics model rather than only a feature summary. For model \(m\),
+\begin{align}
+x_k^{(m)} &= F_k^{(m)} x_{k-1}^{(m)} + w_k^{(m)}, \\
+z_k &= H_k^{(m)} x_k^{(m)} + v_k^{(m)},
+\end{align}
+with Gaussian process and measurement noise. The predict step is
+\begin{align}
+\hat{x}_{k|k-1}^{(m)} &= F_k^{(m)} x_{k-1|k-1}^{(m)}, \\
+P_{k|k-1}^{(m)} &= F_k^{(m)} P_{k-1|k-1}^{(m)} {F_k^{(m)}}^\top + Q_k^{(m)}.
+\end{align}
+The innovation residual and covariance are then
+\begin{align}
+\nu_k^{(m)} &= z_k - H_k^{(m)} \hat{x}_{k|k-1}^{(m)}, \\
+S_k^{(m)} &= H_k^{(m)} P_{k|k-1}^{(m)} {H_k^{(m)}}^\top + R_k^{(m)},
+\end{align}
+and the evidence increment is the innovation likelihood
+\begin{equation}
+\ell_k(m)
+=
+-\frac{1}{2}
+\left[
+(\nu_k^{(m)})^\top (S_k^{(m)})^{-1}\nu_k^{(m)}
++
+\log |S_k^{(m)}|
++
+d_z \log(2\pi)
+\right].
+\end{equation}
+This rung addresses endpoint ambiguity and irregular-timing ambiguity when
+class differences are about dynamical consistency, not just geometry.
+
+\subsection{Transition-Aware Accumulation}
+The transition-matrix rung addresses a different failure mode: the class
+identity itself may switch over time. Let \(T_{ij} = p(c_k=j \mid c_{k-1}=i)\).
+Before adding new evidence, the prior is propagated by
+\begin{equation}
+\bar{p}_k(j) = \sum_{i \in \mathcal{C}} T_{ij} p_{k-1}(i).
+\end{equation}
+The posterior update then becomes
+\begin{equation}
+\log \tilde{p}_k(j) = \log \bar{p}_k(j) + \ell_k(j).
+\end{equation}
+In the current implementation the emission score is built from finite-
+difference speed and acceleration proxies:
+\begin{align}
+\log E_k(s)
+=\;&
+\log \mathcal{N}(\hat{v}_k; \mu_s^{(v)}, {\sigma_s^{(v)}}^2)
+\notag \\
+&+
+\log \mathcal{N}(\hat{a}_k; \mu_s^{(a)}, {\sigma_s^{(a)}}^2)
++
+\log \mathcal{N}(|\hat{a}_k|; \mu_s^{(|a|)}, {\sigma_s^{(|a|)}}^2).
+\end{align}
+This rung proves that explicit switching structure can help before the repo
+commits to a full IMM-style multiple-model state estimator.
+
+\subsection{Advanced-Filter Gates}
+IMM, PF, and RBPF are treated as algorithm families, but they remain
+promotion-gated. Their role in the paper is therefore twofold:
+\begin{enumerate}[leftmargin=1.5em]
+  \item state the real update equations, and
+  \item state the failure evidence required before they are methodologically
+  justified.
+\end{enumerate}
+
+For IMM, the predicted mode prior is
+\begin{equation}
+\bar{\mu}_k^{(j)} = \sum_i \Pi_{ij}\mu_{k-1}^{(i)},
+\end{equation}
+with updated mode posterior
+\begin{equation}
+\mu_k^{(j)}
+=
+\frac{\Lambda_k^{(j)}\bar{\mu}_k^{(j)}}{\sum_m \Lambda_k^{(m)}\bar{\mu}_k^{(m)}}.
+\end{equation}
+For a bootstrap particle filter, the particle weights reduce to
+\begin{align}
+x_k^{(i)} &\sim p(x_k \mid x_{k-1}^{(i)}, u_k), \\
+w_k^{(i)} &\propto w_{k-1}^{(i)} p(z_k \mid x_k^{(i)}, c), \\
+N_{\mathrm{eff}} &= \frac{1}{\sum_i (w_k^{(i)})^2}.
+\end{align}
+For RBPF, the latent split is
+\begin{equation}
+x_k = (r_k, s_k),
+\qquad
+p(r_{1:k}, s_k \mid z_{1:k})
+=
+p(s_k \mid r_{1:k}, z_{1:k}) p(r_{1:k} \mid z_{1:k}),
+\end{equation}
+so the hard nonlinear or discrete latent variable is sampled while the
+conditionally tractable substate remains analytically filtered.
+
+The promotion rule for escalation is not “the method exists.” It is
+\begin{equation}
+\text{failure}(M_0, \mathcal{D})
+\land
+\text{capability gain}(M_1)
+\land
+\text{measurable success criterion}(M_1),
+\end{equation}
+which is why these advanced methods remain downstream of explicit witness
+failures rather than upstream of them.
+
+\section{Stage V Evaluate: Bayesian Update Walkthrough}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\Delta \lambda_k^{ab}\)}{incremental log Bayes factor for class pair \((a,b)\)}{per-row evidence contribution}
+\sectionsymbol{\(p_{k-1}(a), p_k(a)\)}{prior and posterior probability for class \(a\)}{numeric walkthrough columns}
+\sectionsymbol{\(\hat{c}_k\)}{predicted class after step \(k\)}{table decision column}
+\sectionsymbol{\(\max_c p_k(c)\)}{reported confidence after the update}{table confidence column}
+}
+
+\noindent
+The current repository emits representative Bayesian walkthroughs from promoted
+and revised study candidates. These use real common-study trajectories and
+expose prior odds, class-score increments, posterior odds, prior sweeps, and
+flip thresholds. The step table below is a compact numeric witness of that
+process.
 \input{tables/bayesian_update_walkthrough_table.tex}
-The headers use the math symbols \((t_k, p_{k-1}(a), \Delta \lambda_k^{ab}, p_k(a), \hat{c}_k, \max_c p_k(c))\) so the table can be read directly against the update equations above rather than against implementation-specific column names.
+The table headers correspond directly to the symbols
+\((t_k, p_{k-1}(a), \Delta \lambda_k^{ab}, p_k(a), \hat{c}_k, \max_c p_k(c))\),
+so the reader can map each numeric row back to the update equations above
+without translating from implementation-specific column names.
 
 \begin{figure}[htbp]
 \centering
@@ -464,7 +1375,16 @@ The headers use the math symbols \((t_k, p_{k-1}(a), \Delta \lambda_k^{ab}, p_k(
 \caption{Representative prior-sweep examples from the Bayesian walkthrough suite. The horizontal axis is the prior placed on class \(a\), the vertical axis is the resulting posterior confidence or predicted-class behavior, and a sharp boundary indicates a small prior shift can flip the decision.}
 \end{figure}
 
-\section{Corpus Adequacy-Driven Corpus Synthesis}
+\section{Stage III Generate: Corpus Adequacy-Driven Corpus Synthesis}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(S_k\)}{composite score for corpus candidate \(k\)}{ranking quantity for candidate selection}
+\sectionsymbol{\(B_k, C_k, F_k, D_k\)}{reward terms for balance, boundary coverage, excitation, and difficulty diversity}{positive corpus objectives}
+\sectionsymbol{\(L_k, T_k, G_k\)}{penalty terms for leakage, triviality, and degeneracy}{negative corpus objectives}
+\sectionsymbol{\(\mathcal{D}_k\)}{candidate generated corpus}{data object induced by one synthesis proposal}
+}
+
+\noindent
 The corpus layer is treated as an optimization problem over balance, boundary coverage, feature excitation, leakage control, difficulty diversity, and nontriviality. The current automation does not simply audit the default corpus; it generates and ranks alternatives.
 In symbolic form, one candidate corpus score takes the form
 \begin{equation}
@@ -473,7 +1393,18 @@ S_k = B_k + C_k + F_k + D_k - L_k - T_k - G_k,
 where the positive terms reward balance, boundary coverage, feature excitation, and difficulty diversity, while the negative terms penalize leakage, triviality, and degeneracy. This is the point where the repository moves beyond fixed toy datasets and starts reasoning about whether the data itself is good enough to trust later classifier conclusions.
 \input{tables/corpus_synthesis_algorithm.tex}
 
-\section{Automated Study Proposal and Promotion}
+\section{Stage VI Decide: Automated Study Proposal and Promotion}
+The repository now automatically generates study candidates from declared manifests and uses a validation ladder to issue \texttt{promote}, \texttt{revise}, \texttt{reject}, and \texttt{defer} decisions. The study-candidate layer is where corpus evidence, feature evidence, classifier compatibility, prior sensitivity, and implementation readiness are fused.
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(Q_{\text{static}}\)}{pre-execution screening score}{computed before expensive evaluation}
+\sectionsymbol{\(Q_{\text{mc}}\)}{post-execution confirmation score}{computed from executed study evidence}
+\sectionsymbol{\(g_{\text{oracle}}(s,r)\)}{oracle gap at study \(s\), rung \(r\)}{measures missed opportunity}
+\sectionsymbol{\(\Delta_{r \rightarrow r^+}(s)\)}{gain from the next rung}{used for promotion and escalation}
+\sectionsymbol{\(d(s,r)\)}{section-local promotion decision}{maps to revise, stay, promote, reject, or defer outcomes}
+}
+
+\noindent
 The repository now automatically generates study candidates from declared manifests and uses a validation ladder to issue \texttt{promote}, \texttt{revise}, \texttt{reject}, and \texttt{defer} decisions. The study-candidate layer is where corpus evidence, feature evidence, classifier compatibility, prior sensitivity, and implementation readiness are fused.
 The current screening logic is intentionally two-stage. First, a static score \(Q_{\text{static}}\) screens candidate studies before they are expensive to evaluate. Second, executed common-study evidence provides a confirmation score \(Q_{\text{mc}}\). The current implementation therefore approximates
 \begin{align}
@@ -490,7 +1421,107 @@ Q_{\text{mc}} = 0.60 \cdot \text{accuracy} + 0.25 \cdot (1 - \text{prior flip fr
 The algorithmic skeleton used by the current implementation is:
 \input{tables/study_candidate_generation_algorithm.tex}
 
-\section{Feature and Class-Pair Analysis}
+\subsection{Rung Sufficiency Variables}
+The study candidate score is not the same thing as the rung-sufficiency
+decision. For study \(s\) at current rung \(r\), the escalation logic defines
+several explicit diagnostics:
+\begin{align}
+g_{\text{oracle}}(s,r)
+&=
+\max\!\bigl(0, A_{\text{oracle}}(s,r) - A_{\text{current}}(s,r)\bigr), \\
+f_{\text{prior}}(s,r)
+&=
+1 - \text{prior\_sensitivity\_score}(s,r), \\
+\Delta_{r \rightarrow r^+}(s)
+&=
+A_{\text{current}}(s,r^+) - A_{\text{current}}(s,r),
+\end{align}
+where \(r^+\) is the configured next rung in the capability matrix. These
+quantities separate three different reasons a study may fail to promote:
+\begin{enumerate}[leftmargin=1.5em]
+  \item the evidence geometry is weak, so the current rung is not the problem;
+  \item the current rung is underperforming an available oracle opportunity;
+  \item a stronger rung exists but has not yet shown a measurable gain.
+\end{enumerate}
+
+\subsection{Learnability Gate}
+Before blaming the current algorithm, the repo checks whether the study looks
+learnable at all under the active features and corpus. The current learnability
+indicator is approximated by
+\begin{equation}
+\mathbf{1}_{\text{learnable}}(s,r)
+=
+\mathbf{1}\!\left[
+    A_{\text{oracle}} \ge \tau_{\text{oracle}}
+    \land
+    \mathrm{overlap} \le \tau_{\text{overlap}}
+    \land
+    \mathrm{AUC}_{\text{pair}} \ge \tau_{\text{AUC}}
+    \land
+    m_{\text{post}} \ge \tau_{\text{margin}}
+\right],
+\end{equation}
+with current default thresholds
+\begin{equation}
+\tau_{\text{oracle}} = 0.85,\qquad
+\tau_{\text{overlap}} = 0.90,\qquad
+\tau_{\text{AUC}} = 0.70,\qquad
+\tau_{\text{margin}} = 0.05.
+\end{equation}
+This is the mathematical form of a key repo rule: feature and corpus limits
+should be identified before algorithm blame is assigned.
+
+\subsection{Promotion Rule}
+The promotion decision is then a gated piecewise rule rather than a single
+accuracy threshold. Let \(\tau_{\text{prior}} = 0.12\),
+\(\tau_{\Delta} = 0.05\), and \(\tau_{\text{gap}} = 0.08\). Then the current
+decision surface is approximately
+\begin{equation}
+d(s,r)
+=
+\begin{cases}
+    \texttt{revise\_corpus}, & \neg \text{can\_evaluate\_classifier}(s), \\
+    \texttt{revise\_features}, & \text{feature gate fails}, \\
+    \texttt{revise\_prior}, & f_{\text{prior}}(s,r) > \tau_{\text{prior}}, \\
+    \texttt{feature\_limited}, & \neg \mathbf{1}_{\text{learnable}}(s,r), \\
+    \texttt{stay}, & r^+ = \varnothing, \\
+    \texttt{reject\_escalation}, & \neg \text{capability\_match}(r,r^+), \\
+    \texttt{defer\_advanced}, & \Delta_{r \rightarrow r^+}(s)\ \text{is unavailable}, \\
+    \texttt{promote}, & \Delta_{r \rightarrow r^+}(s) \ge \tau_{\Delta}, \\
+    \texttt{stay}, & g_{\text{oracle}}(s,r) < \tau_{\text{gap}}, \\
+    \texttt{defer\_advanced}, & \text{otherwise}.
+\end{cases}
+\end{equation}
+This rule is central to the methodology claim. It is the reason the repository
+can say “do not escalate complexity just because a stronger method exists.”
+
+\subsection{Decision Vocabulary}
+At the study-report level, the final terminal vocabulary is intentionally
+smaller than the internal rung-sufficiency labels:
+\begin{equation}
+d_{\text{final}} \in \{\texttt{promote}, \texttt{revise}, \texttt{reject}, \texttt{defer}\}.
+\end{equation}
+These mean:
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{promote}: the current evidence and rung are strong enough to move forward;
+  \item \texttt{revise}: a localized corpus, feature, prior, or ladder issue remains;
+  \item \texttt{reject}: the declared study claim is not currently supported;
+  \item \texttt{defer}: the required capability is unimplemented or not yet justified.
+\end{itemize}
+This vocabulary is intentionally conservative. A visually interesting study is
+not enough to justify \texttt{promote}; the corpus, feature, posterior, and
+failure-mode stories all need to agree.
+
+\section{Stage II Analyze: Feature and Class-Pair Analysis}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\mathrm{AUC}_{ab}(f_j)\)}{pairwise oracle separability for feature \(f_j\)}{higher means easier separation}
+\sectionsymbol{\(D^2_{ab}\)}{pairwise Mahalanobis-style distance}{multivariate class-gap summary}
+\sectionsymbol{\(O_{ab}\)}{pairwise overlap surrogate}{larger means more confusable}
+\sectionsymbol{\(\mu_a, \mu_b, \Sigma\)}{class means and pooled covariance used in static pair analysis}{feature-space geometry terms}
+}
+
+\noindent
 The methodology separates static identifiability from end-to-end classifier success. Feature-space overlap, oracle separability, pair difficulty, and duration/noise sensitivity are all treated as first-class evidence surfaces. This helps distinguish feature failure, corpus failure, and classifier failure.
 If a class pair is hard, the repository does not immediately conclude that the classifier is weak. Instead it asks whether the feature layer has poor pairwise AUC, high overlap, weak excitation, or prior fragility. That separation of concerns is one of the main reasons the project can plausibly scale beyond one classifier family.
 
@@ -508,7 +1539,16 @@ The current confusability heatmap visualizes \(1-\mathrm{AUC}\), so darker cells
 \caption{Class confusability map plotted as \(1-\mathrm{AUC}\). Darker off-diagonal cells indicate more confusable class pairs. Diagonal cells are not interpreted, and any asymmetry comes from oriented pairwise scoring rather than a claim that the underlying class geometry is non-reciprocal.}
 \end{figure}
 
-\section{Calibration And Posterior Quality}
+\section{Stage V Evaluate: Calibration And Posterior Quality}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\mathrm{Brier}\)}{multiclass Brier score}{quadratic posterior error metric}
+\sectionsymbol{\(\mathrm{ECE}\)}{expected calibration error}{bin-based confidence calibration diagnostic}
+\sectionsymbol{\(H_t\)}{posterior entropy at time \(t\)}{decisiveness or uncertainty diagnostic}
+\sectionsymbol{\(I_b\)}{confidence bin \(b\)}{group used for empirical calibration summaries}
+}
+
+\noindent
 Posterior quality is not only endpoint accuracy. The current methodology also cares about calibration and probabilistic sharpness. Two standard metrics are
 \begin{equation}
 \mathrm{Brier}
@@ -536,7 +1576,12 @@ H_t = -\sum_{c \in \mathcal{C}} p_t(c)\log p_t(c).
 \end{equation}
 Low entropy means the posterior is decisive. That is only a good sign when the decisive class is also correct; otherwise the method is confidently wrong rather than well calibrated.
 
-The current accumulator calibration bins make the distinction concrete. In the highest-confidence bin, the repository currently reports 175 cases with accuracy \(0.96\), mean confidence \(0.9992854302781583\), and a gap of \(0.03928543027815834\). In the sparse \(0.4\)--\(0.5\) bin, it reports 7 cases with accuracy \(0.0\), mean confidence \(0.5\), and a gap of \(0.5\). That is a strong high-confidence regime with a weak ambiguous regime.
+The current accumulator calibration bins make the distinction concrete. In the
+highest-confidence bin, the repository currently reports 175 cases with
+accuracy \(0.96\), mean confidence about \(0.9993\), and a gap of about
+\(0.0393\). In the sparse \(0.4\)--\(0.5\) bin, it reports 7 cases with
+accuracy \(0.0\), mean confidence \(0.5\), and a gap of \(0.5\). That is a
+strong high-confidence regime with a weak ambiguous regime.
 
 The current shared-corpus comparison summarizes the method-level picture:
 \begin{center}
@@ -545,12 +1590,12 @@ The current shared-corpus comparison summarizes the method-level picture:
 \toprule
 Method & Overall & Prior flip fraction & Interpretation \\
 \midrule
-pointwise & 0.875 & 0.479 & Useful lower bound, but brittle to prior shifts \\
-windowed\_raw & 0.750 & 0.021 & Stable under priors, but not separative enough \\
-windowed\_robust & 0.750 & 0.000 & Very stable, but no accuracy gain over raw windowing \\
-accumulator & 0.958 & 0.208 & Best current overall method \\
-kalman\_bank & 0.740 & 0.208 & Model-based, but weaker than the accumulator on this corpus \\
-kalman\_bank\_velocity\_aided & 0.844 & 0.125 & Improved by an actual velocity stream \\
+Pointwise & 0.875 & 0.479 & Useful lower bound, but brittle to prior shifts \\
+Windowed (raw) & 0.750 & 0.021 & Stable under priors, but not separative enough \\
+Windowed (robust) & 0.750 & 0.000 & Very stable, but no accuracy gain over raw windowing \\
+Accumulator & 0.958 & 0.208 & Best current overall method \\
+Kalman bank & 0.740 & 0.208 & Model-based, but weaker than the accumulator on this corpus \\
+Kalman bank (velocity aided) & 0.844 & 0.125 & Improved by an actual velocity stream \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -566,14 +1611,22 @@ The current evidence says the accumulator is the best end-to-end combiner on thi
 
 These numbers come from the generated comparison and calibration artifacts:
 \begin{itemize}[leftmargin=1.5em]
-  \item \texttt{artifacts/common\_dataset\_comparison\_v1/common\_dataset\_comparison\_report.md}
-  \item \texttt{artifacts/prior\_sensitivity\_v1/prior\_sensitivity\_report.md}
-  \item \texttt{artifacts/monte\_carlo\_accumulator/calibration\_bins.csv}
+  \item \codepath{artifacts/common_dataset_comparison_v1/common_dataset_comparison_report.md}
+  \item \codepath{artifacts/prior_sensitivity_v1/prior_sensitivity_report.md}
+  \item \codepath{artifacts/monte_carlo_accumulator/calibration_bins.csv}
 \end{itemize}
 
 These equations are included here because the methodology makes promotion decisions based on posterior quality, not only classification correctness.
 
-\section{Class Validity And Relabel Logic}
+\section{Stage IV Audit: Class Validity And Relabel Logic}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(v_c(\tau)\)}{validity score assigned to class \(c\) for trajectory \(\tau\)}{audits whether the requested label is plausible}
+\sectionsymbol{\(\hat{c}_{\mathrm{valid}}(\tau)\)}{highest-validity class under the audit logic}{candidate relabel target}
+\sectionsymbol{\(\alpha,\beta,\delta\)}{thresholds for valid-target, invalid, and ambiguity logic}{label-audit control parameters}
+}
+
+\noindent
 The corpus explorer does not blindly trust a requested class label. For trajectory \(\tau\), each class receives a validity score
 \begin{equation}
 v_c(\tau) \in [0,1],
@@ -592,7 +1645,15 @@ The current label-status logic can be summarized as
 \end{equation}
 This is the formal bridge from requested target class to auditable generated labels.
 
-\section{From Generated Corpora To Promoted Studies}
+\section{Stage IV Audit: From Generated Corpora To Promoted Studies}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\mathcal{D}\)}{generated corpus under consideration}{feeds the downstream study pipeline}
+\sectionsymbol{\(d\)}{promotion decision emitted by the validation ladder}{final outcome of the closed-loop chain}
+\sectionsymbol{\(\rightarrow\)}{stage transition in the methodology chain}{used to emphasize ordered dependency}
+}
+
+\noindent
 The newer corpus-gym and study-candidate layers close the loop between data generation and methodology governance. In the current repository, objective-driven trajectory generation, quality-diversity archiving, backend-aware candidate generation, and validation-ladder promotion are all part of the same chain:
 \begin{align}
 \text{objective-driven trajectory proposals}
@@ -610,7 +1671,17 @@ d.
 \end{align}
 This is the architectural reason the disparate corpus, feature, and study docs belong together. They are not separate research threads anymore; they are stages of one methodology pipeline.
 
-\section{Filtering Taxonomy and Advanced-Method Gates}
+\section{Stage VI Decide: Filtering Taxonomy and Advanced-Method Gates}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(M_0, M_1\)}{current simpler method and candidate advanced method}{used in escalation logic}
+\sectionsymbol{\(\mu_k^{(j)}\)}{mode posterior for IMM mode \(j\)}{switching-model probability state}
+\sectionsymbol{\(\tilde{w}_k^{(i)}, w_k^{(i)}\)}{unnormalized and normalized particle weights}{particle-filter evidence bookkeeping}
+\sectionsymbol{\(N_{\mathrm{eff}}\)}{effective sample size}{particle-degeneracy diagnostic}
+\sectionsymbol{\(r_k, s_k\)}{sampled and conditionally tractable RBPF latent split}{used to state the Rao-Blackwell factorization}
+}
+
+\noindent
 The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, transition-matrix, and now an explicit IMM proof surface. The advanced-method policy is still conservative: existence of an IMM, PF, or RBPF implementation does not mean the repo automatically claims that rung is necessary everywhere. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains evidence-gated as an escalation beyond the transition rung, PF remains decision-gated, and RBPF is implemented as a sampled-mode plus conditional-\(1\text{D}\)-PVA filter but is still methodologically gated until a witness proves that mixed discrete/continuous structure is the simplest necessary explanation.
 The key policy claim is that advanced methods are downstream of failure evidence. If \(M_0\) is the current simpler method and \(M_1\) is a more advanced filter family, the repository is trying to justify a transition only when
 \begin{equation}
@@ -691,32 +1762,196 @@ p(s_k \mid r_{1:k}, z_{1:k}) p(r_{1:k} \mid z_{1:k}).
 \end{equation}
 RBPF is only justified when part of the latent state remains conditionally tractable given sampled nonlinear or discrete structure.
 
+\subsection{Escalation Criteria By Rung}
+The advanced-filter gate becomes concrete only when stated against the simpler
+rungs it may replace. The current escalation logic is:
+\begin{align}
+\Delta_{\text{kalman} \rightarrow \text{transition}}
+&=
+A_{\text{post-switch}}^{\text{transition}}
+-
+A_{\text{post-switch}}^{\text{kalman}}, \\
+\Delta_{\text{transition} \rightarrow \text{IMM}}
+&=
+A_{\text{post-switch}}^{\text{IMM}}
+-
+A_{\text{post-switch}}^{\text{transition}}.
+\end{align}
+The interpretation is:
+\begin{itemize}[leftmargin=1.5em]
+  \item if \(\Delta_{\text{kalman} \rightarrow \text{transition}}\) is material, switching-aware probability propagation is justified;
+  \item if \(\Delta_{\text{transition} \rightarrow \text{IMM}}\) is material, mixing state distributions is justified beyond label-only switching;
+  \item if robust Kalman and transition-aware methods still explain the witness, PF should remain deferred;
+  \item if there is no true sampled-latent plus analytic-substate split, RBPF should remain deferred.
+\end{itemize}
+This is how the decision layer prevents the repo from treating IMM, PF, or
+RBPF as default prestige methods instead of evidence-earned rungs.
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{transition_matrix_diagnostics.png}
 \caption{Transition-matrix diagnostics for switching trajectories. The comparison emphasizes post-switch accuracy and delay behavior: the transition-aware accumulator improves over the static accumulator once class identity changes, while the Kalman comparison indicates whether model-based innovation evidence adds further benefit beyond explicit switching priors.}
 \end{figure}
 
-\section{Code-To-Equation Crosswalk}
-The implementation crosswalk now lives outside the PDF as \texttt{docs/math/code\_equation\_crosswalk.md}, but the essential rows are:
+\section{Stage VII Package: Standard Artifact Contract}
+The repository's strongest architectural claim is not that every classifier uses
+the same internal state. It is that every promoted method emits the same
+\emph{external} evidence and prediction surfaces. That contract is what lets the
+study harness compare pointwise, windowed, accumulator, Kalman, and
+transition-aware methods without rewriting the metric layer.
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(r_{i,k}\)}{standard prediction record for trajectory \(i\) at time \(k\)}{contains truth, prediction, confidence, posterior, and evidence}
+\sectionsymbol{\(f_{i,k}\)}{optional filter-state summary}{contains state estimate, covariance, residuals, and diagnostics}
+\sectionsymbol{\(\mathcal{A}\)}{artifact family consumed by the metrics layer}{union of standardized prediction and filter rows}
+\sectionsymbol{\(\Delta \mathcal{M}(r,r^+)\)}{metric gain between rungs under a shared schema}{promotion-relevant comparison quantity}
+}
+
+\noindent
+The repository's strongest architectural claim is not that every classifier uses
+the same internal state. It is that every promoted method emits the same
+\emph{external} evidence and prediction surfaces. That contract is what lets the
+study harness compare pointwise, windowed, accumulator, Kalman, and
+transition-aware methods without rewriting the metric layer.
+
+For trajectory \(i\), time index \(k\), and class \(c\), the common prediction
+record is
+\begin{equation}
+r_{i,k}
+=
+(\mathrm{trajectory\_id}_i,\ t_k,\ y_i^\star,\ \hat{y}_{i,k},\ \gamma_{i,k},\ p_{i,k}(c)_{c \in \mathcal{C}},\ \ell_{i,k}(c)_{c \in \mathcal{C}}),
+\end{equation}
+where \(y_i^\star\) is the true class, \(\hat{y}_{i,k}\) is the predicted
+class, \(\gamma_{i,k} = \max_c p_{i,k}(c)\) is the reported confidence,
+\(p_{i,k}(c)\) is the posterior, and \(\ell_{i,k}(c)\) is the emitted
+log-likelihood increment or equivalent evidence score. Filtered methods may
+emit extra state summaries,
+\begin{equation}
+f_{i,k}
+=
+(\hat{x}_{i,k},\ P_{i,k},\ \nu_{i,k},\ S_{i,k},\ d_{i,k}),
+\end{equation}
+where \(d_{i,k}\) is a method-specific diagnostic such as
+\(N_{\mathrm{eff}}\), a resampling indicator, or a mode posterior.
+
+The key methodological point is that the metric layer only requires a stable
+projection of these records. Endpoint accuracy, calibration, prior
+sensitivity, confusion, delay, and pairwise failure analysis consume
+\begin{equation}
+\mathcal{A}
+=
+\left\{
+    r_{i,k}
+\right\}_{i,k}
+\cup
+\left\{
+    f_{i,k}
+\right\}_{i,k},
+\end{equation}
+not the internal implementation details of the evidence provider. In other
+words,
+\begin{equation}
+\text{method implementation}
+\rightarrow
+\text{standard artifact rows}
+\rightarrow
+\text{shared metrics and reports}.
+\end{equation}
+This is the formal reason the methodology can plausibly survive a later
+transition from scalar \(1\text{D}\) witness problems to vector-valued \(3\text{D}\)
+corpora.
+
+\subsection{Metric Consumption Of The Contract}
+Once the shared rows exist, the evaluation layer becomes method-agnostic. For
+example, final-step accuracy is
+\begin{equation}
+A_{\mathrm{final}}
+=
+\frac{1}{N}
+\sum_{i=1}^N
+\mathbf{1}\!\left[
+    \hat{y}_{i,T_i} = y_i^\star
+\right],
+\end{equation}
+negative log-likelihood is
+\begin{equation}
+\mathrm{NLL}
+=
+-\frac{1}{N}
+\sum_{i=1}^N
+\log p_{i,T_i}(y_i^\star),
+\end{equation}
+and confidence-gated error is
+\begin{equation}
+\mathrm{Err}_{\gamma \ge \tau}
+=
+\frac{
+\sum_i \mathbf{1}[\gamma_{i,T_i} \ge \tau]
+\mathbf{1}[\hat{y}_{i,T_i} \neq y_i^\star]
+}{
+\sum_i \mathbf{1}[\gamma_{i,T_i} \ge \tau]
+}.
+\end{equation}
+The same rows also support temporal metrics such as time-to-confidence,
+post-switch delay, and posterior-area diagnostics. This is why a classifier
+comparison report can be generated from one schema family even when one method
+is feature-based and another is model-based.
+
+\subsection{Why The Contract Matters For Promotion}
+Promotion decisions are not attached to raw implementation names. They are
+attached to what the method emits under the common contract. A rung earns
+promotion only if its standardized artifacts show a real gain in the
+interpreted metrics:
+\begin{equation}
+\text{promote}(r \rightarrow r^+)
+\Rightarrow
+\Delta \mathcal{M}(r,r^+) > 0
+\quad \text{under the same artifact definitions},
+\end{equation}
+where \(\Delta \mathcal{M}\) may refer to accuracy, NLL, calibration,
+switch-delay, or prior-robustness improvements. Without this contract, each new
+method would require a custom report surface, and architectural comparability
+would collapse.
+
+\section{Stage VII Package: Code-To-Equation Crosswalk}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\mathcal{E}\)}{equation family or mathematical contract}{left side of the crosswalk}
+\sectionsymbol{\(\mathcal{I}\)}{implementation surface that realizes \(\mathcal{E}\)}{module or subsystem on the code side}
+\sectionsymbol{\(\mathcal{W}\)}{artifact witness proving the implementation ran}{report, table, or bundle linked to the equation family}
+}
+
+\noindent
+The implementation crosswalk now lives outside the PDF as
+\codepath{docs/math/code_equation_crosswalk.md}, but the essential rows are:
 \begin{center}
 \small
-\begin{tabularx}{\textwidth}{lXX}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.26\textwidth}>{\raggedright\arraybackslash}p{0.20\textwidth}X}
 \toprule
-Equation family & Code path & Artifact witness \\
+Equation family & Implementation surface & Artifact witness \\
 \midrule
-Bayes recursive update & \texttt{sequential\_bayes\_accumulator.py} & \texttt{posterior\_history.csv} \\
-Transition update & \texttt{transition\_matrix\_accumulator.py} & transition benchmark report \\
-Kalman innovation likelihood & \texttt{kalman\_filter\_bank.py} & classifier scoring bundle \\
-CorpusGym reward & \texttt{corpus\_gym.py} & CorpusGym report \\
-QD archive elite utility & \texttt{objective\_driven\_qd\_archive.py} & \texttt{archive\_elites.csv} \\
-Class validity status & \texttt{class\_validity.py} & \texttt{class\_validity\_scores.csv} \\
+Bayes recursive update & Sequential Bayes accumulator module & posterior history bundle \\
+Transition update & Transition-matrix accumulator module & transition benchmark report \\
+Kalman innovation likelihood & Kalman filter bank module & classifier scoring bundle \\
+CorpusGym reward & CorpusGym generator module & CorpusGym report \\
+QD archive elite utility & Objective-driven archive module & archive elites table \\
+Class validity status & Class-validity audit module & class-validity score table \\
 \bottomrule
 \end{tabularx}
 \end{center}
 This table is intentionally short in the synthesis paper; the registry and Markdown crosswalk carry the longer implementation detail.
 
-\section{How To Interpret A Result}
+\section{Stage VI Decide: How To Interpret A Result}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\widehat{\mathcal{D}}\)}{audited corpus actually used to support the claim}{must pass adequacy and validity checks}
+\sectionsymbol{\(R\)}{executed result bundle}{posterior, metric, and diagnostic evidence}
+\sectionsymbol{\(d\)}{study-level decision}{promotion-oriented interpretation output}
+\sectionsymbol{\(\Delta \mathcal{M}\)}{metric gain or loss under comparison}{used to judge whether escalation is meaningful}
+}
+
+\noindent
 The synthesis paper should not leave the reader with the impression that a top-line accuracy number is the whole story. The intended interpretation checklist is:
 \begin{enumerate}[leftmargin=1.5em]
   \item \textbf{Did the corpus pass adequacy?} If not, do not trust leaderboard-style claims yet.
@@ -779,53 +2014,159 @@ Is advanced-method escalation justified? & keep the simpler rung until failure e
 This ordering is a methodological guardrail. It prevents the reader from
 jumping directly from a scalar benchmark number to a claim about the algorithm.
 
-\section{Top 10 Proof Artifacts}
+\section{Stage VII Package: Top 10 Proof Artifacts}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(\mathcal{A}_j\)}{artifact \(j\) in the recommended proof set}{one stable evidence object for team review}
+\sectionsymbol{\(\mathcal{Q}(\mathcal{A}_j)\)}{main question answered by artifact \(j\)}{used to explain why the artifact matters}
+\sectionsymbol{\(\mathcal{P}_{10}\)}{current top-ten proof bundle}{smallest high-signal review packet}
+}
+
+\noindent
 The synthesis paper should also identify the small set of artifacts that give a
 reader the fastest route to the current evidence base. Table~\ref{tab:top_proof_artifacts}
 lists the ten artifacts that most directly support the repository's present
-claims.
+claims. The artifact manifest carries the exact file paths; the table below uses
+stable artifact identifiers to keep the synthesis paper readable.
 
-\begin{table}[htbp]
-\centering
+\begingroup
 \small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.29\textwidth}>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.38\textwidth}}
 \caption{Top proof artifacts and what each one proves.}
-\label{tab:top_proof_artifacts}
-\begin{tabularx}{\textwidth}{lXX}
+\label{tab:top_proof_artifacts}\\
 \toprule
-Artifact & Main question answered & What it proves right now \\
+Artifact ID & Main question answered & What it proves right now \\
 \midrule
-\texttt{artifacts/latex/kinematic\_classifier\_methodology.pdf} & What is the end-to-end repo story? & the methodology stack is coherent enough to read as one study system \\
-\texttt{artifacts/classifier\_ladder\_and\_contracts.pdf} & How do methods differ in evidence construction? & pointwise, windowed, sequential Bayes, Kalman, and transition methods share one posterior contract \\
-\texttt{artifacts/corpus\_generation\_and\_search.pdf} & How is the corpus produced and governed? & corpus objectives, search, adequacy, leakage, and promotion are part of one engine \\
-\texttt{artifacts/methodology\_evaluation\_framework.pdf} & How should results be judged? & adequacy, separability, prior sensitivity, calibration, and confusion are interpreted in a fixed order \\
-\texttt{artifacts/common\_dataset\_comparison\_v1/common\_dataset\_comparison\_report.md} & Which methods currently work best on the shared 1D corpus? & the accumulator is the strongest current end-to-end combiner on the common comparison bundle \\
-\texttt{artifacts/prior\_sensitivity\_v1/prior\_sensitivity\_report.md} & Are decisions robust to explicit prior shifts? & fragility is measurable and some methods are materially more prior-sensitive than others \\
-\texttt{artifacts/corpus\_adequacy\_audit\_v1/corpus\_adequacy\_report.md} & Is the current corpus trustworthy? & corpus quality is audited before classifier claims and the current common corpus still has leakage and triviality failures \\
-\texttt{artifacts/transition\_matrix\_accumulator\_v1/transition\_matrix\_numeric\_walkthrough.md} & What does switching-aware recursion actually do numerically? & transition-aware accumulation is a real mathematical update, not only a descriptive plot \\
-\texttt{artifacts/corpus\_autodevelopment\_v1/corpus\_autodevelopment\_numeric\_walkthrough.md} & How is a candidate corpus scored and selected? & corpus selection is driven by explicit score decomposition rather than ad hoc choice \\
-\texttt{artifacts/advanced\_filter\_decision\_v1/advanced\_filter\_decision\_numeric\_walkthrough.md} & Why are IMM/PF/RBPF still gated? & advanced filters are deferred by explicit failure-evidence criteria instead of opinion \\
+\endfirsthead
+\toprule
+Artifact ID & Main question answered & What it proves right now \\
+\midrule
+\endhead
+\texttt{methodology\_pdf} & What is the end-to-end repo story? & the methodology stack is coherent enough to read as one study system \\
+\texttt{ladder\_contracts} & How do methods differ in evidence construction? & pointwise, windowed, sequential Bayes, Kalman, and transition methods share one posterior contract \\
+\texttt{corpus\_search} & How is the corpus produced and governed? & corpus objectives, search, adequacy, leakage, and promotion are part of one engine \\
+\texttt{evaluation\_framework} & How should results be judged? & adequacy, separability, prior sensitivity, calibration, and confusion are interpreted in a fixed order \\
+\texttt{common\_dataset\_comparison} & Which methods currently work best on the shared 1D corpus? & the accumulator is the strongest current end-to-end combiner on the common comparison bundle \\
+\texttt{prior\_sensitivity} & Are decisions robust to explicit prior shifts? & fragility is measurable and some methods are materially more prior-sensitive than others \\
+\texttt{corpus\_adequacy\_audit} & Is the current corpus trustworthy? & corpus quality is audited before classifier claims and the current common corpus still has leakage and triviality failures \\
+\texttt{transition\_walkthrough} & What does switching-aware recursion actually do numerically? & transition-aware accumulation is a real mathematical update, not only a descriptive plot \\
+\texttt{corpus\_autodevelopment} & How is a candidate corpus scored and selected? & corpus selection is driven by explicit score decomposition rather than ad hoc choice \\
+\texttt{advanced\_filter\_decision} & Why are IMM/PF/RBPF still gated? & advanced filters are deferred by explicit failure-evidence criteria instead of opinion \\
 \bottomrule
-\end{tabularx}
-\end{table}
+\end{longtable}
+\endgroup
 These artifacts are the recommended front-door proof set. If a reader only
 opens a few files after this PDF, these are the ones that most directly justify
 the current architectural and mathematical claims.
 
 \section{Results Summary}
-The current artifact stack proves the methodology process end to end: study candidates can be declared, screened statically, evaluated against generated corpora, explained through posterior and prior-sensitivity surfaces, and assigned promotion decisions. The current scope covers the implemented 1D witness stack and the shared methodology flow; the next lift is to extend the same contract to broader class families. The strongest current claim is architectural rather than leaderboard-oriented: the repo already expresses corpus design, feature analysis, evidence accumulation, evaluation, and promotion through shared artifacts.
+The current artifact stack proves the methodology process end to end: study
+candidates can be declared, screened statically, evaluated against generated
+corpora, explained through posterior and prior-sensitivity surfaces, and
+assigned promotion decisions. More importantly, those steps are no longer
+separate scripts. They now form a stable workflow in which corpus design,
+feature geometry, evidence construction, posterior updating, evaluation, and
+packaging all contribute evidence to one decision surface.
+
+The strongest current result is therefore architectural rather than
+leaderboard-oriented. On the shared \(1\text{D}\) witness corpora, the
+accumulator is the strongest current end-to-end combiner, but the deeper claim
+is that pointwise, windowed, model-based, and switching-aware methods can all
+be compared through one artifact family. The project is no longer only asking
+``which classifier wins?'' It is asking ``what evidence was available, how was
+it accumulated, what failed, and what does that imply about the next rung?''
+
+The present limitations are equally explicit. Scalar witness problems still
+dominate the implementation; some corpora still exhibit adequacy and leakage
+issues; and advanced filters remain justified only on gated witness problems
+rather than by default. Those limitations do not invalidate the current
+methodology result. They define the boundary of the current proof.
+
+The most compact mathematical summary of the current contribution is
+\begin{equation}
+\text{corpus}
+\rightarrow
+\text{features / evidence}
+\rightarrow
+\text{posterior}
+\rightarrow
+\text{evaluation}
+\rightarrow
+\text{promotion},
+\end{equation}
+with every arrow now carrying inspectable artifacts. In other words, the
+repository has progressed from isolated demonstrations to a partially proven
+study calculus. The present 1D stack is not important only because it gives one
+set of scores. It is important because it shows that the downstream logic still
+works when the upstream evidence atom changes from observations, to features,
+to innovations, to switching-aware updates.
+
+The substantive conclusion is therefore conditional but strong:
+\begin{quote}
+\textit{the repo has not yet proved universal kinematic classification, but it
+has proved a reusable methodology for declaring, stressing, comparing, and
+judging classification studies across a meaningful algorithm ladder.}
+\end{quote}
+That is the right level of claim for the current state of evidence.
 
 \section{3D Transition Status}
-The current methodology layer distinguishes three statuses: \texttt{dimension\_agnostic}, \texttt{adapter\_compatible}, and \texttt{rewrite\_required}. Contracts, shared evaluation, and study promotion are already dimension-aware. Scalar feature extraction and scalar state-space filtering remain rewrite-required, so current 3D readiness is methodological rather than dynamical.
-The intended 3D lift is therefore not
+The current methodology layer distinguishes three statuses:
+\begin{itemize}[leftmargin=1.5em]
+  \item \codepath{dimension_agnostic}
+  \item \codepath{adapter_compatible}
+  \item \codepath{rewrite_required}
+\end{itemize}
+Contracts, shared evaluation, posterior updating, promotion logic, and
+artifact packaging are already close to the first category. Scalar feature
+extraction, scalar plotting assumptions, and scalar state-space filtering
+remain in the latter two categories, so current 3D readiness is methodological
+rather than dynamical.
+
+The intended \(3\text{D}\) lift is therefore not
 \begin{equation}
 \text{rewrite everything},
 \end{equation}
-but rather
-\begin{equation}
-\text{new corpus adapter} + \text{new feature geometry} + \text{new dynamics/measurement models} + \text{reuse of posterior/evaluation/reporting machinery}.
-\end{equation}
+but rather the following controlled substitutions:
+\begin{itemize}[leftmargin=1.5em]
+  \item add a new corpus adapter,
+  \item add new feature geometry,
+  \item add new dynamics and measurement models,
+  \item reuse the shared inference and reporting machinery.
+\end{itemize}
+In practical terms, the thesis claim is that the difficult reusable part is the
+evidence-to-posterior-to-report pipeline, not the current scalar witness
+equations. A \(3\text{D}\) upgrade should add vector-valued corpus adapters,
+vector-compatible features, model families, and new visualizations while
+preserving the study harness and interpretation logic.
 
 \section{Current Status And Next Work}
-The current common-study evidence surface combines proxy and direct-likelihood forms where available. The 1D studies are witness problems that anchor the methodology layer, and calibration remains a first-class target for future bundles. The next step is to keep numeric substitutions and code-traceable equations synchronized as the repository lifts to vector-valued corpora, richer feature geometry, and more explicit nonlinear filtering gates.
+The current common-study evidence surface combines proxy and direct-likelihood
+forms where available. The \(1\text{D}\) studies are witness problems that
+anchor the methodology layer, and calibration remains a first-class target for
+future bundles. The next steps are now clearer than they were at the start of
+this document:
+\begin{enumerate}[leftmargin=1.5em]
+  \item keep the standardized artifact schemas stable across all promoted methods;
+  \item complete the dimensional-lift audit so every scalar assumption is either isolated behind an adapter or marked for rewrite;
+  \item tighten the corpus adequacy and leakage gates so classifier claims rest on harder data;
+  \item justify transition-aware, IMM, PF, and RBPF escalation only through explicit witness failures and contract-preserving gains.
+\end{enumerate}
+Those next steps can be read as one promotion rule for the repository itself:
+\begin{align}
+\text{1D methodology proof}
+&\rightarrow
+\text{dimension-agnostic contracts}
+\rightarrow
+\text{harder corpora}
+\notag \\
+&\rightarrow
+\text{justified advanced-filter gates}
+\rightarrow
+\text{credible 3D lift}.
+\end{align}
+If those steps are completed, the repository will be in a credible position to
+claim that \(3\text{D}\) is an extension of a proven methodology stack rather
+than a restart from scratch.
 
 \end{document}

@@ -7,6 +7,10 @@
 | `docs/story/package_boundaries.md` | Canonical import facade | canonical |
 | `docs/story/related_methodological_threads.md` | Research-thread mapping and repo integration context | canonical |
 | `docs/story/02_reading_order.md` | Reader journey | canonical |
+| `docs/latex/kinematic_classifier_compendium.tex` | Composite paper assembling the workflow, ladder, and corpus math notes | canonical supporting |
+| `docs/latex/kinematic_classifier_workflow.tex` | Practical workflow-and-math walkthrough for the study loop | canonical supporting |
+| `docs/latex/classifier_ladder_math.tex` | Companion math note for evidence-provider rungs and promotion logic | canonical supporting |
+| `docs/latex/corpus_search_math.tex` | Companion math note for corpus proposal, adequacy, and selection logic | canonical supporting |
 | `docs/latex/kinematic_classifier_methodology.tex` | Methodology synthesis and math-backed paper source | supporting canonical |
 | `docs/surveys/classifier_ladder_and_contracts.md` | Algorithm/evidence contract | supporting canonical |
 | `docs/surveys/corpus_generation_and_search.md` | Corpus objective/search/adequacy engine | supporting canonical |

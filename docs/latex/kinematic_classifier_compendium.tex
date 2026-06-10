@@ -1,0 +1,221 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{comment}
+\usepackage{docmute}
+\graphicspath{{../../artifacts/showcase/plots/}{../../artifacts/bayesian_walkthroughs/plots/}{../../artifacts/transition_matrix_accumulator_v1/}{../../artifacts/corpus_autodevelopment_v1/plots/}{../../artifacts/generic_corpus_exploration/}}
+
+\title{Kinematic Classifier Methodology Compendium}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This compendium joins the current workflow, classifier-ladder, and corpus-search notes into one structured reference. It is intended to be the broad technical front door for the repository: it explains how a study is declared, how a corpus is generated and audited, how evidence-provider families construct posteriors, and how promotion decisions are justified. The current 1D witness suite remains a proof of methodology layers rather than the final scientific endpoint.
+\end{abstract}
+
+\tableofcontents
+\clearpage
+
+\section{How To Read This Compendium}
+This document is organized around three complementary questions:
+\begin{enumerate}[leftmargin=1.5em]
+  \item How does a study move through the repository end to end?
+  \item How do classifier and filter rungs construct evidence and earn promotion?
+  \item How does the corpus layer generate, score, and defend a selected dataset?
+\end{enumerate}
+
+The three parts below intentionally preserve the companion-note split:
+\begin{itemize}[leftmargin=1.5em]
+  \item the workflow part explains the study object and end-to-end flow,
+  \item the ladder part explains evidence contracts and escalation logic,
+  \item the corpus part explains candidate generation, adequacy, and selection.
+\end{itemize}
+
+\section{Scope And Claims}
+This compendium makes a methodological claim, not a final domain claim. The strongest current statement is:
+\begin{quote}
+\textit{The repository already demonstrates a reusable study workflow for kinematic classification in which corpus governance, evidence construction, posterior updates, and promotion decisions are made under explicit contracts.}
+\end{quote}
+
+That claim is intentionally narrower than any claim such as ``the final classifier architecture is complete'' or ``the current 1D witness suite is the target scientific benchmark.'' The current witness suite is still used as a methodology proof:
+\begin{itemize}[leftmargin=1.5em]
+  \item they show how a study is declared,
+  \item they show how evidence-provider families are compared under a shared posterior contract,
+  \item they show how corpus adequacy can be scored and audited,
+  \item they do not yet exhaust the space of higher-dimensional kinematic backends or final production corpora.
+\end{itemize}
+
+The generalization story therefore runs in one direction:
+\begin{equation}
+\text{1D witness success}
+\Longrightarrow
+\text{workflow and contract plausibility},
+\end{equation}
+but not yet
+\begin{equation}
+\text{1D witness success}
+\Longrightarrow
+\text{all future 3D studies are solved}.
+\end{equation}
+
+\section{Notation Conventions}
+The same symbols recur across all three parts:
+\begin{center}
+\begin{tabularx}{0.92\textwidth}{@{}lX@{}}
+\toprule
+Symbol & Meaning \\
+\midrule
+\(\mathcal{D}\) or \(\mathcal{D}^{\star}\) & corpus, dataset slice, or selected corpus candidate \\
+\(f\) or \(\mathcal{F}\) & feature set or active feature family \\
+\(\mathcal{C}\) & class set or class pair under study \\
+\(m\) & classifier, filter, or evidence-provider family \\
+\(\pi\) & prior regime \\
+\(b\) & backend, sensing, or dynamics family \\
+\(z_t\) & raw observation at time \(t\) \\
+\(\phi_t\) & derived feature summary at time \(t\) \\
+\(\ell_t(c)\) & class log-evidence contribution at time \(t\) \\
+\(p_t(c)\) & posterior class probability after time \(t\) \\
+\(d\) & study-level decision in \(\{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}\) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Two naming choices are used consistently in this compendium:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Corpus Explorer} refers to the generic corpus-generation, selection, and adequacy machinery.
+  \item \textbf{Study Candidate Evaluator} refers to the generic study-level evaluator that consumes a selected corpus, feature set, class set, method family, and prior regime to produce a promotion decision.
+\end{itemize}
+
+\section{Reader Guidance}
+The parts can be read independently, but they are intended to support one larger argument:
+\begin{enumerate}[leftmargin=1.5em]
+  \item Part I defines the end-to-end study object and explains where each repository surface fits.
+  \item Part II explains how evidence-provider families share one posterior contract and how a stronger rung earns promotion.
+  \item Part III explains how a corpus candidate becomes credible enough to support the Part II comparisons at all.
+\end{enumerate}
+
+\part{Workflow}
+\section*{Part I Bridge}
+\addcontentsline{toc}{section}{Part I Bridge}
+Part I is the front door. It defines the study object, the corpus layer, the evidence layer, and the decision layer before the method-specific details appear. Read it first if the main question is ``what overall workflow is this repository trying to prove out?''
+
+\begingroup
+\let\maketitle\relax
+\excludecomment{abstract}
+\input{kinematic_classifier_workflow.tex}
+\endgroup
+
+\part{Classifier Ladder}
+\section*{Part II Bridge}
+\addcontentsline{toc}{section}{Part II Bridge}
+Part II narrows from repository workflow to evidence math. It explains how pointwise, windowed, sequential, Kalman-style, and switching-aware methods are compared through one shared log-evidence and posterior-update grammar. Read it second if the main question is ``when is a stronger classifier rung actually justified?''
+
+\begingroup
+\let\maketitle\relax
+\excludecomment{abstract}
+\input{classifier_ladder_math.tex}
+\endgroup
+
+\part{Corpus Search}
+\section*{Part III Bridge}
+\addcontentsline{toc}{section}{Part III Bridge}
+Part III moves back upstream and asks whether the dataset itself deserves trust. It explains candidate generation, adequacy gates, scalar scoring, Pareto tradeoffs, leakage penalties, and coverage reporting. Read it third if the main question is ``how do we know the classifier comparison is being run on an honest corpus?''
+
+\begingroup
+\let\maketitle\relax
+\excludecomment{abstract}
+\input{corpus_search_math.tex}
+\endgroup
+
+\clearpage
+\section{Generalization Path And Current Limits}
+The repository is not intended to stop at a toy 1D classifier exercise. Its broader claim is that the \emph{contracts} should generalize even when the current witnesses remain simple. The main reusable contracts are:
+\begin{itemize}[leftmargin=1.5em]
+  \item the study object \(s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b)\),
+  \item the Corpus Explorer contract for generating, auditing, and selecting \(\mathcal{D}^{\star}\),
+  \item the shared evidence-provider contract that emits \(\ell_t(c)\),
+  \item the shared posterior update and study-level promotion decision.
+\end{itemize}
+
+Those contracts should survive several kinds of lift:
+\begin{enumerate}[leftmargin=1.5em]
+  \item from 1D trajectories to higher-dimensional kinematic state,
+  \item from one hand-authored feature family to alternative feature dictionaries,
+  \item from current witness classes to richer class taxonomies,
+  \item from synthetic witnesses to more realistic or mixed-source corpora,
+  \item from simple Gaussian evidence models to stronger nonlinear or mixed-mode backends.
+\end{enumerate}
+
+What does \emph{not} yet follow automatically is equally important:
+\begin{itemize}[leftmargin=1.5em]
+  \item current 1D witness-suite success does not prove that every 3D backend is already solved,
+  \item current feature-separation plots do not prove that any future class ontology will remain identifiable,
+  \item current corpus audits do not remove the need for backend-specific validity and leakage checks after dimensional lift.
+\end{itemize}
+
+The practical reading is therefore:
+\begin{equation}
+\text{current repository status}
+\approx
+\text{methodology and contract proof}
+\;+\;
+\text{partial witness evidence},
+\end{equation}
+not yet
+\begin{equation}
+\text{final domain-complete classifier stack}.
+\end{equation}
+
+That is the correct standard for interpreting the repository today. If future work changes feature sets, class definitions, dimensionality, or sensing backends, the right question is not ``does the old toy still run?'' The right question is:
+\begin{quote}
+\textit{Do the same corpus, evidence, posterior, and promotion contracts still make the new study legible and auditable?}
+\end{quote}
+
+\clearpage
+\addcontentsline{toc}{part}{Bibliography}
+\begin{thebibliography}{9}
+
+\bibitem{repo_story}
+kinematic-classifier-sandbox,
+\textit{Repo Story, Workflow Notes, and Companion Methodology Documents},
+repository documentation set, 2026.
+
+\bibitem{barshalom}
+Yaakov Bar-Shalom, X. Rong Li, and Thiagalingam Kirubarajan,
+\textit{Estimation with Applications to Tracking and Navigation},
+Wiley, 2001.
+
+\bibitem{bishop}
+Christopher M. Bishop,
+\textit{Pattern Recognition and Machine Learning},
+Springer, 2006.
+
+\bibitem{sutton_barto}
+Richard S. Sutton and Andrew G. Barto,
+\textit{Reinforcement Learning: An Introduction},
+second edition, MIT Press, 2018.
+
+\bibitem{deb}
+Kalyanmoy Deb,
+\textit{Multi-Objective Optimization Using Evolutionary Algorithms},
+Wiley, 2001.
+
+\bibitem{mouret_clune}
+Jean-Baptiste Mouret and Jeff Clune,
+``Illuminating search spaces by mapping elites,''
+\textit{arXiv preprint arXiv:1504.04909}, 2015.
+
+\end{thebibliography}
+
+\end{document}

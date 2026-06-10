@@ -1,0 +1,576 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\graphicspath{{../../artifacts/showcase/plots/}{../../artifacts/bayesian_walkthroughs/plots/}}
+
+\title{Kinematic Classifier Workflow and Math}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document is a practical walkthrough of the repository's kinematic-classification workflow. Its purpose is narrower than the full methodology paper: it explains what flows through the system, how corpus, feature, evidence, and posterior layers connect, and which equations govern the main study loop. The current 1D witness suite is used as a readable proof of workflow layers, not as the final scientific endpoint.
+\end{abstract}
+
+\section{Purpose}
+The repository can be read at two levels:
+\begin{enumerate}[leftmargin=1.5em]
+  \item as a generic study workflow for kinematic classification, and
+  \item as a current 1D witness suite that proves parts of that workflow.
+\end{enumerate}
+
+This document focuses on the workflow itself. The main question is:
+\begin{quote}
+\textit{How does a declared kinematic classification study move from corpus design to a promotion decision under explicit mathematical contracts?}
+\end{quote}
+
+\section{End-To-End Flow}
+The shortest accurate summary of the repository is
+\begin{align}
+\text{study declaration}
+&\rightarrow
+\text{corpus generation or selection}
+\rightarrow
+\text{class-validity and coverage audits}
+\notag \\
+&\rightarrow
+\text{feature extraction or model-based evidence}
+\rightarrow
+\text{posterior updates}
+\notag \\
+&\rightarrow
+\text{evaluation, stress tests, and promotion decision}.
+\end{align}
+
+The central study object is
+\begin{equation}
+s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b),
+\end{equation}
+where
+\begin{align}
+\mathcal{D} &:= \text{corpus or selected dataset slice}, \\
+f &:= \text{feature set}, \\
+\mathcal{C} &:= \text{class set or class pair}, \\
+m &:= \text{classifier or filter family}, \\
+\pi &:= \text{prior regime}, \\
+b &:= \text{optional backend or dynamics family}.
+\end{align}
+
+The workflow then has two generic engines:
+\begin{align}
+\text{Corpus Explorer} &: (o, b) \mapsto \mathcal{D}^{\star}, \\
+\text{Study Candidate Evaluator} &: (\mathcal{D}^{\star}, f, \mathcal{C}, m, \pi, b) \mapsto d,
+\end{align}
+with decision
+\begin{equation}
+d \in \{\text{promote}, \text{revise}, \text{reject}, \text{defer}\}.
+\end{equation}
+
+Figure~\ref{fig:study_object_map} is the compact front-door diagram for that object.
+
+\begin{figure}[htbp]
+\centering
+\setlength{\fboxsep}{8pt}
+\fbox{
+\begin{minipage}{0.92\textwidth}
+\centering
+\begin{tabularx}{\textwidth}{@{}XcXcX@{}}
+\textbf{Declared Study} &
+\(\rightarrow\) &
+\textbf{Corpus Engine} &
+\(\rightarrow\) &
+\textbf{Decision Engine} \\
+\(s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b)\) &
+&
+\((o, b) \mapsto \mathcal{D}^{\star}\) &
+&
+\((\mathcal{D}^{\star}, f, \mathcal{C}, m, \pi, b) \mapsto d\) \\
+\end{tabularx}
+
+\vspace{0.7em}
+
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\textbf{\(\mathcal{D}\)} corpus slice or selected dataset &
+\textbf{\(f\)} feature set and evidence summary family &
+\textbf{\(\mathcal{C}\)} class set or class pair \\
+\textbf{\(m\)} classifier or filter family &
+\textbf{\(\pi\)} prior regime &
+\textbf{\(b\)} backend, sensor, or dynamics family \\
+\end{tabularx}
+\end{minipage}
+}
+\caption{The repository's front-door study object. The left box declares what is being claimed, the middle engine selects a corpus that can test the claim honestly, and the right engine decides whether the declared study is promotable.}
+\label{fig:study_object_map}
+\end{figure}
+
+\section{Workflow Stages}
+\subsection{Stage 1: Declare the Study}
+The workflow starts by declaring what is being tested rather than jumping directly to a model run. That declaration fixes:
+\begin{itemize}[leftmargin=1.5em]
+  \item the classes to separate,
+  \item the kinematic feature family to use,
+  \item the evidence-provider family to compare,
+  \item the prior regime,
+  \item and the corpus requirements needed to make the claim honest.
+\end{itemize}
+
+This separation matters because poor results can have multiple causes:
+\begin{equation}
+\text{failure} \neq \text{classifier failure only}.
+\end{equation}
+A bad result can indicate inadequate corpus coverage, weak features, ambiguous class definitions, prior fragility, or a missing algorithmic rung.
+
+\subsection{Stage 2: Generate or Select a Corpus}
+For the current 1D witness suite, a trajectory is represented as
+\begin{equation}
+\tau_i = \{(t_{ik}, z_{ik})\}_{k=1}^{n_i},
+\end{equation}
+with latent kinematic state
+\begin{equation}
+x_{ik} =
+\begin{bmatrix}
+p_{ik} \\
+v_{ik} \\
+a_{ik}
+\end{bmatrix},
+\qquad
+z_{ik} = h(x_{ik}) + \epsilon_{ik}.
+\end{equation}
+
+In the generic story, the corpus layer defines a distribution over scenarios rather than one fixed benchmark file:
+\begin{equation}
+\tau \sim p(\tau \mid \theta, g, \eta),
+\end{equation}
+where \(\theta\) are scenario parameters, \(g\) is a class or motion template, and \(\eta\) captures noise, corruption, or stress settings.
+
+The corpus objective is not merely ``make more data.'' It is to produce a dataset that exercises the intended boundaries:
+\begin{align}
+Q_{\text{corpus}}
+=\;&
+w_{\text{balance}} Q_{\text{balance}}
++ w_{\text{pair}} Q_{\text{pair}}
++ w_{\text{feature}} Q_{\text{feature}}
+\notag \\
+&+ w_{\text{difficulty}} Q_{\text{difficulty}}
+- w_{\text{leak}} P_{\text{leak}}
+- w_{\text{invalid}} P_{\text{invalid}}.
+\end{align}
+The exact score terms vary by analysis surface, but the structure is stable: reward coverage and difficulty diversity, penalize leakage and invalid examples.
+
+\subsection{Stage 3: Audit Coverage Before Classifier Claims}
+Before comparing classifiers, the workflow checks whether the corpus itself is methodologically usable. The main audit questions are:
+\begin{itemize}[leftmargin=1.5em]
+  \item Do declared classes remain valid after generation and corruption?
+  \item Are feature sets actually excited by the generated trajectories?
+  \item Are hard class pairs represented near their intended boundaries?
+  \item Is the corpus balanced enough to support downstream interpretation?
+  \item Are there obvious covariate leaks that make the task artificially easy?
+\end{itemize}
+
+In compact form, the adequacy gate is
+\begin{equation}
+\text{corpus adequate}
+\Longleftrightarrow
+\bigwedge_{j=1}^{J} G_j(\mathcal{D}) = \text{pass},
+\end{equation}
+where each \(G_j\) is a gate such as class validity, balance, feature-set coverage, or leakage.
+
+\subsection{Stage 4: Convert Observations Into Evidence}
+The repository separates raw observations from derived features and from posterior-ready evidence:
+\begin{align}
+z_k &= \text{raw observation at time } t_k, \\
+\phi_k &= \Phi(z_{1:k}, t_{1:k}), \\
+y_k &= \text{evidence-provider input at step } k.
+\end{align}
+
+The evidence input \(y_k\) depends on the method family:
+\begin{equation}
+y_k =
+\begin{cases}
+z_k, & \text{pointwise methods}, \\
+\phi_k, & \text{windowed feature methods}, \\
+\nu_{k,c}, & \text{Kalman innovation evidence}, \\
+(\phi_k, \nu_{k,c}), & \text{hybrid or future combined methods}.
+\end{cases}
+\end{equation}
+
+The important design rule is that methods are compared through a shared evidence contract:
+\begin{equation}
+\mathcal{E}(z_{1:k}, \phi_{1:k}, \text{model state}) \rightarrow \{\ell_k(c)\}_{c \in \mathcal{C}},
+\end{equation}
+where \(\ell_k(c)\) is the class log-evidence contribution at time \(k\).
+
+\subsection{Stage 5: Update the Posterior}
+Once evidence is expressed in a compatible form, the posterior update is generic. Let
+\begin{equation}
+p_{k}(c) := p(c \mid y_{1:k}).
+\end{equation}
+Then the recursive Bayes update is
+\begin{equation}
+p_k(c) \propto p_{k-1}(c) \exp(\ell_k(c)),
+\end{equation}
+with normalized form
+\begin{equation}
+p_k(c) =
+\frac{p_{k-1}(c) \exp(\ell_k(c))}
+{\sum_{c' \in \mathcal{C}} p_{k-1}(c') \exp(\ell_k(c'))}.
+\end{equation}
+
+In log space, define
+\begin{equation}
+\alpha_k(c) = \log p_{k-1}(c) + \ell_k(c),
+\end{equation}
+then
+\begin{equation}
+p_k(c) = \frac{\exp(\alpha_k(c))}
+{\sum_{c' \in \mathcal{C}} \exp(\alpha_k(c'))}.
+\end{equation}
+
+For a two-class problem with classes \(c_1\) and \(c_2\), the log-odds recursion is
+\begin{equation}
+\log \frac{p_k(c_1)}{p_k(c_2)}
+=
+\log \frac{p_{k-1}(c_1)}{p_{k-1}(c_2)}
++
+\ell_k(c_1) - \ell_k(c_2).
+\end{equation}
+This equation is central to the repo because it exposes prior sensitivity and flip thresholds directly.
+
+\subsection{Stage 6: Add Structure When Static Evidence Is Not Enough}
+If pointwise or windowed evidence is insufficient, the workflow adds structure one rung at a time rather than leaping immediately to the most complex filter.
+
+\paragraph{Transition-aware accumulation.}
+For switching-aware inference, class posteriors are propagated through a transition matrix \(T\):
+\begin{equation}
+\tilde{p}_k(c') = \sum_{c \in \mathcal{C}} T_{cc'} \, p_{k-1}(c),
+\end{equation}
+followed by the evidence update
+\begin{equation}
+p_k(c') \propto \tilde{p}_k(c') \exp(\ell_k(c')).
+\end{equation}
+
+\paragraph{Model-based innovation evidence.}
+For Kalman-bank style methods, each class carries a dynamics model and emits an innovation \(\nu_{k,c}\) with covariance \(S_{k,c}\). The class evidence increment is
+\begin{equation}
+\ell_k(c)
+=
+-\frac{1}{2}
+\left(
+\nu_{k,c}^{\top} S_{k,c}^{-1} \nu_{k,c}
++ \log \det S_{k,c}
++ d \log(2\pi)
+\right),
+\end{equation}
+where \(d\) is the observation dimension.
+
+The ladder logic is therefore:
+\begin{align}
+\text{pointwise}
+\rightarrow
+\text{windowed}
+\rightarrow
+\text{sequential Bayes}
+\rightarrow
+\text{Kalman bank}
+\notag \\
+\rightarrow
+\text{transition-aware filters}
+\rightarrow
+\text{advanced filters}.
+\end{align}
+Each rung must fix a demonstrated failure mode of the previous one.
+
+\subsection{Stage 7: Evaluate the Study}
+After posterior histories are produced, the evaluator does more than inspect top-line accuracy. It measures:
+\begin{itemize}[leftmargin=1.5em]
+  \item confusion and pairwise failure localization,
+  \item prior sensitivity,
+  \item separability of the feature space,
+  \item calibration and posterior sharpness,
+  \item robustness under stress, corruption, and boundary cases.
+\end{itemize}
+
+The evaluation layer asks two different questions:
+\begin{align}
+\text{Is the feature/class geometry promising?} \\
+\text{Does the chosen evidence-provider family realize that promise?}
+\end{align}
+
+That is why the workflow includes both static geometry diagnostics and dynamic posterior diagnostics.
+
+\subsection{Stage 8: Promote, Revise, Reject, or Defer}
+The final output is a decision, not just a score:
+\begin{equation}
+d = \Delta(
+\text{corpus audits},
+\text{separability},
+\text{posterior quality},
+\text{stress results}
+).
+\end{equation}
+
+The point of the decision layer is to keep the repository honest. A study should not be promoted because one artifact looked good in isolation. It should be promoted only when the corpus, feature, evidence, and posterior stories are mutually consistent.
+
+\section{Worked Numeric Examples}
+This section uses current repository artifacts so the equations above can be checked against real runs rather than only against symbolic notation.
+
+\subsection{Sequential Bayes Example}
+The simplest hand-checkable update in the current artifacts is the binary demo recorded in the Bayes step table artifact. It starts with a uniform prior
+\begin{equation}
+p_0(A) = p_0(B) = 0.5
+\end{equation}
+and one-step log evidence values
+\begin{align}
+\ell_1(A) &= -0.2231435513, \\
+\ell_1(B) &= -1.6094379124.
+\end{align}
+
+The log Bayes factor is therefore
+\begin{equation}
+\ell_1(A) - \ell_1(B) = 1.3862943611.
+\end{equation}
+With equal priors, the posterior odds equal the Bayes factor, so
+\begin{equation}
+\log \frac{p_1(A)}{p_1(B)} = 1.3862943611
+\end{equation}
+and the normalized posterior is
+\begin{equation}
+\bigl(p_1(A), p_1(B)\bigr) = (0.8, 0.2).
+\end{equation}
+
+The same artifact also contains a real common-study trajectory where the final log posterior odds for
+\texttt{constant\_velocity} versus \texttt{constant\_acceleration} reach
+\begin{equation}
+\log \frac{p(\texttt{constant\_velocity} \mid y_{1:4})}
+{p(\texttt{constant\_acceleration} \mid y_{1:4})}
+= 0.7005868961,
+\end{equation}
+giving final posteriors
+\begin{equation}
+\bigl(0.6683178817,\; 0.3316821183\bigr).
+\end{equation}
+
+\subsection{Kalman Innovation Example}
+For the Kalman-bank rung, the scalar innovation likelihood for class \(c\) is
+\begin{equation}
+\ell_k(c)
+=
+-\frac{1}{2}
+\left(
+\frac{\nu_{k,c}^2}{S_{k,c}}
++ \log S_{k,c}
++ \log(2\pi)
+\right).
+\end{equation}
+
+Using the row for \texttt{constant\_velocity\_regular\_0} at step \(4\) from
+\texttt{innovation\_history.csv}, the
+\texttt{constant\_velocity} model has
+\begin{align}
+\nu_{k,\mathrm{cv}} &= -0.1727524922, \\
+S_{k,\mathrm{cv}} &= 0.1350588971.
+\end{align}
+Substitution gives
+\begin{equation}
+\ell_k(\mathrm{cv})
+=
+-\frac{1}{2}
+\left(
+\frac{(-0.1727524922)^2}{0.1350588971}
++ \log(0.1350588971)
++ \log(2\pi)
+\right)
+= -0.028399.
+\end{equation}
+
+On the same step, the \texttt{constant\_acceleration} model has
+\begin{align}
+\nu_{k,\mathrm{ca}} &= 0.4632798272, \\
+S_{k,\mathrm{ca}} &= 0.4137106782,
+\end{align}
+which yields
+\begin{equation}
+\ell_k(\mathrm{ca}) = -0.737038.
+\end{equation}
+Those exact values match the corresponding posterior-history row, where the
+\texttt{constant\_velocity} model dominates that step.
+
+\subsection{Transition-Matrix Example}
+The transition-aware numeric walkthrough
+shows the propagation step explicitly. At the first switched step for the target
+mode \texttt{braking},
+\begin{equation}
+\bar{p}_t(\texttt{braking})
+= \sum_s p_{t-1}(s)\,T_{s,\texttt{braking}}
+= 0.312.
+\end{equation}
+
+The contributing terms are
+\begin{align}
+0.340 \cdot 0.800 &= 0.272, \\
+0.660 \cdot 0.060 &= 0.040,
+\end{align}
+with the remaining source-mode contributions rounding to zero, so the propagated prior mass becomes
+\begin{equation}
+0.272 + 0.040 = 0.312.
+\end{equation}
+
+That walkthrough also records the empirical effect:
+\begin{itemize}[leftmargin=1.5em]
+  \item static post-switch accuracy: \(0.000\),
+  \item transition-matrix post-switch accuracy: \(0.333\).
+\end{itemize}
+So the key mechanism is not a new emission model, but moving prior mass into a plausible switched mode before the emission term is applied.
+
+\subsection{Corpus Adequacy Example}
+The corpus-audit scorecard in
+\texttt{corpus\_adequacy\_report.md}
+currently reports
+\begin{align}
+Q_{\text{corpus}} &= 0.643, \\
+L &= 0.613, \\
+T &= 0.500, \\
+G &= 0.023.
+\end{align}
+
+The same scorecard shows the positive coverage terms
+\begin{align}
+B_{\text{class}} &= 1.000, \\
+B_{\text{tier}} &= 1.000, \\
+B_{\text{covariates}} &= 0.704, \\
+E_{\text{feature}} &= 0.557, \\
+C_{\text{pair}} &= 0.730, \\
+V &= 1.000.
+\end{align}
+
+The gate still fails even though feature coverage passes, because one hard pair is too easy:
+\begin{equation}
+\texttt{constant\_acceleration} \text{ vs. } \texttt{maneuver}
+\end{equation}
+has observed
+\begin{align}
+\text{pairwise AUC} &= 1.000, \\
+\text{overlap} &= 0.000,
+\end{align}
+despite being declared \texttt{hard}. This is exactly the sort of evidence the audit is meant to surface: a ``good'' classifier result on that pair would be untrustworthy because the corpus boundary is not yet credible.
+
+\subsection{Advanced-Filter Decision Example}
+The escalation gate for stronger switching or nonlinear filters is also evidence-based. The walkthrough in
+\texttt{advanced\_filter\_decision\_numeric\_walkthrough.md}
+reports
+\begin{align}
+\Delta_{\mathrm{post-switch}}^{\mathrm{TM-static}} &= 0.102, \\
+\Delta_{\mathrm{overall}}^{\mathrm{TM-static}} &= 0.046, \\
+\Delta_{\mathrm{post-switch}}^{\mathrm{TM-kalman}} &= 0.151, \\
+\Delta_{\mathrm{overall}}^{\mathrm{TM-kalman}} &= 0.123.
+\end{align}
+
+The current implemented decisions are therefore
+\begin{align}
+\text{IMM justified now} &= \text{False}, \\
+\text{particle filter justified now} &= \text{False}.
+\end{align}
+The important methodological point is that the repo does not promote a stronger evidence-provider family merely because it exists. It promotes that family only after a simpler rung fails for a reason the next rung can specifically explain.
+
+\section{Visual Anchors}
+The numeric examples above are easier to internalize when paired with the existing artifact plots. Figure~\ref{fig:bayes_transition_visuals} shows the two most direct posterior-oriented examples, and Figure~\ref{fig:governance_visuals} shows the governance layer that decides whether stronger claims are justified.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{posterior_timeline.png}
+\hfill
+\includegraphics[width=0.48\textwidth]{transition_matrix_diagnostics.png}
+\caption{Left: posterior evolution for the Bayes walkthrough family. Right: the transition-matrix witness showing how switching-aware propagation changes behavior after mode changes.}
+\label{fig:bayes_transition_visuals}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{corpus_adequacy_scorecard.png}
+\hfill
+\includegraphics[width=0.48\textwidth]{advanced_filter_decision_matrix.png}
+\caption{Left: corpus governance is evaluated before classifier claims are promoted. Right: escalation to more complex filters is decision-gated by measured witness evidence rather than by ambition alone.}
+\label{fig:governance_visuals}
+\end{figure}
+
+\section{Implementation Map}
+Table~\ref{tab:workflow_map} ties the abstract stages to current code surfaces and typical artifacts.
+
+\small
+\begin{longtable}{@{}p{0.16\textwidth} p{0.25\textwidth} p{0.27\textwidth} p{0.24\textwidth}@{}}
+\caption{Current workflow stages, code surfaces, and representative artifacts.}
+\label{tab:workflow_map} \\
+\toprule
+Stage & Main question & Code surfaces & Representative artifacts \\
+\midrule
+\endfirsthead
+\toprule
+Stage & Main question & Code surfaces & Representative artifacts \\
+\midrule
+\endhead
+Study declaration & What classes, features, priors, and method family are being claimed? & \texttt{common\_experiment}; study-candidate helpers; manifests in \texttt{experiments/} & study manifests; feature sets; class-pair manifests \\
+Corpus generation & What trajectories should be generated or selected? & \texttt{trajectory\_generator}; \texttt{corpus/exploration} & selected corpus manifests; candidate score tables \\
+Validity and adequacy & Is the corpus methodologically usable? & \texttt{class\_validity}; \texttt{coverage\_report} & \texttt{corpus\_adequacy\_audit\_v1/}; balance and leakage reports \\
+Feature geometry & Are the classes separated in the active feature space? & \texttt{feature\_analysis}; \texttt{pca\_analysis} & \texttt{feature\_analysis\_v1/}; \texttt{pca\_analysis\_v1/} \\
+Evidence provider & How is class evidence constructed at each step? & sequential Bayes; Kalman bank; \texttt{transition\_matrix} & posterior histories; innovation tables; transition diagnostics \\
+Promotion logic & Is the declared study promotable? & \texttt{validation\_ladder}; reporting surfaces & validation-ladder reports; promotion scorecards \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\section{What This Document Proves And What It Does Not}
+This document proves the current workflow shape and the core mathematical contracts:
+\begin{itemize}[leftmargin=1.5em]
+  \item corpus, feature, evidence, posterior, and decision layers are explicitly separated,
+  \item method families are compared through shared log-evidence and posterior contracts,
+  \item the 1D witness suite is a readable proof of workflow layers,
+  \item the repository already has places to audit adequacy before classifier claims.
+\end{itemize}
+
+This document does not prove:
+\begin{itemize}[leftmargin=1.5em]
+  \item that the current 1D corpus is final,
+  \item that one method family is universally best,
+  \item that 3D lift is complete,
+  \item or that every conceptual contract is fully generalized across all backends today.
+\end{itemize}
+
+The honest current claim is:
+\begin{quote}
+\textit{The repository already supports a coherent kinematic-classification workflow with explicit mathematical interfaces, and the 1D witness suite is there to prove those interfaces before broader dimensional and backend lift.}
+\end{quote}
+
+\section{Artifact Guide}
+Table~\ref{tab:artifact_guide} lists the artifact names referenced in this document. The full paths live under the corresponding artifact directories in the repository.
+
+\small
+\begin{table}[htbp]
+\centering
+\caption{Artifact names referenced directly in this workflow note.}
+\label{tab:artifact_guide}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+Artifact name & Purpose in this document \\
+\midrule
+\texttt{bayesian\_step\_tables.csv} & Hand-checkable and common-study Bayes posterior updates \\
+\texttt{innovation\_history.csv} & Per-step Kalman innovations and innovation variances \\
+\texttt{posterior\_history.csv} & Per-step posterior values used to confirm the likelihood calculations \\
+\texttt{transition\_matrix\_numeric\_walkthrough.md} & Worked switching-aware propagation example \\
+\texttt{corpus\_adequacy\_report.md} & Corpus scorecard and failure recommendations \\
+\texttt{advanced\_filter\_decision\_numeric\_walkthrough.md} & Evidence-based gate for IMM and particle-filter escalation \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\normalsize
+
+\end{document}

@@ -1,0 +1,268 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\graphicspath{{../../artifacts/showcase/plots/}{../../artifacts/corpus_autodevelopment_v1/plots/}{../../artifacts/generic_corpus_exploration/}}
+
+\title{Corpus Search Math}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document is the corpus-side math companion to the workflow note. It focuses on how corpus candidates are proposed, scored, audited, compared, and selected before classifier claims are trusted.
+\end{abstract}
+
+\section{Purpose}
+The corpus side of the repository answers a different question than the classifier ladder:
+\begin{quote}
+\textit{How do we generate or select a corpus that exercises the intended boundaries without making the task trivial, biased, or poorly governed?}
+\end{quote}
+
+The output object is not just ``more data.'' It is a selected corpus
+\begin{equation}
+\mathcal{D}^{\star}
+\end{equation}
+that is credible enough to support a declared study candidate.
+
+\section{Corpus Explorer Contract}
+The corpus engine is
+\begin{equation}
+(o, b, q, G_b) \mapsto \mathcal{D}^{\star},
+\end{equation}
+where
+\begin{align}
+o &:= \text{corpus objective}, \\
+b &:= \text{backend or execution family}, \\
+q &:= \text{candidate proposal distribution}, \\
+G_b &:= \text{backend-specific trajectory generator}.
+\end{align}
+
+The selected corpus then feeds the study object
+\begin{equation}
+s = (\mathcal{D}^{\star}, f, \mathcal{C}, m, \pi, b).
+\end{equation}
+This is the reason corpus governance matters: a study candidate can fail before any classifier is run if \(\mathcal{D}^{\star}\) is not honest.
+
+\section{Candidate Generation}
+The generator side is a distribution over trajectory parameters rather than one fixed dataset:
+\begin{align}
+\theta_k &\sim q(\theta \mid o, b), \\
+\tau_i &\sim G_b(\theta_k, \xi_i), \\
+\mathcal{D}_k &= \{\tau_i\}_{i=1}^{N_k}.
+\end{align}
+
+The parameter block can be read as
+\begin{equation}
+\theta =
+(\theta_{\text{class}},
+\theta_{\text{tier}},
+\theta_{\text{noise}},
+\theta_{\text{sampling}},
+\theta_{\text{env}}).
+\end{equation}
+
+That gives a compact story:
+\begin{equation}
+\text{objective}
+\rightarrow
+\text{candidate parameters}
+\rightarrow
+\text{generated corpus}
+\rightarrow
+\text{audit and selection}.
+\end{equation}
+
+\section{Adequacy Score}
+The repo already evaluates corpora on balance, pair coverage, feature excitation, leakage, triviality, and degeneracy. A useful compact score form is
+\begin{equation}
+S_k
+=
+w_b B_k
++ w_c C_k
++ w_f F_k
++ w_d D_k
+- w_\ell L_k
+- w_t T_k
+- w_g G_k,
+\end{equation}
+where
+\begin{align}
+B_k &:= \text{balance score}, \\
+C_k &:= \text{class-pair coverage score}, \\
+F_k &:= \text{feature excitation score}, \\
+D_k &:= \text{difficulty-diversity score}, \\
+L_k &:= \text{covariate leakage penalty}, \\
+T_k &:= \text{triviality penalty}, \\
+G_k &:= \text{degeneracy penalty}.
+\end{align}
+
+\begin{table}[htbp]
+\centering
+\caption{Operational meaning of the main corpus score terms.}
+\label{tab:corpus_terms}
+\begin{tabularx}{\textwidth}{@{}lXc@{}}
+\toprule
+Term & Meaning & Desired direction \\
+\midrule
+\(B_k\) & similarity to target class and tier balance & high \\
+\(C_k\) & declared hard-pair boundary coverage & high \\
+\(F_k\) & excitation of active feature sets & high \\
+\(D_k\) & match to target difficulty distribution & high \\
+\(L_k\) & class-linked shortcut signal in covariates & low \\
+\(T_k\) & penalty for corpora that make hard pairs too easy & low \\
+\(G_k\) & duplicate, invalid, or degenerate structure penalty & low \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Worked Score Example}
+The current autodevelopment walkthrough gives one concrete example:
+\begin{align}
+B_k &= 1.000, \\
+C_k &= 0.800, \\
+F_k &= 0.720, \\
+D_k &= 0.800, \\
+L_k &= 0.102, \\
+T_k &= 0.037, \\
+G_k &= 0.000.
+\end{align}
+So for the selected candidate,
+\begin{equation}
+S_k
+=
+1.000 + 0.800 + 0.720 + 0.800 - 0.102 - 0.037 - 0.000
+= 3.181.
+\end{equation}
+
+The important methodological point is that this scalar score is not the only decision surface. It is a summary. The repo also preserves the underlying audit terms and the non-dominated alternatives.
+
+\section{Adequacy Gates}
+The score alone is not sufficient. The corpus must also pass or at least clearly report adequacy gates:
+\begin{equation}
+\text{corpus adequate}
+\Longleftrightarrow
+\bigwedge_{j=1}^{J} G_j(\mathcal{D}_k) = \text{pass}.
+\end{equation}
+
+Typical gates include:
+\begin{itemize}[leftmargin=1.5em]
+  \item class validity,
+  \item class balance,
+  \item feature-set coverage,
+  \item class-pair boundary coverage,
+  \item covariate leakage,
+  \item degeneracy.
+\end{itemize}
+
+One current audit example is especially important: a pair can be declared \texttt{hard} and still fail the governance check if the generated corpus makes it artificially easy. In that case, a strong classifier result is not evidence of a strong study.
+
+\section{Pareto View}
+Scalar ranking is useful for selection, but it can hide tradeoffs. The repo therefore also keeps a Pareto view using an objective vector
+\begin{equation}
+\mathbf{o}_k
+=
+\bigl[
+B_k,\,
+C_k,\,
+F_k,\,
+D_k,\,
+-L_k,\,
+-T_k,\,
+-G_k
+\bigr].
+\end{equation}
+
+Candidate \(a\) dominates candidate \(b\) when
+\begin{align}
+\mathbf{o}_a &\succeq \mathbf{o}_b \text{ componentwise}, \\
+\mathbf{o}_a &\neq \mathbf{o}_b.
+\end{align}
+
+This matters because two corpora may have similar scalar scores but very different failure shapes. One may be slightly leakier; another may under-cover the intended hard boundaries. The Pareto front keeps both visible.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[height=0.34\textheight,keepaspectratio]{corpus_score_pareto.png}
+\caption{Corpus candidates should be compared as tradeoff points, not only as one scalar ranking. The Pareto view keeps non-dominated alternatives visible for study governance.}
+\label{fig:corpus_pareto}
+\end{figure}
+
+\section{Exploration Reward}
+The exploration surfaces go beyond one-shot ranking. A generic exploration reward can be read as
+\begin{equation}
+R_k
+=
+\lambda_1 U_{\text{coverage}}
++ \lambda_2 U_{\text{difficulty}}
++ \lambda_3 U_{\text{novelty}}
+- \lambda_4 P_{\text{leak}}
+- \lambda_5 P_{\text{invalid}},
+\end{equation}
+where the utility terms reward filling useful coverage gaps and the penalties reject shortcuts or invalid trajectories.
+
+The important repository claim is not that this is a learned RL policy already. The claim is that the exploration surface is formalized enough to compare candidate-generation strategies through a common reward grammar.
+
+\section{Coverage Reporting}
+The corpus side now has a coverage-oriented reporting layer as well. It summarizes the adequacy gates, feature-set coverage, feature-group behavior, and classifier-support implications into one inspection bundle.
+
+That means corpus evaluation can be read in two passes:
+\begin{enumerate}[leftmargin=1.5em]
+  \item the adequacy score and gate status,
+  \item the detailed failure recommendations that explain what to fix next.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{corpus_adequacy_scorecard.png}
+\caption{Corpus scorecards summarize whether the current candidate is usable at all before classifier results are trusted.}
+\label{fig:corpus_scorecard}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{class_pair_coverage_heatmap.png}
+\caption{Class-pair coverage diagnostics show whether the intended hard boundaries are actually being exercised.}
+\label{fig:corpus_governance}
+\end{figure}
+
+\section{Leakage And Selection Risk}
+The most important anti-pattern on the corpus side is shortcut leakage. If covariates such as duration, sampling irregularity, or noise level reveal the class too directly, then the corpus has stopped testing the intended kinematic distinction.
+
+That is why a covariate audit is part of the corpus math story:
+\begin{equation}
+\text{good classifier result on leaky corpus}
+\not\Rightarrow
+\text{good study}.
+\end{equation}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{covariate_leakage_audit.png}
+\caption{Covariate leakage is treated as a first-class penalty because it can invalidate downstream classifier conclusions even when accuracy looks strong.}
+\label{fig:covariate_leakage}
+\end{figure}
+
+\section{What This Note Is For}
+This note is meant to pair with the workflow and ladder notes:
+\begin{itemize}[leftmargin=1.5em]
+  \item the workflow note explains the end-to-end study loop,
+  \item the ladder note explains how evidence-provider families earn promotion,
+  \item this corpus note explains how the selected corpus is generated, judged, and defended.
+\end{itemize}
+
+The honest current claim is:
+\begin{quote}
+\textit{The repository already has a mathematically legible corpus-governance layer that can propose, audit, compare, and select corpora before study-level promotion decisions are made.}
+\end{quote}
+
+\end{document}

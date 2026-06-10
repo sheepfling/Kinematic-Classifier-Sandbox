@@ -1,0 +1,231 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\graphicspath{{../../artifacts/showcase/plots/}{../../artifacts/transition_matrix_accumulator_v1/}}
+
+\title{Classifier Ladder Math}
+\author{kinematic-classifier-sandbox}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document is the math companion to the workflow note. Its job is narrower than the full survey document: it states the shared evidence contract, shows how each ladder rung constructs class evidence, and explains the promotion rule for escalating from simpler to stronger evidence-provider families.
+\end{abstract}
+
+\section{Purpose}
+The classifier ladder answers one recurring question:
+\begin{quote}
+\textit{Given the observations available up to time \(t\), what is the next class-evidence increment and why is this rung justified?}
+\end{quote}
+
+The repository does not treat the ladder as a complexity ranking. It treats it as an evidence-design ladder:
+\begin{equation}
+\text{new rung} \Longrightarrow \text{new evidence capability} \Longrightarrow \text{new proof burden}.
+\end{equation}
+
+\section{Shared Contract}
+Across the current ladder, the output contract is:
+\begin{align}
+y_t &:= \text{method-specific evidence input}, \\
+\ell_t(c) &:= \text{class log-evidence at time } t, \\
+\alpha_t(c) &= \log p_{t-1}(c) + \ell_t(c), \\
+p_t(c) &= \frac{\exp(\alpha_t(c))}{\sum_j \exp(\alpha_t(j))}.
+\end{align}
+
+Each rung differs only in how it constructs \(\ell_t(c)\). The downstream posterior, calibration, confusion, and promotion surfaces are meant to stay shared.
+
+\begin{table}[htbp]
+\centering
+\caption{The shared ladder contract.}
+\label{tab:ladder_contract}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+Rung & Evidence input \(y_t\) & Evidence increment \(\ell_t(c)\) \\
+\midrule
+Pointwise & current observation or local measurement summary & \(\log p(y_t \mid c)\) \\
+Windowed & fixed-window or prefix feature vector \(\phi_t\) & \(\log p(\phi_t \mid c)\) \\
+Sequential Bayes & recursively emitted per-step evidence stream & cumulative additive log evidence \\
+Kalman bank & innovation residual \(\nu_{t,c}\) with covariance \(S_{t,c}\) & \(\log \mathcal{N}(\nu_{t,c}; 0, S_{t,c})\) \\
+Transition matrix & emitted evidence plus switching prior & \(\log \bar{p}_t(c) + \log E_t(c)\) \\
+Advanced filters & mode-conditioned or particle-weighted evidence & method-specific switching or nonlinear evidence increment \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Ladder View}
+The current ladder can be summarized as
+\begin{align}
+\text{pointwise}
+\rightarrow
+\text{windowed}
+\rightarrow
+\text{sequential Bayes}
+\notag \\
+\rightarrow
+\text{Kalman bank}
+\rightarrow
+\text{transition matrix}
+\rightarrow
+\text{advanced filters}.
+\end{align}
+
+\begin{table}[htbp]
+\centering
+\caption{Current reader-facing ladder interpretation.}
+\label{tab:ladder_story}
+\begin{tabularx}{\textwidth}{@{}c l X X l@{}}
+\toprule
+Rung & Algorithm & Adds & Failure addressed & Witness \\
+\midrule
+0 & Pointwise & local likelihood baseline & no audited instantaneous baseline & pointwise overlap \\
+1 & Windowed & short-history feature evidence & local noise and outlier fragility & windowed outlier/extrema \\
+2 & Sequential Bayes & recursive memory & pointwise history blindness & sequential history \\
+3 & Kalman bank & dynamics-conditioned innovation evidence & endpoint ambiguity under irregular timing & Kalman endpoint match \\
+4 & Transition matrix & explicit switching pressure & static-class assumption & transition switching \\
+5+ & Advanced filters & switching, nonlinear, or mixed-mode escalation & failures that simpler rungs cannot explain away & gated witnesses \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Pointwise Rung}
+The pointwise rung asks whether a single observation already carries enough signal. With class \(c\), observation \(z_t\), and class parameters \((\mu_c, \sigma_c)\), the Gaussian pointwise evidence is
+\begin{equation}
+\ell_t(c)
+=
+-\frac{1}{2}
+\left[
+\log(2\pi \sigma_c^2)
++
+\frac{(z_t - \mu_c)^2}{\sigma_c^2}
+\right].
+\end{equation}
+
+The rung is justified only as a lower bound. If it works well, the study may be simple. If it fails, that does not yet justify a state-space model; it only proves that purely local evidence is insufficient.
+
+\section{Windowed Rung}
+The windowed rung changes the evidence atom from a raw observation to a feature vector
+\begin{equation}
+\phi_t = \Phi(z_{1:t}, t_{1:t}),
+\end{equation}
+with examples such as extrema, range, slope, sign changes, and residual summaries. Under the current diagonal-Gaussian approximation,
+\begin{equation}
+\ell_t(c)
+=
+\sum_{f \in \mathcal{F}}
+\log \mathcal{N}\!\left(\phi_{t,f}; \mu_{c,f}, \sigma_{c,f}^2\right).
+\end{equation}
+
+The proof burden at this rung is not only accuracy. It must also show that the chosen features are the right answer to the previous failure mode, for example outlier sensitivity or short-horizon ambiguity.
+
+\section{Sequential Bayes Rung}
+The sequential Bayes rung keeps the same notion of per-step evidence but accumulates it recursively:
+\begin{equation}
+\log \frac{p_t(c_1)}{p_t(c_2)}
+=
+\log \frac{p_{t-1}(c_1)}{p_{t-1}(c_2)}
++
+\ell_t(c_1) - \ell_t(c_2).
+\end{equation}
+
+This rung is justified when the pointwise or windowed method has the right local evidence direction but lacks enough temporal memory to turn weak repeated evidence into a stable decision.
+
+\section{Kalman-Bank Rung}
+The Kalman-bank rung replaces feature-engineered evidence with model-based innovation evidence. For class \(c\),
+\begin{align}
+\hat{x}_{t|t-1}^{(c)} &= F_t^{(c)} \hat{x}_{t-1|t-1}^{(c)}, \\
+\nu_{t,c} &= z_t - H_t^{(c)} \hat{x}_{t|t-1}^{(c)}, \\
+S_{t,c} &= H_t^{(c)} P_{t|t-1}^{(c)} H_t^{(c)\top} + R_t^{(c)}.
+\end{align}
+The resulting evidence increment is
+\begin{equation}
+\ell_t(c)
+=
+-\frac{1}{2}
+\left(
+\nu_{t,c}^{\top} S_{t,c}^{-1} \nu_{t,c}
++ \log \det S_{t,c}
++ d \log(2\pi)
+\right).
+\end{equation}
+
+This rung is justified only when the previous failure is really about dynamics, timing, or state evolution. It is not justified merely because Kalman filters are more sophisticated.
+
+\section{Transition-Matrix Rung}
+The transition-matrix rung keeps the emission model but changes the prior propagation:
+\begin{equation}
+\bar{p}_t(c') = \sum_c T_{cc'} p_{t-1}(c).
+\end{equation}
+The posterior update becomes
+\begin{equation}
+p_t(c')
+\propto
+\bar{p}_t(c') \exp(\ell_t(c')).
+\end{equation}
+
+This rung is the bridge from static-class accumulation to explicit switching pressure. It is justified when the observed failure is mode switching, not merely noisy evidence.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{transition_matrix_diagnostics.png}
+\caption{Transition-matrix witness diagnostics. This rung should only be promoted when switching-aware propagation fixes a failure the static accumulator cannot.}
+\label{fig:transition_matrix_ladder}
+\end{figure}
+
+\section{Promotion Rule}
+The ladder promotion rule is methodological rather than aesthetic:
+\begin{equation}
+\text{promote rung } r+1
+\Longleftrightarrow
+\text{rung } r \text{ fails on a witness for a reason } r+1 \text{ is designed to fix.}
+\end{equation}
+
+That can be unfolded into four checks:
+\begin{enumerate}[leftmargin=1.5em]
+  \item The corpus and class geometry are credible enough that the failure is not a data-governance artifact.
+  \item The previous rung fails on a controlled witness case.
+  \item The next rung adds exactly the missing evidence capability.
+  \item The improvement is visible in shared posterior and evaluation artifacts.
+\end{enumerate}
+
+This is the key discipline that prevents the ladder from turning into ``try a more complex model and hope.''
+
+\section{Advanced-Filter Gate}
+The advanced-filter families belong after the transition rung, not before it. Their proof burden is stricter:
+\begin{itemize}[leftmargin=1.5em]
+  \item IMM requires a switching witness case that simpler transition logic no longer explains adequately.
+  \item PF requires a nonlinear or non-Gaussian failure that sensing improvements and robust Gaussian methods do not remove.
+  \item RBPF requires a mixed discrete/continuous structure that neither plain PF nor plain Kalman-style switching handles cleanly.
+\end{itemize}
+
+The repository already encodes this as an evidence-based gate rather than an aspirational roadmap.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{advanced_filter_decision_matrix.png}
+\caption{Advanced-filter escalation should be gated by witness-suite evidence, not by general preference for complex algorithms.}
+\label{fig:advanced_filter_gate}
+\end{figure}
+
+\section{What This Note Is For}
+This document is intended to sit behind the workflow note:
+\begin{itemize}[leftmargin=1.5em]
+  \item the workflow note explains how a study moves through the repository,
+  \item this ladder note explains how each method family constructs evidence and earns promotion.
+\end{itemize}
+
+The honest current claim is therefore limited but strong:
+\begin{quote}
+\textit{The repository already supports a shared posterior contract across multiple evidence-provider families, and it has a methodology for deciding when the next rung is actually justified.}
+\end{quote}
+
+\end{document}
