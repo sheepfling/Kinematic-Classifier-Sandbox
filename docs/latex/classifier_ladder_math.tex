@@ -19,7 +19,7 @@
 \maketitle
 
 \begin{abstract}
-This document is the math companion to the workflow note. Its job is narrower than the full survey document: it states the shared evidence contract, shows how each ladder rung constructs class evidence, and explains the promotion rule for escalating from simpler to stronger evidence-provider families.
+This document is the math companion to the workflow note. Its job is narrower than the full survey document: it states the shared evidence contract, shows how each ladder rung constructs class evidence, and explains the promotion rule for escalating from simpler to stronger evidence-provider families. The ladder vocabulary is grounded in standard Bayesian filtering, linear-Gaussian state estimation, and switching/nonlinear evidence constructions rather than a repo-specific probability calculus \cite{kalman1960,barshalom2001,gordon1993,doucet2001}.
 \end{abstract}
 
 \section{Purpose}
@@ -227,5 +227,28 @@ The honest current claim is therefore limited but strong:
 \begin{quote}
 \textit{The repository already supports a shared posterior contract across multiple evidence-provider families, and it has a methodology for deciding when the next rung is actually justified.}
 \end{quote}
+
+\section{References}
+\begin{thebibliography}{9}
+\bibitem{kalman1960}
+R. E. Kalman.
+\newblock A new approach to linear filtering and prediction problems.
+\newblock \emph{Transactions of the ASME}, 82D:35--45, 1960.
+
+\bibitem{barshalom2001}
+Y. Bar-Shalom, X. R. Li, and T. Kirubarajan.
+\newblock \emph{Estimation with Applications to Tracking and Navigation}.
+\newblock Wiley, 2001.
+
+\bibitem{gordon1993}
+N. J. Gordon, D. J. Salmond, and A. F. M. Smith.
+\newblock Novel approach to nonlinear/non-Gaussian Bayesian state estimation.
+\newblock \emph{IEE Proceedings F}, 140(2):107--113, 1993.
+
+\bibitem{doucet2001}
+A. Doucet, N. de Freitas, and N. Gordon, editors.
+\newblock \emph{Sequential Monte Carlo Methods in Practice}.
+\newblock Springer, 2001.
+\end{thebibliography}
 
 \end{document}

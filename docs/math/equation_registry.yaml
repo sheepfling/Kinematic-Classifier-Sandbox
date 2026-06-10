@@ -50,7 +50,7 @@
     - tests/inference/test_transition_matrix_accumulator.py
 
 - id: gaussian_feature_likelihood
-  status: conceptual
+  status: implemented
   latex: "\\ell_k(c)=-\\tfrac{1}{2}[(\\phi_k-\\mu_c)^\\top\\Sigma_c^{-1}(\\phi_k-\\mu_c)+\\log|\\Sigma_c|+d_\\phi\\log(2\\pi)]"
   symbols:
     "\\phi_k": feature vector at step k
@@ -58,11 +58,13 @@
     "\\Sigma_c": class-conditioned feature covariance
     "d_\\phi": feature dimension
   implementation:
-    module: docs/latex/kinematic_classifier_methodology.tex
-    function: documentation_only
+    module: src/kinematic_classifier_sandbox/analysis/feature_analysis.py
+    function: gaussian_feature_likelihood
   artifacts:
-    - artifacts/latex/kinematic_classifier_methodology.pdf
-  tests: []
+    - artifacts/feature_analysis_v1/feature_matrix.csv
+    - artifacts/formal_math_visual_registry_v1/assets/gaussian_feature_likelihood.png
+  tests:
+    - tests/analysis/test_feature_analysis.py
 
 - id: kalman_innovation_likelihood
   status: implemented
@@ -148,7 +150,7 @@
     - tests/advanced_filters/test_rbpf.py
 
 - id: calibration_metrics
-  status: conceptual
+  status: implemented
   latex: "\\text{Brier}=\\frac{1}{N}\\sum_{i=1}^N\\sum_{c\\in\\mathcal{C}}(p_i(c)-\\mathbf{1}[y_i=c])^2,\\ \\text{ECE}=\\sum_{b=1}^B\\frac{|I_b|}{N}|\\text{acc}(I_b)-\\text{conf}(I_b)|"
   symbols:
     "N": number of evaluated trajectories or decisions
@@ -157,25 +159,29 @@
     "\\text{acc}(I_b)": empirical accuracy in bin b
     "\\text{conf}(I_b)": mean confidence in bin b
   implementation:
-    module: docs/latex/kinematic_classifier_methodology.tex
-    function: documentation_only
+    module: src/kinematic_classifier_sandbox/witnesses/benchmarks/monte_carlo_benchmark.py
+    function: run_accumulator_monte_carlo_benchmark
   artifacts:
-    - artifacts/latex/kinematic_classifier_methodology.pdf
-  tests: []
+    - artifacts/monte_carlo_accumulator/calibration_bins.csv
+    - artifacts/monte_carlo_accumulator/summary.json
+  tests:
+    - tests/inference/test_monte_carlo_benchmark.py
 
 - id: pairwise_mahalanobis_distance
-  status: conceptual
+  status: implemented
   latex: "D_{ab}^2=(\\mu_a-\\mu_b)^\\top\\Sigma^{-1}(\\mu_a-\\mu_b)"
   symbols:
     "\\mu_a": feature mean for class a
     "\\mu_b": feature mean for class b
     "\\Sigma": shared or pooled covariance matrix
   implementation:
-    module: docs/surveys/methodology_evaluation_framework.tex
-    function: documentation_only
+    module: src/kinematic_classifier_sandbox/analysis/feature_analysis.py
+    function: analyze_feature_datasets
   artifacts:
-    - artifacts/methodology_evaluation_framework.pdf
-  tests: []
+    - artifacts/feature_analysis_v1/pairwise_distance_matrix.csv
+    - artifacts/feature_analysis_v1/pairwise_distance_heatmap.png
+  tests:
+    - tests/analysis/test_feature_analysis.py
 
 - id: corpus_autodevelopment_score
   status: implemented

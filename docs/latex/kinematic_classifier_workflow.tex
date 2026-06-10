@@ -19,7 +19,7 @@
 \maketitle
 
 \begin{abstract}
-This document is a practical walkthrough of the repository's kinematic-classification workflow. Its purpose is narrower than the full methodology paper: it explains what flows through the system, how corpus, feature, evidence, and posterior layers connect, and which equations govern the main study loop. The current 1D witness suite is used as a readable proof of workflow layers, not as the final scientific endpoint.
+This document is a practical walkthrough of the repository's kinematic-classification workflow. Its purpose is narrower than the full methodology paper: it explains what flows through the system, how corpus, feature, evidence, and posterior layers connect, and which equations govern the main study loop. The current 1D witness suite is used as a readable proof of workflow layers, not as the final scientific endpoint. The workflow language combines corpus governance, Bayesian posterior updating, and evidence-provider comparisons using standard statistical references as the mathematical baseline rather than claiming a new end-to-end theory \cite{bishop2006,kalman1960,brier1950}.
 \end{abstract}
 
 \section{Purpose}
@@ -186,6 +186,8 @@ In compact form, the adequacy gate is
 \bigwedge_{j=1}^{J} G_j(\mathcal{D}) = \text{pass},
 \end{equation}
 where each \(G_j\) is a gate such as class validity, balance, feature-set coverage, or leakage.
+
+The canonical artifact path for this stage is a paired adequacy-and-coverage packet: \texttt{corpus\_adequacy\_audit\_v1} establishes the corpus gates themselves, while \texttt{coverage\_report\_v1} records classifier-support and feature-set readiness against the same audited corpus.
 
 \subsection{Stage 4: Convert Observations Into Evidence}
 The repository separates raw observations from derived features and from posterior-ready evidence:
@@ -574,5 +576,23 @@ Artifact name & Purpose in this document \\
 \end{tabularx}
 \end{table}
 \normalsize
+
+\section{References}
+\begin{thebibliography}{9}
+\bibitem{bishop2006}
+C. M. Bishop.
+\newblock \emph{Pattern Recognition and Machine Learning}.
+\newblock Springer, 2006.
+
+\bibitem{kalman1960}
+R. E. Kalman.
+\newblock A new approach to linear filtering and prediction problems.
+\newblock \emph{Transactions of the ASME}, 82D:35--45, 1960.
+
+\bibitem{brier1950}
+G. W. Brier.
+\newblock Verification of forecasts expressed in terms of probability.
+\newblock \emph{Monthly Weather Review}, 78(1):1--3, 1950.
+\end{thebibliography}
 
 \end{document}

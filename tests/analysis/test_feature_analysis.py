@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import log, pi
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +10,7 @@ from kinematic_classifier_sandbox.analysis.feature_analysis import (
     FeatureComputationContext,
     OneDimensionalFeatureComputationContext,
     analyze_feature_datasets,
+    gaussian_feature_likelihood,
     load_feature_registry,
     load_feature_set_manifest,
     resolve_feature_names,
@@ -78,6 +80,29 @@ class FeatureAnalysisTests(unittest.TestCase):
         self.assertIn("mean_dt", sampling_features)
         self.assertIn("outlier_score", outlier_features)
         self.assertIn("sampling_irregularity", vector_timing_features)
+
+    def test_gaussian_feature_likelihood_matches_centered_multivariate_gaussian(self) -> None:
+        feature_vector = [2.0, -1.0]
+        class_mean = [1.5, -0.5]
+        covariance = [
+            [2.0, 0.3],
+            [0.3, 1.0],
+        ]
+
+        observed = gaussian_feature_likelihood(feature_vector, class_mean, covariance)
+        residual = [feature_vector[index] - class_mean[index] for index in range(len(feature_vector))]
+        determinant = covariance[0][0] * covariance[1][1] - covariance[0][1] * covariance[1][0]
+        inverse = [
+            [covariance[1][1] / determinant, -covariance[0][1] / determinant],
+            [-covariance[1][0] / determinant, covariance[0][0] / determinant],
+        ]
+        quadratic = sum(
+            residual[row] * sum(inverse[row][col] * residual[col] for col in range(len(residual)))
+            for row in range(len(residual))
+        )
+        expected = -0.5 * (quadratic + log(determinant) + len(residual) * log(2.0 * pi))
+
+        self.assertAlmostEqual(observed, expected, places=8)
 
     def test_feature_analysis_reports_excitation_and_separability(self) -> None:
         result = self.default_result

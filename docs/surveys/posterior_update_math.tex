@@ -29,7 +29,10 @@ active benchmark families in the repository:
 
 The aim is to connect the implemented code paths to explicit posterior update
 equations and to show how those updates produce the downstream confusion
-matrices, feature summaries, and entropy traces.
+matrices, feature summaries, and entropy traces. The generic recursive update
+language is standard Bayesian filtering notation, while the repo-specific value
+is the common evidence contract and artifact traceability built around it
+\cite{bishop2006,kalman1960}.
 
 This document also serves a second purpose. It is a methodology note for how
 the repository is being used as a classification study system. That means the
@@ -888,5 +891,18 @@ This starter document is intentionally narrow. Good next additions would be:
     \item and a short evidence-provider section connecting pointwise,
     windowed, accumulator, and Kalman methods under one posterior contract.
 \end{itemize}
+
+\section{References}
+\begin{thebibliography}{9}
+\bibitem{bishop2006}
+C. M. Bishop.
+\newblock \emph{Pattern Recognition and Machine Learning}.
+\newblock Springer, 2006.
+
+\bibitem{kalman1960}
+R. E. Kalman.
+\newblock A new approach to linear filtering and prediction problems.
+\newblock \emph{Transactions of the ASME}, 82D:35--45, 1960.
+\end{thebibliography}
 
 \end{document}

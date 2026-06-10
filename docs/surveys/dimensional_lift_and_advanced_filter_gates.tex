@@ -134,7 +134,9 @@ These modules ask what failure evidence would justify:
 The current repo now has an explicit IMM proof surface in
 \texttt{advanced\_state\_inference.py}. That means IMM should no longer be
 documented only as a gate label. It should be documented as a switching
-linear-Gaussian algorithm whose justification is still evidence-gated.
+linear-Gaussian algorithm whose justification is still evidence-gated. The
+recursion written below follows the standard multiple-model filtering
+construction rather than a repo-specific variant \cite{barshalom2001}.
 
 For mode set \(\mathcal{M} = \{1,\dots,M\}\), let \(\mu_{k-1}^{(i)}\) be the
 mode posterior after step \(k-1\), and let \(\Pi_{ij}\) be the transition
@@ -266,7 +268,8 @@ This is the core PF identity missing from the simpler ladder: particles are not
 weighted only by likelihood, but by likelihood corrected by the proposal-to-
 prior ratio.
 
-For a bootstrap particle filter, the proposal is the state dynamics itself:
+For a bootstrap particle filter, the proposal is the state dynamics itself
+\cite{gordon1993,doucet2001}:
 \begin{equation}
     x_k^{(i)} \sim p(x_k \mid x_{k-1}^{(i)}).
 \end{equation}
@@ -713,5 +716,23 @@ Primary artifacts for this layer:
     \item \texttt{artifacts/advanced\_filter\_decision\_v1/}
     \item \texttt{artifacts/filtering\_contract/}
 \end{itemize}
+
+\section{References}
+\begin{thebibliography}{9}
+\bibitem{barshalom2001}
+Y. Bar-Shalom, X. R. Li, and T. Kirubarajan.
+\newblock \emph{Estimation with Applications to Tracking and Navigation}.
+\newblock Wiley, 2001.
+
+\bibitem{gordon1993}
+N. J. Gordon, D. J. Salmond, and A. F. M. Smith.
+\newblock Novel approach to nonlinear/non-Gaussian Bayesian state estimation.
+\newblock \emph{IEE Proceedings F}, 140(2):107--113, 1993.
+
+\bibitem{doucet2001}
+A. Doucet, N. de Freitas, and N. Gordon, editors.
+\newblock \emph{Sequential Monte Carlo Methods in Practice}.
+\newblock Springer, 2001.
+\end{thebibliography}
 
 \end{document}

@@ -24,7 +24,10 @@ study candidates are promoted from those corpus surfaces. The goal is to make
 the corpus logic mathematically reproducible rather than only architecturally
 understandable. In the canonical repo story, this document is the
 \textbf{Corpus Explorer} pillar: it explains how an objective and backend are
-turned into a selected corpus that the Study Candidate Evaluator can trust.
+turned into a selected corpus that the Study Candidate Evaluator can trust. The
+search language borrows from multiobjective optimization, archive-based
+quality-diversity search, and targeted stress testing rather than claiming a
+novel optimizer in isolation \cite{deb2002,mouret2015,corso2022}.
 
 \section{Scope And Relation To Other Documents}
 
@@ -986,5 +989,23 @@ Primary artifacts for this layer:
     \item \texttt{artifacts/environment\_aware\_corpus/}
     \item \texttt{artifacts/quality\_diversity\_corpus\_v1/}
 \end{itemize}
+
+\section{References}
+\begin{thebibliography}{9}
+\bibitem{deb2002}
+K. Deb, A. Pratap, S. Agarwal, and T. Meyarivan.
+\newblock A fast and elitist multiobjective genetic algorithm: NSGA-II.
+\newblock \emph{IEEE Transactions on Evolutionary Computation}, 6(2):182--197, 2002.
+
+\bibitem{mouret2015}
+J.-B. Mouret and J. Clune.
+\newblock Illuminating search spaces by mapping elites.
+\newblock \emph{arXiv}:1504.04909, 2015.
+
+\bibitem{corso2022}
+J. Corso, R. Moss, and M. Koren.
+\newblock Adaptive stress testing and failure search in simulation.
+\newblock \emph{Annual Review of Control, Robotics, and Autonomous Systems}, 5:59--83, 2022.
+\end{thebibliography}
 
 \end{document}

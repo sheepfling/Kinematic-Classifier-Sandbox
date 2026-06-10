@@ -32,6 +32,7 @@ from ..trajectory_generator import (
     generate_trajectory_datasets,
 )
 from ..utils.plotting import plt
+from ..utils.runtime import repo_root
 from .feature_analysis_artifact_io import write_feature_analysis_artifacts
 from .feature_analysis_contracts import FeatureAnalysisArtifacts
 from .feature_analysis_reporting import render_feature_analysis_report
@@ -178,6 +179,16 @@ def _pooled_covariance(rows_a: list[list[float]], rows_b: list[list[float]]) -> 
     for i in range(dimension):
         covariance[i][i] += 1e-6
     return covariance
+
+
+def gaussian_feature_likelihood(
+    feature_vector: list[float] | tuple[float, ...],
+    class_mean: list[float] | tuple[float, ...],
+    class_covariance: list[list[float]] | tuple[tuple[float, ...], ...],
+) -> float:
+    centered = [float(feature_vector[index]) - float(class_mean[index]) for index in range(len(feature_vector))]
+    covariance = [[float(value) for value in row] for row in class_covariance]
+    return _gaussian_logpdf(centered, covariance)
 
 
 def _matrix_inverse(matrix: list[list[float]]) -> list[list[float]]:
@@ -596,7 +607,7 @@ FEATURE_NAMES = tuple(FEATURE_REGISTRY)
 FEATURE_GROUPS = {name: spec.group for name, spec in FEATURE_REGISTRY.items()}
 
 FEATURE_SET_MANIFEST_PATH = (
-    Path(__file__).resolve().parents[3]
+    repo_root()
     / "experiments"
     / "common_1d_classifier_study"
     / "feature_sets.json"

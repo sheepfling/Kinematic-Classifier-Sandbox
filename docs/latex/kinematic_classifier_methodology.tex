@@ -61,7 +61,7 @@ The implementation-linked derivations live in the survey stack. This paper integ
 \end{itemize}
 
 \section{Related Methodological Threads}
-The repository sits at the intersection of several established research threads. The point of this section is not to claim invention of each component, but to make the integration explicit and honest.
+The repository sits at the intersection of several established research threads. The point of this section is not to claim invention of each component, but to make the integration explicit and honest. The active-learning framing follows the broad experimental-design view of informative sampling, the QD framing follows archive-style diversity-preserving search, the calibration framing follows standard probabilistic forecasting diagnostics, and the filtering framing follows the classical linear-Gaussian, multiple-model, and sequential Monte Carlo literature \cite{settles2009,deb2002,mouret2015,brier1950,niculescu2005,guo2017,kalman1960,barshalom2001,doucet2001}.
 
 \begin{table}[htbp]
 \centering
@@ -176,6 +176,7 @@ The repository now has one intended front-door story:
 \begin{quote}
 \textit{This repository is a methodology workbench for kinematic classification studies. It declares a study candidate, generates or selects a corpus, validates class labels and feature excitation, runs evidence providers, updates posteriors under explicit priors, evaluates separability/calibration/confusion/adequacy, and assigns a promotion decision. The current 1D witness problems are controlled proofs of that machinery before 3D lift, including switching, nonlinear particle, RBPF, and mean-reverting stochastic witnesses.}
 \end{quote}
+The registry policy and comparison policy are intentionally different. PF, RBPF, and the OU witness are part of the generic classifier family at the shared-method manifest level, but broad comparison tables are capability-aware rather than universal bakeoffs. A method is scored on a family only when its manifest declares that family as supported; otherwise the reporting layer carries it as \texttt{not\_applicable} or \texttt{witness\_only} with an explicit supporting artifact path.
 The central study object is
 \begin{equation}
 s = (\mathcal{D}, f, \mathcal{C}, m, \pi, b),
@@ -1710,7 +1711,7 @@ This is the architectural reason the disparate corpus, feature, and study docs b
 }
 
 \noindent
-The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, transition-matrix, and now an explicit IMM proof surface. The advanced-method policy is still conservative: existence of an IMM, PF, or RBPF implementation does not mean the repo automatically claims that rung is necessary everywhere. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains evidence-gated as an escalation beyond the transition rung, PF remains decision-gated, and RBPF is implemented as a sampled-mode plus conditional-\(1\text{D}\)-PVA filter but is still methodologically gated until a witness proves that mixed discrete/continuous structure is the simplest necessary explanation.
+The current ladder proves the utility of pointwise, windowed, sequential Bayes, Kalman-bank, transition-matrix, and now an explicit IMM proof surface. The advanced-method policy is still conservative: existence of an IMM, PF, or RBPF implementation does not mean the repo automatically claims that rung is necessary everywhere. In the current decision reports, transition-aware accumulation is justified for switching witness problems, IMM remains evidence-gated as an escalation beyond the transition rung, PF remains decision-gated, and RBPF is implemented as a sampled-mode plus conditional-\(1\text{D}\)-PVA filter but is still methodologically gated until a witness proves that mixed discrete/continuous structure is the simplest necessary explanation. The algorithmic forms used in this section follow standard IMM, particle-filter, and Rao-Blackwellized particle-filter constructions rather than claiming a new filtering derivation \cite{barshalom2001,gordon1993,doucet2001}.
 The key policy claim is that advanced methods are downstream of failure evidence. If \(M_0\) is the current simpler method and \(M_1\) is a more advanced filter family, the repository is trying to justify a transition only when
 \begin{equation}
 \text{failure}(M_0, \mathcal{D}) \land \text{capability gain}(M_1) \land \text{measurable success criterion}(M_1)
@@ -2199,5 +2200,58 @@ Those next steps can be read as one promotion rule for the repository itself:
 If those steps are completed, the repository will be in a credible position to
 claim that \(3\text{D}\) is an extension of a proven methodology stack rather
 than a restart from scratch.
+
+\section{References}
+\begin{thebibliography}{99}
+\bibitem{brier1950}
+G. W. Brier.
+\newblock Verification of forecasts expressed in terms of probability.
+\newblock \emph{Monthly Weather Review}, 78(1):1--3, 1950.
+
+\bibitem{niculescu2005}
+A. Niculescu-Mizil and R. Caruana.
+\newblock Predicting good probabilities with supervised learning.
+\newblock In \emph{ICML}, 2005.
+
+\bibitem{guo2017}
+C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger.
+\newblock On calibration of modern neural networks.
+\newblock In \emph{ICML}, 2017.
+
+\bibitem{kalman1960}
+R. E. Kalman.
+\newblock A new approach to linear filtering and prediction problems.
+\newblock \emph{Transactions of the ASME}, 82D:35--45, 1960.
+
+\bibitem{barshalom2001}
+Y. Bar-Shalom, X. R. Li, and T. Kirubarajan.
+\newblock \emph{Estimation with Applications to Tracking and Navigation}.
+\newblock Wiley, 2001.
+
+\bibitem{gordon1993}
+N. J. Gordon, D. J. Salmond, and A. F. M. Smith.
+\newblock Novel approach to nonlinear/non-Gaussian Bayesian state estimation.
+\newblock \emph{IEE Proceedings F}, 140(2):107--113, 1993.
+
+\bibitem{doucet2001}
+A. Doucet, N. de Freitas, and N. Gordon, editors.
+\newblock \emph{Sequential Monte Carlo Methods in Practice}.
+\newblock Springer, 2001.
+
+\bibitem{settles2009}
+B. Settles.
+\newblock \emph{Active Learning Literature Survey}.
+\newblock University of Wisconsin--Madison, 2009.
+
+\bibitem{deb2002}
+K. Deb, A. Pratap, S. Agarwal, and T. Meyarivan.
+\newblock A fast and elitist multiobjective genetic algorithm: NSGA-II.
+\newblock \emph{IEEE Transactions on Evolutionary Computation}, 6(2):182--197, 2002.
+
+\bibitem{mouret2015}
+J.-B. Mouret and J. Clune.
+\newblock Illuminating search spaces by mapping elites.
+\newblock \emph{arXiv}:1504.04909, 2015.
+\end{thebibliography}
 
 \end{document}

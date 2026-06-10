@@ -7,9 +7,10 @@ from pathlib import Path
 from ..markdown_builder import MarkdownDocument
 from ..utils.io import write_csv
 from ..utils.plotting import plt
+from ..utils.runtime import repo_root
 from .formal_math_registry import load_equation_registry
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = repo_root()
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +55,10 @@ IMPLEMENTED_SOURCE_DATA: dict[str, tuple[str, ...]] = {
         "artifacts/transition_matrix_accumulator_v1/scenario_summary.csv",
         "artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md",
     ),
+    "gaussian_feature_likelihood": (
+        "artifacts/feature_analysis_v1/feature_matrix.csv",
+        "artifacts/formal_math_visual_registry_v1/assets/gaussian_feature_likelihood.png",
+    ),
     "kalman_innovation_likelihood": (
         "artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv",
         "artifacts/corpus_classifier_scoring/posterior_history.csv",
@@ -77,6 +82,15 @@ IMPLEMENTED_SOURCE_DATA: dict[str, tuple[str, ...]] = {
         "artifacts/rbpf_v1/rbpf_method_comparison.csv",
         "artifacts/rbpf_v1/latent_mode_posterior.csv",
         "artifacts/rbpf_v1/rbpf_report.md",
+    ),
+    "calibration_metrics": (
+        "artifacts/monte_carlo_accumulator/calibration_bins.csv",
+        "artifacts/monte_carlo_accumulator/summary.json",
+        "artifacts/monte_carlo_accumulator/calibration_curve.png",
+    ),
+    "pairwise_mahalanobis_distance": (
+        "artifacts/feature_analysis_v1/pairwise_distance_matrix.csv",
+        "artifacts/feature_analysis_v1/pairwise_distance_heatmap.png",
     ),
     "corpus_autodevelopment_score": (
         "artifacts/corpus_autodevelopment_v1/candidate_scores.csv",
@@ -140,6 +154,10 @@ IMPLEMENTED_EXACT_ARTIFACTS: dict[str, tuple[str, ...]] = {
         "artifacts/transition_matrix_accumulator_v1/transition_matrix_accumulator_report.md",
         "artifacts/transition_matrix_accumulator_v1/transition_matrix_numeric_walkthrough.md",
     ),
+    "gaussian_feature_likelihood": (
+        "artifacts/feature_analysis_v1/feature_matrix.csv",
+        "artifacts/formal_math_visual_registry_v1/assets/gaussian_feature_likelihood.png",
+    ),
     "kalman_innovation_likelihood": (
         "artifacts/corpus_classifier_scoring/classifier_candidate_scores.csv",
         "artifacts/corpus_classifier_scoring/posterior_history.csv",
@@ -159,6 +177,14 @@ IMPLEMENTED_EXACT_ARTIFACTS: dict[str, tuple[str, ...]] = {
     "rbpf_conditional_weight_update": (
         "artifacts/rbpf_v1/latent_mode_posterior.csv",
         "artifacts/rbpf_v1/rbpf_report.md",
+    ),
+    "calibration_metrics": (
+        "artifacts/monte_carlo_accumulator/calibration_bins.csv",
+        "artifacts/monte_carlo_accumulator/summary.json",
+    ),
+    "pairwise_mahalanobis_distance": (
+        "artifacts/feature_analysis_v1/pairwise_distance_matrix.csv",
+        "artifacts/feature_analysis_v1/pairwise_distance_heatmap.png",
     ),
     "corpus_autodevelopment_score": (
         "artifacts/corpus_autodevelopment_v1/candidate_scores.csv",
@@ -209,21 +235,6 @@ IMPLEMENTED_EXACT_ARTIFACTS: dict[str, tuple[str, ...]] = {
 
 
 ILLUSTRATIVE_SOURCE_DATA: dict[str, tuple[str, ...]] = {
-    "gaussian_feature_likelihood": (
-        "artifacts/generated_corpus_features/feature_matrix.csv",
-        "artifacts/generated_corpus_features/selected_record_manifest.csv",
-        "artifacts/formal_math_visual_registry_v1/assets/gaussian_feature_likelihood.png",
-    ),
-    "calibration_metrics": (
-        "artifacts/monte_carlo_accumulator/calibration_bins.csv",
-        "artifacts/monte_carlo_accumulator/calibration_curve.png",
-        "artifacts/formal_math_visual_registry_v1/assets/calibration_metrics.png",
-    ),
-    "pairwise_mahalanobis_distance": (
-        "artifacts/feature_analysis_v1/pairwise_distance_matrix.csv",
-        "artifacts/feature_analysis_v1/pairwise_distance_heatmap.png",
-        "artifacts/formal_math_visual_registry_v1/assets/pairwise_mahalanobis_distance.png",
-    ),
     "imm_mode_mixing_recursion": (
         "artifacts/imm_filter_v1/switching_detection_metrics.csv",
         "artifacts/advanced_filter_comparison_v1/advanced_filter_comparison_report.md",
@@ -248,15 +259,6 @@ ILLUSTRATIVE_SOURCE_DATA: dict[str, tuple[str, ...]] = {
 
 
 ILLUSTRATIVE_EXACT_ARTIFACTS: dict[str, tuple[str, ...]] = {
-    "gaussian_feature_likelihood": (
-        "artifacts/formal_math_visual_registry_v1/assets/gaussian_feature_likelihood.png",
-    ),
-    "calibration_metrics": (
-        "artifacts/formal_math_visual_registry_v1/assets/calibration_metrics.png",
-    ),
-    "pairwise_mahalanobis_distance": (
-        "artifacts/formal_math_visual_registry_v1/assets/pairwise_mahalanobis_distance.png",
-    ),
     "imm_mode_mixing_recursion": (
         "artifacts/imm_filter_v1/switching_detection_metrics.csv",
         "artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv",
