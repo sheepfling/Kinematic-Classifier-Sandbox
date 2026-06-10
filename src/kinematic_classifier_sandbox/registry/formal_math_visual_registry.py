@@ -7,6 +7,8 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..utils.runtime import repo_root
+
 from ..analysis.feature_analysis import write_feature_analysis_artifacts
 from ..analysis.generated_corpus_features import select_generated_corpus_records
 from ..artifacts import render_posterior_numeric_walkthrough_png_bytes
@@ -23,7 +25,7 @@ from ..utils.io import write_csv
 from ..utils.plotting import _figure_to_png, plt
 from .formal_math_registry import load_equation_registry
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = repo_root()
 ARTIFACT_DIR = ROOT / "artifacts" / "formal_math_visual_registry_v1"
 
 

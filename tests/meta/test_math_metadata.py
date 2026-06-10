@@ -75,7 +75,7 @@ class MathMetadataTests(unittest.TestCase):
         implemented = [row for row in payload if row["status"] == "implemented"]
         conceptual = [row for row in payload if row["status"] == "conceptual"]
         self.assertGreaterEqual(len(implemented), 8)
-        self.assertGreaterEqual(len(conceptual), 2)
+        self.assertEqual(len(conceptual), 0)
 
 
 if __name__ == "__main__":
