@@ -30,6 +30,18 @@ Rule of thumb:
 
 - If a script is a canonical entrypoint a user is likely to run directly, keep it at `scripts/`.
 - If a script is a specialized helper for one subsystem, place it in the matching subdirectory.
+- Scripts do not mutate `sys.path`. Run them after `python3 -m pip install -e '.[dev]'`
+  or with an explicit `PYTHONPATH=src` environment.
+
+Import and package-surface rules:
+
+- Internal code imports concrete owner modules, not package-root compatibility wrappers.
+- Do not add broad `__init__.py` reexports, wildcard imports, dynamic `__all__`, or
+  module-level `__getattr__` public-surface tricks.
+- Do not add script-local `sys.path.insert(...)` bootstraps.
+- `python3 scripts/check.py` runs `scripts/audit/audit_import_simplicity.py --strict`;
+  use `PYTHONPATH=src python3 scripts/audit/audit_import_simplicity.py --strict`
+  for a narrow pre-commit check.
 
 Common LaTeX rerun commands:
 

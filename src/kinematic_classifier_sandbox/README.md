@@ -63,43 +63,38 @@ splitting:
 - `showcase/`
   - team-facing showcase packet contracts, runner/export logic, and packet validation
 
-## Root modules
+## Root Modules
 
-The package root still contains several orchestrators and front-door modules:
+The package root is intentionally small. It contains only process front doors,
+shared contracts, and cross-cutting orchestration that do not belong to a more
+specific domain package:
 
 - `__init__.py`: public exports
 - `__main__.py`: package CLI
 - `api_core.py`: curated core entry points
 - `artifacts.py`: shared artifact writers
-- `catalog.py`: method catalog
 - `common_experiment_harness.py`: common study runner
 - `common_experiment_classifier_registry.py`: classifier registry for the common harness
 - `common_1d_study_adapter.py`: common 1D study adapter
 - `contracts.py`: shared schemas and contracts
 - `milestones.py`: milestone orchestration
 - `showcase_builder.py`: team-facing showcase packet builder
-  - compatibility wrapper over the grouped `showcase/` package
 - `repo_story.py`: canonical repo-story generator
 
-There are also some legacy root-level modules that are still important, but are
-good future candidates to migrate fully under one of the subpackages:
+Root-level compatibility wrappers are not allowed. If a function lives in
+`analysis/`, `corpus/`, `inference/`, `validation/`, `methodology/`, or
+`registry/`, import it from that owning module rather than adding a package-root
+forwarder.
 
-- `trajectory_generator.py`
-- `study_candidate_generation.py`
-- `study_candidate_protocol.py`
-- `formal_math_registry.py`
-- `formal_math_visual_registry.py`
-- `generic_inference_contract.py`
-- `generic_feature_taxonomy.py`
-- `generic_filtering_contract.py`
-- `generic_classification_evidence_proof.py`
-  - compatibility wrappers over the grouped `methodology/` package
-- `methodology_latex.py`
-- `methodology_compendium.py`
+Examples:
 
-Several previously duplicated root modules now exist only as compatibility
-surfaces over grouped canonical implementations. Prefer importing from the
-grouped subpackage when working internally.
+- Use `kinematic_classifier_sandbox.analysis.feature_analysis`.
+- Use `kinematic_classifier_sandbox.analysis.feature_analysis_artifact_io`.
+- Use `kinematic_classifier_sandbox.corpus.coverage_artifact_io`.
+- Use `kinematic_classifier_sandbox.registry.formal_math_registry`.
+
+Do not add new files like `src/kinematic_classifier_sandbox/feature_analysis.py`
+or populate package `__init__.py` files with broad convenience reexports.
 
 ## Rule of thumb
 
@@ -108,6 +103,10 @@ grouped subpackage when working internally.
   or genuinely cross-cutting builders.
 - Prefer extending existing grouped areas before adding more flat top-level
   modules in this package.
+- Keep package imports boring: no wildcard facades, no dynamic `__all__`, no
+  module-level `__getattr__`, and no import-time runtime setup.
+- Run `PYTHONPATH=src python3 scripts/audit/audit_import_simplicity.py --strict`
+  after changing imports or package layout.
 
 ## Exported surface coverage
 
