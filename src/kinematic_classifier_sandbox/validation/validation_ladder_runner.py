@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from ..common_experiment.runner import analyze_common_experiment
+from ..common_experiment.contracts import CommonExperimentResult
 from ..corpus.autodevelopment import analyze_corpus_autodevelopment
+from ..corpus.autodevelopment_types import CorpusAutodevelopmentResult
 from ..study_candidate_generation import analyze_study_candidate_generation
+from ..study_candidate_generation import StudyCandidateGenerationResult
 from ..study_candidate_protocol import analyze_study_candidate_protocol
+from ..study_candidate_protocol import StudyCandidateProtocolResult
 from .validation_ladder_contracts import ValidationLadderResult
 from .validation_ladder_rendering import render_validation_ladder_report
 
@@ -31,11 +35,21 @@ def analyze_validation_ladder(
     *,
     seed: int = 7,
     trajectories_per_case: int = 6,
+    protocol_result: StudyCandidateProtocolResult | None = None,
+    common_result: CommonExperimentResult | None = None,
+    corpus_result: CorpusAutodevelopmentResult | None = None,
+    study_generation_result: StudyCandidateGenerationResult | None = None,
 ) -> ValidationLadderResult:
-    protocol = analyze_study_candidate_protocol()
-    study_generation = analyze_study_candidate_generation(seed=seed, trajectories_per_case=trajectories_per_case)
-    common = analyze_common_experiment(seed=seed, trajectories_per_case=trajectories_per_case)
-    corpus = analyze_corpus_autodevelopment(seed=seed)
+    protocol = protocol_result or analyze_study_candidate_protocol()
+    common = common_result or analyze_common_experiment(seed=seed, trajectories_per_case=trajectories_per_case)
+    corpus = corpus_result or analyze_corpus_autodevelopment(seed=seed)
+    study_generation = study_generation_result or analyze_study_candidate_generation(
+        seed=seed,
+        trajectories_per_case=trajectories_per_case,
+        protocol_result=protocol,
+        common_result=common,
+        corpus_result=corpus,
+    )
     selected_corpus = next(
         evaluation for evaluation in corpus.candidate_evaluations if evaluation.spec.candidate_id == corpus.selected_candidate_id
     )

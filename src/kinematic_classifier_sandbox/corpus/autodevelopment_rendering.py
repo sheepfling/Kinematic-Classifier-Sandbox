@@ -153,6 +153,21 @@ def render_corpus_autodevelopment_numeric_walkthrough_markdown(result: CorpusAut
         ]
     )
 
+    doc.heading("Why This Candidate Beats A Rejected One", level=2)
+    if rejected is None:
+        doc.paragraph("No rejected candidate is available for direct comparison in this run.")
+    else:
+        score_delta = float(selected.score_row["overall_score"]) - float(rejected.score_row["overall_score"])
+        doc.bullet_list(
+            [
+                f"Selected candidate: `{selected.spec.candidate_id}` scored `{float(selected.score_row['overall_score']):.3f}` versus rejected `{rejected.spec.candidate_id}` at `{float(rejected.score_row['overall_score']):.3f}`.",
+                f"Score margin: `{score_delta:.3f}`.",
+                f"Boundary coverage: `{float(selected.score_row['boundary_coverage_score']):.3f}` versus `{float(rejected.score_row['boundary_coverage_score']):.3f}`.",
+                f"Feature excitation: `{float(selected.score_row['feature_excitation_score']):.3f}` versus `{float(rejected.score_row['feature_excitation_score']):.3f}`.",
+                f"Leakage penalty: `{float(selected.score_row['leakage_penalty']):.3f}` versus `{float(rejected.score_row['leakage_penalty']):.3f}`.",
+            ]
+        )
+
     return doc.text()
 
 

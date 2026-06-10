@@ -4,16 +4,33 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from kinematic_classifier_sandbox.common_experiment.runner import analyze_common_experiment
+from kinematic_classifier_sandbox.corpus.autodevelopment import analyze_corpus_autodevelopment
 from kinematic_classifier_sandbox.study_candidate_generation import (
     analyze_study_candidate_generation,
     write_study_candidate_generation_artifacts,
 )
+from kinematic_classifier_sandbox.study_candidate_protocol import analyze_study_candidate_protocol
 
 
 class StudyCandidateGenerationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.protocol_result = analyze_study_candidate_protocol()
+        cls.common_result = analyze_common_experiment(seed=7, trajectories_per_case=6)
+        cls.corpus_result = analyze_corpus_autodevelopment(seed=7)
+        cls.result = analyze_study_candidate_generation(
+            seed=7,
+            trajectories_per_case=6,
+            protocol_result=cls.protocol_result,
+            common_result=cls.common_result,
+            corpus_result=cls.corpus_result,
+        )
+
     def test_study_candidates_are_generated_and_scored(self) -> None:
-        result = analyze_study_candidate_generation(seed=7, trajectories_per_case=6)
+        result = self.result
 
         self.assertGreater(len(result.generated_candidates), 0)
         self.assertGreater(len(result.static_score_rows), 0)
@@ -33,11 +50,27 @@ class StudyCandidateGenerationTests(unittest.TestCase):
         rejected_ids = {row["study_id"] for row in result.rejected_rows}
         self.assertTrue(promoted_ids.isdisjoint(rejected_ids))
 
+    def test_study_candidate_generation_uses_injected_results(self) -> None:
+        with (
+            patch("kinematic_classifier_sandbox.study_candidate_generation.analyze_study_candidate_protocol", side_effect=AssertionError("protocol should not be recomputed")),
+            patch("kinematic_classifier_sandbox.study_candidate_generation.analyze_common_experiment", side_effect=AssertionError("common result should not be recomputed")),
+            patch("kinematic_classifier_sandbox.study_candidate_generation.analyze_corpus_autodevelopment", side_effect=AssertionError("corpus result should not be recomputed")),
+        ):
+            result = analyze_study_candidate_generation(
+                seed=7,
+                trajectories_per_case=6,
+                protocol_result=self.protocol_result,
+                common_result=self.common_result,
+                corpus_result=self.corpus_result,
+            )
+        self.assertEqual(result.promoted_rows, self.result.promoted_rows)
+        self.assertEqual(result.rejected_rows, self.result.rejected_rows)
+
     def test_study_candidate_generation_writes_expected_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_study_candidate_generation_artifacts(
                 temp_dir,
-                result=analyze_study_candidate_generation(seed=7, trajectories_per_case=6),
+                result=self.result,
             )
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "study_candidate_generation")
             self.assertTrue(artifacts.schema_path.exists())

@@ -13,8 +13,12 @@ from kinematic_classifier_sandbox.corpus.autodevelopment import (
 
 
 class CorpusAutodevelopmentTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.result = analyze_corpus_autodevelopment(seed=7)
+
     def test_corpus_autodevelopment_generates_ranked_candidates(self) -> None:
-        result = analyze_corpus_autodevelopment(seed=7)
+        result = self.result
 
         self.assertGreater(len(result.candidate_evaluations), 1)
         self.assertGreater(len(result.candidate_score_rows), 1)
@@ -35,7 +39,7 @@ class CorpusAutodevelopmentTests(unittest.TestCase):
 
     def test_corpus_autodevelopment_writes_expected_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            artifacts = write_corpus_autodevelopment_artifacts(temp_dir, result=analyze_corpus_autodevelopment(seed=7))
+            artifacts = write_corpus_autodevelopment_artifacts(temp_dir, result=self.result)
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "corpus_autodevelopment_v1")
             self.assertTrue(artifacts.objectives_path.exists())
             self.assertTrue(artifacts.candidate_manifest_path.exists())

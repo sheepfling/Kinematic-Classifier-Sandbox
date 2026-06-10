@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from kinematic_classifier_sandbox.methodology.context import build_methodology_execution_context
 from kinematic_classifier_sandbox.showcase.builder import (
     build_showcase_artifacts,
     validate_showcase_artifacts,
@@ -12,6 +13,14 @@ from kinematic_classifier_sandbox.showcase.builder import (
 
 
 class ShowcaseBuilderTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.methodology_context = build_methodology_execution_context(
+            seed=7,
+            trajectories_per_case=6,
+            use_cache=True,
+        )
+
     def test_showcase_packet_builds_and_validates(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = build_showcase_artifacts(temp_dir, refresh=False, create_zip=True)
@@ -59,6 +68,18 @@ class ShowcaseBuilderTests(unittest.TestCase):
             self.assertTrue((artifacts.showcase_dir / "plots" / "generic_vs_1d_specific_layer_diagram.png").exists())
             self.assertTrue((artifacts.showcase_dir / "tables" / "advanced_filter_method_comparison.csv").exists())
             self.assertTrue((artifacts.showcase_dir / "tables" / "pf_rbpf_go_no_go_table.csv").exists())
+
+    def test_showcase_fast_mode_accepts_precomputed_context(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts = build_showcase_artifacts(
+                temp_dir,
+                refresh=False,
+                create_zip=False,
+                methodology_context=self.methodology_context,
+                artifact_mode="fast",
+            )
+            self.assertTrue(artifacts.index_path.exists())
+            self.assertTrue(artifacts.proof_gallery_path.exists())
 
 
 if __name__ == "__main__":

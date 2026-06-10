@@ -12,6 +12,7 @@ from ...analysis.feature_analysis import (
     resolve_feature_names,
 )
 from ...common_experiment.config import load_common_experiment_config, resolve_common_study_adapter
+from ...common_experiment.contracts import CommonExperimentResult
 from ...common_experiment.pair_evaluation import (
     _gaussian_logpdf,
     _normalize_scores,
@@ -521,8 +522,9 @@ def analyze_bayesian_walkthroughs(
     *,
     seed: int = 7,
     trajectories_per_case: int = 6,
+    common_result: CommonExperimentResult | None = None,
 ) -> BayesianWalkthroughResult:
-    common = analyze_common_experiment(seed=seed, trajectories_per_case=trajectories_per_case)
+    common = common_result or analyze_common_experiment(seed=seed, trajectories_per_case=trajectories_per_case)
     _, pair_lookup, trajectory_lookup, classifier_lookup, feature_manifest, feature_registry = _trajectory_context(
         seed,
         trajectories_per_case,

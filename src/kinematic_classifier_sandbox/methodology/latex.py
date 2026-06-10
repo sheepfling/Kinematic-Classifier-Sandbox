@@ -11,6 +11,7 @@ from kinematic_classifier_sandbox.utils.io import _write_json, _write_text, writ
 from kinematic_classifier_sandbox.utils.runtime import repo_root
 
 from ..inference.transition_matrix_accumulator import run_transition_benchmark
+from .context import MethodologyExecutionContext, build_methodology_execution_context
 from ..validation.advanced_filter_decision import analyze_advanced_filter_decision
 from ..validation.validation_ladder import analyze_validation_ladder
 from ..witnesses.toy_1d.bayesian_walkthroughs import analyze_bayesian_walkthroughs
@@ -576,9 +577,20 @@ def analyze_methodology_latex(
     *,
     seed: int = 7,
     trajectories_per_case: int = 6,
+    methodology_context: MethodologyExecutionContext | None = None,
+    use_cache: bool = True,
 ) -> MethodologyLatexResult:
-    validation = analyze_validation_ladder(seed=seed, trajectories_per_case=trajectories_per_case)
-    bayes = analyze_bayesian_walkthroughs(seed=seed, trajectories_per_case=trajectories_per_case)
+    context = methodology_context or build_methodology_execution_context(
+        seed=seed,
+        trajectories_per_case=trajectories_per_case,
+        use_cache=use_cache,
+    )
+    validation = context.validation_result
+    bayes = analyze_bayesian_walkthroughs(
+        seed=seed,
+        trajectories_per_case=trajectories_per_case,
+        common_result=context.common_result,
+    )
     transition = run_transition_benchmark(seed=seed)
     advanced = analyze_advanced_filter_decision()
 
@@ -638,6 +650,39 @@ def analyze_methodology_latex(
             "key_artifacts": "transition_matrix_accumulator_v1, advanced_filter_decision_v1",
             "known_limitations": "Not yet a full IMM or nonlinear filter.",
         },
+        {
+            "toy_problem_id": "nonlinear_drag_particle_filter",
+            "purpose": "Show nonlinear/non-Gaussian filtering beyond linear-Gaussian dynamics",
+            "classes": "constant_velocity vs nonlinear_drag",
+            "features": "particle evidence over latent state trajectories",
+            "classifiers": "particle_filter_bank",
+            "priors": "uniform",
+            "what_it_proves": "Particle evidence can absorb drag and outlier behavior through sampled state histories.",
+            "key_artifacts": "particle_filter_v1, advanced_filter_comparison_v1",
+            "known_limitations": "Witness is targeted and does not replace simpler rungs on easy regimes.",
+        },
+        {
+            "toy_problem_id": "ornstein_uhlenbeck_mean_reversion",
+            "purpose": "Demonstrate mean-reverting stochastic dynamics as a concrete SDE-style witness",
+            "classes": "constant_velocity vs mean_reverting_velocity",
+            "features": "particle evidence over mean-reverting velocity state",
+            "classifiers": "ornstein_uhlenbeck_pf_v1",
+            "priors": "uniform",
+            "what_it_proves": "The advanced branch can represent pull-back-to-class behavior with a typed witness rather than only prose.",
+            "key_artifacts": "ornstein_uhlenbeck_witness_v1",
+            "known_limitations": "This is a 1D witness, not a general continuous-time SDE framework.",
+        },
+        {
+            "toy_problem_id": "latent_maneuver_onset_rbpf",
+            "purpose": "Separate sampled latent mode timing from conditional continuous state filtering",
+            "classes": "coast vs maneuver onset",
+            "features": "sampled mode path plus conditional Kalman state",
+            "classifiers": "rbpf",
+            "priors": "uniform",
+            "what_it_proves": "RBPF can carry discrete latent timing while retaining analytic conditional state updates.",
+            "key_artifacts": "rbpf_v1, advanced_filter_comparison_v1",
+            "known_limitations": "Current witness is still 1D and mode-structured.",
+        },
     ]
 
     decision_lookup = {str(row["study_id"]): str(row["final_decision"]) for row in validation.decision_rows}
@@ -689,12 +734,30 @@ def analyze_methodology_latex(
         },
         {
             "level": 6,
-            "algorithm": "advanced_filter_gate",
-            "new_capability": "Evidence-based go/no-go decision for IMM/PF",
-            "assumption_added": "Advanced methods require explicit failure evidence",
-            "failure_mode_addressed": "Premature complexity escalation",
-            "toy_problem_evidence": "advanced_filter_decision_v1",
-            "promotion_status": "defer" if not advanced.imm_justified and not advanced.particle_filter_justified else "promote",
+            "algorithm": "imm",
+            "new_capability": "Switching-aware state mixing with shared posterior output",
+            "assumption_added": "Mode-conditioned state distributions must be mixed, not only class mass",
+            "failure_mode_addressed": "Transition-only switching evidence saturates",
+            "toy_problem_evidence": "advanced_filter_decision_v1, imm_filter_v1",
+            "promotion_status": "defer" if not advanced.imm_justified else "promote",
+        },
+        {
+            "level": 7,
+            "algorithm": "particle_filter_bank",
+            "new_capability": "Sampled nonlinear and non-Gaussian state evidence",
+            "assumption_added": "State posteriors need particle support rather than only Gaussian summaries",
+            "failure_mode_addressed": "Linear-Gaussian baselines fail under drag, outliers, or mean reversion",
+            "toy_problem_evidence": "particle_filter_v1, ornstein_uhlenbeck_witness_v1",
+            "promotion_status": "promote",
+        },
+        {
+            "level": 8,
+            "algorithm": "rbpf",
+            "new_capability": "Sampled latent mode path with conditional analytic state filtering",
+            "assumption_added": "The latent structure splits into sampled discrete hypotheses plus tractable continuous state",
+            "failure_mode_addressed": "Pure PF wastes structure on mixed discrete/continuous latent problems",
+            "toy_problem_evidence": "rbpf_v1",
+            "promotion_status": "promote",
         },
     ]
 
@@ -806,9 +869,13 @@ def write_methodology_latex_artifacts(
     output_dir: str | Path,
     *,
     result: MethodologyLatexResult | None = None,
+    methodology_context: MethodologyExecutionContext | None = None,
     build_pdf: bool = True,
+    artifact_mode: str = "full",
 ) -> MethodologyLatexArtifacts:
-    latex = result or analyze_methodology_latex()
+    if artifact_mode == "fast":
+        build_pdf = False
+    latex = result or analyze_methodology_latex(methodology_context=methodology_context)
     run_dir = Path(output_dir) / "latex"
     figures_dir = run_dir / "figures"
     math_dir = run_dir / "math"

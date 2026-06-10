@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
 from kinematic_classifier_sandbox.runtime_paths import prepare_matplotlib
@@ -43,6 +44,9 @@ from .contracts import (
     ShowcaseTableSpec,
     ShowcaseTopResult,
 )
+
+if TYPE_CHECKING:
+    from ..methodology.context import MethodologyExecutionContext
 
 
 def _manifest_entry(
@@ -431,7 +435,12 @@ def _showcase_plot_definitions() -> list[ShowcasePlotDefinition]:
     ]
 
 
-def _copy_showcase_tables(tables_dir: Path) -> list[dict[str, object]]:
+def _copy_showcase_tables(
+    tables_dir: Path,
+    *,
+    methodology_context: "MethodologyExecutionContext | None" = None,
+    artifact_mode: str = "full",
+) -> list[dict[str, object]]:
     table_sources = [
         ShowcaseTableSpec("bayesian_step_tables.csv", ARTIFACTS_ROOT / "bayesian_walkthroughs" / "bayesian_step_tables.csv", "bayesian_updates"),
         ShowcaseTableSpec("prior_sweep_examples.csv", ARTIFACTS_ROOT / "bayesian_walkthroughs" / "prior_sweep_examples.csv", "bayesian_updates"),
@@ -468,7 +477,23 @@ def _copy_showcase_tables(tables_dir: Path) -> list[dict[str, object]]:
         ShowcaseTableSpec("toy_problem_summary.csv", ARTIFACTS_ROOT / "latex" / "toy_problem_summary.csv", "study_candidate_validation"),
     ]
     if any(not spec.source.exists() and "study_candidate_generation" in str(spec.source) for spec in table_sources):
-        write_study_candidate_generation_artifacts(ARTIFACTS_ROOT)
+        if methodology_context is not None:
+            write_study_candidate_generation_artifacts(
+                ARTIFACTS_ROOT,
+                result=methodology_context.study_generation_result,
+            )
+        elif artifact_mode == "full":
+            write_study_candidate_generation_artifacts(ARTIFACTS_ROOT)
+        else:
+            missing = [
+                str(spec.source.relative_to(ROOT))
+                for spec in table_sources
+                if not spec.source.exists() and "study_candidate_generation" in str(spec.source)
+            ]
+            raise FileNotFoundError(
+                "fast showcase mode requires prebuilt study-candidate artifacts: "
+                + ", ".join(missing)
+            )
     manifest_entries: list[dict[str, object]] = []
     for spec in table_sources:
         destination = tables_dir / spec.filename

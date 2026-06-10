@@ -13,8 +13,10 @@ from .analysis.feature_analysis import (
     resolve_feature_names,
 )
 from .common_experiment.runner import analyze_common_experiment
+from .common_experiment.contracts import CommonExperimentResult
 from .corpus.adequacy_audit_utils import PAIR_TIER_REQUIREMENTS, load_class_pair_manifest
 from .corpus.autodevelopment import analyze_corpus_autodevelopment
+from .corpus.autodevelopment_types import CorpusAutodevelopmentResult
 from .corpus.coverage_report import load_classifier_manifest
 from .corpus.policy import (
     CorpusPolicySpec,
@@ -45,6 +47,7 @@ from .study_candidate_generation_types import (
     StudyCandidateStaticScoreRow,
 )
 from .study_candidate_protocol import analyze_study_candidate_protocol
+from .study_candidate_protocol import StudyCandidateProtocolResult
 from .utils.math import _clamp
 from .utils.plotting import _figure_to_png
 
@@ -52,7 +55,7 @@ from .utils.plotting import _figure_to_png
 @dataclass(frozen=True, slots=True)
 class StudyCandidateGenerationResult:
     schema: dict[str, object]
-    generated_candidates: tuple[StudyCandidateRow, ...]
+    generated_candidates: tuple[dict[str, object], ...]
     static_score_rows: tuple[StudyCandidateStaticScoreRow, ...]
     monte_carlo_score_rows: tuple[StudyCandidateMonteCarloScoreRow, ...]
     feature_evidence_rows: tuple[StudyCandidateFeatureEvidenceRow, ...]
@@ -85,11 +88,14 @@ def analyze_study_candidate_generation(
     seed: int = 7,
     trajectories_per_case: int = 8,
     policy: CorpusPolicySpec | None = None,
+    protocol_result: StudyCandidateProtocolResult | None = None,
+    common_result: CommonExperimentResult | None = None,
+    corpus_result: CorpusAutodevelopmentResult | None = None,
 ) -> StudyCandidateGenerationResult:
     resolved_policy = policy or load_corpus_policy_spec()
-    protocol = analyze_study_candidate_protocol()
-    common = analyze_common_experiment(seed=seed, trajectories_per_case=trajectories_per_case)
-    corpus = analyze_corpus_autodevelopment(seed=seed, policy=resolved_policy)
+    protocol = protocol_result or analyze_study_candidate_protocol()
+    common = common_result or analyze_common_experiment(seed=seed, trajectories_per_case=trajectories_per_case)
+    corpus = corpus_result or analyze_corpus_autodevelopment(seed=seed, policy=resolved_policy)
     registry = load_feature_registry()
     feature_manifest = load_feature_set_manifest()
     class_pair_manifest = load_class_pair_manifest()
@@ -113,7 +119,7 @@ def analyze_study_candidate_generation(
     selected_corpus_adequacy_status = str(selected_corpus.adequacy.summary.overall_status)
 
     priors = ["uniform", "mild_bias", "strong_bias"]
-    generated_candidates: list[StudyCandidateRow] = []
+    generated_candidates: list[dict[str, object]] = []
     static_score_rows: list[StudyCandidateStaticScoreRow] = []
     monte_carlo_score_rows: list[StudyCandidateMonteCarloScoreRow] = []
 
@@ -253,7 +259,7 @@ def analyze_study_candidate_generation(
                             "rejection_allows_static_only": True,
                         },
                     )
-                    generated_candidates.append(candidate)
+                    generated_candidates.append(dict(candidate))
 
                     static_score_rows.append(
                         StudyCandidateStaticScoreRow(
@@ -513,7 +519,7 @@ def write_study_candidate_generation_artifacts(
 
     schema_path.write_text(json.dumps(generation.schema, indent=2), encoding="utf-8")
     generated_candidates_path.write_text(
-        json.dumps({"generated_candidates": [dict(row) for row in generation.generated_candidates]}, indent=2),
+        json.dumps({"generated_candidates": list(generation.generated_candidates)}, indent=2),
         encoding="utf-8",
     )
     write_csv(static_scores_path, [dict(row) for row in generation.static_score_rows], list(generation.static_score_rows[0].keys()))

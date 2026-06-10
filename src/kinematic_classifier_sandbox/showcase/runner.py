@@ -31,6 +31,7 @@ from .assets import (
     _render_proof_gallery,
 )
 from .contracts import ARTIFACTS_ROOT, ROOT, ShowcaseArtifacts
+from ..methodology.context import MethodologyExecutionContext
 from .reporting import (
     _render_3d_transition_report,
     _render_algorithm_ladder_report,
@@ -52,6 +53,8 @@ def build_showcase_artifacts(
     *,
     refresh: bool = False,
     create_zip: bool = False,
+    methodology_context: MethodologyExecutionContext | None = None,
+    artifact_mode: str = "full",
 ) -> ShowcaseArtifacts:
     if refresh:
         subprocess.run(["python3", "scripts/export_artifacts.py"], cwd=ROOT, check=True)
@@ -101,7 +104,13 @@ def build_showcase_artifacts(
     plot_entries = _copy_showcase_plots(plots_dir)
     plot_entries.extend(_generate_showcase_derived_plots(plots_dir))
     manifest_entries.extend(plot_entries)
-    manifest_entries.extend(_copy_showcase_tables(tables_dir))
+    manifest_entries.extend(
+        _copy_showcase_tables(
+            tables_dir,
+            methodology_context=methodology_context,
+            artifact_mode=artifact_mode,
+        )
+    )
     manifest_entries.extend(_build_run_cards(run_cards_dir))
 
     report_payloads["07_visualization_gallery.md"] = _render_gallery_report(plot_entries)
