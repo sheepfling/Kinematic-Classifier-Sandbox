@@ -2,20 +2,17 @@ from __future__ import annotations
 
 import csv
 import json
-import os
 import shutil
-import sys
-import tempfile
 from pathlib import Path
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo(configure_runtime=True)
+
 from typing import Any
 
 import yaml
 from numpy import array, corrcoef, isfinite
 
-ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
 
 from kinematic_classifier_sandbox.analysis.feature_analysis_artifact_io import (
     write_feature_analysis_artifacts,
@@ -46,11 +43,6 @@ from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
     write_rung_sufficiency_artifacts,
 )
 
-os.environ.setdefault(
-    "PYTHONPYCACHEPREFIX",
-    str(Path("/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox/.pycache")),
-)
-os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "kinematic-classifier-sandbox-mpl"))
 
 
 PHASES = (

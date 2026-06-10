@@ -1,27 +1,21 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
-from pathlib import Path
+
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo(configure_runtime=True)
+
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
-    src = root / "src"
-    existing_pythonpath = os.environ.get("PYTHONPATH")
-    os.environ["PYTHONPATH"] = (
-        str(src) if not existing_pythonpath else f"{src}{os.pathsep}{existing_pythonpath}"
-    )
-    if str(src) not in sys.path:
-        sys.path.insert(0, str(src))
-
     from kinematic_classifier_sandbox.analysis.inspection_bundle import (
         recommend_feature_set,
         recommend_hardest_class_pair,
     )
 
-    summary_path = root / "artifacts" / "abstract_inspection_v1" / "abstract_inspection_summary.json"
+    summary_path = ROOT / "artifacts" / "abstract_inspection_v1" / "abstract_inspection_summary.json"
     if not summary_path.exists():
         print("missing abstract inspection summary; run scripts/run_abstract_inspection.py first", file=sys.stderr)
         return 1

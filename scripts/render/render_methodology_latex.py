@@ -2,22 +2,11 @@
 from __future__ import annotations
 
 import argparse
-import os
-import sys
 from pathlib import Path
+from _bootstrap import bootstrap_repo
 
-ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "src"
-existing_pythonpath = os.environ.get("PYTHONPATH")
-os.environ["PYTHONPATH"] = (
-    str(SRC) if not existing_pythonpath else f"{SRC}{os.pathsep}{existing_pythonpath}"
-)
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+ROOT = bootstrap_repo(configure_runtime=True)
 
-from kinematic_classifier_sandbox.utils.runtime import configure_runtime_environment
-
-configure_runtime_environment()
 
 from kinematic_classifier_sandbox.methodology.latex import write_methodology_latex_artifacts
 

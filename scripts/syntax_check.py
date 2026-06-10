@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
+from _bootstrap import repo_root
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
+    root = repo_root()
     paths = sorted((root / "src").rglob("*.py"))
     paths.extend(sorted((root / "tests").rglob("*.py")))
     paths.extend(sorted((root / "scripts").rglob("*.py")))

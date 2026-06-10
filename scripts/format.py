@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from pathlib import Path
+
+from _bootstrap import repo_root
 
 
 def run(command: list[str]) -> int:
     print("$", " ".join(command))
-    completed = subprocess.run(command, cwd=Path(__file__).resolve().parents[1])
+    completed = subprocess.run(command, cwd=repo_root())
     return completed.returncode
 
 

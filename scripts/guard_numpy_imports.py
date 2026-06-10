@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo()
 SEARCH_ROOTS = [ROOT / "src", ROOT / "scripts"]
 EXCLUDED_PARTS = {".venv", ".cache", ".mypy_cache", ".pytest_cache", ".ruff_cache", "artifacts", "archive", "build", "cache"}
 

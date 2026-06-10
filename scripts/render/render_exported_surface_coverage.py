@@ -1,19 +1,12 @@
 from __future__ import annotations
 
 import argparse
-import os
-import sys
-import tempfile
 from pathlib import Path
+from _bootstrap import bootstrap_repo
 
-ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "src"
-existing_pythonpath = os.environ.get("PYTHONPATH")
-os.environ.setdefault("PYTHONPYCACHEPREFIX", str(Path(tempfile.gettempdir()) / "kinematic-classifier-sandbox-pycache"))
-os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "kinematic-classifier-sandbox-mpl"))
-os.environ["PYTHONPATH"] = str(SRC) if not existing_pythonpath else f"{SRC}{os.pathsep}{existing_pythonpath}"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+ROOT = bootstrap_repo(configure_runtime=True)
+
+
 
 from kinematic_classifier_sandbox.registry.exported_surface_coverage import (
     write_exported_surface_coverage_artifacts,

@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from _bootstrap import check_environment
+
 
 def run(command: list[str], *, cwd: Path, env: dict[str, str]) -> int:
     print(f"+ {' '.join(command)}", flush=True)
@@ -13,24 +15,7 @@ def run(command: list[str], *, cwd: Path, env: dict[str, str]) -> int:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
-    env = os.environ.copy()
-    src_path = str(root / "src")
-    env["PYTHONPATH"] = (
-        src_path if not env.get("PYTHONPATH") else f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
-    )
-    if src_path not in sys.path:
-        sys.path.insert(0, src_path)
-
-    from kinematic_classifier_sandbox.utils.runtime import configure_runtime_environment
-
-    configure_runtime_environment()
-    env.update(
-        {
-            "PYTHONPYCACHEPREFIX": os.environ["PYTHONPYCACHEPREFIX"],
-            "MPLCONFIGDIR": os.environ["MPLCONFIGDIR"],
-        }
-    )
+    root, env = check_environment()
 
     commands = [
         [sys.executable, "scripts/check_env.py"],

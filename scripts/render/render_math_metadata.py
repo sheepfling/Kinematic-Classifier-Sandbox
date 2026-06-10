@@ -5,7 +5,9 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo(configure_runtime=True)
 DOCS_MATH_DIR = ROOT / "docs" / "math"
 SYMBOL_GLOSSARY_PATH = DOCS_MATH_DIR / "symbol_glossary.tex"
 EQUATION_REGISTRY_PATH = DOCS_MATH_DIR / "equation_registry.yaml"

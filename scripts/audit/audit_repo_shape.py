@@ -1,20 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
-import sys
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo(configure_runtime=True)
 
 
-ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "src"
-os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/kinematic-classifier-sandbox-mpl")
-os.environ.setdefault(
-    "PYTHONPYCACHEPREFIX",
-    "/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox/.pycache",
-)
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+
 
 from kinematic_classifier_sandbox.meta.repo_shape_audit import (  # noqa: E402
     analyze_repo_shape,

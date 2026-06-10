@@ -2,17 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import sys
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo(configure_runtime=True)
+
 from dataclasses import asdict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "src"
-existing_pythonpath = os.environ.get("PYTHONPATH")
-os.environ["PYTHONPATH"] = str(SRC) if not existing_pythonpath else f"{SRC}{os.pathsep}{existing_pythonpath}"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
 
 from kinematic_classifier_sandbox.showcase.builder import validate_showcase_artifacts
 

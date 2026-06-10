@@ -3,15 +3,14 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo(configure_runtime=True)
+
 
 from new_study_workflow_common import ensure_declaration_artifacts, load_study_config, phase_dir
 
-ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "src"
-import sys
 
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
 
 from kinematic_classifier_sandbox.study_confidence import write_study_confidence_artifacts
 

@@ -9,11 +9,19 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def bootstrap_repo() -> Path:
+def bootstrap_repo(*, configure_runtime: bool = False, configure_matplotlib: bool = False) -> Path:
     root = repo_root()
     src_path = str(root / "src")
     if src_path not in sys.path:
         sys.path.insert(0, src_path)
+    if configure_runtime:
+        from kinematic_classifier_sandbox.utils.runtime import configure_runtime_environment
+
+        configure_runtime_environment()
+    elif configure_matplotlib:
+        from kinematic_classifier_sandbox.utils.runtime import configure_matplotlib_environment
+
+        configure_matplotlib_environment()
     return root
 
 

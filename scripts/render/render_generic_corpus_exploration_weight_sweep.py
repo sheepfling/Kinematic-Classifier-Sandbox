@@ -2,17 +2,12 @@
 from __future__ import annotations
 
 import argparse
-import os
-import sys
-import tempfile
 from pathlib import Path
+from _bootstrap import bootstrap_repo
 
-ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "src"
-os.environ.setdefault("PYTHONPYCACHEPREFIX", str(Path(tempfile.gettempdir()) / "kinematic-classifier-sandbox-pycache"))
-os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "kinematic-classifier-sandbox-mpl"))
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+ROOT = bootstrap_repo(configure_runtime=True)
+
+
 
 from kinematic_classifier_sandbox.corpus.exploration.generic_corpus_exploration import (
     write_generic_corpus_exploration_weight_sweep_artifacts,

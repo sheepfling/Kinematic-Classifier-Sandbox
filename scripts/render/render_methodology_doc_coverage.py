@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo(configure_runtime=True)
 MANIFEST_PATH = ROOT / "docs" / "surveys" / "methodology_doc_coverage.yaml"
 ARTIFACT_DIR = ROOT / "artifacts" / "latex"
 JSON_OUT = ARTIFACT_DIR / "methodology_doc_coverage.json"

@@ -14,11 +14,20 @@ PACKAGE_ROOT = REPO_ROOT / "src" / "kinematic_classifier_sandbox"
 ARTIFACT_DIR = REPO_ROOT / "artifacts" / "import_simplicity_audit_v1"
 
 ALLOWED_PATH_SNIFFING = {
+    "scripts/_bootstrap.py",
+    "scripts/audit/_bootstrap.py",
+    "scripts/render/_bootstrap.py",
+    "scripts/run/_bootstrap.py",
+    "scripts/workflows/_bootstrap.py",
     "src/kinematic_classifier_sandbox/utils/runtime.py",
 }
 
 ALLOWED_SCRIPT_BOOTSTRAP = {
     "scripts/_bootstrap.py",
+    "scripts/audit/_bootstrap.py",
+    "scripts/render/_bootstrap.py",
+    "scripts/run/_bootstrap.py",
+    "scripts/workflows/_bootstrap.py",
 }
 
 LEGACY_ROOT_WRAPPER_MODULES = {

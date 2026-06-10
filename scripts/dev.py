@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
+from _bootstrap import repo_root
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
+    root = repo_root()
     print(f"repo root: {root}")
     print("development loop:")
     print("- run python3 scripts/check.py")

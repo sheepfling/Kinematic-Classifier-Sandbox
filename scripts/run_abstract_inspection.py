@@ -1,26 +1,18 @@
 from __future__ import annotations
 
-import os
-import sys
-from pathlib import Path
+from _bootstrap import bootstrap_repo
+
+ROOT = bootstrap_repo(configure_runtime=True)
+
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
-    src = root / "src"
-    existing_pythonpath = os.environ.get("PYTHONPATH")
-    os.environ["PYTHONPATH"] = (
-        str(src) if not existing_pythonpath else f"{src}{os.pathsep}{existing_pythonpath}"
-    )
-    if str(src) not in sys.path:
-        sys.path.insert(0, str(src))
-
     from kinematic_classifier_sandbox.analysis.inspection_bundle import (
         write_abstract_inspection_artifacts,
     )
 
     artifacts = write_abstract_inspection_artifacts(
-        root / "artifacts",
+        ROOT / "artifacts",
         seed=7,
         trajectories_per_class=5,
         n_components=3,

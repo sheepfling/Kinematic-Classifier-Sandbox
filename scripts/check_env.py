@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
+
+from _bootstrap import repo_root
 
 MIN_VERSION = (3, 12)
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
+    root = repo_root()
     print(f"repo root: {root}")
     print(f"python: {sys.executable}")
     print(f"version: {sys.version.split()[0]}")
