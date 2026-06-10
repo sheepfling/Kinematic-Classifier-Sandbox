@@ -11,6 +11,7 @@ from .objectives import (
     trajectory_exploration_evaluation_schema,
     trajectory_exploration_objective_schema,
 )
+from .ppo_boundary_control import write_sequential_ppo_boundary_control_artifacts
 from .runner import analyze_trajectory_exploration_benchmarks, run_trajectory_exploration_backend
 
 
@@ -102,6 +103,7 @@ def write_trajectory_exploration_artifacts(
     write_csv(optimizer_trace_path, list(optimizer_trace_rows), list(optimizer_trace_rows[0].keys()))
     write_csv(elite_frontier_path, list(elite_frontier_rows), list(elite_frontier_rows[0].keys()))
     write_plot(_render_objective_progress(optimizer_trace_rows), objective_progress_path)
+    ppo_result = write_sequential_ppo_boundary_control_artifacts(root)
 
     return TrajectoryExplorationArtifacts(
         contract_dir=contract_dir,
@@ -123,4 +125,15 @@ def write_trajectory_exploration_artifacts(
         optimizer_trace_path=optimizer_trace_path,
         elite_frontier_path=elite_frontier_path,
         objective_progress_path=objective_progress_path,
+        rl_algorithm_decision_report_path=ppo_result.artifacts.rl_algorithm_decision_report_path if ppo_result.artifacts else None,
+        ppo_environment_contract_path=ppo_result.artifacts.environment_contract_path if ppo_result.artifacts else None,
+        ppo_training_config_path=ppo_result.artifacts.training_config_path if ppo_result.artifacts else None,
+        ppo_training_summary_path=ppo_result.artifacts.training_summary_path if ppo_result.artifacts else None,
+        ppo_evaluation_rows_path=ppo_result.artifacts.evaluation_rows_path if ppo_result.artifacts else None,
+        ppo_selected_rollouts_path=ppo_result.artifacts.selected_rollouts_path if ppo_result.artifacts else None,
+        ppo_control_sequences_path=ppo_result.artifacts.control_sequences_path if ppo_result.artifacts else None,
+        ppo_training_curve_path=ppo_result.artifacts.training_curve_path if ppo_result.artifacts else None,
+        ppo_rollout_gallery_path=ppo_result.artifacts.rollout_gallery_path if ppo_result.artifacts else None,
+        ppo_vs_heuristics_path=ppo_result.artifacts.ppo_vs_heuristics_path if ppo_result.artifacts else None,
+        ppo_report_path=ppo_result.artifacts.report_path if ppo_result.artifacts else None,
     )

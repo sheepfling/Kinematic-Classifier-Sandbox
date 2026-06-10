@@ -28,6 +28,7 @@ class TrajectoryExplorationProposal:
     iteration: int
     candidate_index: int
     action: CorpusGymAction
+    control_sequence: tuple[float, ...] | None = None
     parent_id: str | None = None
     metadata: dict[str, object] = field(default_factory=dict)
 
@@ -144,6 +145,17 @@ class TrajectoryExplorationArtifacts:
     optimizer_trace_path: Path
     elite_frontier_path: Path
     objective_progress_path: Path
+    rl_algorithm_decision_report_path: Path | None = None
+    ppo_environment_contract_path: Path | None = None
+    ppo_training_config_path: Path | None = None
+    ppo_training_summary_path: Path | None = None
+    ppo_evaluation_rows_path: Path | None = None
+    ppo_selected_rollouts_path: Path | None = None
+    ppo_control_sequences_path: Path | None = None
+    ppo_training_curve_path: Path | None = None
+    ppo_rollout_gallery_path: Path | None = None
+    ppo_vs_heuristics_path: Path | None = None
+    ppo_report_path: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)

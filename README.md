@@ -63,6 +63,7 @@ Use these commands from the repo root:
 
 ```bash
 python3 -m pip install -e '.[dev]'
+python3 -m pip install -e '.[rl]'
 python3 scripts/check.py
 python3 scripts/check.py --fix
 python3 scripts/lint.py
@@ -71,6 +72,58 @@ python3 scripts/format.py
 ```
 
 The `--fix` flag applies available Ruff fixes before rerunning checks. Pyright itself is still read-only at the CLI level.
+
+## RL witness reruns
+
+The first sequential-control RL proof is a PPO-driven 1D boundary-shaping witness. It is intentionally small and still marked experimental.
+
+Install the optional RL dependencies:
+
+```bash
+python3 -m pip install -e '.[rl]'
+```
+
+Run the standalone PPO witness bundle:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo --output-dir artifacts --timesteps 1024 --episode-horizon 16 --checkpoint-interval 256 --snapshot-interval 256 --seed 7
+```
+
+The PPO command is resumable by default. Re-run the same command after an interruption and it will pick up from the latest checkpoint in the target run directory. Use `--no-resume` to force a fresh run.
+
+Run the broader multi-backend trajectory-exploration bundle, which now also writes the PPO witness artifacts:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration --output-dir artifacts --seed 7
+```
+
+Generate a mechanical objective suite for feature-space cells, feature-space rows, class-pair regions, and novelty-targeting zones:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-objectives --output-dir artifacts
+```
+
+The PPO artifact bundle lands under:
+
+- `artifacts/trajectory_exploration_rl/ppo_boundary_control/`
+- `artifacts/trajectory_exploration_rl/rl_algorithm_decision_report.md`
+
+Key PPO run artifacts:
+
+- `checkpoints/` for resumable model snapshots
+- `checkpoint_manifest.json` for latest checkpoint and completed timestep state
+- `training_trace_rows.csv` for episode-level learning traces
+- `snapshot_rows.csv` for periodic utility / feature / class-space progress
+- `utility_progress.png` for objective improvement over time
+- `feature_progress.png` for feature-space excitation progress
+- `class_space_progress.png` for class-boundary exploration progress
+
+Mechanical objective-generation artifacts:
+
+- `artifacts/trajectory_exploration_objectives/objective_generation_spec.json`
+- `artifacts/trajectory_exploration_objectives/objective_manifest.json`
+- `artifacts/trajectory_exploration_objectives/objective_table.csv`
+- `artifacts/trajectory_exploration_objectives/report.md`
 
 ## Cache policy
 

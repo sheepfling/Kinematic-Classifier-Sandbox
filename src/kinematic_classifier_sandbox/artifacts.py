@@ -12,6 +12,7 @@ from .markdown_builder import MarkdownDocument
 from .registry.catalog import METHOD_CATALOG, MethodEntry
 from .utils.math import _logsumexp
 from .utils.plotting import plt
+from .utils.runtime import repo_root as package_repo_root
 from .witnesses.identity_1d.core import IdentityBenchmarkResult, run_identity_benchmark
 from .witnesses.identity_1d.posterior_explainer import (
     _select_failure_walkthrough as _select_identity_failure_walkthrough,

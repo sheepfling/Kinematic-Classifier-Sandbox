@@ -40,6 +40,20 @@ from .trajectory_exploration.contracts import (
     TrajectoryExplorationProposal,
     TrajectoryExplorationResult,
 )
+from .trajectory_exploration.objective_generation import (
+    GeneratedTrajectoryObjectiveArtifacts,
+    GeneratedTrajectoryObjectiveSuite,
+    TrajectoryObjectiveGenerationSpec,
+)
+from .trajectory_exploration.ppo_boundary_control import (
+    SequentialPpoArtifacts,
+    SequentialPpoConfig,
+    SequentialPpoResult,
+    SequentialPpoSweepArtifacts,
+)
+from .trajectory_exploration.sequential_gym import (
+    SequentialBoundaryControlConfig,
+)
 from .selected_generated_corpus_contracts import (
     SelectedGeneratedCorpusArtifacts,
     SelectedGeneratedCorpusResult,
@@ -64,9 +78,17 @@ __all__ = [
     "CoverageReportArtifacts",
     "CoverageReportResult",
     "CoverageReportSummary",
+    "GeneratedTrajectoryObjectiveArtifacts",
+    "GeneratedTrajectoryObjectiveSuite",
     "RlBackendDecisionArtifacts",
     "RlBackendDecisionGateRow",
     "RlBackendDecisionResult",
+    "SequentialBoundaryControlConfig",
+    "SequentialPpoArtifacts",
+    "SequentialPpoConfig",
+    "SequentialPpoResult",
+    "SequentialPpoSweepArtifacts",
+    "TrajectoryObjectiveGenerationSpec",
     "TrajectoryExplorationArtifacts",
     "TrajectoryExplorationBenchmarkResult",
     "TrajectoryExplorationEvaluation",
@@ -80,7 +102,9 @@ __all__ = [
     "analyze_corpus_search_baseline",
     "analyze_corpus_synthesis_comparison",
     "analyze_coverage_report",
+    "analyze_generated_trajectory_objective_suite",
     "analyze_rl_backend_decision",
+    "analyze_sequential_ppo_boundary_control",
     "analyze_selected_generated_corpus",
     "analyze_trajectory_exploration_benchmarks",
     "render_corpus_adequacy_report",
@@ -91,7 +115,10 @@ __all__ = [
     "write_corpus_search_baseline_artifacts",
     "write_corpus_synthesis_comparison_artifacts",
     "write_coverage_report_artifacts",
+    "write_generated_trajectory_objective_artifacts",
+    "write_generated_trajectory_objective_ppo_sweep_artifacts",
     "write_rl_backend_decision_artifacts",
+    "write_sequential_ppo_boundary_control_artifacts",
     "write_selected_generated_corpus_artifacts",
     "write_trajectory_exploration_artifacts",
 ]
@@ -127,8 +154,20 @@ def analyze_coverage_report(*args, **kwargs):
     return _impl(*args, **kwargs)
 
 
+def analyze_generated_trajectory_objective_suite(*args, **kwargs):
+    from .trajectory_exploration import generate_trajectory_exploration_objective_suite as _impl
+
+    return _impl(*args, **kwargs)
+
+
 def analyze_rl_backend_decision(*args, **kwargs):
     from .rl_backend_decision import analyze_rl_backend_decision as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_sequential_ppo_boundary_control(*args, **kwargs):
+    from .trajectory_exploration import analyze_sequential_ppo_boundary_control as _impl
 
     return _impl(*args, **kwargs)
 
@@ -193,8 +232,26 @@ def write_coverage_report_artifacts(*args, **kwargs):
     return _impl(*args, **kwargs)
 
 
+def write_generated_trajectory_objective_artifacts(*args, **kwargs):
+    from .trajectory_exploration import write_generated_trajectory_objective_artifacts as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def write_generated_trajectory_objective_ppo_sweep_artifacts(*args, **kwargs):
+    from .trajectory_exploration import write_generated_trajectory_objective_ppo_sweep_artifacts as _impl
+
+    return _impl(*args, **kwargs)
+
+
 def write_rl_backend_decision_artifacts(*args, **kwargs):
     from .rl_backend_decision_artifact_io import write_rl_backend_decision_artifacts as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def write_sequential_ppo_boundary_control_artifacts(*args, **kwargs):
+    from .trajectory_exploration import write_sequential_ppo_boundary_control_artifacts as _impl
 
     return _impl(*args, **kwargs)
 

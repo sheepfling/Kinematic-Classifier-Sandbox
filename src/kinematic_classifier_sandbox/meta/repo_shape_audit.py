@@ -323,6 +323,8 @@ def _duplicate_script_rows() -> list[dict[str, object]]:
         if not path.exists():
             continue
         for script in sorted(path.glob("*.py")):
+            if script.name == "_bootstrap.py":
+                continue
             root_script = root_scripts.get(script.name)
             if root_script is None:
                 continue

@@ -1639,6 +1639,16 @@
       "status": "covered"
     },
     {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/objective_generation.py",
+      "coverage_kind": "architecture",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Corpus Explorer And Policy Surfaces",
+      "artifact_outputs": [
+        "artifacts/corpus_generation_and_search.pdf"
+      ],
+      "status": "covered"
+    },
+    {
       "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/objectives.py",
       "coverage_kind": "architecture",
       "primary_doc": "corpus_generation_and_search",
@@ -1649,12 +1659,32 @@
       "status": "covered"
     },
     {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/ppo_boundary_control.py",
+      "coverage_kind": "implementation",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Trajectory Exploration Backends",
+      "artifact_outputs": [
+        "artifacts/latex/methodology_doc_coverage.md"
+      ],
+      "status": "covered"
+    },
+    {
       "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/runner.py",
       "coverage_kind": "architecture",
       "primary_doc": "corpus_generation_and_search",
       "primary_section": "Corpus Explorer And Policy Surfaces",
       "artifact_outputs": [
         "artifacts/corpus_generation_and_search.pdf"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/sequential_gym.py",
+      "coverage_kind": "implementation",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Trajectory Exploration Backends",
+      "artifact_outputs": [
+        "artifacts/latex/methodology_doc_coverage.md"
       ],
       "status": "covered"
     },
@@ -2173,6 +2203,16 @@
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Registry And Shape Audit Appendix",
+      "artifact_outputs": [
+        "artifacts/latex/methodology_doc_coverage.md"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/meta/import_simplicity_audit.py",
+      "coverage_kind": "audit",
+      "primary_doc": "meta_analysis_guide",
+      "primary_section": "Import Simplicity Audit",
       "artifact_outputs": [
         "artifacts/latex/methodology_doc_coverage.md"
       ],

@@ -36,6 +36,8 @@ Common LaTeX rerun commands:
 - Narrow methodology packet: `python3 scripts/render/render_methodology_latex.py`
 - Narrow methodology packet without PDF: `python3 scripts/render/render_methodology_latex.py --fast`
 - Section-symbol audit: `python3 scripts/render/render_methodology_section_symbol_audit.py`
+- Front-door artifact bundle: `python3 scripts/export_artifacts.py --scope front-door`
+- Front-door artifact bundle without PDF-heavy steps: `python3 scripts/export_artifacts.py --scope front-door --fast`
 - Full artifact bundle: `python3 scripts/export_artifacts.py`
 
 Common audit and rerun commands:

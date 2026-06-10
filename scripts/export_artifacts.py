@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 from _bootstrap import bootstrap_repo
 
@@ -162,6 +163,9 @@ from kinematic_classifier_sandbox.inference.windowed_baseline import (
 from kinematic_classifier_sandbox.methodology.classification_evidence import (
     write_generic_classification_evidence_proof_artifacts,
 )
+from kinematic_classifier_sandbox.methodology.context import (
+    build_methodology_execution_context,
+)
 from kinematic_classifier_sandbox.methodology.feature_taxonomy import (
     write_generic_feature_taxonomy_artifacts,
 )
@@ -172,6 +176,7 @@ from kinematic_classifier_sandbox.methodology.inference_contract import (
     write_generic_inference_contract_artifacts,
 )
 from kinematic_classifier_sandbox.methodology.latex import (
+    analyze_methodology_latex,
     write_methodology_latex_artifacts,
     write_methodology_section_symbol_audit_artifacts,
 )
@@ -265,7 +270,133 @@ from kinematic_classifier_sandbox.witnesses.toy_1d.posterior_explainer import (
 )
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="python3 scripts/export_artifacts.py")
+    parser.add_argument(
+        "--scope",
+        choices=("full", "front-door"),
+        default="full",
+        help="Artifact scope to regenerate.",
+    )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Use cheaper artifact settings where supported. Intended for `--scope front-door`.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Output directory for `--scope front-door`. Full scope requires the default repo `artifacts/` output.",
+    )
+    return parser
+
+
+def _run_front_door_export(output_root: Path, *, fast: bool) -> int:
+    methodology_context = build_methodology_execution_context(
+        seed=7,
+        trajectories_per_case=6,
+        use_cache=True,
+    )
+    methodology_latex_result = analyze_methodology_latex(
+        methodology_context=methodology_context,
+        use_cache=True,
+    )
+    artifact_mode = "fast" if fast else "full"
+    selected_generated_corpus_artifacts = write_selected_generated_corpus_artifacts(output_root)
+    study_candidate_generation_artifacts = write_study_candidate_generation_artifacts(
+        output_root,
+        result=methodology_context.study_generation_result,
+    )
+    validation_ladder_artifacts = write_validation_ladder_artifacts(
+        output_root,
+        result=methodology_context.validation_result,
+    )
+    feature_analysis_artifacts = write_feature_analysis_artifacts(
+        output_root,
+        seed=7,
+        trajectories_per_class=5,
+    )
+    corpus_adequacy_artifacts = write_corpus_adequacy_artifacts(
+        output_root,
+        seed=7,
+        trajectories_per_class=5,
+    )
+    coverage_report_artifacts = write_coverage_report_artifacts(
+        output_root,
+        seed=7,
+        trajectories_per_class=5,
+    )
+    methodology_latex_artifacts = write_methodology_latex_artifacts(
+        output_root,
+        result=methodology_latex_result,
+        methodology_context=methodology_context,
+        artifact_mode=artifact_mode,
+    )
+    methodology_section_symbol_audit_artifacts = write_methodology_section_symbol_audit_artifacts(
+        output_root,
+        methodology_tex=methodology_latex_result.methodology_tex,
+        build_pdf=not fast,
+    )
+    showcase_artifacts = build_showcase_artifacts(
+        output_root,
+        refresh=False,
+        create_zip=False,
+        methodology_context=methodology_context,
+        artifact_mode=artifact_mode,
+    )
+    repo_story_artifacts = write_repo_story_artifacts(
+        output_root,
+        docs_root=ROOT / "docs",
+        write_showcase=True,
+    )
+    _remove_svg_outputs(output_root)
+    print(selected_generated_corpus_artifacts.run_dir)
+    print(selected_generated_corpus_artifacts.report_path)
+    print(study_candidate_generation_artifacts.run_dir)
+    print(study_candidate_generation_artifacts.decision_report_path)
+    print(validation_ladder_artifacts.run_dir)
+    print(validation_ladder_artifacts.report_path)
+    print(feature_analysis_artifacts.run_dir)
+    print(feature_analysis_artifacts.report_path)
+    print(corpus_adequacy_artifacts.run_dir)
+    print(corpus_adequacy_artifacts.report_path)
+    print(coverage_report_artifacts.run_dir)
+    print(coverage_report_artifacts.report_path)
+    print(methodology_latex_artifacts.run_dir)
+    print(methodology_latex_artifacts.artifact_tex_path)
+    if methodology_latex_artifacts.pdf_path is not None:
+        print(methodology_latex_artifacts.pdf_path)
+    print(methodology_section_symbol_audit_artifacts.run_dir)
+    print(methodology_section_symbol_audit_artifacts.report_path)
+    print(showcase_artifacts.showcase_dir)
+    print(showcase_artifacts.index_path)
+    print(showcase_artifacts.team_packet_dir)
+    print(showcase_artifacts.validation_path)
+    print(repo_story_artifacts.run_dir)
+    print(repo_story_artifacts.claim_matrix_path)
+    print(repo_story_artifacts.artifact_manifest_path)
+    return 0
+
+
 def main() -> int:
+    args = _build_parser().parse_args()
+    if args.scope == "front-door":
+        output_root = Path(args.output_dir)
+        if not output_root.is_absolute():
+            output_root = ROOT / output_root
+        return _run_front_door_export(output_root, fast=args.fast)
+    if args.output_dir != "artifacts":
+        raise SystemExit("--output-dir is only supported with --scope front-door")
+
+    methodology_context = build_methodology_execution_context(
+        seed=7,
+        trajectories_per_case=6,
+        use_cache=True,
+    )
+    methodology_latex_result = analyze_methodology_latex(
+        methodology_context=methodology_context,
+        use_cache=True,
+    )
     survey_path = write_method_survey_artifact(ROOT / "artifacts")
     milestone0_artifacts = write_milestone0_sample_run_artifacts(ROOT / "artifacts")
     pointwise_result = run_pointwise_benchmark()
@@ -333,8 +464,14 @@ def main() -> int:
     adaptive_stress_corpus_artifacts = write_adaptive_stress_corpus_artifacts(ROOT / "artifacts")
     rl_backend_decision_artifacts = write_rl_backend_decision_artifacts(ROOT / "artifacts")
     corpus_synthesis_comparison_artifacts = write_corpus_synthesis_comparison_artifacts(ROOT / "artifacts")
-    study_candidate_generation_artifacts = write_study_candidate_generation_artifacts(ROOT / "artifacts")
-    validation_ladder_artifacts = write_validation_ladder_artifacts(ROOT / "artifacts")
+    study_candidate_generation_artifacts = write_study_candidate_generation_artifacts(
+        ROOT / "artifacts",
+        result=methodology_context.study_generation_result,
+    )
+    validation_ladder_artifacts = write_validation_ladder_artifacts(
+        ROOT / "artifacts",
+        result=methodology_context.validation_result,
+    )
     write_rung_sufficiency_artifacts(ROOT / "artifacts")
     ladder_witness_suite_artifacts = write_ladder_witness_suite_artifacts(
         ROOT / "artifacts",
@@ -352,8 +489,15 @@ def main() -> int:
     corpus_adequacy_artifacts = write_corpus_adequacy_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
     coverage_report_artifacts = write_coverage_report_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
     pca_analysis_artifacts = write_pca_analysis_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5, n_components=3)
-    methodology_latex_artifacts = write_methodology_latex_artifacts(ROOT / "artifacts")
-    methodology_section_symbol_audit_artifacts = write_methodology_section_symbol_audit_artifacts(ROOT / "artifacts")
+    methodology_latex_artifacts = write_methodology_latex_artifacts(
+        ROOT / "artifacts",
+        result=methodology_latex_result,
+        methodology_context=methodology_context,
+    )
+    methodology_section_symbol_audit_artifacts = write_methodology_section_symbol_audit_artifacts(
+        ROOT / "artifacts",
+        methodology_tex=methodology_latex_result.methodology_tex,
+    )
     functional_surface_catalog_artifacts = write_functional_surface_catalog_artifacts(ROOT / "artifacts")
     formal_math_registry_artifacts = write_formal_math_registry_artifacts(ROOT / "artifacts")
     formal_math_visual_registry_artifacts = write_formal_math_visual_registry_artifacts(ROOT / "artifacts")
@@ -364,7 +508,12 @@ def main() -> int:
         trajectories_per_class=5,
         max_components=5,
     )
-    showcase_artifacts = build_showcase_artifacts(ROOT / "artifacts", refresh=False, create_zip=False)
+    showcase_artifacts = build_showcase_artifacts(
+        ROOT / "artifacts",
+        refresh=False,
+        create_zip=False,
+        methodology_context=methodology_context,
+    )
     repo_story_artifacts = write_repo_story_artifacts(ROOT / "artifacts", docs_root=ROOT / "docs", write_showcase=True)
     posterior_math_artifacts = write_posterior_math_artifacts(
         ROOT / "artifacts"

@@ -7,8 +7,10 @@ import tempfile
 import unittest
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from kinematic_classifier_sandbox.methodology.context import build_methodology_execution_context
+from kinematic_classifier_sandbox.methodology import latex as methodology_latex_module
 from kinematic_classifier_sandbox.methodology_latex import (
     analyze_section_symbol_audits,
     analyze_section_symbol_coverage,
@@ -170,6 +172,36 @@ p_k(c) = \ell_k(c) + \omega_k
             )
         self.assertIsNone(artifacts.pdf_path)
 
+    def test_methodology_latex_pickled_cache_reuses_result_after_process_local_clear(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous = os.environ.get("KINEMATIC_CLASSIFIER_RUNTIME_ROOT")
+            os.environ["KINEMATIC_CLASSIFIER_RUNTIME_ROOT"] = temp_dir
+            try:
+                methodology_latex_module._METHODOLOGY_LATEX_CACHE.clear()
+                first = analyze_methodology_latex(seed=7, trajectories_per_case=6, use_cache=True)
+                methodology_latex_module._METHODOLOGY_LATEX_CACHE.clear()
+                with patch(
+                    "kinematic_classifier_sandbox.methodology.context.build_methodology_execution_context",
+                    side_effect=AssertionError("pickled methodology cache should satisfy second call"),
+                ), patch(
+                    "kinematic_classifier_sandbox.witnesses.toy_1d.bayesian_walkthroughs.analyze_bayesian_walkthroughs",
+                    side_effect=AssertionError("pickled methodology cache should satisfy second call"),
+                ), patch(
+                    "kinematic_classifier_sandbox.inference.transition_matrix_accumulator.run_transition_benchmark",
+                    side_effect=AssertionError("pickled methodology cache should satisfy second call"),
+                ), patch(
+                    "kinematic_classifier_sandbox.validation.advanced_filter_decision.analyze_advanced_filter_decision",
+                    side_effect=AssertionError("pickled methodology cache should satisfy second call"),
+                ):
+                    second = analyze_methodology_latex(seed=7, trajectories_per_case=6, use_cache=True)
+            finally:
+                methodology_latex_module._METHODOLOGY_LATEX_CACHE.clear()
+                if previous is None:
+                    os.environ.pop("KINEMATIC_CLASSIFIER_RUNTIME_ROOT", None)
+                else:
+                    os.environ["KINEMATIC_CLASSIFIER_RUNTIME_ROOT"] = previous
+        self.assertEqual(first.methodology_tex, second.methodology_tex)
+
     def test_methodology_build_script_exists(self) -> None:
         root = Path(__file__).resolve().parents[2]
         script_path = root / "src" / "kinematic_classifier_sandbox" / "meta" / "__init__.py"
@@ -223,6 +255,28 @@ p_k(c) = \ell_k(c) + \omega_k
                     / "methodology_section_symbol_audit_summary.json"
                 ).exists()
             )
+
+            front_door_run = subprocess.run(
+                [
+                    "python3",
+                    "scripts/export_artifacts.py",
+                    "--scope",
+                    "front-door",
+                    "--fast",
+                    "--output-dir",
+                    temp_dir,
+                ],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            self.assertIn(str(Path(temp_dir) / "feature_analysis_v1"), front_door_run.stdout)
+            self.assertIn(str(Path(temp_dir) / "latex"), front_door_run.stdout)
+            self.assertIn(str(Path(temp_dir) / "repo_story"), front_door_run.stdout)
+            self.assertTrue((Path(temp_dir) / "coverage_report_v1" / "coverage_report.md").exists())
+            self.assertTrue((Path(temp_dir) / "latex" / "kinematic_classifier_methodology.tex").exists())
+            self.assertTrue((Path(temp_dir) / "repo_story" / "artifact_manifest.json").exists())
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ dependencies = ["matplotlib>=3.10", "numpy>=2.0", "mdutils>=1.8.1", "pydantic>=2
 
 [project.optional-dependencies]
 dev = ["pyright>=1.1", "ruff>=0.8"]
+rl = ["gymnasium>=1.0", "stable-baselines3>=2.3"]
 
 [tool.ruff]
 target-version = "py312"

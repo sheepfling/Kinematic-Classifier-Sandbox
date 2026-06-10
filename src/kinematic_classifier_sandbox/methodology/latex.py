@@ -6,15 +6,14 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from kinematic_classifier_sandbox.utils.io import _write_json, _write_text, write_csv
 from kinematic_classifier_sandbox.utils.runtime import repo_root
+from ..utils.analysis_cache import load_or_compute_pickled, stable_cache_key
 
-from ..inference.transition_matrix_accumulator import run_transition_benchmark
-from .context import MethodologyExecutionContext, build_methodology_execution_context
-from ..validation.advanced_filter_decision import analyze_advanced_filter_decision
-from ..validation.validation_ladder import analyze_validation_ladder
-from ..witnesses.toy_1d.bayesian_walkthroughs import analyze_bayesian_walkthroughs
+if TYPE_CHECKING:
+    from .context import MethodologyExecutionContext
 
 ROOT = repo_root()
 DOCS_LATEX_DIR = ROOT / "docs" / "latex"
@@ -25,6 +24,7 @@ DOCS_FIGURES_DIR = DOCS_LATEX_DIR / "figures"
 SOURCE_TEX_PATH = DOCS_LATEX_DIR / "kinematic_classifier_methodology.tex"
 SECTION_SYMBOL_HEADING = r"\paragraph{Section Symbols.}"
 SECTION_SYMBOL_BLOCK = r"\sectionsymbols{"
+_METHODOLOGY_LATEX_CACHE: dict[str, "MethodologyLatexResult"] = {}
 
 
 @dataclass(frozen=True, slots=True)
@@ -432,7 +432,8 @@ def _methodology_build_status(*, build_pdf: bool) -> dict[str, object]:
         "latexmk_available": latexmk_available,
         "junior_rerun_command": "python3 scripts/render/render_methodology_section_symbol_audit.py",
         "methodology_latex_command": "python3 scripts/render/render_methodology_latex.py",
-        "methodology_export_command": "python3 scripts/export_artifacts.py",
+        "methodology_export_command": "python3 scripts/export_artifacts.py --scope front-door",
+        "full_export_command": "python3 scripts/export_artifacts.py",
         "tracked_latex_byproducts_required": False,
     }
 
@@ -459,6 +460,7 @@ def _section_symbol_audit_report(
         f"- Junior rerun command: `{build_status['junior_rerun_command']}`",
         f"- Narrow methodology rerun command: `{build_status['methodology_latex_command']}`",
         f"- Packet export command: `{build_status['methodology_export_command']}`",
+        f"- Full bundle export command: `{build_status['full_export_command']}`",
         f"- Tracked LaTeX byproducts required: `{build_status['tracked_latex_byproducts_required']}`",
         "",
         "## Section Coverage",
@@ -575,6 +577,24 @@ def write_methodology_section_symbol_audit_artifacts(
     )
 
 
+def _methodology_latex_cache_key(
+    *,
+    seed: int,
+    trajectories_per_case: int,
+    source_tex_path: str | Path | None,
+) -> str:
+    resolved_source_tex_path = Path(source_tex_path).resolve() if source_tex_path is not None else None
+    payload = {
+        "seed": seed,
+        "trajectories_per_case": trajectories_per_case,
+        "source_tex_path": str(resolved_source_tex_path) if resolved_source_tex_path is not None else None,
+        "source_tex_contents": resolved_source_tex_path.read_text(encoding="utf-8")
+        if resolved_source_tex_path is not None and resolved_source_tex_path.exists()
+        else None,
+    }
+    return stable_cache_key("methodology_latex", payload)
+
+
 def analyze_methodology_latex(
     *,
     seed: int = 7,
@@ -582,6 +602,49 @@ def analyze_methodology_latex(
     methodology_context: MethodologyExecutionContext | None = None,
     use_cache: bool = True,
 ) -> MethodologyLatexResult:
+    cache_key = _methodology_latex_cache_key(
+        seed=seed,
+        trajectories_per_case=trajectories_per_case,
+        source_tex_path=SOURCE_TEX_PATH,
+    )
+    if use_cache:
+        cached = _METHODOLOGY_LATEX_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
+
+    result = load_or_compute_pickled(
+        namespace="methodology_latex",
+        cache_key=cache_key,
+        enabled=use_cache,
+        metadata={
+            "seed": seed,
+            "trajectories_per_case": trajectories_per_case,
+            "source_tex_path": str(SOURCE_TEX_PATH.resolve()),
+        },
+        compute=lambda: _analyze_methodology_latex_uncached(
+            seed=seed,
+            trajectories_per_case=trajectories_per_case,
+            methodology_context=methodology_context,
+            use_cache=use_cache,
+        ),
+    )
+    if use_cache:
+        _METHODOLOGY_LATEX_CACHE[cache_key] = result
+    return result
+
+
+def _analyze_methodology_latex_uncached(
+    *,
+    seed: int,
+    trajectories_per_case: int,
+    methodology_context: MethodologyExecutionContext | None,
+    use_cache: bool,
+) -> MethodologyLatexResult:
+    from ..inference.transition_matrix_accumulator import run_transition_benchmark
+    from ..validation.advanced_filter_decision import analyze_advanced_filter_decision
+    from ..witnesses.toy_1d.bayesian_walkthroughs import analyze_bayesian_walkthroughs
+    from .context import build_methodology_execution_context
+
     context = methodology_context or build_methodology_execution_context(
         seed=seed,
         trajectories_per_case=trajectories_per_case,

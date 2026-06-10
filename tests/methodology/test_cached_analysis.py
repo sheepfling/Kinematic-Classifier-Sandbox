@@ -8,6 +8,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from kinematic_classifier_sandbox.corpus.policy import load_corpus_policy_spec
+from kinematic_classifier_sandbox.methodology.context import (
+    build_methodology_execution_context,
+)
 from kinematic_classifier_sandbox.methodology.cached_analysis import (
     cached_common_experiment_analysis,
     common_experiment_cache_key,
@@ -54,6 +57,15 @@ class CachedAnalysisTests(unittest.TestCase):
             study_candidate_generation_cache_key(seed=7, trajectories_per_case=2, policy=baseline),
             study_candidate_generation_cache_key(seed=7, trajectories_per_case=2, policy=modified),
         )
+
+    def test_methodology_execution_context_reuses_process_local_cache(self) -> None:
+        first = build_methodology_execution_context(seed=7, trajectories_per_case=2, use_cache=True)
+        with patch(
+            "kinematic_classifier_sandbox.methodology.context.cached_common_experiment_analysis",
+            side_effect=AssertionError("process-local cache should satisfy second call"),
+        ):
+            second = build_methodology_execution_context(seed=7, trajectories_per_case=2, use_cache=True)
+        self.assertIs(first, second)
 
 
 if __name__ == "__main__":

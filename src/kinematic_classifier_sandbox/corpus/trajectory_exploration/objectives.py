@@ -87,6 +87,8 @@ def evaluate_proposal(
         "fill_underexcited_feature_cells": reward.feature_excitation,
         "create_ambiguous_boundary_trajectories": reward.boundary_closeness,
         "maximize_prior_flip_witness": reward.prior_sensitivity,
+        "sweep_feature_row_novelty": max(0.0, 0.65 * reward.feature_excitation + 0.35 * reward.coverage_gain),
+        "discover_novel_feature_class_region": max(0.0, 0.40 * reward.feature_excitation + 0.30 * reward.classifier_stress + 0.30 * reward.coverage_gain),
         "reduce_leakage_shortcuts": max(0.0, 1.0 - reward.leakage_penalty),
         "separate_class_pair": max(0.0, reward.class_validity - reward.classifier_stress),
         "break_classifier_family": reward.classifier_stress,

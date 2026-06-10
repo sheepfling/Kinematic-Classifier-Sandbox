@@ -8,7 +8,13 @@ from .corpus.coverage_report import write_coverage_report_artifacts
 from .corpus.exploration.generic_corpus_exploration import (
     write_generic_corpus_exploration_weight_sweep_artifacts,
 )
-from .corpus.trajectory_exploration import write_trajectory_exploration_artifacts
+from .corpus.trajectory_exploration import (
+    SequentialBoundaryControlConfig,
+    SequentialPpoConfig,
+    write_generated_trajectory_objective_artifacts,
+    write_sequential_ppo_boundary_control_artifacts,
+    write_trajectory_exploration_artifacts,
+)
 from .meta.repo_shape_audit import write_repo_shape_audit_artifacts
 from .registry.catalog import METHOD_CATALOG
 from .registry.corpus_evaluation_gap_matrix import write_corpus_evaluation_gap_matrix_artifacts
@@ -266,6 +272,68 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Directory where the trajectory-exploration bundle should be written.",
     )
     trajectory_exploration.add_argument("--seed", type=int, default=7, help="Random seed for the benchmark runs.")
+
+    trajectory_exploration_objectives = subparsers.add_parser(
+        "trajectory-exploration-objectives",
+        help="Render the mechanically generated trajectory objective suite.",
+    )
+    trajectory_exploration_objectives.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the objective-suite bundle should be written.",
+    )
+
+    trajectory_exploration_ppo = subparsers.add_parser(
+        "trajectory-exploration-ppo",
+        help="Render the sequential PPO boundary-control witness bundle.",
+    )
+    trajectory_exploration_ppo.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the PPO witness bundle should be written.",
+    )
+    trajectory_exploration_ppo.add_argument("--seed", type=int, default=7, help="Training seed for PPO.")
+    trajectory_exploration_ppo.add_argument(
+        "--episode-horizon",
+        type=int,
+        default=16,
+        help="Episode horizon for the sequential control witness.",
+    )
+    trajectory_exploration_ppo.add_argument(
+        "--timesteps",
+        type=int,
+        default=1024,
+        help="Total PPO training timesteps.",
+    )
+    trajectory_exploration_ppo.add_argument(
+        "--eval-episodes",
+        type=int,
+        default=8,
+        help="Deterministic evaluation episodes after training.",
+    )
+    trajectory_exploration_ppo.add_argument(
+        "--progress-eval-episodes",
+        type=int,
+        default=4,
+        help="Evaluation episodes for periodic progress snapshots during training.",
+    )
+    trajectory_exploration_ppo.add_argument(
+        "--checkpoint-interval",
+        type=int,
+        default=256,
+        help="Timesteps between persisted PPO checkpoints.",
+    )
+    trajectory_exploration_ppo.add_argument(
+        "--snapshot-interval",
+        type=int,
+        default=256,
+        help="Timesteps between persisted progress snapshots.",
+    )
+    trajectory_exploration_ppo.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Do not resume from an existing PPO checkpoint in the target run directory.",
+    )
     return parser
 
 
@@ -459,6 +527,48 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.metrics_by_backend_path)
         print(artifacts.rl_decision_report_path)
         print(artifacts.optimizer_trace_path)
+        return 0
+
+    if args.command == "trajectory-exploration-objectives":
+        artifacts = write_generated_trajectory_objective_artifacts(Path(args.output_dir))
+        print(artifacts.run_dir)
+        print(artifacts.spec_path)
+        print(artifacts.manifest_path)
+        print(artifacts.objectives_path)
+        print(artifacts.objective_table_path)
+        print(artifacts.report_path)
+        return 0
+
+    if args.command == "trajectory-exploration-ppo":
+        result = write_sequential_ppo_boundary_control_artifacts(
+            Path(args.output_dir),
+            config=SequentialBoundaryControlConfig(episode_horizon=args.episode_horizon),
+            ppo_config=SequentialPpoConfig(
+                total_timesteps=args.timesteps,
+                train_seed=args.seed,
+                eval_seed_start=args.seed + 200,
+                eval_episodes=args.eval_episodes,
+                progress_eval_episodes=args.progress_eval_episodes,
+                checkpoint_interval_timesteps=args.checkpoint_interval,
+                snapshot_interval_timesteps=args.snapshot_interval,
+                resume_if_possible=not args.no_resume,
+            ),
+        )
+        if result.artifacts is None:
+            parser.error("trajectory-exploration-ppo did not produce an artifact bundle")
+        print(result.artifacts.run_dir)
+        print(result.artifacts.checkpoints_dir)
+        print(result.artifacts.environment_contract_path)
+        print(result.artifacts.checkpoint_manifest_path)
+        print(result.artifacts.training_summary_path)
+        print(result.artifacts.training_trace_rows_path)
+        print(result.artifacts.snapshot_rows_path)
+        print(result.artifacts.ppo_vs_heuristics_path)
+        print(result.artifacts.utility_progress_path)
+        print(result.artifacts.feature_progress_path)
+        print(result.artifacts.class_space_progress_path)
+        print(result.artifacts.report_path)
+        print(result.artifacts.rl_algorithm_decision_report_path)
         return 0
 
     parser.error(f"unsupported command: {args.command}")
