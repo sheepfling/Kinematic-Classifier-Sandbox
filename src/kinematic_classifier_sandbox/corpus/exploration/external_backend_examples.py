@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .backend_adapter_proof import (
+from .backend_adapter_proof_core import (
     _adapter_map,
     _environment_candidate,
     _shared_boundary_candidate,

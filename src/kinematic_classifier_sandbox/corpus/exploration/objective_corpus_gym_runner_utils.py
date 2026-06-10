@@ -4,11 +4,11 @@ import json
 from hashlib import sha256
 from typing import Any
 
-from ..gym import CorpusGymAction, CorpusGymReward, CorpusGymTarget
+from ..gym import CorpusGymAction, CorpusGymTarget
 from ..objectives import CorpusObjectiveSpec
 from ..trajectory_backend_contract import TrajectoryRun
 from ..trajectory_backend_contract_utils import validate_trajectory_run
-from .backend_adapter_proof import AdapterExecutionRecord, BackendCandidateSpec
+from .backend_adapter_proof_types import AdapterExecutionRecord, BackendCandidateSpec
 
 
 def _stable_hash(payload: dict[str, Any]) -> str:

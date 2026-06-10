@@ -3,9 +3,14 @@ from __future__ import annotations
 import json
 from io import BytesIO
 from pathlib import Path
-from ...utils.plotting import plt
+
 from ...utils.io import write_csv
-from .candidate_generation_types import CandidateGenerationArtifacts, CandidateGenerationResult, CandidateGenerationRow
+from ...utils.plotting import plt
+from .candidate_generation_types import (
+    CandidateGenerationArtifacts,
+    CandidateGenerationResult,
+    CandidateGenerationRow,
+)
 
 
 def _render_sampler_comparison_png(rows: tuple[CandidateGenerationRow, ...]) -> bytes:
@@ -89,7 +94,7 @@ def write_candidate_generation_artifacts(
     result: CandidateGenerationResult | None = None,
 ) -> CandidateGenerationArtifacts:
     if result is None:
-        from .candidate_generation import analyze_candidate_generation
+        from .candidate_generation_core import analyze_candidate_generation
 
         result = analyze_candidate_generation()
     payload = result

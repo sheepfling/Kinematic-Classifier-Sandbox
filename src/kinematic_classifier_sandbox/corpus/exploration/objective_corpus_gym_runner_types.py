@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from ..gym import CorpusGymAction, CorpusGymReward, CorpusGymTarget
 from ..objectives import CorpusObjectiveSpec
-from .backend_adapter_proof import AdapterExecutionRecord, BackendCandidateSpec
+from .backend_adapter_proof_types import AdapterExecutionRecord, BackendCandidateSpec
 
 
 @dataclass(frozen=True, slots=True)

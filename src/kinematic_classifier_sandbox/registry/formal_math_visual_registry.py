@@ -10,7 +10,7 @@ from pathlib import Path
 from ..analysis.feature_analysis import write_feature_analysis_artifacts
 from ..analysis.generated_corpus_features import select_generated_corpus_records
 from ..artifacts import render_posterior_numeric_walkthrough_png_bytes
-from ..corpus.exploration.candidate_generation import analyze_candidate_generation
+from ..corpus.exploration.candidate_generation_core import analyze_candidate_generation
 from ..corpus.gym import CorpusGymAction, CorpusGymEnvironment, default_corpus_gym_targets
 from ..inference.monte_carlo_benchmark import (
     render_monte_carlo_calibration_png_bytes,
@@ -20,8 +20,7 @@ from ..inference.transition_matrix_accumulator import write_transition_benchmark
 from ..markdown_builder import MarkdownDocument
 from ..rung_sufficiency.analysis import write_rung_sufficiency_artifacts
 from ..utils.io import write_csv
-from ..utils.plotting import _figure_to_png
-from ..utils.plotting import plt
+from ..utils.plotting import _figure_to_png, plt
 from .formal_math_registry import load_equation_registry
 
 ROOT = Path(__file__).resolve().parents[3]

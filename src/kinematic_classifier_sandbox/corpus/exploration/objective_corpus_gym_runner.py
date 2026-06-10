@@ -1,17 +1,14 @@
 from __future__ import annotations
 
+from ..gym import CorpusGymEnvironment
 from ..objectives import CorpusObjectiveSpec, default_corpus_objectives
-from .backend_adapter_proof import BackendCandidateSpec
+from .candidate_generation_core import generate_candidates_from_objectives
 from .objective_corpus_gym_runner_types import ObjectiveCorpusGymRecord
 from .objective_corpus_gym_runner_utils import (
     _episode_to_execution,
     candidate_to_corpus_gym_action,
     objective_to_corpus_gym_target,
 )
-from .candidate_generation import generate_candidates_from_objectives
-from ..gym import CorpusGymAction, CorpusGymEnvironment, CorpusGymReward, CorpusGymTarget
-from ..trajectory_backend_contract import TrajectoryRun
-from ..trajectory_backend_contract_utils import validate_trajectory_run
 
 
 def execute_objective_candidates_via_corpus_gym(

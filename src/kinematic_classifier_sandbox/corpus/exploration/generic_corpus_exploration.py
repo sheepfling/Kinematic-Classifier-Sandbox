@@ -2,22 +2,48 @@ from __future__ import annotations
 
 import json
 import random
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from kinematic_classifier_sandbox.utils.io import write_csv
-from kinematic_classifier_sandbox.utils.plotting import _figure_to_png
-from kinematic_classifier_sandbox.utils.plotting import plt
 from kinematic_classifier_sandbox.utils.runtime import repo_root
 
 from ...markdown_builder import MarkdownDocument
-from ..policy import load_corpus_policy_spec
-from .backend_adapter_proof import (
-    BackendCandidateSpec,
-    _adapter_map,
+from .backend_adapter_proof_core import _adapter_map
+from .generic_corpus_exploration_core import (
+    DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHTS,
+    _archive_rows,
+    _backend_comparison_rows,
+    _backends_for_candidate,
+    _candidate_pool,
+    _exploration_result_set,
+    _resolve_generic_corpus_exploration_weight_sweep_config,
+    _score_run,
+    _selected_manifest_rows,
+    _set_jaccard,
+    _weights_to_dict,
+)
+from .generic_corpus_exploration_rendering import (
+    _render_archive_heatmap_png,
+    _render_backend_coverage_png,
+    _render_parallel_png,
+    _render_provenance_dashboard_png,
+    _render_selected_gallery_png,
+    _render_weight_sweep_overlap_png,
+    _render_weight_sweep_tradeoff_png,
+)
+from .generic_corpus_exploration_types import (
+    GenericCorpusExplorationArtifacts,
+    GenericCorpusExplorationResult,
+    GenericCorpusExplorationSweepArtifacts,
+    GenericCorpusExplorationSweepConfig,
+    GenericCorpusExplorationSweepResult,
+    GenericCorpusExplorationSweepRow,
+    GenericCorpusExplorationSweepVariant,
+    GenericCorpusExplorationWeights,
 )
 
 ROOT = repo_root()
@@ -46,10 +72,6 @@ def _perturb_weights(
     values[focus] = max(float(values[focus]) + delta, 1e-6)
     total = sum(float(value) for value in values.values())
     return GenericCorpusExplorationWeights(**{key: float(value) / total for key, value in values.items()})
-
-
-def _weights_to_dict(weights: GenericCorpusExplorationWeights) -> dict[str, float]:
-    return {key: float(value) for key, value in asdict(weights).items()}
 
 
 def _weights_from_mapping(mapping: dict[str, Any]) -> GenericCorpusExplorationWeights:
@@ -111,423 +133,6 @@ def load_generic_corpus_exploration_weight_sweep_config(
         variants=variants,
         config_path=config_path,
     )
-
-
-def _set_jaccard(left: set[str], right: set[str]) -> float:
-    if not left and not right:
-        return 1.0
-    return len(left & right) / max(len(left | right), 1)
-
-
-@dataclass(frozen=True, slots=True)
-class GenericCorpusExplorationResult:
-    exploration_manifest: dict[str, Any]
-    candidate_score_rows: tuple[dict[str, Any], ...]
-    archive_cell_rows: tuple[dict[str, Any], ...]
-    selected_corpus_manifest: dict[str, Any]
-    backend_comparison_rows: tuple[dict[str, Any], ...]
-    report_markdown: str
-
-
-@dataclass(frozen=True, slots=True)
-class GenericCorpusExplorationArtifacts:
-    run_dir: Path
-    exploration_manifest_path: Path
-    candidate_scores_path: Path
-    archive_cells_path: Path
-    selected_corpus_manifest_path: Path
-    backend_comparison_path: Path
-    report_path: Path
-    numeric_walkthrough_path: Path
-    backend_coverage_png_path: Path
-    archive_heatmap_png_path: Path
-    score_parallel_png_path: Path
-    selected_gallery_png_path: Path
-    provenance_dashboard_png_path: Path
-
-
-@dataclass(frozen=True, slots=True)
-class GenericCorpusExplorationWeights:
-    validity: float = 0.22
-    coverage_novelty: float = 0.18
-    boundary: float = 0.18
-    stress: float = 0.18
-    environment: float = 0.12
-    provenance: float = 0.12
-
-
-@dataclass(frozen=True, slots=True)
-class GenericCorpusExplorationSweepVariant:
-    variant_id: str
-    description: str
-    weights: GenericCorpusExplorationWeights
-
-
-@dataclass(frozen=True, slots=True)
-class GenericCorpusExplorationSweepConfig:
-    baseline_variant_id: str
-    variants: tuple[GenericCorpusExplorationSweepVariant, ...]
-    config_path: Path | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class GenericCorpusExplorationSweepRow:
-    variant_id: str
-    description: str
-    weight_validity: float
-    weight_coverage_novelty: float
-    weight_boundary: float
-    weight_stress: float
-    weight_environment: float
-    weight_provenance: float
-    selected_coverage: int
-    random_baseline_coverage: int
-    coverage_delta_vs_random: int
-    coverage_delta_vs_baseline: int
-    selected_backend_count: int
-    selected_scenario_count: int
-    selected_candidate_count: int
-    selected_cell_count: int
-    mean_total_utility: float
-    mean_total_utility_delta_vs_baseline: float
-    mean_provenance_completeness: float
-    candidate_jaccard_vs_baseline: float
-    cell_jaccard_vs_baseline: float
-    selected_candidate_ids: tuple[str, ...]
-    selected_cell_ids: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class GenericCorpusExplorationSweepResult:
-    baseline_variant_id: str
-    variants: tuple[GenericCorpusExplorationSweepVariant, ...]
-    rows: tuple[GenericCorpusExplorationSweepRow, ...]
-    report_markdown: str
-
-
-@dataclass(frozen=True, slots=True)
-class GenericCorpusExplorationSweepArtifacts:
-    run_dir: Path
-    config_path: Path
-    report_path: Path
-    summary_path: Path
-    rows_path: Path
-    overlap_matrix_path: Path
-    weight_matrix_path: Path
-    tradeoff_png_path: Path
-    selected_set_png_path: Path
-    baseline_manifest_path: Path
-
-
-def _default_generic_corpus_exploration_weights() -> GenericCorpusExplorationWeights:
-    weights = load_corpus_policy_spec().generic_explorer_weights
-    return GenericCorpusExplorationWeights(
-        validity=weights["validity"],
-        coverage_novelty=weights["coverage_novelty"],
-        boundary=weights["boundary_score"],
-        stress=weights["classifier_stress"],
-        environment=weights["environment_score"],
-        provenance=weights["provenance_completeness"],
-    )
-
-
-DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHTS = _default_generic_corpus_exploration_weights()
-
-
-def _candidate_pool() -> tuple[BackendCandidateSpec, ...]:
-    candidates: list[BackendCandidateSpec] = []
-    for replicate in range(3):
-        candidates.append(
-            BackendCandidateSpec(
-                candidate_id=f"boundary_param_{replicate}",
-                scenario_id="shared_boundary_cv_ca",
-                scenario_family="shared_boundary_case",
-                target_class="constant_velocity",
-                difficulty_tier="boundary_v1",
-                seed=700 + replicate,
-                duration=2.0 + 0.15 * replicate,
-                sample_period=0.5,
-                initial_position=0.0,
-                initial_velocity=1.00 + 0.03 * replicate,
-                acceleration=0.08 + 0.02 * replicate,
-                measurement_std=0.03,
-                provenance={"search_method": "dashboard_seeded", "search_iteration": len(candidates)},
-            )
-        )
-        candidates.append(
-            BackendCandidateSpec(
-                candidate_id=f"switching_ctrl_{replicate}",
-                scenario_id="switching_velocity_to_braking",
-                scenario_family="switching_case",
-                target_class="braking",
-                difficulty_tier="stress_v1",
-                seed=720 + replicate,
-                duration=2.0,
-                sample_period=0.5,
-                initial_position=0.0,
-                initial_velocity=1.35 + 0.04 * replicate,
-                acceleration=0.0,
-                measurement_std=0.04,
-                switch_time=0.9 + 0.1 * replicate,
-                acceleration_after_switch=-0.65 - 0.05 * replicate,
-                provenance={"search_method": "dashboard_seeded", "search_iteration": len(candidates)},
-            )
-        )
-        candidates.append(
-            BackendCandidateSpec(
-                candidate_id=f"env_accel_{replicate}",
-                scenario_id="environment_density_gradient",
-                scenario_family="environment_regime_case",
-                target_class="constant_acceleration",
-                difficulty_tier="realistic_v1",
-                seed=740 + replicate,
-                duration=2.0,
-                sample_period=0.5,
-                initial_position=0.0,
-                initial_velocity=0.82 + 0.03 * replicate,
-                acceleration=0.40 + 0.04 * replicate,
-                measurement_std=0.03,
-                drag_coefficient=0.18 + 0.04 * replicate,
-                density_scale=1.02 - 0.08 * replicate,
-                wind_bias=0.03 + 0.04 * replicate,
-                provenance={"search_method": "dashboard_seeded", "search_iteration": len(candidates), "environment_id": f"env_regime_{replicate}"},
-            )
-        )
-        candidates.append(
-            BackendCandidateSpec(
-                candidate_id=f"file_maneuver_{replicate}",
-                scenario_id="file_backend_case",
-                scenario_family="file_backend_case",
-                target_class="maneuver",
-                difficulty_tier="adversarial_v1",
-                seed=760 + replicate,
-                duration=2.0,
-                sample_period=0.5,
-                initial_position=0.0,
-                initial_velocity=0.85 + 0.05 * replicate,
-                acceleration=0.24 + 0.04 * replicate,
-                measurement_std=0.03,
-                input_deck_hash=f"file_case_hash_{replicate}",
-                longitudinal_command=(0.4, 0.5, 0.1, -0.3, -0.4),
-                provenance={"search_method": "dashboard_seeded", "search_iteration": len(candidates)},
-            )
-        )
-    return tuple(candidates)
-
-
-def _backends_for_candidate(candidate: BackendCandidateSpec) -> tuple[str, ...]:
-    if candidate.scenario_family == "shared_boundary_case":
-        return ("parameter_only_1d", "environment_aware_1d", "mock_file_backend_1d")
-    if candidate.scenario_family == "switching_case":
-        return ("controlled_1d", "mock_file_backend_1d")
-    if candidate.scenario_family == "environment_regime_case":
-        return ("environment_aware_1d",)
-    if candidate.scenario_family == "file_backend_case":
-        return ("mock_file_backend_1d",)
-    return ()
-
-
-def _provenance_completeness(metadata: dict[str, Any]) -> float:
-    required = ("adapter_family", "candidate_id", "search_provenance")
-    present = sum(1 for key in required if key in metadata and metadata[key] not in ("", None, {}))
-    return present / len(required)
-
-
-def _score_run(
-    candidate: BackendCandidateSpec,
-    backend_id: str,
-    run: Any,
-    weights: GenericCorpusExplorationWeights,
-) -> dict[str, Any]:
-    success = bool(run.success)
-    provenance_score = _provenance_completeness(run.metadata)
-    truth_state = run.truth_state
-    positions = truth_state.get("position", ())
-    velocities = truth_state.get("velocity", ())
-    accelerations = truth_state.get("acceleration", ())
-    speed_range = max(velocities) - min(velocities) if velocities else 0.0
-    position_range = max(positions) - min(positions) if positions else 0.0
-    acceleration_range = max(accelerations) - min(accelerations) if accelerations else 0.0
-    validity_score = 1.0 if success else 0.0
-    boundary_score = 0.85 if candidate.scenario_family == "shared_boundary_case" else 0.35
-    stress_score = 0.90 if candidate.scenario_family == "switching_case" else 0.70 if candidate.scenario_family == "file_backend_case" else 0.45
-    environment_score = 0.85 if candidate.scenario_family == "environment_regime_case" else 0.30
-    coverage_novelty_score = {
-        "shared_boundary_case": 0.70,
-        "switching_case": 0.92,
-        "environment_regime_case": 0.88,
-        "file_backend_case": 0.78,
-    }.get(candidate.scenario_family, 0.50)
-    utility = (
-        weights.validity * validity_score
-        + weights.coverage_novelty * coverage_novelty_score
-        + weights.boundary * boundary_score
-        + weights.stress * stress_score
-        + weights.environment * environment_score
-        + weights.provenance * provenance_score
-    )
-    cell_id = f"{backend_id}|{candidate.scenario_family}|{candidate.target_class}|{candidate.difficulty_tier}"
-    return {
-        "candidate_id": candidate.candidate_id,
-        "backend_id": backend_id,
-        "trajectory_id": run.run_id,
-        "scenario_family": candidate.scenario_family,
-        "target_class": candidate.target_class,
-        "difficulty_tier": candidate.difficulty_tier,
-        "environment_id": candidate.provenance.get("environment_id", ""),
-        "success": success,
-        "validity_score": validity_score,
-        "coverage_novelty_score": coverage_novelty_score,
-        "boundary_score": boundary_score,
-        "classifier_stress_score": stress_score,
-        "environment_score": environment_score,
-        "provenance_completeness": provenance_score,
-        "total_utility": utility,
-        "utility_weights": _weights_to_dict(weights),
-        "position_range": position_range,
-        "speed_range": speed_range,
-        "acceleration_range": acceleration_range,
-        "num_samples": len(run.times),
-        "cell_id": cell_id,
-    }
-
-
-def _archive_rows(candidate_rows: tuple[dict[str, Any], ...]) -> tuple[dict[str, Any], ...]:
-    best_by_cell: dict[str, dict[str, Any]] = {}
-    for row in candidate_rows:
-        cell_id = str(row["cell_id"])
-        if cell_id not in best_by_cell or float(row["total_utility"]) > float(best_by_cell[cell_id]["total_utility"]):
-            best_by_cell[cell_id] = dict(row)
-    rows = []
-    for cell_id, row in sorted(best_by_cell.items()):
-        rows.append(
-            {
-                "cell_id": cell_id,
-                "backend_id": row["backend_id"],
-                "scenario_family": row["scenario_family"],
-                "target_class": row["target_class"],
-                "difficulty_tier": row["difficulty_tier"],
-                "elite_candidate_id": row["candidate_id"],
-                "elite_total_utility": row["total_utility"],
-            }
-        )
-    return tuple(rows)
-
-
-def _selected_manifest_rows(candidate_rows: tuple[dict[str, Any], ...]) -> tuple[dict[str, Any], ...]:
-    best_by_cell: dict[str, dict[str, Any]] = {}
-    for row in candidate_rows:
-        if not bool(row["success"]):
-            continue
-        cell_id = str(row["cell_id"])
-        if cell_id not in best_by_cell or float(row["total_utility"]) > float(best_by_cell[cell_id]["total_utility"]):
-            best_by_cell[cell_id] = dict(row)
-    rows = sorted(best_by_cell.values(), key=lambda row: (-float(row["total_utility"]), str(row["backend_id"])))
-    return tuple(rows[:6])
-
-
-def _backend_comparison_rows(candidate_rows: tuple[dict[str, Any], ...], selected_rows: tuple[dict[str, Any], ...]) -> tuple[dict[str, Any], ...]:
-    rows: list[dict[str, Any]] = []
-    backend_ids = sorted({str(row["backend_id"]) for row in candidate_rows})
-    for backend_id in backend_ids:
-        backend_rows = [row for row in candidate_rows if row["backend_id"] == backend_id]
-        selected_backend_rows = [row for row in selected_rows if row["backend_id"] == backend_id]
-        rows.append(
-            {
-                "backend_id": backend_id,
-                "candidate_count": len(backend_rows),
-                "selected_count": len(selected_backend_rows),
-                "success_rate": sum(1 for row in backend_rows if bool(row["success"])) / max(len(backend_rows), 1),
-                "mean_total_utility": sum(float(row["total_utility"]) for row in backend_rows) / max(len(backend_rows), 1),
-                "mean_provenance_completeness": sum(float(row["provenance_completeness"]) for row in backend_rows) / max(len(backend_rows), 1),
-            }
-        )
-    return tuple(rows)
-
-
-def _render_backend_coverage_png(rows: tuple[dict[str, Any], ...]) -> bytes:
-    backend_ids = [str(row["backend_id"]) for row in rows]
-    selected_counts = [int(row["selected_count"]) for row in rows]
-    fig, ax = plt.subplots(figsize=(7.5, 4.0))
-    ax.bar(backend_ids, selected_counts, color="#4d8f77")
-    ax.set_ylabel("Selected Count")
-    ax.set_title("Backend Coverage Comparison")
-    ax.tick_params(axis="x", rotation=15)
-    fig.tight_layout()
-    return _figure_to_png(fig)
-
-
-def _render_archive_heatmap_png(rows: tuple[dict[str, Any], ...]) -> bytes:
-    backends = sorted({str(row["backend_id"]) for row in rows})
-    scenarios = sorted({str(row["scenario_family"]) for row in rows})
-    matrix = []
-    for backend in backends:
-        backend_row = []
-        for scenario in scenarios:
-            backend_row.append(sum(1 for row in rows if row["backend_id"] == backend and row["scenario_family"] == scenario))
-        matrix.append(backend_row)
-    fig, ax = plt.subplots(figsize=(7.0, 3.8))
-    image = ax.imshow(matrix, cmap="Purples", aspect="auto")
-    ax.set_xticks(range(len(scenarios)), labels=scenarios, fontsize=8)
-    ax.set_yticks(range(len(backends)), labels=backends, fontsize=8)
-    ax.set_title("Archive Coverage Heatmap")
-    for row_index, values in enumerate(matrix):
-        for column_index, value in enumerate(values):
-            ax.text(column_index, row_index, f"{value}", ha="center", va="center", fontsize=8)
-    fig.colorbar(image, ax=ax, fraction=0.04, pad=0.04)
-    fig.tight_layout()
-    return _figure_to_png(fig)
-
-
-def _render_parallel_png(rows: tuple[dict[str, Any], ...]) -> bytes:
-    metrics = (
-        "validity_score",
-        "coverage_novelty_score",
-        "boundary_score",
-        "classifier_stress_score",
-        "environment_score",
-        "provenance_completeness",
-    )
-    fig, ax = plt.subplots(figsize=(8.5, 4.5))
-    for row in rows:
-        values = [float(row[metric]) for metric in metrics]
-        ax.plot(range(len(metrics)), values, marker="o", alpha=0.7, label=str(row["candidate_id"]))
-    ax.set_xticks(range(len(metrics)), labels=[metric.replace("_", "\n") for metric in metrics], fontsize=8)
-    ax.set_ylim(0.0, 1.05)
-    ax.set_ylabel("Normalized Score")
-    ax.set_title("Score Component Parallel Coordinates")
-    fig.tight_layout()
-    return _figure_to_png(fig)
-
-
-def _render_selected_gallery_png(selected_rows: tuple[dict[str, Any,]], candidate_pool: tuple[BackendCandidateSpec, ...]) -> bytes:
-    adapters = _adapter_map()
-    fig, axes = plt.subplots(2, 2, figsize=(9.0, 6.0), sharex=False)
-    for axis, row in zip(axes.flat, selected_rows[:4]):
-        candidate = next(candidate for candidate in candidate_pool if candidate.candidate_id == row["candidate_id"])
-        run = adapters[str(row["backend_id"])].run(candidate).trajectory_run
-        axis.plot(run.times, run.truth_state.get("position", ()), marker="o", label="position")
-        if "velocity" in run.truth_state:
-            axis.plot(run.times, run.truth_state["velocity"], marker="s", label="velocity")
-        axis.set_title(f"{row['backend_id']}\n{row['scenario_family']}", fontsize=9)
-        axis.grid(alpha=0.25)
-    axes[0, 0].legend(fontsize=7)
-    fig.suptitle("Selected Trajectory Gallery", fontsize=11)
-    fig.tight_layout()
-    return _figure_to_png(fig)
-
-
-def _render_provenance_dashboard_png(rows: tuple[dict[str, Any], ...]) -> bytes:
-    labels = [str(row["candidate_id"]) for row in rows]
-    values = [float(row["provenance_completeness"]) for row in rows]
-    fig, ax = plt.subplots(figsize=(8.0, 4.0))
-    ax.bar(labels, values, color="#3e6a8a")
-    ax.set_ylim(0.0, 1.05)
-    ax.set_ylabel("Completeness")
-    ax.set_title("Provenance Completeness Dashboard")
-    ax.tick_params(axis="x", rotation=20)
-    fig.tight_layout()
-    return _figure_to_png(fig)
 
 
 def analyze_generic_corpus_exploration(
@@ -730,87 +335,6 @@ def render_generic_corpus_exploration_numeric_walkthrough_markdown(
     return "\n".join(lines)
 
 
-def _generic_corpus_exploration_weight_variants() -> tuple[GenericCorpusExplorationSweepVariant, ...]:
-    if DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHT_SWEEP_CONFIG_PATH.exists():
-        return load_generic_corpus_exploration_weight_sweep_config(
-            DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHT_SWEEP_CONFIG_PATH
-        ).variants
-    baseline = _normalize_weights(DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHTS)
-    return (
-        GenericCorpusExplorationSweepVariant(
-            variant_id="baseline",
-            description="Current production weights",
-            weights=baseline,
-        ),
-        GenericCorpusExplorationSweepVariant(
-            variant_id="validity_plus_5",
-            description="Increase validity emphasis by 5 percentage points",
-            weights=_perturb_weights(baseline, focus="validity", delta=0.05),
-        ),
-        GenericCorpusExplorationSweepVariant(
-            variant_id="coverage_plus_5",
-            description="Increase coverage-novelty emphasis by 5 percentage points",
-            weights=_perturb_weights(baseline, focus="coverage_novelty", delta=0.05),
-        ),
-        GenericCorpusExplorationSweepVariant(
-            variant_id="boundary_plus_5",
-            description="Increase boundary emphasis by 5 percentage points",
-            weights=_perturb_weights(baseline, focus="boundary", delta=0.05),
-        ),
-        GenericCorpusExplorationSweepVariant(
-            variant_id="stress_plus_5",
-            description="Increase stress emphasis by 5 percentage points",
-            weights=_perturb_weights(baseline, focus="stress", delta=0.05),
-        ),
-        GenericCorpusExplorationSweepVariant(
-            variant_id="environment_plus_5",
-            description="Increase environment emphasis by 5 percentage points",
-            weights=_perturb_weights(baseline, focus="environment", delta=0.05),
-        ),
-        GenericCorpusExplorationSweepVariant(
-            variant_id="provenance_plus_5",
-            description="Increase provenance emphasis by 5 percentage points",
-            weights=_perturb_weights(baseline, focus="provenance", delta=0.05),
-        ),
-    )
-
-
-def _resolve_generic_corpus_exploration_weight_sweep_config(
-    *,
-    config: GenericCorpusExplorationSweepConfig | None = None,
-    config_path: str | Path | None = None,
-    variants: tuple[GenericCorpusExplorationSweepVariant, ...] | None = None,
-) -> GenericCorpusExplorationSweepConfig:
-    if config is not None:
-        return config
-    if config_path is not None:
-        return load_generic_corpus_exploration_weight_sweep_config(config_path)
-    if variants is not None:
-        if not variants:
-            raise ValueError("at least one weight variant is required")
-        return GenericCorpusExplorationSweepConfig(
-            baseline_variant_id=variants[0].variant_id,
-            variants=variants,
-            config_path=None,
-        )
-    if DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHT_SWEEP_CONFIG_PATH.exists():
-        return load_generic_corpus_exploration_weight_sweep_config(
-            DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHT_SWEEP_CONFIG_PATH
-        )
-    return GenericCorpusExplorationSweepConfig(
-        baseline_variant_id="baseline",
-        variants=_generic_corpus_exploration_weight_variants(),
-        config_path=None,
-    )
-
-
-def _exploration_result_set(result: GenericCorpusExplorationResult) -> tuple[set[str], set[str]]:
-    selected_rows = tuple(result.selected_corpus_manifest["selected_rows"])
-    candidate_ids = {str(row["candidate_id"]) for row in selected_rows}
-    cell_ids = {str(row["cell_id"]) for row in selected_rows}
-    return candidate_ids, cell_ids
-
-
 def analyze_generic_corpus_exploration_weight_sweep(
     *,
     seed: int = 7,
@@ -927,82 +451,6 @@ def render_generic_corpus_exploration_weight_sweep_markdown(
 ) -> str:
     payload = result or analyze_generic_corpus_exploration_weight_sweep()
     return payload.report_markdown
-
-
-def _render_weight_sweep_tradeoff_png(rows: tuple[GenericCorpusExplorationSweepRow, ...]) -> bytes:
-    variant_ids = [row.variant_id for row in rows]
-    coverage_delta = [row.coverage_delta_vs_baseline for row in rows]
-    candidate_jaccard = [row.candidate_jaccard_vs_baseline for row in rows]
-    cell_jaccard = [row.cell_jaccard_vs_baseline for row in rows]
-    fig, ax1 = plt.subplots(figsize=(10.0, 4.8))
-    ax1.bar(variant_ids, coverage_delta, color="#4d8f77", alpha=0.7, label="Coverage Delta vs Baseline")
-    ax1.set_ylabel("Coverage Delta vs Baseline")
-    ax1.tick_params(axis="x", rotation=20)
-    ax1.grid(axis="y", alpha=0.2)
-    ax2 = ax1.twinx()
-    ax2.plot(variant_ids, candidate_jaccard, color="#7c3aed", marker="o", linewidth=2.0, label="Candidate Jaccard")
-    ax2.plot(variant_ids, cell_jaccard, color="#0f766e", marker="s", linewidth=2.0, label="Cell Jaccard")
-    ax2.set_ylabel("Jaccard vs Baseline")
-    ax2.set_ylim(0.0, 1.05)
-    fig.suptitle("Explorer Weight Sweep Tradeoff", fontsize=11)
-    fig.tight_layout()
-    return _figure_to_png(fig)
-
-
-def _render_weight_sweep_overlap_png(rows: tuple[GenericCorpusExplorationSweepRow, ...]) -> bytes:
-    variant_ids = [row.variant_id for row in rows]
-    candidate_sets = [set(row.selected_candidate_ids) for row in rows]
-    cell_sets = [set(row.selected_cell_ids) for row in rows]
-    candidate_matrix = [
-        [_set_jaccard(left, right) for right in candidate_sets]
-        for left in candidate_sets
-    ]
-    cell_matrix = [
-        [_set_jaccard(left, right) for right in cell_sets]
-        for left in cell_sets
-    ]
-    fig, axes = plt.subplots(2, 1, figsize=(8.2, 7.2), constrained_layout=True)
-    for axis, matrix, title in zip(
-        axes,
-        (candidate_matrix, cell_matrix),
-        ("Candidate Overlap Heatmap", "Cell Overlap Heatmap"),
-    ):
-        image = axis.imshow(matrix, vmin=0.0, vmax=1.0, cmap="viridis", aspect="auto")
-        axis.set_xticks(range(len(variant_ids)), labels=variant_ids, rotation=20, fontsize=7)
-        axis.set_yticks(range(len(variant_ids)), labels=variant_ids, fontsize=7)
-        axis.set_title(title)
-    for row_index, values in enumerate(matrix):
-        for column_index, value in enumerate(values):
-            axis.text(column_index, row_index, f"{value:.2f}", ha="center", va="center", fontsize=6, color="white" if value < 0.6 else "black")
-    fig.colorbar(image, ax=axis, fraction=0.04, pad=0.02)
-    return _figure_to_png(fig)
-
-
-def _render_weight_sweep_weight_matrix_png(rows: tuple[GenericCorpusExplorationSweepRow, ...]) -> bytes:
-    variant_ids = [row.variant_id for row in rows]
-    matrix = [
-        [
-            row.weight_validity,
-            row.weight_coverage_novelty,
-            row.weight_boundary,
-            row.weight_stress,
-            row.weight_environment,
-            row.weight_provenance,
-        ]
-        for row in rows
-    ]
-    labels = ["validity", "coverage", "boundary", "stress", "environment", "provenance"]
-    fig, ax = plt.subplots(figsize=(8.5, 4.4))
-    image = ax.imshow(matrix, vmin=0.0, vmax=1.0, cmap="Blues", aspect="auto")
-    ax.set_xticks(range(len(labels)), labels=labels, rotation=20, fontsize=8)
-    ax.set_yticks(range(len(variant_ids)), labels=variant_ids, fontsize=8)
-    ax.set_title("Weight Matrix")
-    for row_index, values in enumerate(matrix):
-        for column_index, value in enumerate(values):
-            ax.text(column_index, row_index, f"{value:.2f}", ha="center", va="center", fontsize=7)
-    fig.colorbar(image, ax=ax, fraction=0.04, pad=0.04)
-    fig.tight_layout()
-    return _figure_to_png(fig)
 
 
 def write_generic_corpus_exploration_weight_sweep_artifacts(
@@ -1226,11 +674,12 @@ def write_generic_corpus_exploration_artifacts(
     write_csv(backend_comparison_path, list(payload.backend_comparison_rows), backend_fieldnames)
 
     candidate_pool = _candidate_pool()
+    adapters = _adapter_map()
     backend_coverage_png_path.write_bytes(_render_backend_coverage_png(payload.backend_comparison_rows))
     archive_heatmap_png_path.write_bytes(_render_archive_heatmap_png(payload.archive_cell_rows))
     selected_rows = tuple(payload.selected_corpus_manifest["selected_rows"])
     score_parallel_png_path.write_bytes(_render_parallel_png(selected_rows))
-    selected_gallery_png_path.write_bytes(_render_selected_gallery_png(selected_rows, candidate_pool))
+    selected_gallery_png_path.write_bytes(_render_selected_gallery_png(selected_rows, candidate_pool, adapters))
     provenance_dashboard_png_path.write_bytes(_render_provenance_dashboard_png(selected_rows))
 
     return GenericCorpusExplorationArtifacts(

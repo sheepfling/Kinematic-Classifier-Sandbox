@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import random
-from typing import Any
 
 from ..objectives import CorpusObjectiveSpec
-from .backend_adapter_proof import BackendCandidateSpec
+from .backend_adapter_proof_types import BackendCandidateSpec
 from .candidate_generation_types import CandidateGenerationRow
 
 
