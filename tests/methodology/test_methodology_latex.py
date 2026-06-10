@@ -177,6 +177,53 @@ p_k(c) = \ell_k(c) + \omega_k
         script_text = script_path.read_text(encoding="utf-8")
         self.assertIn("write_methodology_latex_artifacts", script_text)
 
+    def test_main_cli_exposes_methodology_latex_command(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        main_path = root / "src" / "kinematic_classifier_sandbox" / "__main__.py"
+        main_text = main_path.read_text(encoding="utf-8")
+        self.assertIn('"methodology-latex"', main_text)
+        self.assertIn("write_methodology_latex_artifacts", main_text)
+
+    def test_narrow_rerun_commands_work_via_subprocess(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            latex_run = subprocess.run(
+                [
+                    "python3",
+                    "scripts/render/render_methodology_latex.py",
+                    "--fast",
+                    "--output-dir",
+                    temp_dir,
+                ],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            self.assertIn(str(Path(temp_dir) / "latex"), latex_run.stdout)
+            self.assertTrue((Path(temp_dir) / "latex" / "kinematic_classifier_methodology.tex").exists())
+
+            symbol_run = subprocess.run(
+                [
+                    "python3",
+                    "scripts/render/render_methodology_section_symbol_audit.py",
+                    "--output-dir",
+                    temp_dir,
+                ],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            self.assertIn(str(Path(temp_dir) / "methodology_section_symbol_audit"), symbol_run.stdout)
+            self.assertTrue(
+                (
+                    Path(temp_dir)
+                    / "methodology_section_symbol_audit"
+                    / "methodology_section_symbol_audit_summary.json"
+                ).exists()
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

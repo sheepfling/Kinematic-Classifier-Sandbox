@@ -19,7 +19,10 @@ from .registry.functional_surface_catalog import write_functional_surface_catalo
 from .registry.strict_equation_audit import write_strict_equation_audit_artifacts
 from .rung_sufficiency.analysis import write_ladder_witness_suite_artifacts
 from .story.repo_story import write_repo_story_artifacts
-from .methodology.latex import write_methodology_section_symbol_audit_artifacts
+from .methodology.latex import (
+    write_methodology_latex_artifacts,
+    write_methodology_section_symbol_audit_artifacts,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -196,6 +199,26 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         default="artifacts",
         help="Directory where the methodology symbol audit bundle should be written.",
+    )
+
+    methodology_latex = subparsers.add_parser(
+        "methodology-latex",
+        help="Render the methodology LaTeX bundle and optionally build the PDF.",
+    )
+    methodology_latex.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the methodology LaTeX bundle should be written.",
+    )
+    methodology_latex.add_argument(
+        "--fast",
+        action="store_true",
+        help="Write the LaTeX bundle without attempting a PDF build.",
+    )
+    methodology_latex.add_argument(
+        "--no-pdf",
+        action="store_true",
+        help="Write the LaTeX bundle without building the PDF.",
     )
 
     ladder_witness_suite = subparsers.add_parser(
@@ -386,6 +409,19 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.report_path)
         print(artifacts.summary_path)
         print(artifacts.rows_path)
+        return 0
+
+    if args.command == "methodology-latex":
+        artifacts = write_methodology_latex_artifacts(
+            Path(args.output_dir),
+            build_pdf=not args.no_pdf,
+            artifact_mode="fast" if args.fast else "full",
+        )
+        print(artifacts.run_dir)
+        print(artifacts.source_tex_path)
+        print(artifacts.artifact_tex_path)
+        if artifacts.pdf_path is not None:
+            print(artifacts.pdf_path)
         return 0
 
     if args.command == "ladder-witness-suite":

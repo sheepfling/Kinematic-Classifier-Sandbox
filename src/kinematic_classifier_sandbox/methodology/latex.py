@@ -430,8 +430,9 @@ def _methodology_build_status(*, build_pdf: bool) -> dict[str, object]:
         "status": status,
         "build_pdf_requested": build_pdf,
         "latexmk_available": latexmk_available,
-        "junior_rerun_command": "python -m kinematic_classifier_sandbox methodology-section-symbol-audit",
-        "methodology_export_command": "python scripts/export_artifacts.py",
+        "junior_rerun_command": "python3 scripts/render/render_methodology_section_symbol_audit.py",
+        "methodology_latex_command": "python3 scripts/render/render_methodology_latex.py",
+        "methodology_export_command": "python3 scripts/export_artifacts.py",
         "tracked_latex_byproducts_required": False,
     }
 
@@ -456,6 +457,7 @@ def _section_symbol_audit_report(
         f"- PDF build requested: `{build_status['build_pdf_requested']}`",
         f"- `latexmk` available: `{build_status['latexmk_available']}`",
         f"- Junior rerun command: `{build_status['junior_rerun_command']}`",
+        f"- Narrow methodology rerun command: `{build_status['methodology_latex_command']}`",
         f"- Packet export command: `{build_status['methodology_export_command']}`",
         f"- Tracked LaTeX byproducts required: `{build_status['tracked_latex_byproducts_required']}`",
         "",

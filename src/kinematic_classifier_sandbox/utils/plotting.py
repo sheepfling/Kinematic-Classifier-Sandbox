@@ -4,9 +4,13 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Iterator, Literal, Protocol, overload
 
-from matplotlib.figure import Figure
-
 from .runtime import configure_matplotlib_environment
+
+configure_matplotlib_environment()
+import matplotlib
+
+matplotlib.use("Agg")
+from matplotlib.figure import Figure
 
 
 class MatplotlibAxesCollection(Protocol):
@@ -106,11 +110,6 @@ class MatplotlibPyplot(Protocol):
 
     def __getattr__(self, name: str) -> Any: ...
 
-
-configure_matplotlib_environment()
-import matplotlib
-
-matplotlib.use("Agg")
 from matplotlib import pyplot as _pyplot
 
 plt: Any = _pyplot
