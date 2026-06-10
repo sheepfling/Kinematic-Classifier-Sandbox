@@ -40,53 +40,52 @@ def write_technique_comparison_artifacts(
             {
                 "method_name": row.method_name,
                 "sensor_regime_id": row.sensor_regime_id,
+                "applicability_status": row.applicability_status,
+                "primary_evaluation_family": row.primary_evaluation_family,
                 "overall_accuracy": row.overall_accuracy,
                 "prior_flip_fraction": row.prior_flip_fraction,
                 "median_flip_threshold": row.median_flip_threshold,
+                "witness_artifact": row.witness_artifact,
             }
             for row in comparison.rows
         ],
-        ["method_name", "sensor_regime_id", "overall_accuracy", "prior_flip_fraction", "median_flip_threshold"],
+        ["method_name", "sensor_regime_id", "applicability_status", "primary_evaluation_family", "overall_accuracy", "prior_flip_fraction", "median_flip_threshold", "witness_artifact"],
     )
     write_csv(
         scenario_csv_path,
         [
             {
                 "method_name": row.method_name,
-                "easy_accuracy": row.easy_accuracy,
-                "boundary_accuracy": row.boundary_accuracy,
-                "outlier_accuracy": row.outlier_accuracy,
-                "transition_accuracy": row.transition_accuracy,
-                "long_history_accuracy": row.long_history_accuracy,
-                "irregular_dt_accuracy": row.irregular_dt_accuracy,
-                "acceleration_accuracy": row.acceleration_accuracy,
+                "scenario_family": row.scenario_family,
+                "applicability_status": row.applicability_status,
+                "metric_name": row.metric_name,
+                "metric_value": row.metric_value,
+                "note": row.note,
             }
-            for row in comparison.rows
+            for row in comparison.scenario_support_rows
         ],
-        [
-            "method_name",
-            "easy_accuracy",
-            "boundary_accuracy",
-            "outlier_accuracy",
-            "transition_accuracy",
-            "long_history_accuracy",
-            "irregular_dt_accuracy",
-            "acceleration_accuracy",
-        ],
+        ["method_name", "scenario_family", "applicability_status", "metric_name", "metric_value", "note"],
     )
     write_csv(
         capability_csv_path,
         [
             {
-                "method_name": row.method_name,
-                "uses_temporal_history": row.uses_temporal_history,
-                "model_based": row.model_based,
-                "irregular_dt_native": row.irregular_dt_native,
-                "outlier_aware": row.outlier_aware,
+                "method_name": spec.method_name,
+                "sensor_regime_id": spec.sensor_regime_id,
+                "primary_evaluation_family": spec.primary_evaluation_family,
+                "supported_scenario_families": " ".join(spec.supported_scenario_families),
+                "local_feature": spec.capabilities.local_feature,
+                "recursive": spec.capabilities.recursive,
+                "model_based": spec.capabilities.model_based,
+                "switching_aware": spec.capabilities.switching_aware,
+                "nonlinear_nongaussian": spec.capabilities.nonlinear_nongaussian,
+                "sampled_latent": spec.capabilities.sampled_latent,
+                "stochastic_mean_reversion": spec.capabilities.stochastic_mean_reversion,
+                "witness_artifact": spec.witness_artifact,
             }
-            for row in comparison.rows
+            for spec in comparison.method_specs
         ],
-        ["method_name", "uses_temporal_history", "model_based", "irregular_dt_native", "outlier_aware"],
+        ["method_name", "sensor_regime_id", "primary_evaluation_family", "supported_scenario_families", "local_feature", "recursive", "model_based", "switching_aware", "nonlinear_nongaussian", "sampled_latent", "stochastic_mean_reversion", "witness_artifact"],
     )
     metric_heatmap_png_path.write_bytes(figure_to_png_bytes(render_technique_metric_heatmap(comparison)))
     scatter_png_path.write_bytes(figure_to_png_bytes(render_accuracy_fragility_scatter(comparison)))
