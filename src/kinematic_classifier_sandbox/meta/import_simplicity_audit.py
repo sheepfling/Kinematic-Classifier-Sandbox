@@ -75,6 +75,27 @@ LEGACY_ROOT_WRAPPER_MODULES = {
     "windowed_baseline",
 }
 
+COMMON_ACCIDENTAL_EXPORT_NAMES = {
+    "Callable",
+    "Path",
+    "Protocol",
+    "TYPE_CHECKING",
+    "annotations",
+    "asdict",
+    "csv",
+    "dataclass",
+    "erf",
+    "io",
+    "json",
+    "log",
+    "median",
+    "plt",
+    "repo_root",
+    "sqrt",
+}
+
+BROAD_PACKAGE_SURFACE_EXPORT_LIMIT = 25
+
 
 @dataclass(frozen=True, slots=True)
 class ImportSimplicityAuditResult:
@@ -103,6 +124,10 @@ def analyze_import_simplicity() -> ImportSimplicityAuditResult:
         "script_bootstrap_count": sum(1 for row in rows if row["kind"] == "script_bootstrap"),
         "package_side_effect_count": sum(1 for row in rows if row["kind"] == "package_import_side_effect"),
         "legacy_root_import_count": sum(1 for row in rows if row["kind"] == "legacy_root_import"),
+        "root_wrapper_count": sum(1 for row in rows if row["kind"] == "root_wrapper_surface"),
+        "accidental_export_count": sum(1 for row in rows if row["kind"] == "accidental_export"),
+        "broad_package_surface_count": sum(1 for row in rows if row["kind"] == "broad_package_surface"),
+        "import_cycle_count": sum(1 for row in rows if row["kind"] == "import_cycle"),
     }
     result = ImportSimplicityAuditResult(
         issue_rows=rows,
@@ -157,6 +182,10 @@ def render_import_simplicity_audit_report(result: ImportSimplicityAuditResult) -
             f"- Script bootstrap rows: `{result.summary['script_bootstrap_count']}`",
             f"- Package import side effects: `{result.summary['package_side_effect_count']}`",
             f"- Legacy root imports: `{result.summary['legacy_root_import_count']}`",
+            f"- Root wrapper surfaces: `{result.summary['root_wrapper_count']}`",
+            f"- Accidental exports: `{result.summary['accidental_export_count']}`",
+            f"- Broad package surfaces: `{result.summary['broad_package_surface_count']}`",
+            f"- Import cycles: `{result.summary['import_cycle_count']}`",
             "",
             "## Interpretation",
             "",
@@ -182,10 +211,10 @@ def _issue_rows() -> list[dict[str, object]]:
             if isinstance(node, ast.ImportFrom) and node.names and any(alias.name == "*" for alias in node.names):
                 rows.append(_row(relative, node.lineno, "wildcard_import", "violation", _node_text(text, node)))
             elif isinstance(node, ast.Call) and _is_sys_path_mutation(node):
-                status = "allowed" if relative in ALLOWED_SCRIPT_BOOTSTRAP else "violation"
+                status = _script_bootstrap_status(relative)
                 rows.append(_row(relative, node.lineno, "script_bootstrap", status, _node_text(text, node)))
             elif isinstance(node, ast.Assign) and _assigns_pythonpath(node):
-                status = "allowed" if relative in ALLOWED_SCRIPT_BOOTSTRAP else "violation"
+                status = _script_bootstrap_status(relative)
                 rows.append(_row(relative, node.lineno, "script_bootstrap", status, _node_text(text, node)))
             elif isinstance(node, ast.Call) and _looks_like_path_parents_sniff(node):
                 status = "allowed" if relative in ALLOWED_PATH_SNIFFING else "violation"
@@ -198,11 +227,15 @@ def _issue_rows() -> list[dict[str, object]]:
 
         rows.extend(_package_side_effect_rows(relative, text, tree))
         rows.extend(_legacy_root_import_rows(relative, tree, text))
+        rows.extend(_root_wrapper_surface_rows(path, relative, text, tree))
+        rows.extend(_accidental_export_rows(relative, tree))
+        rows.extend(_broad_package_surface_rows(relative, tree))
+    rows.extend(_import_cycle_rows())
     return rows
 
 
 def _python_files() -> tuple[Path, ...]:
-    roots = [REPO_ROOT / "src", REPO_ROOT / "scripts"]
+    roots = [REPO_ROOT / "src", REPO_ROOT / "scripts", REPO_ROOT / "tests"]
     return tuple(sorted(path for root in roots if root.exists() for path in root.rglob("*.py")))
 
 
@@ -238,6 +271,14 @@ def _is_sys_path_mutation(node: ast.Call) -> bool:
         and isinstance(func.value.value, ast.Name)
         and func.value.value.id == "sys"
     )
+
+
+def _script_bootstrap_status(path: str) -> str:
+    if path in ALLOWED_SCRIPT_BOOTSTRAP:
+        return "allowed"
+    if path.startswith("tests/"):
+        return "debt"
+    return "violation"
 
 
 def _assigns_pythonpath(node: ast.Assign) -> bool:
@@ -296,6 +337,235 @@ def _legacy_root_import_rows(path: str, tree: ast.AST, text: str) -> list[dict[s
         if len(parts) >= 2 and parts[0] == "kinematic_classifier_sandbox" and parts[1] in LEGACY_ROOT_WRAPPER_MODULES:
             rows.append(_row(path, node.lineno, "legacy_root_import", "violation", _node_text(text, node)))
     return rows
+
+
+def _root_wrapper_surface_rows(path: Path, relative: str, text: str, tree: ast.AST) -> list[dict[str, object]]:
+    if path.parent != PACKAGE_ROOT or path.stem not in LEGACY_ROOT_WRAPPER_MODULES:
+        return []
+    exported = _static_all_names(tree)
+    detail = f"{path.stem} exports {len(exported)} names"
+    if exported:
+        detail = f"{detail}: {', '.join(exported[:12])}"
+        if len(exported) > 12:
+            detail = f"{detail}, ..."
+    line = _all_assignment_line(tree) or 1
+    return [_row(relative, line, "root_wrapper_surface", "debt", detail)]
+
+
+def _accidental_export_rows(path: str, tree: ast.AST) -> list[dict[str, object]]:
+    exported = set(_static_all_names(tree))
+    if not exported:
+        return []
+    imported_names = _top_level_imported_names(tree)
+    rows: list[dict[str, object]] = []
+    for name in sorted(exported & COMMON_ACCIDENTAL_EXPORT_NAMES & imported_names.keys()):
+        rows.append(
+            _row(
+                path,
+                imported_names[name],
+                "accidental_export",
+                "debt",
+                f"`{name}` is imported and re-exported; keep public surfaces domain-specific",
+            )
+        )
+    return rows
+
+
+def _broad_package_surface_rows(path: str, tree: ast.AST) -> list[dict[str, object]]:
+    if not path.endswith("/__init__.py"):
+        return []
+    exported = _static_all_names(tree)
+    if len(exported) <= BROAD_PACKAGE_SURFACE_EXPORT_LIMIT:
+        return []
+    return [
+        _row(
+            path,
+            _all_assignment_line(tree) or 1,
+            "broad_package_surface",
+            "debt",
+            f"package initializer exports {len(exported)} names; prefer a named API module",
+        )
+    ]
+
+
+def _static_all_names(tree: ast.AST) -> tuple[str, ...]:
+    for node in tree.body if isinstance(tree, ast.Module) else []:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets):
+            continue
+        if not isinstance(node.value, (ast.List, ast.Tuple)):
+            return ()
+        names = []
+        for element in node.value.elts:
+            if isinstance(element, ast.Constant) and isinstance(element.value, str):
+                names.append(element.value)
+        return tuple(names)
+    return ()
+
+
+def _all_assignment_line(tree: ast.AST) -> int | None:
+    for node in tree.body if isinstance(tree, ast.Module) else []:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets
+        ):
+            return node.lineno
+    return None
+
+
+def _top_level_imported_names(tree: ast.AST) -> dict[str, int]:
+    imported: dict[str, int] = {}
+    for node in tree.body if isinstance(tree, ast.Module) else []:
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imported[alias.asname or alias.name.split(".")[0]] = node.lineno
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                if alias.name != "*":
+                    imported[alias.asname or alias.name] = node.lineno
+    return imported
+
+
+def _import_cycle_rows() -> list[dict[str, object]]:
+    graph = _package_import_graph()
+    rows: list[dict[str, object]] = []
+    for cycle in _strongly_connected_components(graph):
+        if len(cycle) <= 1:
+            continue
+        paths = sorted(_module_to_relative_path(module) for module in cycle)
+        rows.append(
+            _row(
+                paths[0],
+                1,
+                "import_cycle",
+                "debt",
+                " -> ".join(sorted(cycle)),
+            )
+        )
+    return rows
+
+
+def _package_import_graph() -> dict[str, set[str]]:
+    files = tuple(sorted(PACKAGE_ROOT.rglob("*.py")))
+    modules = {_module_name(path): path for path in files}
+    graph: dict[str, set[str]] = {module: set() for module in modules}
+    for module, path in modules.items():
+        text = path.read_text(encoding="utf-8")
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            continue
+        for node in _top_level_import_nodes(tree):
+            for imported in _internal_import_targets(module, node):
+                target = _nearest_known_module(imported, modules)
+                if target and target != module:
+                    graph[module].add(target)
+    return graph
+
+
+def _top_level_import_nodes(tree: ast.AST) -> tuple[ast.Import | ast.ImportFrom, ...]:
+    if not isinstance(tree, ast.Module):
+        return ()
+    imports: list[ast.Import | ast.ImportFrom] = []
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            imports.append(node)
+    return tuple(imports)
+
+
+def _module_name(path: Path) -> str:
+    relative = path.relative_to(PACKAGE_ROOT)
+    parts = ("kinematic_classifier_sandbox", *relative.with_suffix("").parts)
+    if parts[-1] == "__init__":
+        parts = parts[:-1]
+    return ".".join(parts)
+
+
+def _module_to_relative_path(module: str) -> str:
+    suffix = module.removeprefix("kinematic_classifier_sandbox").lstrip(".")
+    path = PACKAGE_ROOT / Path(*suffix.split(".")) if suffix else PACKAGE_ROOT / "__init__.py"
+    py_path = path.with_suffix(".py")
+    if py_path.exists():
+        return _relative(py_path)
+    return _relative(path / "__init__.py")
+
+
+def _internal_import_targets(current_module: str, node: ast.AST) -> tuple[str, ...]:
+    if isinstance(node, ast.Import):
+        return tuple(alias.name for alias in node.names if alias.name.startswith("kinematic_classifier_sandbox"))
+    if not isinstance(node, ast.ImportFrom):
+        return ()
+    if node.level == 0:
+        return (node.module,) if node.module and node.module.startswith("kinematic_classifier_sandbox") else ()
+
+    current_package = current_module if _is_package_module(current_module) else current_module.rsplit(".", 1)[0]
+    package_parts = current_package.split(".")
+    keep_count = len(package_parts) - node.level + 1
+    if keep_count < 1:
+        return ()
+    base = ".".join(package_parts[:keep_count])
+    if node.module:
+        return (f"{base}.{node.module}",)
+    return tuple(f"{base}.{alias.name}" for alias in node.names if alias.name != "*")
+
+
+def _is_package_module(module: str) -> bool:
+    suffix = module.removeprefix("kinematic_classifier_sandbox").lstrip(".")
+    path = PACKAGE_ROOT if not suffix else PACKAGE_ROOT / Path(*suffix.split("."))
+    return (path / "__init__.py").exists()
+
+
+def _nearest_known_module(module: str | None, modules: dict[str, Path]) -> str | None:
+    if not module:
+        return None
+    candidate = module
+    while candidate.startswith("kinematic_classifier_sandbox"):
+        if candidate in modules:
+            return candidate
+        if "." not in candidate:
+            return None
+        candidate = candidate.rsplit(".", 1)[0]
+    return None
+
+
+def _strongly_connected_components(graph: dict[str, set[str]]) -> list[tuple[str, ...]]:
+    index = 0
+    stack: list[str] = []
+    indices: dict[str, int] = {}
+    lowlinks: dict[str, int] = {}
+    on_stack: set[str] = set()
+    components: list[tuple[str, ...]] = []
+
+    def visit(node: str) -> None:
+        nonlocal index
+        indices[node] = index
+        lowlinks[node] = index
+        index += 1
+        stack.append(node)
+        on_stack.add(node)
+
+        for neighbor in graph[node]:
+            if neighbor not in indices:
+                visit(neighbor)
+                lowlinks[node] = min(lowlinks[node], lowlinks[neighbor])
+            elif neighbor in on_stack:
+                lowlinks[node] = min(lowlinks[node], indices[neighbor])
+
+        if lowlinks[node] != indices[node]:
+            return
+        component: list[str] = []
+        while True:
+            member = stack.pop()
+            on_stack.remove(member)
+            component.append(member)
+            if member == node:
+                break
+        components.append(tuple(component))
+
+    for node in sorted(graph):
+        if node not in indices:
+            visit(node)
+    return components
 
 
 def _write_csv(path: Path, rows: tuple[dict[str, object], ...]) -> None:

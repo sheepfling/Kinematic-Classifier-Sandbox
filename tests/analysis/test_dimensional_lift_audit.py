@@ -7,8 +7,8 @@ from pathlib import Path
 
 from kinematic_classifier_sandbox.analysis.dimensional_lift_audit import (
     analyze_dimensional_lift_audit,
-    write_dimensional_lift_audit_artifacts,
 )
+from kinematic_classifier_sandbox.analysis.dimensional_lift_audit_artifact_io import write_dimensional_lift_audit_artifacts
 from kinematic_classifier_sandbox.contracts import TrajectoryArtifact, validate_trajectory_artifact
 
 

@@ -16,9 +16,6 @@ def _remove_svg_outputs(root: Path) -> None:
 from kinematic_classifier_sandbox.analysis.inspection_bundle import (
     write_abstract_inspection_artifacts,
 )
-from kinematic_classifier_sandbox.analysis.dimensional_lift_audit import (
-    write_dimensional_lift_audit_artifacts,
-)
 from kinematic_classifier_sandbox.common_experiment.artifact_io import (
     write_common_experiment_artifacts,
 )
@@ -42,17 +39,20 @@ from kinematic_classifier_sandbox.validation.class_validity import write_class_v
 from kinematic_classifier_sandbox.corpus.trajectory_backend_contract_rendering import write_trajectory_backend_contract_artifacts
 from kinematic_classifier_sandbox.validation.technique_comparison_artifact_io import write_technique_comparison_artifacts
 from kinematic_classifier_sandbox.validation.validation_ladder import write_validation_ladder_artifacts
-from kinematic_classifier_sandbox.analysis.common_dataset_comparison import (
+from kinematic_classifier_sandbox.analysis.common_dataset_comparison_artifact_io import (
     write_common_dataset_comparison_artifacts,
 )
-from kinematic_classifier_sandbox.analysis.dimensional_lift_audit import (
+from kinematic_classifier_sandbox.analysis.dimensional_lift_audit_artifact_io import (
     write_dimensional_lift_audit_artifacts,
 )
-from kinematic_classifier_sandbox.analysis.feature_analysis import write_feature_analysis_artifacts
+from kinematic_classifier_sandbox.analysis.feature_analysis import (
+    analyze_feature_datasets,
+)
+from kinematic_classifier_sandbox.analysis.feature_analysis_artifact_io import write_feature_analysis_artifacts
 from kinematic_classifier_sandbox.analysis.generated_corpus_features import (
     write_generated_corpus_feature_artifacts,
 )
-from kinematic_classifier_sandbox.analysis.pca_analysis import write_pca_analysis_artifacts
+from kinematic_classifier_sandbox.analysis.pca_analysis_artifact_io import write_pca_analysis_artifacts
 from kinematic_classifier_sandbox.analysis.pca_dimensionality_audit import (
     write_pca_dimensionality_audit_artifacts,
 )
@@ -71,9 +71,8 @@ from kinematic_classifier_sandbox.corpus.adaptive_stress import (
 from kinematic_classifier_sandbox.corpus.autodevelopment import (
     write_corpus_autodevelopment_artifacts,
 )
-from kinematic_classifier_sandbox.corpus.adequacy_audit import (
-    write_corpus_adequacy_artifacts,
-)
+from kinematic_classifier_sandbox.corpus.adequacy_artifact_io import write_corpus_adequacy_artifacts
+from kinematic_classifier_sandbox.corpus.adequacy_audit import analyze_corpus_adequacy
 from kinematic_classifier_sandbox.corpus.classifier_scoring import (
     write_corpus_classifier_scoring_artifacts,
 )
@@ -114,7 +113,7 @@ from kinematic_classifier_sandbox.corpus.synthesis_comparison import (
 from kinematic_classifier_sandbox.corpus.trajectory_backend_contract_rendering import (
     write_trajectory_backend_contract_artifacts,
 )
-from kinematic_classifier_sandbox.corpus.selected_generated_corpus import (
+from kinematic_classifier_sandbox.corpus.selected_generated_corpus_artifact_io import (
     write_selected_generated_corpus_artifacts,
 )
 from kinematic_classifier_sandbox.inference.advanced_state_inference import (
@@ -186,7 +185,7 @@ from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
 )
 from kinematic_classifier_sandbox.showcase.builder import build_showcase_artifacts
 from kinematic_classifier_sandbox.story.repo_story import write_repo_story_artifacts
-from kinematic_classifier_sandbox.strict_equation_audit import write_strict_equation_audit_artifacts
+from kinematic_classifier_sandbox.registry.strict_equation_audit import write_strict_equation_audit_artifacts
 from kinematic_classifier_sandbox.validation.advanced_filter_decision import (
     write_advanced_filter_decision_artifacts,
 )
@@ -199,21 +198,19 @@ from kinematic_classifier_sandbox.validation.technique_comparison_artifact_io im
 from kinematic_classifier_sandbox.validation.validation_ladder_artifact_io import (
     write_validation_ladder_artifacts,
 )
-from kinematic_classifier_sandbox.corpus.coverage_report import write_coverage_report_artifacts
+from kinematic_classifier_sandbox.corpus.coverage_artifact_io import write_coverage_report_artifacts
+from kinematic_classifier_sandbox.corpus.coverage_report import analyze_coverage_report
 from kinematic_classifier_sandbox.corpus.exploration.external_backend_examples_rendering import (
     write_external_backend_examples_artifacts,
 )
 from kinematic_classifier_sandbox.corpus.quality_diversity import (
     write_quality_diversity_corpus_artifacts,
 )
-from kinematic_classifier_sandbox.corpus.selected_generated_corpus import (
-    write_selected_generated_corpus_artifacts,
-)
-from kinematic_classifier_sandbox.formal_math_registry import write_formal_math_registry_artifacts
-from kinematic_classifier_sandbox.formal_math_visual_registry import (
+from kinematic_classifier_sandbox.registry.formal_math_registry import write_formal_math_registry_artifacts
+from kinematic_classifier_sandbox.registry.formal_math_visual_registry import (
     write_formal_math_visual_registry_artifacts,
 )
-from kinematic_classifier_sandbox.functional_surface_catalog import (
+from kinematic_classifier_sandbox.registry.functional_surface_catalog import (
     write_functional_surface_catalog_artifacts,
 )
 from kinematic_classifier_sandbox.methodology.classification_evidence import (
@@ -234,12 +231,17 @@ from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
 )
 from kinematic_classifier_sandbox.showcase.builder import build_showcase_artifacts
 from kinematic_classifier_sandbox.story.repo_story import write_repo_story_artifacts
-from kinematic_classifier_sandbox.strict_equation_audit import write_strict_equation_audit_artifacts
+from kinematic_classifier_sandbox.registry.strict_equation_audit import write_strict_equation_audit_artifacts
 from kinematic_classifier_sandbox.study_candidate_generation import (
     write_study_candidate_generation_artifacts,
 )
 from kinematic_classifier_sandbox.study_candidate_protocol import (
     write_study_candidate_protocol_artifacts,
+)
+from kinematic_classifier_sandbox.utils.analysis_cache import (
+    describe_analysis_cache,
+    describe_analysis_cache_stats,
+    reset_analysis_cache_stats,
 )
 from kinematic_classifier_sandbox.witnesses.identity_1d.core import (
     run_identity_benchmark,
@@ -291,7 +293,23 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _print_cache_status(label: str) -> None:
+    summary = describe_analysis_cache()
+    stats = describe_analysis_cache_stats()
+    print(
+        f"analysis_cache[{label}]: root={summary['root']} namespaces={summary['namespace_count']} "
+        f"entries={summary['entry_count']} bytes={summary['bytes']} hits={stats['hit']} "
+        f"misses={stats['miss']} corrupt={stats['corrupt']} disabled={stats['disabled']}"
+    )
+    for row in stats["namespaces"]:
+        print(
+            f"analysis_cache[{label}].{row['namespace']}: hits={row['hit']} misses={row['miss']} "
+            f"corrupt={row['corrupt']} disabled={row['disabled']}"
+        )
+
+
 def _run_front_door_export(output_root: Path, *, fast: bool) -> int:
+    reset_analysis_cache_stats()
     methodology_context = build_methodology_execution_context(
         seed=7,
         trajectories_per_case=6,
@@ -302,6 +320,20 @@ def _run_front_door_export(output_root: Path, *, fast: bool) -> int:
         use_cache=True,
     )
     artifact_mode = "fast" if fast else "full"
+    feature_analysis_result = analyze_feature_datasets(
+        seed=7,
+        trajectories_per_class=5,
+    )
+    corpus_adequacy_result = analyze_corpus_adequacy(
+        seed=7,
+        trajectories_per_class=5,
+        feature_analysis_result=feature_analysis_result,
+    )
+    coverage_report_result = analyze_coverage_report(
+        seed=7,
+        trajectories_per_class=5,
+        corpus_adequacy_result=corpus_adequacy_result,
+    )
     selected_generated_corpus_artifacts = write_selected_generated_corpus_artifacts(output_root)
     study_candidate_generation_artifacts = write_study_candidate_generation_artifacts(
         output_root,
@@ -315,16 +347,19 @@ def _run_front_door_export(output_root: Path, *, fast: bool) -> int:
         output_root,
         seed=7,
         trajectories_per_class=5,
+        result=feature_analysis_result,
     )
     corpus_adequacy_artifacts = write_corpus_adequacy_artifacts(
         output_root,
         seed=7,
         trajectories_per_class=5,
+        result=corpus_adequacy_result,
     )
     coverage_report_artifacts = write_coverage_report_artifacts(
         output_root,
         seed=7,
         trajectories_per_class=5,
+        result=coverage_report_result,
     )
     methodology_latex_artifacts = write_methodology_latex_artifacts(
         output_root,
@@ -337,17 +372,19 @@ def _run_front_door_export(output_root: Path, *, fast: bool) -> int:
         methodology_tex=methodology_latex_result.methodology_tex,
         build_pdf=not fast,
     )
-    showcase_artifacts = build_showcase_artifacts(
-        output_root,
-        refresh=False,
-        create_zip=False,
-        methodology_context=methodology_context,
-        artifact_mode=artifact_mode,
-    )
+    showcase_artifacts = None
+    if not fast:
+        showcase_artifacts = build_showcase_artifacts(
+            output_root,
+            refresh=False,
+            create_zip=False,
+            methodology_context=methodology_context,
+            artifact_mode=artifact_mode,
+        )
     repo_story_artifacts = write_repo_story_artifacts(
         output_root,
         docs_root=ROOT / "docs",
-        write_showcase=True,
+        write_showcase=not fast,
     )
     _remove_svg_outputs(output_root)
     print(selected_generated_corpus_artifacts.run_dir)
@@ -368,13 +405,15 @@ def _run_front_door_export(output_root: Path, *, fast: bool) -> int:
         print(methodology_latex_artifacts.pdf_path)
     print(methodology_section_symbol_audit_artifacts.run_dir)
     print(methodology_section_symbol_audit_artifacts.report_path)
-    print(showcase_artifacts.showcase_dir)
-    print(showcase_artifacts.index_path)
-    print(showcase_artifacts.team_packet_dir)
-    print(showcase_artifacts.validation_path)
+    if showcase_artifacts is not None:
+        print(showcase_artifacts.showcase_dir)
+        print(showcase_artifacts.index_path)
+        print(showcase_artifacts.team_packet_dir)
+        print(showcase_artifacts.validation_path)
     print(repo_story_artifacts.run_dir)
     print(repo_story_artifacts.claim_matrix_path)
     print(repo_story_artifacts.artifact_manifest_path)
+    _print_cache_status("front-door")
     return 0
 
 

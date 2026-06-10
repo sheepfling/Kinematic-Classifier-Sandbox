@@ -1,75 +1,9 @@
+"""Prior-sensitivity inference package.
+
+Import contracts, reporting, runner, or artifact IO modules directly. This
+package initializer intentionally avoids a broad re-export surface.
+"""
+
 from __future__ import annotations
 
-from .artifact_io import (
-    write_cross_method_prior_comparison_artifacts,
-    write_prior_sensitivity_artifacts,
-)
-from .contracts import (
-    CrossMethodPriorComparisonArtifacts,
-    CrossMethodPriorComparisonResult,
-    PriorFlipThreshold,
-    PriorSensitivityArtifacts,
-    PriorSensitivityResult,
-    PriorSensitivitySummary,
-    PriorSweepRow,
-)
-from .reporting import (
-    render_cross_method_prior_comparison_png_bytes,
-    render_cross_method_prior_comparison_report,
-    render_cross_method_prior_comparison_svg,
-    render_prior_sensitivity_decision_png_bytes,
-    render_prior_sensitivity_decision_svg,
-    render_prior_sensitivity_decomposition_png_bytes,
-    render_prior_sensitivity_decomposition_svg,
-    render_prior_sensitivity_flip_png_bytes,
-    render_prior_sensitivity_flip_svg,
-    render_prior_sensitivity_fragility_png_bytes,
-    render_prior_sensitivity_fragility_svg,
-    render_prior_sensitivity_heatmap_png_bytes,
-    render_prior_sensitivity_heatmap_svg,
-    render_prior_sensitivity_pairwise_flip_png_bytes,
-    render_prior_sensitivity_pairwise_flip_svg,
-    render_prior_sensitivity_posterior_png_bytes,
-    render_prior_sensitivity_posterior_svg,
-    render_prior_sensitivity_report,
-)
-from .runner import (
-    analyze_cross_method_prior_comparison,
-    analyze_pointwise_prior_sensitivity,
-    analyze_prior_sensitivity,
-    analyze_windowed_prior_sensitivity,
-)
-
-__all__ = [
-    "PriorSweepRow",
-    "PriorFlipThreshold",
-    "PriorSensitivitySummary",
-    "PriorSensitivityResult",
-    "PriorSensitivityArtifacts",
-    "CrossMethodPriorComparisonResult",
-    "CrossMethodPriorComparisonArtifacts",
-    "analyze_prior_sensitivity",
-    "analyze_pointwise_prior_sensitivity",
-    "analyze_windowed_prior_sensitivity",
-    "analyze_cross_method_prior_comparison",
-    "render_prior_sensitivity_report",
-    "render_prior_sensitivity_posterior_svg",
-    "render_prior_sensitivity_posterior_png_bytes",
-    "render_prior_sensitivity_flip_svg",
-    "render_prior_sensitivity_flip_png_bytes",
-    "render_prior_sensitivity_heatmap_svg",
-    "render_prior_sensitivity_heatmap_png_bytes",
-    "render_prior_sensitivity_decision_svg",
-    "render_prior_sensitivity_decision_png_bytes",
-    "render_prior_sensitivity_decomposition_svg",
-    "render_prior_sensitivity_decomposition_png_bytes",
-    "render_prior_sensitivity_pairwise_flip_svg",
-    "render_prior_sensitivity_pairwise_flip_png_bytes",
-    "render_prior_sensitivity_fragility_svg",
-    "render_prior_sensitivity_fragility_png_bytes",
-    "render_cross_method_prior_comparison_report",
-    "render_cross_method_prior_comparison_svg",
-    "render_cross_method_prior_comparison_png_bytes",
-    "write_prior_sensitivity_artifacts",
-    "write_cross_method_prior_comparison_artifacts",
-]
+__all__: list[str] = []

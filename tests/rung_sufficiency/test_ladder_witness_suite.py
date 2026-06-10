@@ -67,6 +67,7 @@ class LadderWitnessSuiteTests(unittest.TestCase):
                 ["python3", str(script_path), "--output-dir", temp_dir, "--config", str(self.config_path)],
                 check=True,
                 cwd=self.root,
+                env={**os.environ, "PYTHONPATH": str(self.root / "src")},
             )
 
             module_run = subprocess.run(

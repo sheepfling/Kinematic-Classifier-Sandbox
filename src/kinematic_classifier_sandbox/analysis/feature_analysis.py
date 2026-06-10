@@ -26,14 +26,14 @@ from kinematic_classifier_sandbox.utils.math import (
 from kinematic_classifier_sandbox.utils.stats import histogram_overlap as _histogram_overlap
 from kinematic_classifier_sandbox.utils.stats import js_divergence as _js_divergence
 
-from ..feature_rows import FeatureValueMappingMixin
+from ..schema.feature_rows import FeatureValueMappingMixin
 from ..trajectory_generator import (
     GeneratedTrajectoryDataset,
     generate_trajectory_datasets,
 )
+from ..utils.analysis_cache import file_fingerprint, load_or_compute_pickled, stable_cache_key
 from ..utils.plotting import plt
 from ..utils.runtime import repo_root
-from .feature_analysis_artifact_io import write_feature_analysis_artifacts
 from .feature_analysis_contracts import FeatureAnalysisArtifacts
 from .feature_analysis_reporting import render_feature_analysis_report
 
@@ -997,9 +997,42 @@ def analyze_feature_datasets(
     feature_set: str | None = None,
     feature_names: tuple[str, ...] | list[str] | None = None,
     datasets: tuple[GeneratedTrajectoryDataset, ...] | None = None,
+    use_cache: bool = True,
 ) -> FeatureAnalysisResult:
     selected_feature_names = resolve_feature_names(feature_set=feature_set, feature_names=feature_names)
     selected_feature_set = feature_set or ("custom" if feature_names is not None else "all_engineered")
+    if datasets is None and use_cache:
+        cache_key = stable_cache_key(
+            "feature_analysis",
+            {
+                "cache_schema_version": 2,
+                "seed": seed,
+                "trajectories_per_class": trajectories_per_class,
+                "feature_set": selected_feature_set,
+                "feature_names": selected_feature_names,
+                "feature_analysis_source": file_fingerprint(Path(__file__)),
+                "feature_manifest": file_fingerprint(FEATURE_SET_MANIFEST_PATH),
+            },
+        )
+        return load_or_compute_pickled(
+            namespace="feature_analysis",
+            cache_key=cache_key,
+            enabled=True,
+            metadata={
+                "seed": seed,
+                "trajectories_per_class": trajectories_per_class,
+                "feature_set": selected_feature_set,
+                "feature_names": selected_feature_names,
+            },
+            compute=lambda: analyze_feature_datasets(
+                seed=seed,
+                trajectories_per_class=trajectories_per_class,
+                feature_set=feature_set,
+                feature_names=tuple(feature_names) if feature_names is not None else None,
+                datasets=None,
+                use_cache=False,
+            ),
+        )
     resolved_datasets = datasets or generate_trajectory_datasets(seed=seed, trajectories_per_class=trajectories_per_class)
     feature_rows: list[FeatureRow] = []
     for dataset in resolved_datasets:

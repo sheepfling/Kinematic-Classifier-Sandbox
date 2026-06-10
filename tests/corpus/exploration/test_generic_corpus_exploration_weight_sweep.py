@@ -57,7 +57,12 @@ class GenericCorpusExplorationWeightSweepTests(unittest.TestCase):
                 self.assertGreater(path.stat().st_size, 0, path)
 
             script_path = self.root / "scripts" / "render" / "render_generic_corpus_exploration_weight_sweep.py"
-            subprocess.run(["python3", str(script_path), "--output-dir", temp_dir, "--seed", "7", "--config", str(config_path)], check=True, cwd=self.root)
+            subprocess.run(
+                ["python3", str(script_path), "--output-dir", temp_dir, "--seed", "7", "--config", str(config_path)],
+                check=True,
+                cwd=self.root,
+                env={**os.environ, "PYTHONPATH": str(self.root / "src")},
+            )
 
             module_run = subprocess.run(
                 [

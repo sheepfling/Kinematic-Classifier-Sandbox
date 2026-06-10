@@ -91,6 +91,12 @@ PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox tra
 
 The PPO command is resumable by default. Re-run the same command after an interruption and it will pick up from the latest checkpoint in the target run directory. Use `--no-resume` to force a fresh run.
 
+To train against a mechanically generated objective region instead of the default witness, pass `--objective-id`, for example:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo --output-dir artifacts --objective-id feature_row__accel_high_row --timesteps 512 --episode-horizon 12 --seed 7
+```
+
 Run the broader multi-backend trajectory-exploration bundle, which now also writes the PPO witness artifacts:
 
 ```bash
@@ -103,14 +109,36 @@ Generate a mechanical objective suite for feature-space cells, feature-space row
 PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-objectives --output-dir artifacts
 ```
 
+Run PPO over a generated-objective subset:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo-sweep-generated --output-dir artifacts --timesteps 256 --episode-horizon 12 --objective-id feature_row__accel_high_row --objective-id novelty_region__novel_maneuver_feature_zone
+```
+
+Run the matched-budget sequential PPO vs CEM comparison bundle:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo-vs-cem --output-dir artifacts --timesteps 1024 --episode-horizon 16 --cem-iterations 10 --cem-population 24 --seed-count 3 --seed 7
+```
+
+Run the broader generated-objective PPO vs CEM sweep across feature and class-space regions:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo-vs-cem-sweep --output-dir artifacts --timesteps 256 --episode-horizon 12 --cem-iterations 5 --cem-population 12 --seed-count 2 --objective-limit 6 --seed 7
+```
+
 The PPO artifact bundle lands under:
 
 - `artifacts/trajectory_exploration_rl/ppo_boundary_control/`
 - `artifacts/trajectory_exploration_rl/rl_algorithm_decision_report.md`
+- `artifacts/trajectory_exploration_rl/ppo_vs_cem_boundary_control/`
+- `artifacts/trajectory_exploration_rl/ppo_vs_cem_objective_sweep/`
 
 Key PPO run artifacts:
 
 - `checkpoints/` for resumable model snapshots
+- `control_problem_contract.json` for the current actuator/state/measurement contract
+- `three_d_transition_report.md` for the 3D point-mass and aerodynamic-vehicle lift path
 - `checkpoint_manifest.json` for latest checkpoint and completed timestep state
 - `training_trace_rows.csv` for episode-level learning traces
 - `snapshot_rows.csv` for periodic utility / feature / class-space progress
@@ -118,12 +146,35 @@ Key PPO run artifacts:
 - `feature_progress.png` for feature-space excitation progress
 - `class_space_progress.png` for class-boundary exploration progress
 
+Key PPO vs CEM comparison artifacts:
+
+- `artifact_manifest.json` for the comparison-study bundle inventory
+- `metrics_by_backend.csv` for matched sequential backend metrics
+- `aggregate_metrics_by_backend.csv` for mean and spread across seeds
+- `backend_decisions.csv` for promote / experimental / no-go calls
+- `seed_runs.csv` for the per-seed witness runs
+- `progress_rows.csv` for PPO snapshot rows and CEM iteration progress
+- `strengths_and_limits.csv` for explicit method tradeoffs
+- `progress_comparison.png` for PPO vs CEM learning/search progress
+- `backend_metrics.png` for side-by-side backend score bars
+- `control_gallery.png` for top PPO and CEM control schedules
+- `report.md` for interpretation, winner, and method limits
+
+Key broader objective-sweep artifacts:
+
+- `objective_summary.csv` for per-objective winners and PPO/CEM deltas
+- `backend_summary.csv` for backend win fractions across the selected feature/class-space objectives
+- `decision_summary.csv` for PPO promotion status counts across objectives
+- `objective_backend_matrix.csv` for objective-by-backend utility values
+- `objective_backend_heatmap.png` for visual comparison across the selected objective surface
+
 Mechanical objective-generation artifacts:
 
 - `artifacts/trajectory_exploration_objectives/objective_generation_spec.json`
 - `artifacts/trajectory_exploration_objectives/objective_manifest.json`
 - `artifacts/trajectory_exploration_objectives/objective_table.csv`
 - `artifacts/trajectory_exploration_objectives/report.md`
+- `artifacts/trajectory_exploration_rl/generated_objective_sweep/summary_rows.csv`
 
 ## Cache policy
 

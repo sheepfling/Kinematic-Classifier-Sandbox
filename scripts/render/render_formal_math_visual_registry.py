@@ -9,7 +9,7 @@ ROOT = bootstrap_repo(configure_runtime=True)
 
 
 
-from kinematic_classifier_sandbox.formal_math_visual_registry import (
+from kinematic_classifier_sandbox.registry.formal_math_visual_registry import (
     write_formal_math_visual_registry_artifacts,
 )
 

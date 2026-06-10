@@ -7,6 +7,8 @@ from pathlib import Path
 from kinematic_classifier_sandbox.analysis.short_horizon_identifiability import (
     analyze_short_horizon_identifiability,
     render_short_horizon_identifiability_report,
+)
+from kinematic_classifier_sandbox.analysis.short_horizon_identifiability_artifact_io import (
     write_short_horizon_identifiability_artifacts,
 )
 

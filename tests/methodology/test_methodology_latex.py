@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from kinematic_classifier_sandbox.methodology.context import build_methodology_execution_context
 from kinematic_classifier_sandbox.methodology import latex as methodology_latex_module
-from kinematic_classifier_sandbox.methodology_latex import (
+from kinematic_classifier_sandbox.methodology.latex import (
     analyze_section_symbol_audits,
     analyze_section_symbol_coverage,
     analyze_methodology_latex,
@@ -218,6 +218,7 @@ p_k(c) = \ell_k(c) + \omega_k
 
     def test_narrow_rerun_commands_work_via_subprocess(self) -> None:
         root = Path(__file__).resolve().parents[2]
+        env = {**os.environ, "PYTHONPATH": str(root / "src")}
         with tempfile.TemporaryDirectory() as temp_dir:
             latex_run = subprocess.run(
                 [
@@ -228,6 +229,7 @@ p_k(c) = \ell_k(c) + \omega_k
                     temp_dir,
                 ],
                 cwd=root,
+                env=env,
                 text=True,
                 capture_output=True,
                 check=True,
@@ -243,6 +245,7 @@ p_k(c) = \ell_k(c) + \omega_k
                     temp_dir,
                 ],
                 cwd=root,
+                env=env,
                 text=True,
                 capture_output=True,
                 check=True,
@@ -267,6 +270,7 @@ p_k(c) = \ell_k(c) + \omega_k
                     temp_dir,
                 ],
                 cwd=root,
+                env=env,
                 text=True,
                 capture_output=True,
                 check=True,
@@ -274,9 +278,13 @@ p_k(c) = \ell_k(c) + \omega_k
             self.assertIn(str(Path(temp_dir) / "feature_analysis_v1"), front_door_run.stdout)
             self.assertIn(str(Path(temp_dir) / "latex"), front_door_run.stdout)
             self.assertIn(str(Path(temp_dir) / "repo_story"), front_door_run.stdout)
+            self.assertIn("analysis_cache[front-door]:", front_door_run.stdout)
+            self.assertIn("hits=", front_door_run.stdout)
+            self.assertIn("misses=", front_door_run.stdout)
             self.assertTrue((Path(temp_dir) / "coverage_report_v1" / "coverage_report.md").exists())
             self.assertTrue((Path(temp_dir) / "latex" / "kinematic_classifier_methodology.tex").exists())
             self.assertTrue((Path(temp_dir) / "repo_story" / "artifact_manifest.json").exists())
+            self.assertFalse((Path(temp_dir) / "showcase").exists())
 
 
 if __name__ == "__main__":

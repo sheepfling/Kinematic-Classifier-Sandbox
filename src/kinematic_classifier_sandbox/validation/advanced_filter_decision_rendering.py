@@ -160,10 +160,4 @@ __all__ = [
     "AdvancedFilterDecisionArtifacts",
     "render_advanced_filter_decision_report",
     "render_advanced_filter_decision_numeric_walkthrough_markdown",
-    "write_advanced_filter_decision_artifacts",
 ]
-
-
-from .advanced_filter_decision_artifact_io import (  # noqa: E402
-    write_advanced_filter_decision_artifacts,
-)

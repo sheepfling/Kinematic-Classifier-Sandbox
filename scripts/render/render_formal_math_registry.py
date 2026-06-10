@@ -9,7 +9,7 @@ ROOT = bootstrap_repo(configure_runtime=True)
 
 
 
-from kinematic_classifier_sandbox.formal_math_registry import write_formal_math_registry_artifacts
+from kinematic_classifier_sandbox.registry.formal_math_registry import write_formal_math_registry_artifacts
 
 
 def main() -> int:

@@ -10,7 +10,6 @@ from ..markdown_builder import MarkdownDocument
 from ..runtime_paths import prepare_matplotlib
 from ..utils.plotting import plt
 from ..utils.math import _mean
-from .adequacy_artifact_io import write_corpus_adequacy_artifacts
 from .adequacy_contracts import (
     CorpusAdequacyArtifacts,
     CorpusAdequacyResult,

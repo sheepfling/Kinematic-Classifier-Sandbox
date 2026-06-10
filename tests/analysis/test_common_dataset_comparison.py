@@ -7,8 +7,8 @@ from pathlib import Path
 from kinematic_classifier_sandbox.analysis.common_dataset_comparison import (
     analyze_common_dataset_comparison,
     render_common_dataset_comparison_report,
-    write_common_dataset_comparison_artifacts,
 )
+from kinematic_classifier_sandbox.analysis.common_dataset_comparison_artifact_io import write_common_dataset_comparison_artifacts
 
 
 class CommonDatasetComparisonTests(unittest.TestCase):

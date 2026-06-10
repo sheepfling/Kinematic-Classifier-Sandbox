@@ -181,7 +181,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="formal_math_registry",
         category="registry",
-        module="kinematic_classifier_sandbox.formal_math_registry",
+        module="kinematic_classifier_sandbox.registry.formal_math_registry",
         analysis_function="analyze_formal_math_registry",
         artifact_function="write_formal_math_registry_artifacts",
         artifact_outputs=("function_registry.csv", "equation_registry.csv", "function_equation_crosswalk.csv", "formal_math_registry_role_counts.png"),
@@ -192,7 +192,7 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
     FunctionalSurfaceSpec(
         surface_id="formal_math_visual_registry",
         category="registry",
-        module="kinematic_classifier_sandbox.formal_math_visual_registry",
+        module="kinematic_classifier_sandbox.registry.formal_math_visual_registry",
         analysis_function="analyze_formal_math_visual_registry",
         artifact_function="write_formal_math_visual_registry_artifacts",
         artifact_outputs=("formal_math_visual_registry.csv", "formal_math_visual_registry_coverage.png", "assets/*.png"),

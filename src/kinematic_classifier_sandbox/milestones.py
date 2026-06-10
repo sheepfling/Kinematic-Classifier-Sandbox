@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .analysis.feature_analysis import write_feature_analysis_artifacts
-from .analysis.pca_analysis import write_pca_analysis_artifacts
+from .analysis.feature_analysis_artifact_io import write_feature_analysis_artifacts
+from .analysis.pca_analysis_artifact_io import write_pca_analysis_artifacts
 from .contracts_rendering import write_milestone0_sample_run_artifacts
 from .inference.kalman_filter_bank import write_kalman_bank_artifacts
 from .inference.monte_carlo_benchmark import write_monte_carlo_artifacts

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.functional_surface_catalog import (
+from kinematic_classifier_sandbox.registry.functional_surface_catalog import (
     analyze_functional_surface_catalog,
     write_functional_surface_catalog_artifacts,
 )

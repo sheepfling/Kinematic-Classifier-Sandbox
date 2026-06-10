@@ -37,6 +37,7 @@ class NewStudyWorkflowTests(unittest.TestCase):
                 cwd=self.root,
                 env={
                     **os.environ,
+                    "PYTHONPATH": str(self.root / "src"),
                     "PYTHONPYCACHEPREFIX": "/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox/.pycache",
                 },
             )

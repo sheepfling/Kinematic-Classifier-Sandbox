@@ -17,7 +17,6 @@ from .adequacy_audit import (
     analyze_corpus_adequacy,
     render_corpus_adequacy_report,
 )
-from .coverage_artifact_io import write_coverage_report_artifacts
 from .coverage_contracts import CoverageReportArtifacts, CoverageReportResult, CoverageReportSummary
 
 
@@ -141,8 +140,9 @@ def analyze_coverage_report(
         seed: int = 7,
         trajectories_per_class: int = 5,
         thresholds: CorpusAdequacyThresholds | None = None,
+        corpus_adequacy_result: CorpusAdequacyResult | None = None,
 ) -> CoverageReportResult:
-    corpus_adequacy = analyze_corpus_adequacy(
+    corpus_adequacy = corpus_adequacy_result or analyze_corpus_adequacy(
         seed=seed,
         trajectories_per_class=trajectories_per_class,
         thresholds=thresholds,

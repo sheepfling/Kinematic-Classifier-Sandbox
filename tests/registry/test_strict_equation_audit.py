@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.strict_equation_audit import analyze_strict_equation_audit
+from kinematic_classifier_sandbox.registry.strict_equation_audit import analyze_strict_equation_audit
 
 
 class StrictEquationAuditTests(unittest.TestCase):
@@ -37,6 +37,7 @@ class StrictEquationAuditTests(unittest.TestCase):
                 ["python3", str(script_path), "--output-dir", temp_dir],
                 check=True,
                 cwd=self.root,
+                env={**os.environ, "PYTHONPATH": str(self.root / "src")},
             )
             outputs = (
                 Path(temp_dir) / "formal_math_strict_audit_v1" / "formal_math_strict_audit_report.md",

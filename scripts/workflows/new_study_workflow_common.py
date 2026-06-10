@@ -23,8 +23,8 @@ from kinematic_classifier_sandbox.analysis.generated_corpus_features import (
 from kinematic_classifier_sandbox.common_experiment_harness import (
     write_common_experiment_artifacts,
 )
-from kinematic_classifier_sandbox.corpus import (
-    write_corpus_adequacy_artifacts,
+from kinematic_classifier_sandbox.corpus.adequacy_artifact_io import write_corpus_adequacy_artifacts
+from kinematic_classifier_sandbox.corpus.selected_generated_corpus_artifact_io import (
     write_selected_generated_corpus_artifacts,
 )
 from kinematic_classifier_sandbox.corpus.exploration.candidate_generation_rendering import (
@@ -36,7 +36,7 @@ from kinematic_classifier_sandbox.corpus.exploration.generic_corpus_exploration 
 from kinematic_classifier_sandbox.corpus.policy_sweep import (
     write_corpus_policy_tuning_artifacts,
 )
-from kinematic_classifier_sandbox.corpus_autodevelopment import (
+from kinematic_classifier_sandbox.corpus.autodevelopment import (
     write_corpus_autodevelopment_artifacts,
 )
 from kinematic_classifier_sandbox.rung_sufficiency.analysis import (

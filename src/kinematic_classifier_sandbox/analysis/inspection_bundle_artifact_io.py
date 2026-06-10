@@ -5,17 +5,18 @@ from pathlib import Path
 
 from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ..corpus.adequacy_audit import write_corpus_adequacy_artifacts
-from ..corpus.coverage_report import write_coverage_report_artifacts
+from ..corpus.adequacy_artifact_io import write_corpus_adequacy_artifacts
+from ..corpus.coverage_artifact_io import write_coverage_report_artifacts
 from ..utils.plotting import _figure_to_png
-from .feature_analysis import load_feature_set_manifest, write_feature_analysis_artifacts
+from .feature_analysis import load_feature_set_manifest
+from .feature_analysis_artifact_io import write_feature_analysis_artifacts
 from .inspection_bundle_contracts import AbstractInspectionArtifacts
 from .inspection_bundle_reporting import (
     render_abstract_inspection_index,
     render_class_pair_summary_chart,
     render_feature_set_summary_chart,
 )
-from .pca_analysis import write_pca_analysis_artifacts
+from .pca_analysis_artifact_io import write_pca_analysis_artifacts
 
 
 def write_abstract_inspection_artifacts(

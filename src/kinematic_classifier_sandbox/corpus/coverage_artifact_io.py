@@ -15,10 +15,11 @@ def write_coverage_report_artifacts(
     seed: int = 7,
     trajectories_per_class: int = 5,
     thresholds=None,
+    result: CoverageReportResult | None = None,
 ) -> CoverageReportArtifacts:
     from .coverage_report import analyze_coverage_report, render_coverage_report
 
-    result = analyze_coverage_report(
+    result = result or analyze_coverage_report(
         seed=seed,
         trajectories_per_class=trajectories_per_class,
         thresholds=thresholds,

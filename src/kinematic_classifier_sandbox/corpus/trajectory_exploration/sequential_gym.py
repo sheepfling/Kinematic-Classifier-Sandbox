@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from statistics import mean
 
 import gymnasium as gym
@@ -22,6 +22,12 @@ from ..gym_utils import (
     _reward_from_components,
 )
 from .contracts import TrajectoryExplorationEvaluation, TrajectoryExplorationObjective, TrajectoryExplorationProposal
+from .sequential_control_specs import (
+    SequentialControlProblemSpec,
+    default_air_vehicle_control_problem_spec,
+    default_one_dimensional_acceleration_problem_spec,
+    default_three_dimensional_point_mass_problem_spec,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +44,7 @@ class SequentialBoundaryControlConfig:
     position_limit: float = 18.0
     velocity_limit: float = 4.0
     nontrivial_speed_floor: float = 0.18
+    control_problem: SequentialControlProblemSpec = field(default_factory=default_one_dimensional_acceleration_problem_spec)
 
 
 @dataclass(frozen=True, slots=True)
@@ -471,6 +478,9 @@ def sequential_environment_contract(config: SequentialBoundaryControlConfig | No
     resolved = config or SequentialBoundaryControlConfig()
     return {
         "environment_id": "sequential_boundary_control",
+        "control_problem": resolved.control_problem.as_payload(),
+        "three_d_point_mass_path": default_three_dimensional_point_mass_problem_spec().as_payload(),
+        "air_vehicle_path": default_air_vehicle_control_problem_spec().as_payload(),
         "state_fields": [
             "step_fraction",
             "position",

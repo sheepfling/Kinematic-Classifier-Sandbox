@@ -4,9 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from kinematic_classifier_sandbox.corpus.adequacy_artifact_io import write_corpus_adequacy_artifacts
 from kinematic_classifier_sandbox.corpus.adequacy_audit import (
     analyze_corpus_adequacy,
-    write_corpus_adequacy_artifacts,
 )
 
 

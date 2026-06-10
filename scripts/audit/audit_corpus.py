@@ -8,8 +8,8 @@ ROOT = bootstrap_repo(configure_runtime=True)
 
 
 
-from kinematic_classifier_sandbox.corpus.adequacy_audit import write_corpus_adequacy_artifacts
-from kinematic_classifier_sandbox.corpus.coverage_report import write_coverage_report_artifacts
+from kinematic_classifier_sandbox.corpus.adequacy_artifact_io import write_corpus_adequacy_artifacts
+from kinematic_classifier_sandbox.corpus.coverage_artifact_io import write_coverage_report_artifacts
 
 
 def main(argv: list[str] | None = None) -> int:

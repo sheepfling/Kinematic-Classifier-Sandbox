@@ -6,7 +6,7 @@ from typing import Any
 from typing import TYPE_CHECKING
 
 from ..analysis.common_dataset_comparison import CommonComparisonResult
-from ..feature_rows import FeatureValueMappingMixin
+from ..schema.feature_rows import FeatureValueMappingMixin
 from .summary_rows_types import (
     ClassPairDurationSummaryRow,
     ClassPairScenarioSummaryRow,

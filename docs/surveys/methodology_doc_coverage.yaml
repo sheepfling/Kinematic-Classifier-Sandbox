@@ -29,16 +29,6 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/advanced_filter_decision.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
       "module_path": "src/kinematic_classifier_sandbox/advanced_filters/artifact_io.py",
       "coverage_kind": "architecture",
       "primary_doc": "dimensional_lift_and_advanced_filter_gates",
@@ -509,40 +499,10 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/bayesian_walkthroughs.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/catalog.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
       "module_path": "src/kinematic_classifier_sandbox/common_1d_study_adapter.py",
       "coverage_kind": "architecture",
       "primary_doc": "classifier_ladder_and_contracts",
       "primary_section": "Common Experiment Harness And Adapter Layer",
-      "artifact_outputs": [
-        "artifacts/classifier_ladder_and_contracts.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/common_dataset_comparison.py",
-      "coverage_kind": "architecture",
-      "primary_doc": "classifier_ladder_and_contracts",
-      "primary_section": "Shared Ladder Benchmark And Dataset Comparison",
       "artifact_outputs": [
         "artifacts/classifier_ladder_and_contracts.pdf"
       ],
@@ -1679,160 +1639,30 @@
       "status": "covered"
     },
     {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/sequential_comparison.py",
+      "coverage_kind": "appendix",
+      "primary_doc": "methodology_doc_index",
+      "primary_section": "Infrastructure Appendix",
+      "artifact_outputs": [
+        "artifacts/latex/methodology_doc_coverage.md"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/sequential_control_specs.py",
+      "coverage_kind": "appendix",
+      "primary_doc": "methodology_doc_index",
+      "primary_section": "Infrastructure Appendix",
+      "artifact_outputs": [
+        "artifacts/latex/methodology_doc_coverage.md"
+      ],
+      "status": "covered"
+    },
+    {
       "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/sequential_gym.py",
       "coverage_kind": "implementation",
       "primary_doc": "corpus_generation_and_search",
       "primary_section": "Trajectory Exploration Backends",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/corpus_adequacy_audit.py",
-      "coverage_kind": "architecture",
-      "primary_doc": "corpus_generation_and_search",
-      "primary_section": "Corpus Explorer And Policy Surfaces",
-      "artifact_outputs": [
-        "artifacts/corpus_generation_and_search.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/corpus_autodevelopment.py",
-      "coverage_kind": "architecture",
-      "primary_doc": "corpus_generation_and_search",
-      "primary_section": "Corpus Explorer And Policy Surfaces",
-      "artifact_outputs": [
-        "artifacts/corpus_generation_and_search.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/coverage_report.py",
-      "coverage_kind": "evaluation",
-      "primary_doc": "methodology_evaluation_framework",
-      "primary_section": "Corpus Adequacy, Leakage, And Coverage Gates",
-      "artifact_outputs": [
-        "artifacts/methodology_evaluation_framework.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/dimensional_lift_audit.py",
-      "coverage_kind": "architecture",
-      "primary_doc": "dimensional_lift_and_advanced_filter_gates",
-      "primary_section": "Dimensional Lift Audit",
-      "artifact_outputs": [
-        "artifacts/dimensional_lift_and_advanced_filter_gates.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/feature_analysis.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/feature_rows.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/formal_math_registry.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/formal_math_registry_v1/formal_math_registry_report.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/formal_math_visual_registry.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/formal_math_visual_registry_v1/formal_math_visual_registry_report.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/functional_surface_catalog.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/functional_surface_catalog_v1/functional_surface_catalog_report.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/generic_classification_evidence_proof.py",
-      "coverage_kind": "architecture",
-      "primary_doc": "classifier_ladder_and_contracts",
-      "primary_section": "Common Output Schema And Contracts",
-      "artifact_outputs": [
-        "artifacts/classifier_ladder_and_contracts.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/generic_feature_taxonomy.py",
-      "coverage_kind": "evaluation",
-      "primary_doc": "methodology_evaluation_framework",
-      "primary_section": "Feature Registry, Pairwise AUC, And Overlap Construction",
-      "artifact_outputs": [
-        "artifacts/methodology_evaluation_framework.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/generic_filtering_contract.py",
-      "coverage_kind": "architecture",
-      "primary_doc": "classifier_ladder_and_contracts",
-      "primary_section": "Backend Adapter Proof",
-      "artifact_outputs": [
-        "artifacts/classifier_ladder_and_contracts.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/generic_inference_contract.py",
-      "coverage_kind": "architecture",
-      "primary_doc": "classifier_ladder_and_contracts",
-      "primary_section": "Common Output Schema And Contracts",
-      "artifact_outputs": [
-        "artifacts/classifier_ladder_and_contracts.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/identity_1d.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/identity_posterior_explainer.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
       "artifact_outputs": [
         "artifacts/latex/methodology_doc_coverage.md"
       ],
@@ -2129,56 +1959,6 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/inspection_bundle.py",
-      "coverage_kind": "evaluation",
-      "primary_doc": "methodology_evaluation_framework",
-      "primary_section": "Inspection Bundle Ranking And Summary Logic",
-      "artifact_outputs": [
-        "artifacts/methodology_evaluation_framework.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/irregular_window_comparison.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/kalman_filter_bank.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/kalman_observable_comparison.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/kalman_variant_comparison.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
       "module_path": "src/kinematic_classifier_sandbox/markdown_builder.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
@@ -2319,87 +2099,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/methodology_compendium.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Single Cohesive Entry Point",
-      "artifact_outputs": [
-        "artifacts/methodology_compendium.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/methodology_latex.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/kinematic_classifier_methodology.pdf"
-      ],
-      "status": "covered"
-    },
-    {
       "module_path": "src/kinematic_classifier_sandbox/milestones.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/monte_carlo_benchmark.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/pca_analysis.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/pca_dimensionality_audit.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/pointwise_baseline.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/posterior_explainer.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/prior_sensitivity_analysis.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Infrastructure Appendix",
@@ -2599,36 +2299,6 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/sequential_bayes_accumulator.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/shared_evaluation.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/short_horizon_identifiability.py",
-      "coverage_kind": "evaluation",
-      "primary_doc": "methodology_evaluation_framework",
-      "primary_section": "Short-Horizon Identifiability And Pairwise Difficulty",
-      "artifact_outputs": [
-        "artifacts/methodology_evaluation_framework.pdf"
-      ],
-      "status": "covered"
-    },
-    {
       "module_path": "src/kinematic_classifier_sandbox/showcase/assets.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
@@ -2715,16 +2385,6 @@
       "primary_section": "Methodology Story And Artifact Surfaces",
       "artifact_outputs": [
         "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/strict_equation_audit.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/formal_math_strict_audit_v1/formal_math_strict_audit_report.md"
       ],
       "status": "covered"
     },
@@ -2819,26 +2479,6 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/technique_comparison.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/toy_1d.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
       "module_path": "src/kinematic_classifier_sandbox/trajectory_generator.py",
       "coverage_kind": "architecture",
       "primary_doc": "corpus_generation_and_search",
@@ -2860,16 +2500,6 @@
     },
     {
       "module_path": "src/kinematic_classifier_sandbox/trajectory_series.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/transition_matrix_accumulator.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Infrastructure Appendix",
@@ -3205,36 +2835,6 @@
       "primary_section": "Evaluation, Validation Ladder, And Promotion Decisions",
       "artifact_outputs": [
         "artifacts/methodology_evaluation_framework.pdf"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/validation_ladder.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/velocity_aided_kalman_comparison.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
-      ],
-      "status": "covered"
-    },
-    {
-      "module_path": "src/kinematic_classifier_sandbox/windowed_baseline.py",
-      "coverage_kind": "appendix",
-      "primary_doc": "methodology_doc_index",
-      "primary_section": "Infrastructure Appendix",
-      "artifact_outputs": [
-        "artifacts/latex/methodology_doc_coverage.md"
       ],
       "status": "covered"
     },

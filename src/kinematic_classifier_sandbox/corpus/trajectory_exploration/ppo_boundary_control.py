@@ -22,6 +22,7 @@ from .sequential_gym import (
     scripted_control_profiles,
     sequential_environment_contract,
 )
+from .sequential_control_specs import default_air_vehicle_control_problem_spec, default_three_dimensional_point_mass_problem_spec
 
 try:
     from stable_baselines3 import PPO
@@ -68,6 +69,8 @@ class SequentialPpoArtifacts:
     run_dir: Path
     checkpoints_dir: Path
     environment_contract_path: Path
+    control_problem_contract_path: Path
+    transition_report_path: Path
     training_config_path: Path
     checkpoint_manifest_path: Path
     training_summary_path: Path
@@ -92,6 +95,34 @@ class SequentialPpoSweepArtifacts:
     manifest_path: Path
     summary_rows_path: Path
     report_path: Path
+
+
+def _transition_report_markdown(config: SequentialBoundaryControlConfig, objective: TrajectoryExplorationObjective) -> str:
+    current = config.control_problem
+    point_mass_3d = default_three_dimensional_point_mass_problem_spec()
+    air_vehicle = default_air_vehicle_control_problem_spec()
+    return "\n".join(
+        [
+            "# Sequential Control Transition Report",
+            "",
+            f"- current problem id: `{current.problem_id}`",
+            f"- current vehicle family: `{current.vehicle_family}`",
+            f"- current objective id: `{objective.objective_id}`",
+            "",
+            "## 3D Point-Mass Lift",
+            "",
+            *[f"- {step}" for step in point_mass_3d.transition_path],
+            "",
+            "## Aerodynamic Vehicle Lift",
+            "",
+            *[f"- {step}" for step in air_vehicle.transition_path],
+            "",
+            "## Adapter Requirements",
+            "",
+            *[f"- {item}" for item in point_mass_3d.adapter_requirements],
+            *[f"- {item}" for item in air_vehicle.adapter_requirements],
+        ]
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -453,6 +484,8 @@ def _report_markdown(training_summary: dict[str, object], rows: list[dict[str, o
             "",
             f"- status: `{training_summary['status']}`",
             f"- objective id: `{training_summary.get('objective_id', '')}`",
+            f"- control problem id: `{training_summary.get('control_problem_id', '')}`",
+            f"- vehicle family: `{training_summary.get('vehicle_family', '')}`",
             f"- PPO mean total utility: `{training_summary.get('ppo_mean_total_utility', 0.0):.3f}`",
             f"- PPO best total utility: `{training_summary.get('ppo_best_total_utility', 0.0):.3f}`",
             f"- timesteps completed: `{training_summary.get('timesteps_completed', 0)}` / `{training_summary.get('target_total_timesteps', 0)}`",
@@ -663,6 +696,9 @@ def analyze_sequential_ppo_boundary_control(
         "status": "experimental",
         "witness_task": contract["witness_task"],
         "objective_id": resolved_objective.objective_id,
+        "control_problem_id": resolved_config.control_problem.problem_id,
+        "vehicle_family": resolved_config.control_problem.vehicle_family,
+        "control_channel_names": [channel.name for channel in resolved_config.control_problem.control_channels],
         "ppo_mean_total_utility": ppo_row["mean_total_utility"],
         "ppo_best_total_utility": ppo_row["best_total_utility"],
         "random_mean_total_utility": random_mean,
@@ -709,7 +745,10 @@ def write_sequential_ppo_boundary_control_artifacts(
     resolved_config = config or SequentialBoundaryControlConfig()
     resolved_ppo = ppo_config or SequentialPpoConfig()
     root = Path(output_dir)
-    run_dir = root / "trajectory_exploration_rl" / run_name
+    resolved_run_name = run_name
+    if objective is not None and run_name == "ppo_boundary_control" and objective.objective_id != default_boundary_control_objective().objective_id:
+        resolved_run_name = f"ppo_boundary_control/{objective.objective_id}"
+    run_dir = root / "trajectory_exploration_rl" / resolved_run_name
     run_dir.mkdir(parents=True, exist_ok=True)
     checkpoints_dir = run_dir / "checkpoints"
     checkpoints_dir.mkdir(parents=True, exist_ok=True)
@@ -723,6 +762,8 @@ def write_sequential_ppo_boundary_control_artifacts(
         run_dir=run_dir,
     )
     environment_contract_path = run_dir / "environment_contract.json"
+    control_problem_contract_path = run_dir / "control_problem_contract.json"
+    transition_report_path = run_dir / "three_d_transition_report.md"
     training_config_path = run_dir / "training_config.json"
     checkpoint_manifest_path = run_dir / "checkpoint_manifest.json"
     training_summary_path = run_dir / "training_summary.json"
@@ -741,6 +782,8 @@ def write_sequential_ppo_boundary_control_artifacts(
     rl_algorithm_decision_report_path = rl_dir / "rl_algorithm_decision_report.md"
 
     _write_json(environment_contract_path, sequential_environment_contract(resolved_config))
+    _write_json(control_problem_contract_path, resolved_config.control_problem.as_payload())
+    _write_text(transition_report_path, _transition_report_markdown(resolved_config, objective or default_boundary_control_objective()))
     _write_json(training_config_path, {"environment": asdict(resolved_config), "ppo": asdict(resolved_ppo)})
     _write_json(checkpoint_manifest_path, result.checkpoint_manifest)
     _write_json(training_summary_path, result.training_summary)
@@ -804,6 +847,8 @@ def write_sequential_ppo_boundary_control_artifacts(
         run_dir=run_dir,
         checkpoints_dir=checkpoints_dir,
         environment_contract_path=environment_contract_path,
+        control_problem_contract_path=control_problem_contract_path,
+        transition_report_path=transition_report_path,
         training_config_path=training_config_path,
         checkpoint_manifest_path=checkpoint_manifest_path,
         training_summary_path=training_summary_path,

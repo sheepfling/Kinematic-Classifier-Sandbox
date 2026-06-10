@@ -24,7 +24,6 @@ from ..validation.shared_evaluation_contracts import (
     SharedClassifierMethodSpec,
     SharedMethodCapabilities,
 )
-from .common_dataset_comparison_artifact_io import write_common_dataset_comparison_artifacts
 from .common_dataset_comparison_contracts import (
     CommonComparisonArtifacts,
     CommonComparisonResult,
@@ -417,5 +416,4 @@ __all__ = [
     "default_shared_classifier_adapters",
     "generate_shared_dynamics_dataset",
     "render_common_dataset_comparison_report",
-    "write_common_dataset_comparison_artifacts",
 ]

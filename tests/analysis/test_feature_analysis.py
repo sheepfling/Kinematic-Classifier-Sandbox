@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from math import log, pi
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from kinematic_classifier_sandbox.analysis.feature_analysis import (
     BaseFeatureComputationContext,
@@ -14,8 +16,8 @@ from kinematic_classifier_sandbox.analysis.feature_analysis import (
     load_feature_registry,
     load_feature_set_manifest,
     resolve_feature_names,
-    write_feature_analysis_artifacts,
 )
+from kinematic_classifier_sandbox.analysis.feature_analysis_artifact_io import write_feature_analysis_artifacts
 
 
 class FeatureAnalysisTests(unittest.TestCase):
@@ -178,6 +180,25 @@ class FeatureAnalysisTests(unittest.TestCase):
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "feature_analysis_shape_window_v1")
             report = artifacts.report_path.read_text(encoding="utf-8")
             self.assertIn("Feature set: shape_window", report)
+
+    def test_feature_analysis_pickled_cache_reuses_result_after_process_boundary_like_clear(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous = os.environ.get("KINEMATIC_CLASSIFIER_RUNTIME_ROOT")
+            os.environ["KINEMATIC_CLASSIFIER_RUNTIME_ROOT"] = temp_dir
+            try:
+                first = analyze_feature_datasets(seed=7, trajectories_per_class=5, use_cache=True)
+                with patch(
+                    "kinematic_classifier_sandbox.analysis.feature_analysis.generate_trajectory_datasets",
+                    side_effect=AssertionError("pickled feature-analysis cache should satisfy second call"),
+                ):
+                    second = analyze_feature_datasets(seed=7, trajectories_per_class=5, use_cache=True)
+            finally:
+                if previous is None:
+                    os.environ.pop("KINEMATIC_CLASSIFIER_RUNTIME_ROOT", None)
+                else:
+                    os.environ["KINEMATIC_CLASSIFIER_RUNTIME_ROOT"] = previous
+        self.assertEqual(first.summary.feature_names, second.summary.feature_names)
+        self.assertEqual(first.summary.total_trajectories, second.summary.total_trajectories)
 
 
 if __name__ == "__main__":

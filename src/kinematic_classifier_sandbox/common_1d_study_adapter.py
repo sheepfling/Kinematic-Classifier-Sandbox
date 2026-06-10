@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from math import sin
 import random
 
-from .common_dataset_comparison import SCENARIO_MEASUREMENT_SIGMA, SCENARIO_TIMES
-from .corpus_adequacy_audit import load_class_pair_manifest
+from .analysis.common_dataset_comparison import SCENARIO_MEASUREMENT_SIGMA, SCENARIO_TIMES
+from .corpus.adequacy_audit_utils import load_class_pair_manifest
 
 
 @dataclass(frozen=True, slots=True)

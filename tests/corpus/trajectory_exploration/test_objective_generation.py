@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 
-from kinematic_classifier_sandbox.corpus.trajectory_exploration import (
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.objective_generation import (
     default_objective_generation_spec,
     generate_trajectory_exploration_objective_suite,
     write_generated_trajectory_objective_artifacts,

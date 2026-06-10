@@ -9,7 +9,7 @@ ROOT = bootstrap_repo(configure_runtime=True)
 
 
 
-from kinematic_classifier_sandbox.strict_equation_audit import write_strict_equation_audit_artifacts
+from kinematic_classifier_sandbox.registry.strict_equation_audit import write_strict_equation_audit_artifacts
 
 
 def main() -> int:

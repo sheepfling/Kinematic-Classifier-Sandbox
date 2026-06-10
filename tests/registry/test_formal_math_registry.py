@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 import subprocess
 import tempfile
 import unittest
@@ -8,7 +9,7 @@ from pathlib import Path
 
 import yaml
 
-from kinematic_classifier_sandbox.formal_math_registry import analyze_formal_math_registry
+from kinematic_classifier_sandbox.registry.formal_math_registry import analyze_formal_math_registry
 
 
 class FormalMathRegistryTests(unittest.TestCase):
@@ -53,7 +54,12 @@ class FormalMathRegistryTests(unittest.TestCase):
     def test_writer_emits_artifacts(self) -> None:
         script_path = self.root / "scripts" / "render" / "render_formal_math_registry.py"
         with tempfile.TemporaryDirectory() as temp_dir:
-            subprocess.run(["python3", str(script_path), "--output-dir", temp_dir], check=True, cwd=self.root)
+            subprocess.run(
+                ["python3", str(script_path), "--output-dir", temp_dir],
+                check=True,
+                cwd=self.root,
+                env={**os.environ, "PYTHONPATH": str(self.root / "src")},
+            )
 
             outputs = (
                 Path(temp_dir) / "formal_math_registry_v1" / "formal_math_registry_report.md",

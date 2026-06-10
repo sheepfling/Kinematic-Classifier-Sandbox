@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import unittest
 from pathlib import Path
@@ -57,7 +58,12 @@ class MathMetadataTests(unittest.TestCase):
 
     def test_renderer_emits_generated_math_metadata_artifacts(self) -> None:
         script_path = self.root / "scripts" / "render" / "render_math_metadata.py"
-        subprocess.run(["python3", str(script_path)], check=True, cwd=self.root)
+        subprocess.run(
+            ["python3", str(script_path)],
+            check=True,
+            cwd=self.root,
+            env={**os.environ, "PYTHONPATH": str(self.root / "src")},
+        )
 
         outputs = (
             self.root / "artifacts" / "latex" / "symbol_glossary.json",

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from ...inference.prior_sensitivity import (
+from ...inference.prior_sensitivity.artifact_io import (
+    write_cross_method_prior_comparison_artifacts,
+    write_prior_sensitivity_artifacts,
+)
+from ...inference.prior_sensitivity.contracts import (
     CrossMethodPriorComparisonArtifacts,
     CrossMethodPriorComparisonResult,
     PriorFlipThreshold,
@@ -8,10 +12,8 @@ from ...inference.prior_sensitivity import (
     PriorSensitivityResult,
     PriorSensitivitySummary,
     PriorSweepRow,
-    analyze_cross_method_prior_comparison,
-    analyze_pointwise_prior_sensitivity,
-    analyze_prior_sensitivity,
-    analyze_windowed_prior_sensitivity,
+)
+from ...inference.prior_sensitivity.reporting import (
     render_cross_method_prior_comparison_png_bytes,
     render_cross_method_prior_comparison_report,
     render_cross_method_prior_comparison_svg,
@@ -30,8 +32,12 @@ from ...inference.prior_sensitivity import (
     render_prior_sensitivity_posterior_png_bytes,
     render_prior_sensitivity_posterior_svg,
     render_prior_sensitivity_report,
-    write_cross_method_prior_comparison_artifacts,
-    write_prior_sensitivity_artifacts,
+)
+from ...inference.prior_sensitivity.runner import (
+    analyze_cross_method_prior_comparison,
+    analyze_pointwise_prior_sensitivity,
+    analyze_prior_sensitivity,
+    analyze_windowed_prior_sensitivity,
 )
 
 __all__ = [

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 import unittest
@@ -7,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from kinematic_classifier_sandbox.formal_math_visual_registry import (
+from kinematic_classifier_sandbox.registry.formal_math_visual_registry import (
     analyze_formal_math_visual_registry,
 )
 
@@ -47,6 +48,7 @@ class FormalMathVisualRegistryTests(unittest.TestCase):
                 ["python3", str(script_path), "--output-dir", temp_dir],
                 check=True,
                 cwd=self.root,
+                env={**os.environ, "PYTHONPATH": str(self.root / "src")},
             )
 
             outputs = (

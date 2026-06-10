@@ -5,8 +5,8 @@ from .advanced_filter_decision_rendering import (  # noqa: E402
     AdvancedFilterDecisionArtifacts,
     render_advanced_filter_decision_numeric_walkthrough_markdown,
     render_advanced_filter_decision_report,
-    write_advanced_filter_decision_artifacts,
 )
+from .advanced_filter_decision_artifact_io import write_advanced_filter_decision_artifacts
 from .advanced_filter_decision_runner import analyze_advanced_filter_decision
 
 __all__ = [

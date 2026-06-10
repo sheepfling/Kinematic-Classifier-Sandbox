@@ -9,7 +9,7 @@ from pathlib import Path
 
 from ..utils.runtime import repo_root
 
-from ..analysis.feature_analysis import write_feature_analysis_artifacts
+from ..analysis.feature_analysis_artifact_io import write_feature_analysis_artifacts
 from ..analysis.generated_corpus_features import select_generated_corpus_records
 from ..artifacts import render_posterior_numeric_walkthrough_png_bytes
 from ..corpus.exploration.candidate_generation_core import analyze_candidate_generation

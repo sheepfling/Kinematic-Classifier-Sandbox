@@ -6,7 +6,6 @@ from math import sqrt
 from kinematic_classifier_sandbox.utils.math import _normalize_log_scores
 
 from ..contracts import TrajectoryArtifact, validate_trajectory_artifact
-from .dimensional_lift_audit_artifact_io import write_dimensional_lift_audit_artifacts
 from .dimensional_lift_audit_contracts import (
     DimensionalLiftAuditArtifacts,
     DimensionalLiftAuditResult,

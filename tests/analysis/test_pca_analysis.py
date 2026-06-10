@@ -6,8 +6,8 @@ from pathlib import Path
 
 from kinematic_classifier_sandbox.analysis.pca_analysis import (
     analyze_feature_pca,
-    write_pca_analysis_artifacts,
 )
+from kinematic_classifier_sandbox.analysis.pca_analysis_artifact_io import write_pca_analysis_artifacts
 
 
 class PcaAnalysisTests(unittest.TestCase):

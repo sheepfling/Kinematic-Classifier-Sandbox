@@ -5,14 +5,24 @@ import unittest
 
 import numpy as np
 
-from kinematic_classifier_sandbox.corpus.trajectory_exploration import (
-    SequentialBoundaryControlConfig,
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.objective_generation import (
+    generated_trajectory_exploration_objectives,
+)
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.ppo_boundary_control import (
     SequentialPpoConfig,
-    SequentialTrajectoryGym,
     analyze_sequential_ppo_boundary_control,
-    evaluate_control_sequence,
     has_stable_baselines3_support,
     write_sequential_ppo_boundary_control_artifacts,
+)
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.sequential_control_specs import (
+    default_air_vehicle_control_problem_spec,
+    default_three_dimensional_point_mass_problem_spec,
+)
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.sequential_gym import (
+    SequentialBoundaryControlConfig,
+    SequentialTrajectoryGym,
+    evaluate_control_sequence,
+    sequential_environment_contract,
 )
 
 
@@ -58,6 +68,8 @@ class SequentialPpoBoundaryControlTests(unittest.TestCase):
             assert artifacts is not None
             self.assertTrue(artifacts.checkpoints_dir.exists())
             self.assertTrue(artifacts.environment_contract_path.exists())
+            self.assertTrue(artifacts.control_problem_contract_path.exists())
+            self.assertTrue(artifacts.transition_report_path.exists())
             self.assertTrue(artifacts.training_config_path.exists())
             self.assertTrue(artifacts.checkpoint_manifest_path.exists())
             self.assertTrue(artifacts.training_summary_path.exists())
@@ -118,6 +130,45 @@ class SequentialPpoBoundaryControlTests(unittest.TestCase):
         self.assertGreater(len(result.snapshot_rows), 0)
         self.assertTrue(bool(result.training_summary["beats_random_control"]))
         self.assertTrue(bool(result.training_summary["beats_scripted_mean"]) or int(result.training_summary["novel_rollout_count"]) > 0)
+
+    @unittest.skipUnless(has_stable_baselines3_support(), "stable-baselines3 is optional")
+    def test_ppo_accepts_generated_objective(self) -> None:
+        objective = next(
+            objective
+            for objective in generated_trajectory_exploration_objectives()
+            if objective.objective_id == "feature_row__accel_high_row"
+        )
+        result = analyze_sequential_ppo_boundary_control(
+            config=SequentialBoundaryControlConfig(episode_horizon=8),
+            ppo_config=SequentialPpoConfig(total_timesteps=256, n_steps=32, batch_size=32, eval_episodes=4),
+            objective=objective,
+        )
+        self.assertEqual(result.training_summary["objective_id"], objective.objective_id)
+        self.assertGreater(len(result.evaluation_rows), 0)
+
+    def test_generated_objective_writer_uses_isolated_run_directory(self) -> None:
+        objective = next(
+            objective
+            for objective in generated_trajectory_exploration_objectives()
+            if objective.objective_id == "feature_row__accel_high_row"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = write_sequential_ppo_boundary_control_artifacts(
+                temp_dir,
+                config=SequentialBoundaryControlConfig(episode_horizon=8),
+                ppo_config=SequentialPpoConfig(total_timesteps=64, n_steps=32, batch_size=32, eval_episodes=2),
+                objective=objective,
+            )
+            assert result.artifacts is not None
+            self.assertIn(objective.objective_id, str(result.artifacts.run_dir))
+
+    def test_environment_contract_includes_3d_and_air_vehicle_paths(self) -> None:
+        payload = sequential_environment_contract(SequentialBoundaryControlConfig(episode_horizon=8))
+        self.assertEqual(payload["control_problem"]["problem_id"], "point_mass_1d_acceleration_control")
+        self.assertEqual(payload["three_d_point_mass_path"]["geometry"], "3d_vector")
+        self.assertEqual(payload["air_vehicle_path"]["vehicle_family"], "aerodynamic_vehicle")
+        self.assertEqual(default_three_dimensional_point_mass_problem_spec().vehicle_family, "point_mass")
+        self.assertEqual(default_air_vehicle_control_problem_spec().vehicle_family, "aerodynamic_vehicle")
 
 
 if __name__ == "__main__":

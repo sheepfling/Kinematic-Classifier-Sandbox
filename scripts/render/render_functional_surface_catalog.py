@@ -8,7 +8,7 @@ ROOT = bootstrap_repo(configure_runtime=True)
 
 
 
-from kinematic_classifier_sandbox.functional_surface_catalog import (
+from kinematic_classifier_sandbox.registry.functional_surface_catalog import (
     write_functional_surface_catalog_artifacts,
 )
 

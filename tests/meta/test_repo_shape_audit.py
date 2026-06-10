@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -63,6 +64,7 @@ class RepoShapeAuditTests(unittest.TestCase):
         completed = subprocess.run(
             ["python3", "scripts/audit/audit_repo_shape.py"],
             cwd=self.root,
+            env={**os.environ, "PYTHONPATH": str(self.root / "src")},
             text=True,
             capture_output=True,
             check=True,

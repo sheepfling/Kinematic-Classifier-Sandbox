@@ -25,10 +25,8 @@ from .corpus.gym import (
     CorpusGymTarget,
     analyze_corpus_gym_contract,
 )
-from .corpus.trajectory_exploration import (
-    analyze_trajectory_exploration_benchmarks,
-    write_trajectory_exploration_artifacts,
-)
+from .corpus.trajectory_exploration.artifact_io import write_trajectory_exploration_artifacts
+from .corpus.trajectory_exploration.runner import analyze_trajectory_exploration_benchmarks
 from .corpus.trajectory_backend_contract import (
     analyze_trajectory_backend_contract,
 )

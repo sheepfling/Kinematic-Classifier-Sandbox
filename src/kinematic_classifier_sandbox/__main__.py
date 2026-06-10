@@ -4,17 +4,27 @@ import argparse
 from pathlib import Path
 
 from .analysis.pca_dimensionality_audit import write_pca_dimensionality_audit_artifacts
-from .corpus.coverage_report import write_coverage_report_artifacts
+from .corpus.coverage_artifact_io import write_coverage_report_artifacts
 from .corpus.exploration.generic_corpus_exploration import (
     write_generic_corpus_exploration_weight_sweep_artifacts,
 )
-from .corpus.trajectory_exploration import (
-    SequentialBoundaryControlConfig,
-    SequentialPpoConfig,
+from .corpus.trajectory_exploration.artifact_io import write_trajectory_exploration_artifacts
+from .corpus.trajectory_exploration.objective_generation import (
+    generate_trajectory_exploration_objective_suite,
+    resolve_generated_trajectory_objective,
     write_generated_trajectory_objective_artifacts,
-    write_sequential_ppo_boundary_control_artifacts,
-    write_trajectory_exploration_artifacts,
 )
+from .corpus.trajectory_exploration.ppo_boundary_control import (
+    SequentialPpoConfig,
+    write_generated_trajectory_objective_ppo_sweep_artifacts,
+    write_sequential_ppo_boundary_control_artifacts,
+)
+from .corpus.trajectory_exploration.sequential_comparison import (
+    SequentialCemConfig,
+    write_sequential_objective_sweep_comparison_artifacts,
+    write_sequential_ppo_vs_cem_comparison_artifacts,
+)
+from .corpus.trajectory_exploration.sequential_gym import SequentialBoundaryControlConfig
 from .meta.repo_shape_audit import write_repo_shape_audit_artifacts
 from .registry.catalog import METHOD_CATALOG
 from .registry.corpus_evaluation_gap_matrix import write_corpus_evaluation_gap_matrix_artifacts
@@ -29,6 +39,7 @@ from .methodology.latex import (
     write_methodology_latex_artifacts,
     write_methodology_section_symbol_audit_artifacts,
 )
+from .utils.analysis_cache import clear_analysis_cache, describe_analysis_cache
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -227,6 +238,33 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Write the LaTeX bundle without building the PDF.",
     )
 
+    analysis_cache = subparsers.add_parser(
+        "analysis-cache",
+        help="Inspect or clear persistent analysis caches.",
+    )
+    analysis_cache.add_argument(
+        "action",
+        choices=("summary", "clear"),
+        nargs="?",
+        default="summary",
+        help="Inspect or clear the analysis cache.",
+    )
+    analysis_cache.add_argument(
+        "--namespace",
+        default=None,
+        help="Restrict the action to one cache namespace.",
+    )
+    analysis_cache.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON.",
+    )
+    analysis_cache.add_argument(
+        "--yes",
+        action="store_true",
+        help="Required for the destructive `clear` action.",
+    )
+
     ladder_witness_suite = subparsers.add_parser(
         "ladder-witness-suite",
         help="Render the ladder witness corpus suite manifest and schema bundle.",
@@ -333,6 +371,73 @@ def _build_parser() -> argparse.ArgumentParser:
         "--no-resume",
         action="store_true",
         help="Do not resume from an existing PPO checkpoint in the target run directory.",
+    )
+    trajectory_exploration_ppo.add_argument(
+        "--objective-id",
+        default=None,
+        help="Optional generated trajectory objective id to train against instead of the default boundary witness.",
+    )
+
+    trajectory_exploration_ppo_vs_cem = subparsers.add_parser(
+        "trajectory-exploration-ppo-vs-cem",
+        help="Run the matched-budget sequential PPO vs CEM comparison bundle.",
+    )
+    trajectory_exploration_ppo_vs_cem.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the PPO vs CEM comparison bundle should be written.",
+    )
+    trajectory_exploration_ppo_vs_cem.add_argument("--seed", type=int, default=7, help="Training seed for PPO.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--episode-horizon", type=int, default=16, help="Episode horizon for the sequential control witness.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--timesteps", type=int, default=1024, help="Total PPO training timesteps.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--eval-episodes", type=int, default=8, help="Deterministic evaluation episodes after training.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--progress-eval-episodes", type=int, default=4, help="Evaluation episodes for PPO progress snapshots.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--checkpoint-interval", type=int, default=256, help="Timesteps between persisted PPO checkpoints.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--snapshot-interval", type=int, default=256, help="Timesteps between persisted PPO progress snapshots.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--cem-iterations", type=int, default=10, help="Cross-entropy iterations for the open-loop CEM comparator.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--cem-population", type=int, default=24, help="Population size per CEM iteration.")
+    trajectory_exploration_ppo_vs_cem.add_argument("--seed-count", type=int, default=1, help="Number of independent seeds to aggregate in the PPO vs CEM study.")
+    trajectory_exploration_ppo_vs_cem.add_argument(
+        "--objective-id",
+        default=None,
+        help="Optional generated trajectory objective id to compare against instead of the default boundary witness.",
+    )
+
+    trajectory_exploration_ppo_vs_cem_sweep = subparsers.add_parser(
+        "trajectory-exploration-ppo-vs-cem-sweep",
+        help="Run PPO vs CEM across generated feature/class-space objectives.",
+    )
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--output-dir", default="artifacts", help="Directory where the objective-sweep bundle should be written.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--seed", type=int, default=7, help="Base seed for the objective sweep.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--seed-count", type=int, default=1, help="Number of independent seeds per objective.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--objective-limit", type=int, default=None, help="Optional cap on generated objectives to run.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--objective-id", action="append", dest="objective_ids", default=None, help="Optional generated objective id to include. Repeat to select a subset.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--episode-horizon", type=int, default=12, help="Episode horizon for each sequential control objective.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--timesteps", type=int, default=256, help="Total PPO training timesteps per objective and seed.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--eval-episodes", type=int, default=4, help="Deterministic PPO evaluation episodes.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--progress-eval-episodes", type=int, default=2, help="PPO progress snapshot evaluation episodes.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--cem-iterations", type=int, default=5, help="CEM iterations per objective and seed.")
+    trajectory_exploration_ppo_vs_cem_sweep.add_argument("--cem-population", type=int, default=12, help="CEM population size per iteration.")
+
+    trajectory_exploration_ppo_sweep = subparsers.add_parser(
+        "trajectory-exploration-ppo-sweep-generated",
+        help="Run PPO over the mechanically generated objective suite or a selected subset.",
+    )
+    trajectory_exploration_ppo_sweep.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the generated-objective PPO sweep bundle should be written.",
+    )
+    trajectory_exploration_ppo_sweep.add_argument("--seed", type=int, default=7, help="Training seed for PPO.")
+    trajectory_exploration_ppo_sweep.add_argument("--timesteps", type=int, default=256, help="Total PPO training timesteps per generated objective.")
+    trajectory_exploration_ppo_sweep.add_argument("--episode-horizon", type=int, default=12, help="Episode horizon for generated-objective PPO runs.")
+    trajectory_exploration_ppo_sweep.add_argument("--eval-episodes", type=int, default=4, help="Deterministic evaluation episodes after training.")
+    trajectory_exploration_ppo_sweep.add_argument(
+        "--objective-id",
+        action="append",
+        dest="objective_ids",
+        default=None,
+        help="Optional generated objective id to include in the sweep. Repeat to select a subset.",
     )
     return parser
 
@@ -492,6 +597,38 @@ def main(argv: list[str] | None = None) -> int:
             print(artifacts.pdf_path)
         return 0
 
+    if args.command == "analysis-cache":
+        import json
+
+        if args.action == "clear":
+            if not args.yes:
+                raise SystemExit("refusing to clear analysis cache without --yes")
+            result = clear_analysis_cache(namespace=args.namespace)
+            if args.json:
+                print(json.dumps(result, indent=2, sort_keys=True))
+            else:
+                print("Analysis Cache Cleared")
+                print(f"path: {result['cleared_path']}")
+                print(f"namespace: {result['cleared_namespace'] or 'all'}")
+                print(f"entries_removed: {result['cleared_entry_count']}")
+                print(f"bytes_removed: {result['cleared_bytes']}")
+            return 0
+
+        summary = describe_analysis_cache(namespace=args.namespace)
+        if args.json:
+            print(json.dumps(summary, indent=2, sort_keys=True))
+        else:
+            print("Analysis Cache Summary")
+            print(f"root: {summary['root']}")
+            print(f"namespaces: {summary['namespace_count']}")
+            print(f"entries: {summary['entry_count']}")
+            print(f"bytes: {summary['bytes']}")
+            for row in summary["namespaces"]:
+                print(
+                    f"- {row['namespace']}: entries={row['entry_count']} metadata={row['metadata_count']} bytes={row['bytes']}"
+                )
+        return 0
+
     if args.command == "ladder-witness-suite":
         artifacts = write_ladder_witness_suite_artifacts(
             Path(args.output_dir),
@@ -540,6 +677,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "trajectory-exploration-ppo":
+        objective = None if args.objective_id is None else resolve_generated_trajectory_objective(args.objective_id)
         result = write_sequential_ppo_boundary_control_artifacts(
             Path(args.output_dir),
             config=SequentialBoundaryControlConfig(episode_horizon=args.episode_horizon),
@@ -553,12 +691,15 @@ def main(argv: list[str] | None = None) -> int:
                 snapshot_interval_timesteps=args.snapshot_interval,
                 resume_if_possible=not args.no_resume,
             ),
+            objective=objective,
         )
         if result.artifacts is None:
             parser.error("trajectory-exploration-ppo did not produce an artifact bundle")
         print(result.artifacts.run_dir)
         print(result.artifacts.checkpoints_dir)
         print(result.artifacts.environment_contract_path)
+        print(result.artifacts.control_problem_contract_path)
+        print(result.artifacts.transition_report_path)
         print(result.artifacts.checkpoint_manifest_path)
         print(result.artifacts.training_summary_path)
         print(result.artifacts.training_trace_rows_path)
@@ -569,6 +710,101 @@ def main(argv: list[str] | None = None) -> int:
         print(result.artifacts.class_space_progress_path)
         print(result.artifacts.report_path)
         print(result.artifacts.rl_algorithm_decision_report_path)
+        return 0
+
+    if args.command == "trajectory-exploration-ppo-sweep-generated":
+        artifacts = write_generated_trajectory_objective_ppo_sweep_artifacts(
+            Path(args.output_dir),
+            config=SequentialBoundaryControlConfig(episode_horizon=args.episode_horizon),
+            ppo_config=SequentialPpoConfig(
+                total_timesteps=args.timesteps,
+                train_seed=args.seed,
+                eval_seed_start=args.seed + 200,
+                eval_episodes=args.eval_episodes,
+            ),
+            objective_ids=None if args.objective_ids is None else tuple(args.objective_ids),
+        )
+        print(artifacts.run_dir)
+        print(artifacts.manifest_path)
+        print(artifacts.summary_rows_path)
+        print(artifacts.report_path)
+        return 0
+
+    if args.command == "trajectory-exploration-ppo-vs-cem":
+        objective = None if args.objective_id is None else resolve_generated_trajectory_objective(args.objective_id)
+        result = write_sequential_ppo_vs_cem_comparison_artifacts(
+            Path(args.output_dir),
+            config=SequentialBoundaryControlConfig(episode_horizon=args.episode_horizon),
+            ppo_config=SequentialPpoConfig(
+                total_timesteps=args.timesteps,
+                train_seed=args.seed,
+                eval_seed_start=args.seed + 200,
+                eval_episodes=args.eval_episodes,
+                progress_eval_episodes=args.progress_eval_episodes,
+                checkpoint_interval_timesteps=args.checkpoint_interval,
+                snapshot_interval_timesteps=args.snapshot_interval,
+            ),
+            cem_config=SequentialCemConfig(
+                iterations=args.cem_iterations,
+                population_size=args.cem_population,
+                eval_seed_start=args.seed + 400,
+            ),
+            objective=objective,
+            seed_count=args.seed_count,
+            base_seed=args.seed,
+        )
+        if result.artifacts is None:
+            parser.error("trajectory-exploration-ppo-vs-cem did not produce an artifact bundle")
+        print(result.artifacts.run_dir)
+        print(result.artifacts.config_path)
+        print(result.artifacts.artifact_manifest_path)
+        print(result.artifacts.backend_metrics_path)
+        print(result.artifacts.aggregate_backend_metrics_path)
+        print(result.artifacts.backend_decisions_path)
+        print(result.artifacts.seed_runs_path)
+        print(result.artifacts.evaluation_rows_path)
+        print(result.artifacts.progress_rows_path)
+        print(result.artifacts.strengths_limits_path)
+        print(result.artifacts.progress_plot_path)
+        print(result.artifacts.backend_metrics_plot_path)
+        print(result.artifacts.control_gallery_path)
+        print(result.artifacts.report_path)
+        return 0
+
+    if args.command == "trajectory-exploration-ppo-vs-cem-sweep":
+        result = write_sequential_objective_sweep_comparison_artifacts(
+            Path(args.output_dir),
+            config=SequentialBoundaryControlConfig(episode_horizon=args.episode_horizon),
+            ppo_config=SequentialPpoConfig(
+                total_timesteps=args.timesteps,
+                train_seed=args.seed,
+                eval_seed_start=args.seed + 200,
+                eval_episodes=args.eval_episodes,
+                progress_eval_episodes=args.progress_eval_episodes,
+                checkpoint_interval_timesteps=max(args.timesteps, 1),
+                snapshot_interval_timesteps=max(args.timesteps, 1),
+            ),
+            cem_config=SequentialCemConfig(
+                iterations=args.cem_iterations,
+                population_size=args.cem_population,
+                eval_seed_start=args.seed + 400,
+            ),
+            objective_ids=None if args.objective_ids is None else tuple(args.objective_ids),
+            objective_limit=args.objective_limit,
+            seed_count=args.seed_count,
+            base_seed=args.seed,
+        )
+        if result.artifacts is None:
+            parser.error("trajectory-exploration-ppo-vs-cem-sweep did not produce an artifact bundle")
+        print(result.artifacts.run_dir)
+        print(result.artifacts.config_path)
+        print(result.artifacts.artifact_manifest_path)
+        print(result.artifacts.objective_summary_path)
+        print(result.artifacts.backend_summary_path)
+        print(result.artifacts.decision_summary_path)
+        print(result.artifacts.objective_backend_matrix_path)
+        print(result.artifacts.objective_backend_heatmap_path)
+        print(result.artifacts.report_path)
         return 0
 
     parser.error(f"unsupported command: {args.command}")

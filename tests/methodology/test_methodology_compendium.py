@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kinematic_classifier_sandbox.methodology_compendium import (
+from kinematic_classifier_sandbox.methodology.compendium import (
     analyze_methodology_compendium,
     write_methodology_compendium_artifacts,
 )

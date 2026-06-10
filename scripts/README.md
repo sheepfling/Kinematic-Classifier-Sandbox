@@ -45,6 +45,11 @@ Common audit and rerun commands:
 - Repo checks: `python3 scripts/check.py`
 - Repo-shape audit: `python3 scripts/audit/audit_repo_shape.py`
 - Human-operability audit: `python3 scripts/audit/audit_human_operability.py --write-artifacts`
+- Analysis-cache summary: `python3 scripts/audit/manage_analysis_cache.py summary`
+- Package-CLI analysis-cache summary: `python3 -m kinematic_classifier_sandbox analysis-cache summary`
+- Clear one analysis-cache namespace: `python3 scripts/audit/manage_analysis_cache.py clear --namespace feature_analysis --yes`
+- Package-CLI clear one namespace: `python3 -m kinematic_classifier_sandbox analysis-cache clear --namespace feature_analysis --yes`
+- Clear all analysis caches: `python3 scripts/audit/manage_analysis_cache.py clear --yes`
 - Artifact/showcase validation: `python3 scripts/audit/validate_artifacts.py`
 - Corpus audit: `python3 scripts/audit/audit_corpus.py`
 - Dimensional audit: `python3 scripts/audit/audit_dimensions.py`

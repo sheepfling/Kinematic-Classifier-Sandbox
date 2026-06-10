@@ -77,10 +77,7 @@ def analyze_short_horizon_identifiability() -> ShortHorizonIdentifiabilityResult
         duration_thresholds=tuple(duration_threshold_rows),
     )
 
-from .short_horizon_identifiability_artifact_io import (  # noqa: E402
-    render_short_horizon_identifiability_report,
-    write_short_horizon_identifiability_artifacts,
-)
+from .short_horizon_identifiability_rendering import render_short_horizon_identifiability_report  # noqa: E402
 
 __all__ = [
     "ShortHorizonDurationThresholdRow",
@@ -90,5 +87,4 @@ __all__ = [
     "ShortHorizonTimeRow",
     "analyze_short_horizon_identifiability",
     "render_short_horizon_identifiability_report",
-    "write_short_horizon_identifiability_artifacts",
 ]

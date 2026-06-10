@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from .common_dataset_comparison import SCENARIO_MEASUREMENT_SIGMA
+from .analysis.common_dataset_comparison import SCENARIO_MEASUREMENT_SIGMA
 from .common_1d_study_adapter import ExecutablePairSpec, ExecutableTrajectory
 
 
