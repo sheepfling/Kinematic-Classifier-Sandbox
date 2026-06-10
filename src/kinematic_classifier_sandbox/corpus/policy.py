@@ -7,7 +7,9 @@ from typing import Any, NamedTuple
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..utils.runtime import repo_root
+
+ROOT = repo_root()
 DEFAULT_CORPUS_POLICY_PATH = ROOT / "experiments" / "corpus_policies" / "default_corpus_policy_v1.yaml"
 
 

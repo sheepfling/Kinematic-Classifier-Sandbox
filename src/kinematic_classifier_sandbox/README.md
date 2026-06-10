@@ -3,6 +3,12 @@
 The package is organized around the methodology layers, not around one single
 algorithm.
 
+Read next:
+
+- [Repo story](../../docs/story/00_repo_story.md)
+- [Package boundaries](../../docs/story/package_boundaries.md)
+- [Scripts layout](../../scripts/README.md)
+
 ## Utility lanes
 
 Shared helpers are collected into a small number of neutral utility lanes:

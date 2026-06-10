@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..utils.runtime import repo_root
+
+ROOT = repo_root()
 ARTIFACTS_ROOT = ROOT / "artifacts"
 SHOWCASE_DOCS_DIR = ROOT / "docs" / "showcase"
 

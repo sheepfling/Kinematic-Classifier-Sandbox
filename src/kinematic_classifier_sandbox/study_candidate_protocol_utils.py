@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .utils.runtime import repo_root
+
 
 def _protocol_source_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "docs" / "protocols" / "feature_class_classifier_analysis_protocol.md"
+    return repo_root() / "docs" / "protocols" / "feature_class_classifier_analysis_protocol.md"
 
 
 def _fallback_protocol_markdown() -> str:

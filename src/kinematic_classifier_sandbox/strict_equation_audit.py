@@ -1,3 +1,47 @@
 from __future__ import annotations
 
-from .registry.strict_equation_audit import *  # noqa: F401,F403
+from .registry.strict_equation_audit import (
+    ILLUSTRATIVE_EXACT_ARTIFACTS,
+    ILLUSTRATIVE_SOURCE_DATA,
+    IMPLEMENTED_EXACT_ARTIFACTS,
+    IMPLEMENTED_SOURCE_DATA,
+    MarkdownDocument,
+    Path,
+    REPO_ROOT,
+    StrictEquationAuditArtifacts,
+    StrictEquationAuditResult,
+    StrictEquationAuditRow,
+    analyze_strict_equation_audit,
+    annotations,
+    dataclass,
+    json,
+    load_equation_registry,
+    plt,
+    render_strict_equation_audit_report,
+    repo_root,
+    write_csv,
+    write_strict_equation_audit_artifacts,
+)
+
+__all__ = [
+    "ILLUSTRATIVE_EXACT_ARTIFACTS",
+    "ILLUSTRATIVE_SOURCE_DATA",
+    "IMPLEMENTED_EXACT_ARTIFACTS",
+    "IMPLEMENTED_SOURCE_DATA",
+    "MarkdownDocument",
+    "Path",
+    "REPO_ROOT",
+    "StrictEquationAuditArtifacts",
+    "StrictEquationAuditResult",
+    "StrictEquationAuditRow",
+    "analyze_strict_equation_audit",
+    "annotations",
+    "dataclass",
+    "json",
+    "load_equation_registry",
+    "plt",
+    "render_strict_equation_audit_report",
+    "repo_root",
+    "write_csv",
+    "write_strict_equation_audit_artifacts",
+]

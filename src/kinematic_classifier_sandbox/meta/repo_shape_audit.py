@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass
 import csv
 import json
 from pathlib import Path
 
+from ..utils.runtime import repo_root
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+
+REPO_ROOT = repo_root()
 PACKAGE_ROOT = REPO_ROOT / "src" / "kinematic_classifier_sandbox"
 ARTIFACT_DIR = REPO_ROOT / "artifacts" / "repo_shape_audit_v1"
 
@@ -40,32 +43,57 @@ ORCHESTRATION_ROOT_MODULES = {
 }
 
 LEGACY_COMPAT_WRAPPER_MODULES = {
+    "advanced_filter_decision.py",
+    "bayesian_walkthroughs.py",
     "catalog.py",
     "common_dataset_comparison.py",
     "corpus_adequacy_audit.py",
+    "corpus_autodevelopment.py",
+    "coverage_report.py",
     "dimensional_lift_audit.py",
     "feature_analysis.py",
     "feature_rows.py",
     "formal_math_registry.py",
     "formal_math_visual_registry.py",
     "functional_surface_catalog.py",
+    "generic_classification_evidence_proof.py",
+    "generic_feature_taxonomy.py",
+    "generic_filtering_contract.py",
+    "generic_inference_contract.py",
+    "identity_1d.py",
+    "identity_posterior_explainer.py",
     "inspection_bundle.py",
+    "irregular_window_comparison.py",
+    "kalman_filter_bank.py",
+    "kalman_observable_comparison.py",
+    "kalman_variant_comparison.py",
     "methodology_compendium.py",
     "methodology_latex.py",
+    "monte_carlo_benchmark.py",
     "pca_analysis.py",
+    "pca_dimensionality_audit.py",
+    "pointwise_baseline.py",
+    "posterior_explainer.py",
+    "prior_sensitivity_analysis.py",
+    "sequential_bayes_accumulator.py",
+    "shared_evaluation.py",
+    "short_horizon_identifiability.py",
     "strict_equation_audit.py",
+    "technique_comparison.py",
+    "toy_1d.py",
+    "transition_matrix_accumulator.py",
+    "validation_ladder.py",
+    "velocity_aided_kalman_comparison.py",
+    "windowed_baseline.py",
 }
 
 LEGACY_ROOT_DEBT_MODULES = {
     "adaptive_stress_corpus.py",
-    "advanced_filter_decision.py",
     "advanced_state_inference.py",
     "backend_adapter_proof.py",
-    "bayesian_walkthroughs.py",
     "candidate_generation.py",
     "capability_aware_search.py",
     "class_validity.py",
-    "corpus_autodevelopment.py",
     "corpus_classifier_scoring.py",
     "corpus_gym.py",
     "corpus_objectives.py",
@@ -73,42 +101,17 @@ LEGACY_ROOT_DEBT_MODULES = {
     "corpus_policy_sweep.py",
     "corpus_search_baseline.py",
     "corpus_synthesis_comparison.py",
-    "coverage_report.py",
     "environment_aware_corpus.py",
     "external_backend_examples.py",
     "external_backend_examples_rendering.py",
     "generated_corpus_features.py",
-    "generic_classification_evidence_proof.py",
     "generic_corpus_exploration.py",
-    "generic_feature_taxonomy.py",
-    "generic_filtering_contract.py",
-    "generic_inference_contract.py",
-    "identity_1d.py",
-    "identity_posterior_explainer.py",
-    "irregular_window_comparison.py",
-    "kalman_filter_bank.py",
-    "kalman_observable_comparison.py",
-    "kalman_variant_comparison.py",
-    "monte_carlo_benchmark.py",
     "objective_corpus_gym_runner.py",
     "objective_driven_qd_archive.py",
-    "pca_dimensionality_audit.py",
-    "pointwise_baseline.py",
-    "posterior_explainer.py",
-    "prior_sensitivity_analysis.py",
     "quality_diversity_corpus.py",
     "repo_story.py",
     "rl_backend_decision.py",
     "selected_generated_corpus.py",
-    "sequential_bayes_accumulator.py",
-    "shared_evaluation.py",
-    "short_horizon_identifiability.py",
-    "technique_comparison.py",
-    "toy_1d.py",
-    "transition_matrix_accumulator.py",
-    "validation_ladder.py",
-    "velocity_aided_kalman_comparison.py",
-    "windowed_baseline.py",
 }
 
 SCAN_ROOTS = ("src", "docs", "tests", "scripts", "experiments", "templates")
@@ -379,7 +382,30 @@ def _write_csv(path: Path, rows: tuple[dict[str, object], ...]) -> None:
 def _is_wrapper(path: Path) -> bool:
     text = path.read_text(encoding="utf-8")
     body = [line.strip() for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
-    return any(" import *" in line for line in body[:8]) or (len(body) <= 12 and any(line.startswith("from .") for line in body))
+    if any(" import *" in line for line in body[:8]):
+        return True
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return False
+    meaningful_nodes = [
+        node
+        for node in tree.body
+        if not (
+            isinstance(node, ast.ImportFrom)
+            and node.module == "__future__"
+        )
+    ]
+    if not meaningful_nodes:
+        return False
+    return all(
+        isinstance(node, ast.ImportFrom)
+        or (
+            isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets)
+        )
+        for node in meaningful_nodes
+    )
 
 
 def _line_count(path: Path) -> int:

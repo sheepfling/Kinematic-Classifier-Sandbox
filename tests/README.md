@@ -3,6 +3,12 @@
 The test suite is intentionally broad and mostly mirrors the code and artifact
 surface one module at a time.
 
+Read next:
+
+- [Repo story](../docs/story/00_repo_story.md)
+- [Package map](../src/kinematic_classifier_sandbox/README.md)
+- [Scripts layout](../scripts/README.md)
+
 ## How the tests are organized
 
 - Most files follow `tests/test_<module_or_artifact>.py`

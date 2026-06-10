@@ -1,15 +1,11 @@
 """Package initialization for the methodology workbench.
 
-This package root intentionally exposes only the small set of canonical
-build entrypoints used by repository scripts, while keeping import-time side
-effects and dependency loading minimal.
+The package root intentionally exposes only a small supported API surface.
+Importing the package must not configure caches, plotting, paths, or other
+runtime state; scripts and CLI entrypoints own that setup explicitly.
 """
 
 from __future__ import annotations
-
-from .runtime_paths import configure_runtime_environment
-
-configure_runtime_environment()
 
 __all__ = [
     "write_methodology_compendium_artifacts",

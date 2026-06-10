@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+
+from ..utils.runtime import repo_root
 from statistics import mean
 
 import yaml
@@ -16,7 +18,7 @@ from .adequacy_audit import CorpusAdequacyResult
 # importing it through the autodevelopment surface.
 _status_score = status_score
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = repo_root()
 DEFAULT_OBJECTIVES_PATH = ROOT / "experiments" / "corpus_objectives" / "common_1d_corpus_objectives.yaml"
 
 

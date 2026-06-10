@@ -4,13 +4,15 @@ import json
 from math import sin
 from pathlib import Path
 
+from ..utils.runtime import repo_root
+
 from ..analysis.feature_analysis import FEATURE_REGISTRY, FEATURE_SET_MANIFEST_PATH, FeatureAnalysisResult, _pairwise_metrics, load_feature_set_manifest, resolve_feature_names
 from ..utils.math import _mean
 from .adequacy_contracts import CorpusAdequacyThresholds
 
 
 CLASS_PAIR_MANIFEST_PATH = (
-    Path(__file__).resolve().parents[3]
+    repo_root()
     / "experiments"
     / "common_1d_classifier_study"
     / "class_pair_manifest.json"

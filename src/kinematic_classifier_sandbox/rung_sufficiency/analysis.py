@@ -5,6 +5,8 @@ import json
 import math
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
+
+from ..utils.runtime import repo_root
 from typing import Any, Iterable
 
 import yaml
@@ -33,7 +35,7 @@ from .contracts import (
     RungThresholdConfig,
 )
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = repo_root()
 DEFAULT_LADDER_WITNESS_SUITE_CONFIG_PATH = ROOT / "experiments" / "ladder_witness_suite" / "ladder_witness_suite.yaml"
 LADDER_WITNESS_SUITE_RUN_DIR_NAME = "ladder_witness_suite_v1"
 

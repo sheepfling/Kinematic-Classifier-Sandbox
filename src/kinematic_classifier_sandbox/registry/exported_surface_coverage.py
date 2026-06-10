@@ -9,13 +9,15 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
+
+from ..utils.runtime import repo_root
 from typing import Any, Literal
 
 from ..markdown_builder import MarkdownDocument
 from ..utils.io import _write_json, _write_text, write_csv
 from ..utils.plotting import _figure_to_png, plt
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = repo_root()
 EXPORT_SCRIPT_PATH = ROOT / "scripts" / "export_artifacts.py"
 
 ArtifactClass = Literal["report", "tabular", "summary", "visual"]

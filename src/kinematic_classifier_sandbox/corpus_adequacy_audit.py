@@ -1,6 +1,41 @@
 from __future__ import annotations
 
-"""Compatibility surface over the canonical corpus.adequacy_audit module."""
+from .corpus.adequacy_audit import (
+    CorpusAdequacyArtifacts,
+    CorpusAdequacyResult,
+    CorpusAdequacyScorecard,
+    CorpusAdequacySummary,
+    CorpusAdequacyThresholds,
+    FEATURE_SET_MANIFEST_PATH,
+    FeatureAnalysisResult,
+    MarkdownDocument,
+    analyze_corpus_adequacy,
+    analyze_feature_datasets,
+    annotations,
+    load_class_pair_manifest,
+    load_feature_set_manifest,
+    plt,
+    prepare_matplotlib,
+    render_corpus_adequacy_report,
+    write_corpus_adequacy_artifacts,
+)
 
-from .corpus.adequacy_audit import *  # noqa: F401,F403
-from .corpus.adequacy_audit_utils import CLASS_PAIR_MANIFEST_PATH
+__all__ = [
+    "CorpusAdequacyArtifacts",
+    "CorpusAdequacyResult",
+    "CorpusAdequacyScorecard",
+    "CorpusAdequacySummary",
+    "CorpusAdequacyThresholds",
+    "FEATURE_SET_MANIFEST_PATH",
+    "FeatureAnalysisResult",
+    "MarkdownDocument",
+    "analyze_corpus_adequacy",
+    "analyze_feature_datasets",
+    "annotations",
+    "load_class_pair_manifest",
+    "load_feature_set_manifest",
+    "plt",
+    "prepare_matplotlib",
+    "render_corpus_adequacy_report",
+    "write_corpus_adequacy_artifacts",
+]

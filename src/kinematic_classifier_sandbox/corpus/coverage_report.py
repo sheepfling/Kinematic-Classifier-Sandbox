@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ..utils.runtime import repo_root
+
 from ..analysis.feature_analysis import (
     FEATURE_SET_MANIFEST_PATH,
     load_feature_registry,
@@ -37,7 +39,7 @@ def _summary_status_to_color(status: str) -> str:
 ####
 
 CLASSIFIER_MANIFEST_PATH = (
-        Path(__file__).resolve().parents[3]
+        repo_root()
         / "experiments"
         / "common_1d_classifier_study"
         / "classifier_manifest.json"

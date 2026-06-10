@@ -4,6 +4,7 @@ from pathlib import Path
 
 import yaml
 
+from ..utils.runtime import repo_root
 from .adapters import (
     ExecutablePairSpec,
     build_pair_specs,
@@ -13,7 +14,7 @@ from .adapters import (
 from .config_models import CommonExperimentConfigModel
 from .contracts import CommonExperimentConfig, CommonStudyAdapter
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = repo_root()
 EXPERIMENT_DIR = ROOT / "experiments" / "common_1d_classifier_study"
 CONFIG_PATH = EXPERIMENT_DIR / "common_experiment_config.yaml"
 FEATURE_SET_PATH = EXPERIMENT_DIR / "feature_sets.json"

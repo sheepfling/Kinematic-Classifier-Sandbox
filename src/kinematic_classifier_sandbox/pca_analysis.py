@@ -1,5 +1,31 @@
 from __future__ import annotations
 
-"""Compatibility surface over the canonical analysis.pca_analysis module."""
+from .analysis.pca_analysis import (
+    FeatureAnalysisResult,
+    PcaAnalysisArtifacts,
+    PcaAnalysisResult,
+    PcaComponent,
+    analyze_feature_datasets,
+    analyze_feature_pca,
+    annotations,
+    render_pca_analysis_report,
+    render_pca_loadings,
+    render_pca_scatter,
+    render_pca_variance,
+    write_pca_analysis_artifacts,
+)
 
-from .analysis.pca_analysis import *  # noqa: F401,F403
+__all__ = [
+    "FeatureAnalysisResult",
+    "PcaAnalysisArtifacts",
+    "PcaAnalysisResult",
+    "PcaComponent",
+    "analyze_feature_datasets",
+    "analyze_feature_pca",
+    "annotations",
+    "render_pca_analysis_report",
+    "render_pca_loadings",
+    "render_pca_scatter",
+    "render_pca_variance",
+    "write_pca_analysis_artifacts",
+]

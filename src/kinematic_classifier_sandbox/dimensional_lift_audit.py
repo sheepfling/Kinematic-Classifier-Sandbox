@@ -1,5 +1,29 @@
 from __future__ import annotations
 
-"""Compatibility surface over the canonical analysis.dimensional_lift_audit module."""
+from .analysis.dimensional_lift_audit import (
+    DimensionalLiftAuditArtifacts,
+    DimensionalLiftAuditResult,
+    NamedTuple,
+    TrajectoryArtifact,
+    VectorPredictionsAndPosteriors,
+    analyze_dimensional_lift_audit,
+    annotations,
+    render_dimensional_lift_audit_report,
+    sqrt,
+    validate_trajectory_artifact,
+    write_dimensional_lift_audit_artifacts,
+)
 
-from .analysis.dimensional_lift_audit import *  # noqa: F401,F403
+__all__ = [
+    "DimensionalLiftAuditArtifacts",
+    "DimensionalLiftAuditResult",
+    "NamedTuple",
+    "TrajectoryArtifact",
+    "VectorPredictionsAndPosteriors",
+    "analyze_dimensional_lift_audit",
+    "annotations",
+    "render_dimensional_lift_audit_report",
+    "sqrt",
+    "validate_trajectory_artifact",
+    "write_dimensional_lift_audit_artifacts",
+]

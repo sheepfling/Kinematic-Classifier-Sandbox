@@ -77,7 +77,7 @@ def write_method_survey_artifact(output_dir: str | Path) -> Path:
 
 
 def render_posterior_math_markdown() -> str:
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = package_repo_root()
     note_path = repo_root / "docs" / "surveys" / "posterior_update_math.md"
     return note_path.read_text(encoding="utf-8")
 
