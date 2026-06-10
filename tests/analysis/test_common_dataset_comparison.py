@@ -19,32 +19,25 @@ class CommonDatasetComparisonTests(unittest.TestCase):
         self.assertIn("Common-Dataset Technique Comparison", report)
         self.assertEqual(len(result.trajectories), 48)
         method_names = [row.method_name for row in result.rows]
-        self.assertEqual(
-            method_names,
-            [
-                "pointwise",
-                "windowed_raw",
-                "windowed_robust",
-                "accumulator",
-                "kalman_bank",
-                "kalman_bank_velocity_aided",
-                "particle_filter_bank",
-                "rbpf",
-            ],
-        )
-        self.assertTrue(all(0.0 <= row.prior_flip_fraction <= 1.0 for row in result.rows))
-        self.assertTrue(any(row.prior_flip_fraction > 0.0 for row in result.rows))
-        self.assertTrue(any(row.short_accuracy < 1.0 for row in result.rows))
-        self.assertTrue(any(row.noisy_accuracy < 1.0 for row in result.rows))
+        self.assertEqual(method_names[:6], ["pointwise", "windowed_raw", "windowed_robust", "accumulator", "kalman_bank", "kalman_bank_velocity_aided"])
+        self.assertEqual(method_names[6:], ["particle_filter_bank", "rbpf", "ornstein_uhlenbeck_pf_v1"])
+        supported_rows = [row for row in result.rows if row.applicability_status == "supported"]
+        self.assertTrue(all(row.prior_flip_fraction is not None and 0.0 <= row.prior_flip_fraction <= 1.0 for row in supported_rows))
+        self.assertTrue(any((row.prior_flip_fraction or 0.0) > 0.0 for row in supported_rows))
+        self.assertTrue(any((row.short_accuracy or 1.0) < 1.0 for row in supported_rows))
+        self.assertTrue(any((row.noisy_accuracy or 1.0) < 1.0 for row in supported_rows))
         kalman_row = next(row for row in result.rows if row.method_name == "kalman_bank")
         kalman_velocity_row = next(row for row in result.rows if row.method_name == "kalman_bank_velocity_aided")
         pointwise_row = next(row for row in result.rows if row.method_name == "pointwise")
         raw_row = next(row for row in result.rows if row.method_name == "windowed_raw")
         robust_row = next(row for row in result.rows if row.method_name == "windowed_robust")
-        self.assertGreaterEqual(kalman_row.irregular_accuracy, 0.0)
-        self.assertGreaterEqual(robust_row.outlier_accuracy, raw_row.outlier_accuracy)
-        self.assertGreater(kalman_row.endpoint_match_accuracy, pointwise_row.endpoint_match_accuracy)
-        self.assertGreater(kalman_velocity_row.noisy_accuracy, kalman_row.noisy_accuracy)
+        self.assertGreaterEqual(kalman_row.irregular_accuracy or 0.0, 0.0)
+        self.assertGreaterEqual(robust_row.outlier_accuracy or 0.0, raw_row.outlier_accuracy or 0.0)
+        self.assertGreater(kalman_row.endpoint_match_accuracy or 0.0, pointwise_row.endpoint_match_accuracy or 0.0)
+        self.assertGreater(kalman_velocity_row.noisy_accuracy or 0.0, kalman_row.noisy_accuracy or 0.0)
+        self.assertEqual(next(row for row in result.rows if row.method_name == "particle_filter_bank").applicability_status, "witness_only")
+        self.assertEqual(next(row for row in result.rows if row.method_name == "rbpf").primary_evaluation_family, "latent_maneuver_onset")
+        self.assertEqual(next(row for row in result.rows if row.method_name == "ornstein_uhlenbeck_pf_v1").primary_evaluation_family, "ou_mean_reversion")
 
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_common_dataset_comparison_artifacts(temp_dir, result=result)
@@ -70,6 +63,9 @@ class CommonDatasetComparisonTests(unittest.TestCase):
             run_header = artifacts.run_summary_path.read_text(encoding="utf-8").splitlines()[0]
             self.assertIn("measurement_dim", run_header)
             self.assertIn("coordinate_frame", run_header)
+            method_header = artifacts.method_summary_path.read_text(encoding="utf-8").splitlines()[0]
+            self.assertIn("applicability_status", method_header)
+            self.assertIn("witness_artifact", method_header)
             sensor_metric_header = artifacts.sensor_regime_metrics_path.read_text(encoding="utf-8").splitlines()[0]
             self.assertIn("measurement_dims", sensor_metric_header)
             self.assertIn("coordinate_frames", sensor_metric_header)

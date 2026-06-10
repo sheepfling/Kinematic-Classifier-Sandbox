@@ -4,17 +4,24 @@ from ..markdown_builder import MarkdownDocument
 from .common_dataset_comparison_contracts import CommonComparisonResult
 
 
+def _fmt(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"{value:.3f}"
+
+
 def render_common_dataset_comparison_report(result: CommonComparisonResult) -> str:
     report = MarkdownDocument("Common-Dataset Technique Comparison")
     report.paragraph(
-        "This artifact evaluates the current technique families on the same shared binary dynamics corpus: "
-        "constant velocity versus constant acceleration with easy, irregular-`dt`, matched-endpoint irregular, "
-        "short-horizon boundary, short-horizon noisy, and outlier-corrupted scenarios."
+        "This artifact evaluates the shared classifier family against the same binary dynamics corpus while remaining capability-aware. "
+        "Methods that belong to advanced nonlinear, switching, or stochastic-mean-reversion families stay visible in the table, but they are marked witness-only instead of being forced onto a mismatched shared corpus."
     )
     report.heading("Method Metrics", level=2)
     report.table(
         [
             "method",
+            "status",
+            "primary_family",
             "overall",
             "easy",
             "irregular",
@@ -23,18 +30,22 @@ def render_common_dataset_comparison_report(result: CommonComparisonResult) -> s
             "short_noisy",
             "outlier",
             "prior_flip_fraction",
+            "witness_artifact",
         ],
         [
             (
                 row.method_name,
-                f"{row.overall_accuracy:.3f}",
-                f"{row.easy_accuracy:.3f}",
-                f"{row.irregular_accuracy:.3f}",
-                f"{row.endpoint_match_accuracy:.3f}",
-                f"{row.short_accuracy:.3f}",
-                f"{row.noisy_accuracy:.3f}",
-                f"{row.outlier_accuracy:.3f}",
-                f"{row.prior_flip_fraction:.3f}",
+                row.applicability_status,
+                row.primary_evaluation_family,
+                _fmt(row.overall_accuracy),
+                _fmt(row.easy_accuracy),
+                _fmt(row.irregular_accuracy),
+                _fmt(row.endpoint_match_accuracy),
+                _fmt(row.short_accuracy),
+                _fmt(row.noisy_accuracy),
+                _fmt(row.outlier_accuracy),
+                _fmt(row.prior_flip_fraction),
+                row.witness_artifact or "n/a",
             )
             for row in result.rows
         ],
@@ -42,13 +53,9 @@ def render_common_dataset_comparison_report(result: CommonComparisonResult) -> s
     report.heading("Interpretation", level=2)
     report.bullet_list(
         [
-            "This is the first apples-to-apples technique comparison on one shared corpus.",
-            "Pointwise should act as the weak lower bound because it only uses the last measurement.",
-            "The matched-endpoint irregular case removes most endpoint information, so methods need the time history rather than just the last sample.",
-            "Short-horizon cases are boundary cases: there is not much elapsed time for acceleration to separate from constant velocity.",
-            "The outlier case is there to expose the difference between raw feature accumulation and more robust temporal/model-based methods.",
-            "`kalman_bank` remains a position-only sensing regime, even when it uses derived pseudo-observations.",
-            "`kalman_bank_velocity_aided` is a separate sensor regime with an actual extra velocity stream.",
+            "The shared binary corpus remains the apples-to-apples scorecard for pointwise, windowed, accumulator, and Kalman-family methods.",
+            "PF, RBPF, and the OU witness remain part of the generic classifier story, but their evidence is attached through witness artifacts and applicability notes.",
+            "This keeps one comparison vocabulary without pretending every method belongs on every benchmark.",
         ]
     )
     return report.text()

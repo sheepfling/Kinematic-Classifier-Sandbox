@@ -128,6 +128,11 @@ Use this when:
 - comparing pointwise, windowed, Bayesian, and Kalman methods
 - separating same-sensor comparisons from richer-sensor comparisons
 
+Important interpretation rule:
+- `technique_summary.csv` and `method_summary.csv` are now capability-aware surfaces.
+- Read `applicability_status`, `primary_evaluation_family`, and `witness_artifact` before treating a row as part of the same leaderboard.
+- `witness_only` means the method is in the shared family and reporting vocabulary, but its primary evidence currently comes from a targeted witness rather than the shared binary corpus.
+
 ## Feature-Set Performance
 
 Question:

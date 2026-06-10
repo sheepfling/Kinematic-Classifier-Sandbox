@@ -1,7 +1,14 @@
 from __future__ import annotations
 
+import csv
+import tempfile
 from typing import NamedTuple
 
+from ..advanced_filters.evaluation import (
+    write_particle_filter_witness_artifacts,
+    write_rbpf_witness_artifacts,
+)
+from ..advanced_filters.ou_witness import write_ornstein_uhlenbeck_witness_artifacts
 from ..analysis.common_dataset_comparison import default_shared_classifier_adapters
 from ..inference.kalman_filter_bank import run_kalman_bank_benchmark
 from ..inference.pointwise_baseline import run_pointwise_benchmark
@@ -34,24 +41,25 @@ def _safe_mean(values: list[float]) -> float | None:
 
 def _base_row(adapter_map, method_name: str, **kwargs: object) -> TechniqueComparisonRow:
     method_spec = adapter_map[method_name].method_spec
-    return TechniqueComparisonRow(
-        method_name=method_spec.method_name,
-        sensor_regime_id=method_spec.sensor_regime_id,
-        applicability_status="supported",
-        primary_evaluation_family=method_spec.primary_evaluation_family,
-        witness_artifact=method_spec.witness_artifact,
-        overall_accuracy=None,
-        prior_flip_fraction=None,
-        median_flip_threshold=None,
-        easy_accuracy=None,
-        boundary_accuracy=None,
-        outlier_accuracy=None,
-        transition_accuracy=None,
-        long_history_accuracy=None,
-        irregular_dt_accuracy=None,
-        acceleration_accuracy=None,
-        **kwargs,
-    )
+    values = {
+        "method_name": method_spec.method_name,
+        "sensor_regime_id": method_spec.sensor_regime_id,
+        "applicability_status": "supported",
+        "primary_evaluation_family": method_spec.primary_evaluation_family,
+        "witness_artifact": method_spec.witness_artifact,
+        "overall_accuracy": None,
+        "prior_flip_fraction": None,
+        "median_flip_threshold": None,
+        "easy_accuracy": None,
+        "boundary_accuracy": None,
+        "outlier_accuracy": None,
+        "transition_accuracy": None,
+        "long_history_accuracy": None,
+        "irregular_dt_accuracy": None,
+        "acceleration_accuracy": None,
+    }
+    values.update(kwargs)
+    return TechniqueComparisonRow(**values)
 
 
 def _pointwise_row(seed: int, adapter_map) -> TechniqueComparisonRow:
@@ -173,6 +181,45 @@ def _witness_only_row(adapter_map, method_name: str) -> TechniqueComparisonRow:
     )
 
 
+def _read_first_csv_row(path) -> dict[str, str]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        row = next(reader, None)
+    return {} if row is None else {str(key): str(value) for key, value in row.items()}
+
+
+def _advanced_witness_metric_rows() -> dict[str, tuple[str, float | None, str]]:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        pf_artifacts = write_particle_filter_witness_artifacts(temp_dir)
+        rbpf_artifacts = write_rbpf_witness_artifacts(temp_dir)
+        ou_artifacts = write_ornstein_uhlenbeck_witness_artifacts(temp_dir)
+        pf_metrics = _read_first_csv_row(pf_artifacts.metrics_path)
+        rbpf_metrics = _read_first_csv_row(rbpf_artifacts.metrics_path)
+        ou_metrics = _read_first_csv_row(ou_artifacts.metrics_path)
+    return {
+        "particle_filter_bank:nonlinear_drag_outlier": (
+            "position_rmse",
+            float(pf_metrics["position_rmse"]) if pf_metrics.get("position_rmse") else None,
+            "PF witness metric from nonlinear drag/outlier study.",
+        ),
+        "particle_filter_bank:ou_mean_reversion": (
+            "final_mean_reverting_posterior",
+            float(ou_metrics["final_mean_reverting_posterior"]) if ou_metrics.get("final_mean_reverting_posterior") else None,
+            "PF-family OU witness metric for mean-reverting stochastic dynamics.",
+        ),
+        "rbpf:latent_maneuver_onset": (
+            "post_onset_mode_accuracy",
+            float(rbpf_metrics["post_onset_mode_accuracy"]) if rbpf_metrics.get("post_onset_mode_accuracy") else None,
+            "RBPF witness metric from latent maneuver onset study.",
+        ),
+        "ornstein_uhlenbeck_pf_v1:ou_mean_reversion": (
+            "final_mean_reverting_posterior",
+            float(ou_metrics["final_mean_reverting_posterior"]) if ou_metrics.get("final_mean_reverting_posterior") else None,
+            "OU witness metric for PF-family mean-reversion support.",
+        ),
+    }
+
+
 def _ou_witness_row() -> TechniqueComparisonRow:
     return TechniqueComparisonRow(
         method_name="ornstein_uhlenbeck_pf_v1",
@@ -209,6 +256,7 @@ def default_technique_definitions() -> tuple[TechniqueDefinition, ...]:
 
 def _scenario_support_rows(result_rows: tuple[TechniqueComparisonRow, ...], adapter_map) -> tuple[TechniqueScenarioSupportRow, ...]:
     scenario_rows: list[TechniqueScenarioSupportRow] = []
+    advanced_metrics = _advanced_witness_metric_rows()
     classic_fields = (
         ("easy", "easy_accuracy"),
         ("boundary", "boundary_accuracy"),
@@ -236,14 +284,19 @@ def _scenario_support_rows(result_rows: tuple[TechniqueComparisonRow, ...], adap
         else:
             supported_families = set(adapter_map.get(row.method_name, None).method_spec.supported_scenario_families if row.method_name in adapter_map else ())
         for scenario_family in ("nonlinear_drag_outlier", "latent_maneuver_onset", "ou_mean_reversion"):
+            metric_name, metric_value, note = advanced_metrics.get(
+                f"{row.method_name}:{scenario_family}",
+                (None, None, "Capability manifest does not cover this advanced family."),
+            )
+            supported = scenario_family in supported_families
             scenario_rows.append(
                 TechniqueScenarioSupportRow(
                     method_name=row.method_name,
                     scenario_family=scenario_family,
-                    applicability_status="witness_only" if scenario_family in supported_families else "not_applicable",
-                    metric_name=None,
-                    metric_value=None,
-                    note="Advanced witness-backed applicability." if scenario_family in supported_families else "Capability manifest does not cover this advanced family.",
+                    applicability_status="witness_only" if supported else "not_applicable",
+                    metric_name=metric_name if supported else None,
+                    metric_value=metric_value if supported else None,
+                    note=note if supported else "Capability manifest does not cover this advanced family.",
                 )
             )
     return tuple(scenario_rows)

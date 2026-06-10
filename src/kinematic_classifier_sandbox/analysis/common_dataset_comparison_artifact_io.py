@@ -12,26 +12,8 @@ from ..validation.shared_evaluation import sensor_regime_summary_rows
 from .common_dataset_comparison_contracts import CommonComparisonArtifacts, CommonComparisonResult
 from .common_dataset_comparison_reporting import render_common_dataset_comparison_report
 
+
 CLASS_NAMES = ("constant_velocity", "constant_acceleration")
-METHOD_COLOR_SEQUENCE = (
-    "#2563eb",
-    "#dc2626",
-    "#d97706",
-    "#16a34a",
-    "#7c3aed",
-    "#0f766e",
-    "#db2777",
-    "#0891b2",
-    "#65a30d",
-)
-KNOWN_METHOD_COLORS = {
-    "pointwise": "#2563eb",
-    "windowed_raw": "#dc2626",
-    "windowed_robust": "#d97706",
-    "accumulator": "#16a34a",
-    "kalman_bank": "#7c3aed",
-    "kalman_bank_velocity_aided": "#0f766e",
-}
 
 
 def _sensor_regime_metadata() -> tuple[dict[str, object], ...]:
@@ -57,15 +39,8 @@ def _sensor_regime_summary_rows(result: CommonComparisonResult) -> list[dict[str
     return sensor_regime_summary_rows(result.runs)
 
 
-def _method_palette(method_names: list[str]) -> dict[str, str]:
-    palette = dict(KNOWN_METHOD_COLORS)
-    fallback_index = 0
-    for method_name in method_names:
-        if method_name in palette:
-            continue
-        palette[method_name] = METHOD_COLOR_SEQUENCE[fallback_index % len(METHOD_COLOR_SEQUENCE)]
-        fallback_index += 1
-    return palette
+def _supported_rows(result: CommonComparisonResult):
+    return [row for row in result.rows if row.overall_accuracy is not None]
 
 
 def _render_common_metric_heatmap(result: CommonComparisonResult):
@@ -79,10 +54,11 @@ def _render_common_metric_heatmap(result: CommonComparisonResult):
         "outlier_accuracy",
         "prior_flip_fraction",
     )
-    matrix = [[getattr(row, field) for field in fields] for row in result.rows]
+    rows = _supported_rows(result)
+    matrix = [[float("nan") if getattr(row, field) is None else getattr(row, field) for field in fields] for row in rows]
     return render_labeled_heatmap(
         matrix,
-        [row.method_name for row in result.rows],
+        [row.method_name for row in rows],
         ["overall", "easy", "irregular", "endpoint", "short", "short_noisy", "outlier", "prior_flip"],
         title="Common-Dataset Method Metrics",
         cmap="YlGnBu",
@@ -95,13 +71,14 @@ def _render_common_metric_heatmap(result: CommonComparisonResult):
 
 
 def _render_common_confusion_bars(result: CommonComparisonResult):
+    rows = _supported_rows(result)
     fig, ax = plt.subplots(figsize=(10.6, 5.0))
-    method_names = [row.method_name for row in result.rows]
-    overall = [row.overall_accuracy for row in result.rows]
-    irregular = [row.irregular_accuracy for row in result.rows]
-    endpoint = [row.endpoint_match_accuracy for row in result.rows]
-    short = [row.short_accuracy for row in result.rows]
-    noisy = [row.noisy_accuracy for row in result.rows]
+    method_names = [row.method_name for row in rows]
+    overall = [row.overall_accuracy or 0.0 for row in rows]
+    irregular = [row.irregular_accuracy or 0.0 for row in rows]
+    endpoint = [row.endpoint_match_accuracy or 0.0 for row in rows]
+    short = [row.short_accuracy or 0.0 for row in rows]
+    noisy = [row.noisy_accuracy or 0.0 for row in rows]
     x = list(range(len(method_names)))
     ax.bar([value - 0.36 for value in x], overall, width=0.14, label="overall", color="#2563eb")
     ax.bar([value - 0.18 for value in x], irregular, width=0.14, label="irregular", color="#16a34a")
@@ -153,66 +130,24 @@ def _render_covariate_audit(result: CommonComparisonResult):
             for trajectory in selected
         ]
         rmses = [
-            (
-                sum((measurement - truth) ** 2 for measurement, truth in zip(trajectory.measurements, trajectory.true_position)) / max(len(trajectory.measurements), 1)
-            ) ** 0.5
+            (sum((measurement - truth) ** 2 for measurement, truth in zip(trajectory.measurements, trajectory.true_position)) / max(len(trajectory.measurements), 1)) ** 0.5
             for trajectory in selected
         ]
-        matrix.append(
-            [
-                sum(durations) / len(durations),
-                sum(sample_counts) / len(sample_counts),
-                sum(mean_dts) / len(mean_dts),
-                sum(rmses) / len(rmses),
-            ]
-        )
-
-    return render_labeled_heatmap(
-        matrix,
-        scenario_names,
-        list(metrics),
-        title="Scenario Covariate Audit",
-        cmap="YlOrBr",
-        figsize=(8.8, 4.8),
-        aspect="auto",
-        colorbar_label="mean value",
-    )
+        matrix.append([sum(durations) / len(durations), sum(sample_counts) / len(sample_counts), sum(mean_dts) / len(mean_dts), sum(rmses) / len(rmses)])
+    return render_labeled_heatmap(matrix, scenario_names, list(metrics), title="Scenario Covariate Audit", cmap="YlOrBr", figsize=(8.8, 4.8), aspect="auto", colorbar_label="mean value")
 
 
 def _render_scenario_profile(result: CommonComparisonResult):
+    rows = _supported_rows(result)
     scenario_order = ["easy", "irregular", "endpoint_match", "short", "short_noisy", "outlier"]
-    palette = _method_palette([row.method_name for row in result.rows])
-    labels = {
-        "easy": "easy",
-        "irregular": "irregular",
-        "endpoint_match": "endpoint",
-        "short": "short",
-        "short_noisy": "short+noise",
-        "outlier": "outlier",
-    }
+    palette = {row.method_name: color for row, color in zip(rows, ("#2563eb", "#dc2626", "#d97706", "#16a34a", "#7c3aed", "#0f766e"), strict=False)}
     fig, ax = plt.subplots(figsize=(10.4, 5.2))
     x = list(range(len(scenario_order)))
-    for row in result.rows:
-        ys = [
-            row.easy_accuracy,
-            row.irregular_accuracy,
-            row.endpoint_match_accuracy,
-            row.short_accuracy,
-            row.noisy_accuracy,
-            row.outlier_accuracy,
-        ]
-        ax.plot(
-            x,
-            ys,
-            marker="o",
-            linewidth=2.2,
-            markersize=6.0,
-            color=palette[row.method_name],
-            label=row.method_name,
-        )
-        ax.text(x[-1] + 0.08, ys[-1], row.method_name, color=palette[row.method_name], fontsize=8, va="center")
+    for row in rows:
+        ys = [row.easy_accuracy or 0.0, row.irregular_accuracy or 0.0, row.endpoint_match_accuracy or 0.0, row.short_accuracy or 0.0, row.noisy_accuracy or 0.0, row.outlier_accuracy or 0.0]
+        ax.plot(x, ys, marker="o", linewidth=2.2, markersize=6.0, color=palette[row.method_name], label=row.method_name)
     ax.set_xticks(x)
-    ax.set_xticklabels([labels[name] for name in scenario_order], rotation=20, ha="right")
+    ax.set_xticklabels(["easy", "irregular", "endpoint", "short", "short+noise", "outlier"], rotation=20, ha="right")
     ax.set_ylim(0.0, 1.05)
     ax.set_ylabel("accuracy")
     ax.set_title("Scenario Accuracy Profile by Method", loc="left", fontsize=13, fontweight="bold")
@@ -223,24 +158,12 @@ def _render_scenario_profile(result: CommonComparisonResult):
 
 
 def _render_prior_flip_tradeoff(result: CommonComparisonResult):
-    palette = _method_palette([row.method_name for row in result.rows])
+    rows = [row for row in _supported_rows(result) if row.prior_flip_fraction is not None]
     fig, ax = plt.subplots(figsize=(8.6, 5.2))
-    for row in result.rows:
-        ax.scatter(
-            row.prior_flip_fraction,
-            row.overall_accuracy,
-            s=120,
-            color=palette[row.method_name],
-            alpha=0.9,
-        )
-        ax.text(
-            row.prior_flip_fraction + 0.01,
-            row.overall_accuracy,
-            row.method_name,
-            fontsize=8.5,
-            color=palette[row.method_name],
-            va="center",
-        )
+    colors = ("#2563eb", "#dc2626", "#d97706", "#16a34a", "#7c3aed", "#0f766e")
+    for index, row in enumerate(rows):
+        ax.scatter(row.prior_flip_fraction, row.overall_accuracy, s=120, color=colors[index % len(colors)], alpha=0.9)
+        ax.text((row.prior_flip_fraction or 0.0) + 0.01, row.overall_accuracy or 0.0, row.method_name, fontsize=8.5, color=colors[index % len(colors)], va="center")
     ax.set_xlim(-0.02, 1.02)
     ax.set_ylim(0.0, 1.05)
     ax.set_xlabel("prior flip fraction")
@@ -255,16 +178,10 @@ def _render_trajectory_examples(result: CommonComparisonResult):
     scenario_names = sorted({trajectory.scenario_name for trajectory in result.trajectories})
     fig, axes = plt.subplots(len(scenario_names), 1, figsize=(10.5, 2.5 * len(scenario_names)), sharex=False)
     axes_list = list(axes.flat) if hasattr(axes, "flat") else [axes]
-    palette = {
-        "constant_velocity": "#2563eb",
-        "constant_acceleration": "#dc2626",
-    }
-
+    palette = {"constant_velocity": "#2563eb", "constant_acceleration": "#dc2626"}
     for ax, scenario_name in zip(axes_list, scenario_names):
         selected = [trajectory for trajectory in result.trajectories if trajectory.scenario_name == scenario_name]
-        representatives = {}
-        for class_name in CLASS_NAMES:
-            representatives[class_name] = next(trajectory for trajectory in selected if trajectory.true_class == class_name)
+        representatives = {class_name: next(trajectory for trajectory in selected if trajectory.true_class == class_name) for class_name in CLASS_NAMES}
         for class_name, trajectory in representatives.items():
             ax.plot(trajectory.times, trajectory.true_position, color=palette[class_name], linewidth=2.2, label=f"{class_name} true")
             ax.scatter(trajectory.times, trajectory.measurements, color=palette[class_name], s=18, alpha=0.75, marker="o")
@@ -280,17 +197,14 @@ def _render_trajectory_examples(result: CommonComparisonResult):
 
 
 def _render_method_confusion_heatmaps(result: CommonComparisonResult):
-    method_names = [row.method_name for row in result.rows]
+    method_names = [row.method_name for row in _supported_rows(result)]
     fig, axes = plt.subplots(1, len(method_names), figsize=(3.2 * len(method_names), 4.2))
     axes_list = list(axes.flat) if hasattr(axes, "flat") else [axes]
     class_names = list(CLASS_NAMES)
     for ax, method_name in zip(axes_list, method_names):
         method_runs = [run for run in result.runs if run.method_name == method_name]
         matrix = [
-            [
-                sum(1 for run in method_runs if run.true_class == true_class and run.final_predicted_class == predicted_class)
-                for predicted_class in class_names
-            ]
+            [sum(1 for run in method_runs if run.true_class == true_class and run.final_predicted_class == predicted_class) for predicted_class in class_names]
             for true_class in class_names
         ]
         image = ax.imshow(matrix, aspect="auto", cmap="Blues")
@@ -390,6 +304,9 @@ def write_common_dataset_comparison_artifacts(
         [
             {
                 "method_name": row.method_name,
+                "sensor_regime_id": row.sensor_regime_id,
+                "applicability_status": row.applicability_status,
+                "primary_evaluation_family": row.primary_evaluation_family,
                 "overall_accuracy": row.overall_accuracy,
                 "easy_accuracy": row.easy_accuracy,
                 "irregular_accuracy": row.irregular_accuracy,
@@ -398,27 +315,14 @@ def write_common_dataset_comparison_artifacts(
                 "noisy_accuracy": row.noisy_accuracy,
                 "outlier_accuracy": row.outlier_accuracy,
                 "prior_flip_fraction": row.prior_flip_fraction,
+                "witness_artifact": row.witness_artifact,
             }
             for row in comparison.rows
         ],
-        [
-            "method_name",
-            "overall_accuracy",
-            "easy_accuracy",
-            "irregular_accuracy",
-            "endpoint_match_accuracy",
-            "short_accuracy",
-            "noisy_accuracy",
-            "outlier_accuracy",
-            "prior_flip_fraction",
-        ],
+        ["method_name", "sensor_regime_id", "applicability_status", "primary_evaluation_family", "overall_accuracy", "easy_accuracy", "irregular_accuracy", "endpoint_match_accuracy", "short_accuracy", "noisy_accuracy", "outlier_accuracy", "prior_flip_fraction", "witness_artifact"],
     )
     sensor_regimes_path.write_text(json.dumps(_sensor_regime_metadata(), indent=2), encoding="utf-8")
-    write_csv(
-        sensor_regime_metrics_path,
-        _sensor_regime_summary_rows(comparison),
-        ["sensor_regime_id", "num_predictions", "mean_accuracy", "mean_confidence", "measurement_dims", "coordinate_frames", "methods"],
-    )
+    write_csv(sensor_regime_metrics_path, _sensor_regime_summary_rows(comparison), ["sensor_regime_id", "num_predictions", "mean_accuracy", "mean_confidence", "measurement_dims", "coordinate_frames", "methods"])
     heatmap_png_path.write_bytes(_figure_to_png(_render_common_metric_heatmap(comparison)))
     confusion_png_path.write_bytes(_figure_to_png(_render_common_confusion_bars(comparison)))
     overview_balance_png_path.write_bytes(_figure_to_png(_render_dataset_balance(comparison)))

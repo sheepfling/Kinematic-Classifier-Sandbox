@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..validation.shared_evaluation import SharedClassifierRun
+from ..validation.shared_evaluation import SharedClassifierMethodSpec, SharedClassifierRun
+from ..validation.technique_comparison_contracts import TechniqueApplicabilityStatus
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,21 +28,26 @@ CommonMethodRun = SharedClassifierRun
 @dataclass(frozen=True, slots=True)
 class CommonComparisonRow:
     method_name: str
-    overall_accuracy: float
-    easy_accuracy: float
-    irregular_accuracy: float
-    endpoint_match_accuracy: float
-    short_accuracy: float
-    noisy_accuracy: float
-    outlier_accuracy: float
-    prior_flip_fraction: float
+    sensor_regime_id: str
+    applicability_status: TechniqueApplicabilityStatus
+    primary_evaluation_family: str
+    witness_artifact: str | None
+    overall_accuracy: float | None
+    easy_accuracy: float | None
+    irregular_accuracy: float | None
+    endpoint_match_accuracy: float | None
+    short_accuracy: float | None
+    noisy_accuracy: float | None
+    outlier_accuracy: float | None
+    prior_flip_fraction: float | None
 
 
 @dataclass(frozen=True, slots=True)
 class CommonComparisonResult:
-    trajectories: tuple[SharedDynamicsTrajectory, ...]
-    runs: tuple[CommonMethodRun, ...]
-    rows: tuple[CommonComparisonRow, ...]
+    trajectories: tuple[SharedDynamicsTrajectory, ...] = field(default_factory=tuple)
+    runs: tuple[CommonMethodRun, ...] = field(default_factory=tuple)
+    rows: tuple[CommonComparisonRow, ...] = field(default_factory=tuple)
+    method_specs: tuple[SharedClassifierMethodSpec, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True, slots=True)

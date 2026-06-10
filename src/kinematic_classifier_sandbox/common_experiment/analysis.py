@@ -197,7 +197,7 @@ def analyze_common_trajectory_corpus(
             trajectories_per_case=trajectories_per_case or max(len(trajectories), 1),
         )
         if include_comparison
-        else CommonComparisonResult(trajectories=(), runs=(), rows=())
+        else CommonComparisonResult(trajectories=(), runs=(), rows=(), method_specs=())
     )
     return _analyze_common_trajectory_corpus(
         config=config,

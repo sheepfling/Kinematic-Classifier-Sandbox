@@ -107,11 +107,21 @@ def _render_algorithm_ladder_report(data: ShowcaseAlgorithmReportData) -> str:
     )
     shared_preview = _table_preview(
         list(data.common_dataset_rows),
-        ["method_name", "overall_accuracy", "endpoint_match_accuracy", "noisy_accuracy", "outlier_accuracy", "prior_flip_fraction"],
+        [
+            "method_name",
+            "applicability_status",
+            "primary_evaluation_family",
+            "overall_accuracy",
+            "endpoint_match_accuracy",
+            "noisy_accuracy",
+            "prior_flip_fraction",
+        ],
         limit=len(data.common_dataset_rows),
     )
     report = MarkdownDocument("Algorithm Ladder")
-    report.paragraph("The algorithm ladder currently spans direct pointwise methods through model-based Kalman methods.")
+    report.paragraph(
+        "The algorithm ladder now spans direct pointwise methods through advanced particle-family witnesses, but the shared-corpus tables are capability-aware rather than naive one-table-for-all leaderboards."
+    )
     report.heading("Common Study Metrics", level=2)
     report.paragraph(ladder_preview)
     report.heading("Shared-Corpus Method Comparison", level=2)
@@ -124,6 +134,7 @@ def _render_algorithm_ladder_report(data: ShowcaseAlgorithmReportData) -> str:
             "`bayes_accumulator` adds sequential evidence accumulation.",
             "`kalman_bank` is the first explicitly model-based evidence provider.",
             "`kalman_bank_velocity_aided` is a stronger sensor regime and should not be treated as a fair same-sensor upgrade over position-only methods.",
+            "`particle_filter_bank`, `rbpf`, and `ornstein_uhlenbeck_pf_v1` remain visible in shared tables with `witness_only` applicability when the shared binary corpus is not their valid scoring family.",
         ]
     )
     return report.text()
@@ -170,6 +181,11 @@ def _render_filtering_report(data: ShowcaseFilteringReportData) -> str:
         ["scenario_name", "static_accuracy", "transition_accuracy", "kalman_accuracy", "transition_post_switch"],
         limit=8,
     )
+    advanced_preview = _table_preview(
+        [{key: str(value) for key, value in row.items()} for row in data.advanced_summary.method_rows],
+        ["method_id", "scenario_family", "primary_metric", "primary_metric_value", "promotion_decision"],
+        limit=len(data.advanced_summary.method_rows),
+    ) if data.advanced_summary.method_rows else ""
     report = MarkdownDocument("Filtering And Advanced-Method Decision")
     report.bullet_list(
         [
@@ -180,13 +196,16 @@ def _render_filtering_report(data: ShowcaseFilteringReportData) -> str:
     )
     report.heading("Switching Preview", level=2)
     report.paragraph(transition_preview)
+    if advanced_preview:
+        report.heading("Advanced Witness Metrics", level=2)
+        report.paragraph(advanced_preview)
     report.heading("Decision Notes", level=2)
     report.bullet_list(
         [
             "IMM is promoted on switching-mode witnesses where explicit state mixing improves post-switch inference.",
             "PF is promoted on the nonlinear-drag/outlier witness where the robust nonlinear particle model beats the Gaussian Kalman baseline.",
             "RBPF is promoted on the latent maneuver-onset witness where sampled mode paths and conditional Kalman state estimates recover the post-onset mode.",
-            "These are witness-specific promotions, not claims that advanced filters dominate every simpler rung.",
+            "These are witness-specific promotions, not claims that advanced filters dominate every simpler rung or that they should be scored on every shared-corpus benchmark.",
         ]
     )
     return report.text()

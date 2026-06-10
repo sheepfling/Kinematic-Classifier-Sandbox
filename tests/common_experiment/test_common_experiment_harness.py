@@ -77,7 +77,7 @@ class CommonExperimentHarnessTests(unittest.TestCase):
                 "maneuver_vs_bounded_acceleration",
             ),
         )
-        self.assertEqual(len(result.comparison.rows), 8)
+        self.assertEqual(len(result.comparison.rows), 9)
         self.assertTrue(result.pair_prediction_rows)
         self.assertTrue(result.feature_rows)
         self.assertTrue(result.covariate_rows)

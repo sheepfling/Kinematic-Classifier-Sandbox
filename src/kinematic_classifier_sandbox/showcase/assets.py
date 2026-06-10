@@ -173,7 +173,8 @@ def _headline_summary() -> ShowcaseHeadlineSummary:
     metrics_by_classifier = _read_csv(ARTIFACTS_ROOT / "common_1d_classifier_study" / "metrics_by_classifier.csv")
     best_classifier = max(metrics_by_classifier, key=lambda row: _float(row, "overall_accuracy"))
     common_dataset_rows = _read_csv(ARTIFACTS_ROOT / "common_dataset_comparison_v1" / "method_summary.csv")
-    best_common_dataset = max(common_dataset_rows, key=lambda row: _float(row, "overall_accuracy"))
+    supported_common_dataset_rows = [row for row in common_dataset_rows if row.get("applicability_status", "supported") == "supported"]
+    best_common_dataset = max(supported_common_dataset_rows or common_dataset_rows, key=lambda row: _float(row, "overall_accuracy"))
     corpus_summary = _read_json(ARTIFACTS_ROOT / "corpus_adequacy_audit_v1" / "corpus_adequacy_summary.json")
     advanced_summary = _advanced_filter_summary()
     dimension_rows = _read_csv(ARTIFACTS_ROOT / "dimensional_lift_audit" / "module_dimension_status.csv")
