@@ -5,7 +5,7 @@ import json
 import tempfile
 from collections import Counter
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -129,10 +129,10 @@ def _doc_ref_status(refs: tuple[CapabilityDocRef, ...]) -> tuple[bool, bool, lis
 def _extract_paths(value: object) -> list[Path]:
     if isinstance(value, Path):
         return [value]
-    if hasattr(value, "run_dir") and hasattr(value, "__dict__"):
+    if is_dataclass(value):
         paths: list[Path] = []
-        for attribute, attribute_value in vars(value).items():
-            paths.extend(_extract_paths(attribute_value))
+        for field in fields(value):
+            paths.extend(_extract_paths(getattr(value, field.name)))
         return paths
     if isinstance(value, tuple) and hasattr(value, "_asdict"):
         paths: list[Path] = []
