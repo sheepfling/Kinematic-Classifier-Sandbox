@@ -6,6 +6,12 @@ __all__ = [
     "METHOD_CATALOG",
     "MethodEntry",
     "method_families",
+    "analyze_corpus_evaluation_gap_matrix",
+    "render_corpus_evaluation_gap_matrix_report",
+    "write_corpus_evaluation_gap_matrix_artifacts",
+    "analyze_exported_surface_coverage",
+    "render_exported_surface_coverage_report",
+    "write_exported_surface_coverage_artifacts",
     "analyze_formal_math_registry",
     "load_equation_registry",
     "render_formal_math_registry_report",
@@ -21,6 +27,50 @@ __all__ = [
 
 def analyze_formal_math_registry(*args, **kwargs):
     from .formal_math_registry import analyze_formal_math_registry as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_corpus_evaluation_gap_matrix(*args, **kwargs):
+    from .corpus_evaluation_gap_matrix import analyze_corpus_evaluation_gap_matrix as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def render_corpus_evaluation_gap_matrix_report(*args, **kwargs):
+    from .corpus_evaluation_gap_matrix import (
+        render_corpus_evaluation_gap_matrix_report as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_corpus_evaluation_gap_matrix_artifacts(*args, **kwargs):
+    from .corpus_evaluation_gap_matrix import (
+        write_corpus_evaluation_gap_matrix_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_exported_surface_coverage(*args, **kwargs):
+    from .exported_surface_coverage import analyze_exported_surface_coverage as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def render_exported_surface_coverage_report(*args, **kwargs):
+    from .exported_surface_coverage import (
+        render_exported_surface_coverage_report as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_exported_surface_coverage_artifacts(*args, **kwargs):
+    from .exported_surface_coverage import (
+        write_exported_surface_coverage_artifacts as _impl,
+    )
 
     return _impl(*args, **kwargs)
 

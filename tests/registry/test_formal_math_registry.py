@@ -51,7 +51,7 @@ class FormalMathRegistryTests(unittest.TestCase):
         self.assertIn("function registry", result.report_markdown.lower())
 
     def test_writer_emits_artifacts(self) -> None:
-        script_path = self.root / "scripts" / "render_formal_math_registry.py"
+        script_path = self.root / "scripts" / "render" / "render_formal_math_registry.py"
         with tempfile.TemporaryDirectory() as temp_dir:
             subprocess.run(["python3", str(script_path), "--output-dir", temp_dir], check=True, cwd=self.root)
 

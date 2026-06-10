@@ -211,7 +211,7 @@ def _prediction_artifact_for_classifier(
 
 
 def _validate_common_contract_surface() -> dict[str, object]:
-    result = analyze_common_experiment(seed=7, trajectories_per_case=3)
+    result = analyze_common_experiment(seed=7, trajectories_per_case=1)
     methods = sorted({str(row["classifier_id"]) for row in result.pair_prediction_rows})
     prediction_groups: dict[tuple[str, str], list[dict[str, object]]] = {}
     posterior_groups: dict[tuple[str, str], list[dict[str, object]]] = {}

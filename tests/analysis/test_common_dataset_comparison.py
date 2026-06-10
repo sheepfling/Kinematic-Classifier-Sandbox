@@ -21,7 +21,16 @@ class CommonDatasetComparisonTests(unittest.TestCase):
         method_names = [row.method_name for row in result.rows]
         self.assertEqual(
             method_names,
-            ["pointwise", "windowed_raw", "windowed_robust", "accumulator", "kalman_bank", "kalman_bank_velocity_aided"],
+            [
+                "pointwise",
+                "windowed_raw",
+                "windowed_robust",
+                "accumulator",
+                "kalman_bank",
+                "kalman_bank_velocity_aided",
+                "particle_filter_bank",
+                "rbpf",
+            ],
         )
         self.assertTrue(all(0.0 <= row.prior_flip_fraction <= 1.0 for row in result.rows))
         self.assertTrue(any(row.prior_flip_fraction > 0.0 for row in result.rows))

@@ -360,7 +360,7 @@
     "\\beta": invalidity threshold
     "\\delta": ambiguity margin threshold
   implementation:
-    module: src/kinematic_classifier_sandbox/validation/class_validity.py
+    module: src/kinematic_classifier_sandbox/validation/class_validity_runner.py
     function: _status_for_row
   artifacts:
     - artifacts/class_validity/class_validity_scores.csv
@@ -375,7 +375,7 @@
     "M_1": candidate advanced method
     "\\mathcal{D}": evaluation corpus or study surface
   implementation:
-    module: src/kinematic_classifier_sandbox/validation/advanced_filter_decision.py
+    module: src/kinematic_classifier_sandbox/validation/advanced_filter_decision_runner.py
     function: analyze_advanced_filter_decision
   artifacts:
     - artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md

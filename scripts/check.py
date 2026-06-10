@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 
-def run(command: list[str]) -> int:
+def run(command: list[str], *, env: dict[str, str]) -> int:
     print("$", " ".join(command))
-    completed = subprocess.run(command, cwd=Path(__file__).resolve().parents[1])
+    completed = subprocess.run(
+        command,
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+    )
     return completed.returncode
 
 
@@ -24,14 +29,29 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    root = Path(__file__).resolve().parents[1]
+    src_path = str(root / "src")
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
+
+    from kinematic_classifier_sandbox.utils.runtime import configure_runtime_environment
+
+    configure_runtime_environment()
+    env = os.environ.copy()
+    env["PYTHONPYCACHEPREFIX"] = os.environ["PYTHONPYCACHEPREFIX"]
+    env["MPLCONFIGDIR"] = os.environ["MPLCONFIGDIR"]
+    env["PYTHONPATH"] = (
+        src_path if not env.get("PYTHONPATH") else f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
+    )
     commands = [
         [sys.executable, "scripts/guard_numpy_imports.py"],
+        [sys.executable, "scripts/audit/audit_repo_shape.py"],
         [sys.executable, "-m", "ruff", "check", *(["--fix"] if args.fix else []), "."],
         [sys.executable, "-m", "ruff", "format", *( [] if args.fix else ["--check"] ), "."],
         [sys.executable, "-m", "pyright"],
     ]
     for command in commands:
-        result = run(command)
+        result = run(command, env=env)
         if result != 0:
             return result
     return 0

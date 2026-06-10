@@ -7,6 +7,8 @@ from typing import NamedTuple
 import numpy.linalg as linalg
 from numpy import asarray, eye, ndarray, zeros
 
+from .io import union_fieldnames as _io_union_fieldnames
+
 
 def clamp(value: float, lower: float, upper: float) -> float:
     return max(lower, min(upper, value))
@@ -55,14 +57,7 @@ def _entropy(
 
 
 def _union_fieldnames(rows: tuple[dict[str, object], ...] | list[dict[str, object]]) -> list[str]:
-    ordered: list[str] = []
-    seen: set[str] = set()
-    for row in rows:
-        for key in row.keys():
-            if key not in seen:
-                seen.add(key)
-                ordered.append(key)
-    return ordered
+    return _io_union_fieldnames(rows)
 
 
 def _percentile(sorted_values: list[float], q: float) -> float:

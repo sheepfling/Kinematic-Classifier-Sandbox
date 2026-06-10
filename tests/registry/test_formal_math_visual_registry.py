@@ -41,7 +41,7 @@ class FormalMathVisualRegistryTests(unittest.TestCase):
         self.assertFalse(any(row.visual_kind == "fallback" for row in result.rows))
 
     def test_writer_emits_artifacts(self) -> None:
-        script_path = self.root / "scripts" / "render_formal_math_visual_registry.py"
+        script_path = self.root / "scripts" / "render" / "render_formal_math_visual_registry.py"
         with tempfile.TemporaryDirectory() as temp_dir:
             subprocess.run(
                 ["python3", str(script_path), "--output-dir", temp_dir],

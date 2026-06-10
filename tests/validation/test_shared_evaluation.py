@@ -21,6 +21,8 @@ class SharedEvaluationTests(unittest.TestCase):
         runs = evaluate_shared_classifier_registry(trajectories, adapters)
 
         self.assertEqual(len(runs), len(trajectories) * len(adapters))
+        self.assertIn("particle_filter_bank", {adapter.method_name for adapter in adapters})
+        self.assertIn("rbpf", {adapter.method_name for adapter in adapters})
         self.assertTrue(all(run.sensor_regime_id for run in runs))
         self.assertTrue(all(run.measurement_dim == 1 for run in runs))
         self.assertTrue(all(run.coordinate_frame == "scalar_line" for run in runs))

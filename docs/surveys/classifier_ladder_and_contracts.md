@@ -150,7 +150,8 @@ The reader-facing ladder is therefore:
 | 3 | `kalman_bank` | dynamics-conditioned innovations | endpoint ambiguity under irregular timing | Kalman endpoint match |
 | 4 | `transition_matrix` | explicit mode switching | static-class assumption | transition switching |
 | 5 | `IMM` proof | switching-aware state inference | demonstrated switching failures | advanced 1D switching witness |
-| 6 | `PF / RBPF` gates | nonlinear or mixed-mode escalation | only justified after demonstrated failures | future gated witnesses |
+| 6 | `particle_filter_bank` | sampled nonlinear / non-Gaussian evidence | linear-Gaussian assumptions fail under drag, outliers, or mean reversion | nonlinear drag and OU witnesses |
+| 7 | `rbpf` | sampled latent mode path plus conditional Kalman state | mixed discrete/continuous latent structure | latent maneuver onset witness |
 
 ## 5. Pointwise Evidence Baseline
 
@@ -672,7 +673,9 @@ internal representation. It only requires each method to emit compatible:
 - optional evidence or diagnostics
 
 That is the core proof that the repo is becoming a methodology framework rather
-than a set of unrelated scripts.
+than a set of unrelated scripts. The same contract now covers the IMM proof,
+the shared particle-filter branch, the RBPF branch, and the OU-style
+mean-reversion witness that sits inside the PF family.
 
 ## 12. What This Document Proves
 

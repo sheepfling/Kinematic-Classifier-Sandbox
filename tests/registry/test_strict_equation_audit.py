@@ -31,7 +31,7 @@ class StrictEquationAuditTests(unittest.TestCase):
         self.assertIn("missing", result.report_markdown)
 
     def test_writer_and_cli_emit_artifacts(self) -> None:
-        script_path = self.root / "scripts" / "render_strict_equation_audit.py"
+        script_path = self.root / "scripts" / "render" / "render_strict_equation_audit.py"
         with tempfile.TemporaryDirectory() as temp_dir:
             subprocess.run(
                 ["python3", str(script_path), "--output-dir", temp_dir],

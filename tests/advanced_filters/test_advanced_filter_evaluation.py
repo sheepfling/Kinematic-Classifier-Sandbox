@@ -12,6 +12,11 @@ from kinematic_classifier_sandbox.advanced_filters.evaluation import (
     write_particle_filter_witness_artifacts,
     write_rbpf_witness_artifacts,
 )
+from kinematic_classifier_sandbox.advanced_filters.ou_witness import (
+    analyze_ornstein_uhlenbeck_witness,
+    ornstein_uhlenbeck_witness_surface,
+    write_ornstein_uhlenbeck_witness_artifacts,
+)
 from kinematic_classifier_sandbox.advanced_filters.runner import (
     imm_witness_surface,
     run_advanced_filter_comparison,
@@ -25,10 +30,12 @@ class AdvancedFilterEvaluationTests(unittest.TestCase):
         self.assertEqual(imm_witness_surface().study_id, "imm_filter_v1")
         self.assertEqual(particle_filter_witness_surface().study_id, "particle_filter_v1")
         self.assertEqual(rbpf_witness_surface().study_id, "rbpf_v1")
+        self.assertEqual(ornstein_uhlenbeck_witness_surface().study_id, "ornstein_uhlenbeck_witness_v1")
         self.assertEqual(advanced_filter_comparison_surface().study_id, "advanced_filter_comparison_v1")
         self.assertIsInstance(imm_witness_surface(), WitnessSurface)
         self.assertIsInstance(particle_filter_witness_surface(), WitnessSurface)
         self.assertIsInstance(rbpf_witness_surface(), WitnessSurface)
+        self.assertIsInstance(ornstein_uhlenbeck_witness_surface(), WitnessSurface)
         self.assertIsInstance(advanced_filter_comparison_surface(), WitnessSurface)
 
     def test_particle_filter_witness_outputs_expected_artifacts(self) -> None:
@@ -57,15 +64,32 @@ class AdvancedFilterEvaluationTests(unittest.TestCase):
             report = artifacts.report_path.read_text(encoding="utf-8")
             self.assertIn("conditionally Kalman-filtering", report)
 
+    def test_ou_witness_outputs_expected_artifacts(self) -> None:
+        result = analyze_ornstein_uhlenbeck_witness(seed=37)
+        self.assertGreater(len(result.posterior_rows), 0)
+        self.assertGreater(len(result.state_rows), 0)
+        self.assertIn("final_mean_reverting_posterior", result.metrics)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts = write_ornstein_uhlenbeck_witness_artifacts(temp_dir, result=result)
+            self.assertEqual(artifacts.run_dir, Path(temp_dir) / "ornstein_uhlenbeck_witness_v1")
+            self.assertTrue(artifacts.report_path.exists())
+            self.assertTrue(artifacts.posterior_history_path.exists())
+            self.assertTrue(artifacts.state_estimate_history_path.exists())
+            self.assertTrue(artifacts.metrics_path.exists())
+            report = artifacts.report_path.read_text(encoding="utf-8")
+            self.assertIn("Ornstein-Uhlenbeck", report)
+
     def test_advanced_filter_comparison_outputs_decision_matrix(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             write_imm_artifacts(Path(temp_dir) / "imm_filter_v1")
             write_particle_filter_witness_artifacts(temp_dir)
             write_rbpf_witness_artifacts(temp_dir)
+            write_ornstein_uhlenbeck_witness_artifacts(temp_dir)
             artifacts = write_advanced_filter_comparison_artifacts(temp_dir)
             self.assertTrue(artifacts.method_comparison_path.exists())
             self.assertTrue(artifacts.nonlinear_stress_metrics_path.exists())
             self.assertTrue(artifacts.latent_maneuver_metrics_path.exists())
+            self.assertTrue(artifacts.mean_reverting_metrics_path.exists())
             self.assertTrue(artifacts.runtime_cost_metrics_path.exists())
             self.assertTrue(artifacts.decision_matrix_path.exists())
             decision_text = artifacts.decision_matrix_path.read_text(encoding="utf-8")
@@ -79,6 +103,7 @@ class AdvancedFilterEvaluationTests(unittest.TestCase):
             write_imm_artifacts(Path(temp_dir) / "imm_filter_v1")
             write_particle_filter_witness_artifacts(temp_dir)
             write_rbpf_witness_artifacts(temp_dir)
+            write_ornstein_uhlenbeck_witness_artifacts(temp_dir)
             artifacts = run_advanced_filter_comparison(temp_dir)
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "advanced_filter_comparison_v1")
             self.assertTrue(artifacts.method_comparison_path.exists())

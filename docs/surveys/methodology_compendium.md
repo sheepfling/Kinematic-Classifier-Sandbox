@@ -1875,7 +1875,8 @@ The reader-facing ladder is therefore:
 | 3 | `kalman_bank` | dynamics-conditioned innovations | endpoint ambiguity under irregular timing | Kalman endpoint match |
 | 4 | `transition_matrix` | explicit mode switching | static-class assumption | transition switching |
 | 5 | `IMM` proof | switching-aware state inference | demonstrated switching failures | advanced 1D switching witness |
-| 6 | `PF / RBPF` gates | nonlinear or mixed-mode escalation | only justified after demonstrated failures | future gated witnesses |
+| 6 | `particle_filter_bank` | sampled nonlinear / non-Gaussian evidence | linear-Gaussian assumptions fail under drag, outliers, or mean reversion | nonlinear drag and OU witnesses |
+| 7 | `rbpf` | sampled latent mode path plus conditional Kalman state | mixed discrete/continuous latent structure | latent maneuver onset witness |
 
 ## 5. Pointwise Evidence Baseline
 
@@ -2397,7 +2398,9 @@ internal representation. It only requires each method to emit compatible:
 - optional evidence or diagnostics
 
 That is the core proof that the repo is becoming a methodology framework rather
-than a set of unrelated scripts.
+than a set of unrelated scripts. The same contract now covers the IMM proof,
+the shared particle-filter branch, the RBPF branch, and the OU-style
+mean-reversion witness that sits inside the PF family.
 
 ## 12. What This Document Proves
 
@@ -4424,11 +4427,14 @@ bottleneck is not yet “we need a particle filter.”
 
 ### 8.3 Implementation Mapping
 
+- shared PF/RBPF registry adapters in
+  `advanced_filters/shared_classifier_methods.py`
 - short-horizon identifiability metrics from
   `short_horizon_identifiability.py`
 - velocity-aided comparison from `inference/velocity_aided_kalman_comparison.py`
 - robust Kalman comparison from `inference/kalman_variant_comparison.py`
 - gate assembly in `advanced_filter_decision.py`
+- mean-reverting witness in `advanced_filters/ou_witness.py`
 
 ## 9. RBPF Gate
 
@@ -4491,5 +4497,5 @@ This note is complete only if it supports the following claims:
 - dimensional lift is being audited through explicit contracts and assumption
   rows
 - 3D readiness is defined by adapters and interfaces, not slogans
-- IMM, PF, and RBPF are decision-gated by measured evidence
+- IMM, PF, and RBPF are decision-gated by measured evidence even though PF and RBPF now have shared-surface implementations
 - the current go/no-go outcome is numerically justified by a real walkthrough

@@ -8,8 +8,13 @@ import yaml
 
 from ..analysis.feature_analysis import FeatureAnalysisResult
 from ..trajectory_generator import DatasetTierDefinition, default_dataset_tiers
+from ..utils.categorical import status_score
 from ..utils.math import _clamp
 from .adequacy_audit import CorpusAdequacyResult
+
+# Preserve the old private helper name while downstream modules are still
+# importing it through the autodevelopment surface.
+_status_score = status_score
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OBJECTIVES_PATH = ROOT / "experiments" / "corpus_objectives" / "common_1d_corpus_objectives.yaml"
@@ -30,11 +35,6 @@ class CorpusCandidateSpec:
     per_tier_irregularity_scale: dict[str, float] | None = None
     per_tier_outlier_scale: dict[str, float] | None = None
     per_tier_step_scale: dict[str, float] | None = None
-
-
-def _status_score(status: str) -> float:
-    return {"green": 1.0, "yellow": 0.5, "red": 0.0}.get(status, 0.0)
-
 
 def _scale_range(bounds: tuple[float, float], scale: float, *, integral: bool = False) -> tuple[float, float]:
     lower = bounds[0] * scale
@@ -170,20 +170,20 @@ def _feature_excitation_score(adequacy: CorpusAdequacyResult) -> float:
         return 0.0
     score_terms = []
     for row in adequacy.feature_set_rows:
-        score_terms.append(0.65 * float(row["moderate_or_strong_fraction"]) + 0.35 * _status_score(str(row["status"])))
+        score_terms.append(0.65 * float(row["moderate_or_strong_fraction"]) + 0.35 * status_score(str(row["status"])))
     return _clamp(mean(score_terms), 0.0, 1.0)
 
 
 def _boundary_coverage_score(adequacy: CorpusAdequacyResult) -> float:
     if not adequacy.class_pair_rows:
         return 0.0
-    return _clamp(mean(_status_score(str(row["status"])) for row in adequacy.class_pair_rows), 0.0, 1.0)
+    return _clamp(mean(status_score(str(row["status"])) for row in adequacy.class_pair_rows), 0.0, 1.0)
 
 
 def _balance_score(adequacy: CorpusAdequacyResult) -> float:
     if not adequacy.class_balance_rows:
         return 0.0
-    return _clamp(mean(_status_score(str(row["status"])) for row in adequacy.class_balance_rows), 0.0, 1.0)
+    return _clamp(mean(status_score(str(row["status"])) for row in adequacy.class_balance_rows), 0.0, 1.0)
 
 
 def _leakage_penalty(adequacy: CorpusAdequacyResult, objectives: dict[str, object]) -> float:
@@ -197,7 +197,7 @@ def _leakage_penalty(adequacy: CorpusAdequacyResult, objectives: dict[str, objec
     for row in adequacy.covariate_rows:
         auc_excess = max(0.0, float(row["max_pairwise_auc"]) - (0.5 + limit))
         spread_excess = max(0.0, float(row["spread_ratio"]) - 1.0)
-        penalties.append(1.5 * auc_excess + 0.35 * spread_excess + (1.0 - _status_score(str(row["status"]))) * 0.5)
+        penalties.append(1.5 * auc_excess + 0.35 * spread_excess + (1.0 - status_score(str(row["status"]))) * 0.5)
     return _clamp(mean(penalties) if penalties else 0.0, 0.0, 1.0)
 
 
@@ -298,7 +298,7 @@ def _feature_excitation_comparison_rows(candidate_id: str, adequacy: CorpusAdequ
                 "feature_set": feature_set,
                 "mean_moderate_or_strong_fraction": mean(float(row["moderate_or_strong_fraction"]) for row in feature_rows),
                 "strong_feature_fraction": sum(1 for row in feature_rows if int(row["strong_count"]) >= 5) / max(len(feature_rows), 1),
-                "status_score": mean(_status_score(str(row["status"])) for row in feature_rows),
+                "status_score": mean(status_score(str(row["status"])) for row in feature_rows),
             }
         )
     return rows

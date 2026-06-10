@@ -56,7 +56,7 @@ class GenericCorpusExplorationWeightSweepTests(unittest.TestCase):
                 self.assertTrue(path.exists(), path)
                 self.assertGreater(path.stat().st_size, 0, path)
 
-            script_path = self.root / "scripts" / "render_generic_corpus_exploration_weight_sweep.py"
+            script_path = self.root / "scripts" / "render" / "render_generic_corpus_exploration_weight_sweep.py"
             subprocess.run(["python3", str(script_path), "--output-dir", temp_dir, "--seed", "7", "--config", str(config_path)], check=True, cwd=self.root)
 
             module_run = subprocess.run(

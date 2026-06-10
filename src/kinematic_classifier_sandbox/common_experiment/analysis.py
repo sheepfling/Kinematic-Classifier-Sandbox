@@ -188,11 +188,16 @@ def analyze_common_trajectory_corpus(
     config_path: str | Path | None = None,
     seed: int = 7,
     trajectories_per_case: int | None = None,
+    include_comparison: bool = True,
 ) -> CommonExperimentResult:
     config = load_common_experiment_config(config_path)
-    comparison = analyze_common_dataset_comparison(
-        seed=seed,
-        trajectories_per_case=trajectories_per_case or max(len(trajectories), 1),
+    comparison = (
+        analyze_common_dataset_comparison(
+            seed=seed,
+            trajectories_per_case=trajectories_per_case or max(len(trajectories), 1),
+        )
+        if include_comparison
+        else CommonComparisonResult(trajectories=(), runs=(), rows=())
     )
     return _analyze_common_trajectory_corpus(
         config=config,

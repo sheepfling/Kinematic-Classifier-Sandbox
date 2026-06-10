@@ -5,6 +5,8 @@ The `scripts/` directory is split by purpose.
 Keep high-level user entrypoints at the root of `scripts/`:
 
 - `all.py`
+- `check.py`
+- `dev.py`
 - `export_artifacts.py`
 - `export_team_packet.py`
 - `run_study.py`
@@ -13,9 +15,12 @@ Keep high-level user entrypoints at the root of `scripts/`:
 
 Group lower-level helpers by function:
 
-- `scripts/audit/`: corpus, dimensional, PCA, and artifact validation audits
+- `scripts/audit/`: repo-shape, corpus, dimensional, PCA, and artifact validation audits
 - `scripts/build/`: PDF and methodology document build pipelines
-- `scripts/render/`: artifact renderers and report generators
+- `scripts/render/`: artifact renderers and report generators, including
+  `render_exported_surface_coverage.py` for the canonical `export_artifacts.py`
+  surface-coverage audit and `render_corpus_evaluation_gap_matrix.py` for the
+  canonical corpus-evaluation capability/coherence audit
 - `scripts/run/`: benchmark and advanced-filter witness runners
 - `scripts/workflows/`: multi-step study workflows and orchestration helpers
 

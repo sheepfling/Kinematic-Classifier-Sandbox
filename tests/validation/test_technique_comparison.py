@@ -39,10 +39,13 @@ class TechniqueComparisonTests(unittest.TestCase):
             method_names,
         )
         shared_adapters = default_shared_classifier_adapters()
+        shared_adapter_pairs = [(adapter.method_name, adapter.sensor_regime_id) for adapter in shared_adapters]
         self.assertEqual(
             [(definition.method_name, definition.sensor_regime_id) for definition in default_technique_definitions()],
-            [(adapter.method_name, adapter.sensor_regime_id) for adapter in shared_adapters],
+            shared_adapter_pairs[: len(default_technique_definitions())],
         )
+        self.assertIn(("particle_filter_bank", "position_only"), shared_adapter_pairs)
+        self.assertIn(("rbpf", "position_only"), shared_adapter_pairs)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_technique_comparison_artifacts(temp_dir, result=result)

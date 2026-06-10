@@ -7,29 +7,22 @@ from statistics import mean
 from typing import Any
 
 from kinematic_classifier_sandbox.utils.io import write_csv
+from kinematic_classifier_sandbox.utils.io import union_fieldnames
 
 from ...analysis.generated_corpus_features import collect_generated_corpus_records
 from ...runtime_paths import prepare_matplotlib
+from ...utils.categorical import bucket2
 from ..classifier_scoring import analyze_corpus_classifier_scoring
 from ..policy import CorpusPolicySpec, load_corpus_policy_spec, score_qd_archive_elite
 from ...utils.plotting import plt
 
 
 def _fieldnames(rows: tuple[dict[str, Any], ...]) -> list[str]:
-    ordered: list[str] = []
-    for row in rows:
-        for key in row:
-            if key not in ordered:
-                ordered.append(key)
-    return ordered
+    return union_fieldnames(rows)
 
 
 def _bucket(value: float, low: float, high: float) -> str:
-    if value < low:
-        return "low"
-    if value < high:
-        return "medium"
-    return "high"
+    return bucket2(value, low, high)
 
 
 @dataclass(frozen=True, slots=True)

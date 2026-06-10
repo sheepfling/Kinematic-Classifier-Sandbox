@@ -19,6 +19,18 @@ def main() -> int:
     env["PYTHONPATH"] = (
         src_path if not env.get("PYTHONPATH") else f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
     )
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
+
+    from kinematic_classifier_sandbox.utils.runtime import configure_runtime_environment
+
+    configure_runtime_environment()
+    env.update(
+        {
+            "PYTHONPYCACHEPREFIX": os.environ["PYTHONPYCACHEPREFIX"],
+            "MPLCONFIGDIR": os.environ["MPLCONFIGDIR"],
+        }
+    )
 
     commands = [
         [sys.executable, "scripts/check_env.py"],

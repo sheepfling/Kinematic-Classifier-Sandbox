@@ -17,6 +17,16 @@ from kinematic_classifier_sandbox.analysis.feature_analysis import (
 
 
 class FeatureAnalysisTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.default_result = analyze_feature_datasets(seed=7, trajectories_per_class=5)
+        cls.shape_window_result = analyze_feature_datasets(
+            seed=7,
+            trajectories_per_class=5,
+            feature_set="shape_window",
+        )
+
     def test_feature_context_split_preserves_backward_compatible_alias(self) -> None:
         self.assertTrue(issubclass(OneDimensionalFeatureComputationContext, BaseFeatureComputationContext))
         self.assertIs(FeatureComputationContext, OneDimensionalFeatureComputationContext)
@@ -70,7 +80,7 @@ class FeatureAnalysisTests(unittest.TestCase):
         self.assertIn("sampling_irregularity", vector_timing_features)
 
     def test_feature_analysis_reports_excitation_and_separability(self) -> None:
-        result = analyze_feature_datasets(seed=7, trajectories_per_class=5)
+        result = self.default_result
 
         self.assertGreater(len(result.feature_rows), 0)
         self.assertIn("position_range", result.feature_rows[0].feature_values)
@@ -90,7 +100,7 @@ class FeatureAnalysisTests(unittest.TestCase):
         self.assertLess(min(pairwise_lookup.values()), 0.85)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            artifacts = write_feature_analysis_artifacts(temp_dir, seed=7, trajectories_per_class=5)
+            artifacts = write_feature_analysis_artifacts(temp_dir, result=result)
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "feature_analysis_v1")
             self.assertTrue(artifacts.report_path.exists())
             self.assertTrue(artifacts.feature_matrix_path.exists())
@@ -119,7 +129,7 @@ class FeatureAnalysisTests(unittest.TestCase):
             self.assertIn("caveat_types", caveat_csv)
 
     def test_feature_analysis_can_run_with_named_feature_set(self) -> None:
-        result = analyze_feature_datasets(seed=7, trajectories_per_class=5, feature_set="shape_window")
+        result = self.shape_window_result
 
         self.assertEqual(result.summary.feature_set_name, "shape_window")
         self.assertEqual(
@@ -138,9 +148,7 @@ class FeatureAnalysisTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_feature_analysis_artifacts(
                 temp_dir,
-                seed=7,
-                trajectories_per_class=5,
-                feature_set="shape_window",
+                result=result,
             )
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "feature_analysis_shape_window_v1")
             report = artifacts.report_path.read_text(encoding="utf-8")

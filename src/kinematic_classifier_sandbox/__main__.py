@@ -8,13 +8,17 @@ from .corpus.coverage_report import write_coverage_report_artifacts
 from .corpus.exploration.generic_corpus_exploration import (
     write_generic_corpus_exploration_weight_sweep_artifacts,
 )
-from .formal_math_registry import write_formal_math_registry_artifacts
-from .formal_math_visual_registry import write_formal_math_visual_registry_artifacts
-from .functional_surface_catalog import write_functional_surface_catalog_artifacts
+from .corpus.trajectory_exploration import write_trajectory_exploration_artifacts
+from .meta.repo_shape_audit import write_repo_shape_audit_artifacts
 from .registry.catalog import METHOD_CATALOG
+from .registry.corpus_evaluation_gap_matrix import write_corpus_evaluation_gap_matrix_artifacts
+from .registry.exported_surface_coverage import write_exported_surface_coverage_artifacts
+from .registry.formal_math_registry import write_formal_math_registry_artifacts
+from .registry.formal_math_visual_registry import write_formal_math_visual_registry_artifacts
+from .registry.functional_surface_catalog import write_functional_surface_catalog_artifacts
+from .registry.strict_equation_audit import write_strict_equation_audit_artifacts
 from .rung_sufficiency.analysis import write_ladder_witness_suite_artifacts
 from .story.repo_story import write_repo_story_artifacts
-from .strict_equation_audit import write_strict_equation_audit_artifacts
 from .methodology.latex import write_methodology_section_symbol_audit_artifacts
 
 
@@ -82,6 +86,60 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         default="artifacts",
         help="Directory where the catalog bundle should be written.",
+    )
+
+    exported_surface_coverage = subparsers.add_parser(
+        "exported-surface-coverage",
+        help="Render the canonical export_artifacts surface coverage audit bundle.",
+    )
+    exported_surface_coverage.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the exported-surface coverage bundle should be written.",
+    )
+    exported_surface_coverage.add_argument(
+        "--materialize",
+        action="store_true",
+        help="Materialize the selected surfaces into a temporary output directory and classify observed artifact classes.",
+    )
+    exported_surface_coverage.add_argument(
+        "--surface-id",
+        action="append",
+        dest="surface_ids",
+        default=None,
+        help="Optional surface id to audit. Repeat to audit a subset.",
+    )
+
+    corpus_evaluation_gap_matrix = subparsers.add_parser(
+        "corpus-evaluation-gap-matrix",
+        help="Render the canonical corpus-evaluation capability and coherence audit bundle.",
+    )
+    corpus_evaluation_gap_matrix.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the corpus-evaluation gap-matrix bundle should be written.",
+    )
+    corpus_evaluation_gap_matrix.add_argument(
+        "--materialize",
+        action="store_true",
+        help="Materialize the selected capabilities into a temporary output directory and classify observed artifact classes.",
+    )
+    corpus_evaluation_gap_matrix.add_argument(
+        "--capability-id",
+        action="append",
+        dest="capability_ids",
+        default=None,
+        help="Optional capability id to audit. Repeat to audit a subset.",
+    )
+
+    repo_shape_audit = subparsers.add_parser(
+        "repo-shape-audit",
+        help="Audit package layout, duplicate scripts, generated cruft, and oversized modules.",
+    )
+    repo_shape_audit.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the repo-shape audit bundle should be written.",
     )
 
     corpus_sweep = subparsers.add_parser(
@@ -174,6 +232,17 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Do not refresh showcase/team-packet front doors.",
     )
+
+    trajectory_exploration = subparsers.add_parser(
+        "trajectory-exploration",
+        help="Render the unified trajectory-exploration contract and benchmark bundle.",
+    )
+    trajectory_exploration.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the trajectory-exploration bundle should be written.",
+    )
+    trajectory_exploration.add_argument("--seed", type=int, default=7, help="Random seed for the benchmark runs.")
     return parser
 
 
@@ -219,6 +288,46 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.summary_path)
         print(artifacts.catalog_path)
         print(artifacts.plot_path)
+        return 0
+
+    if args.command == "exported-surface-coverage":
+        artifacts = write_exported_surface_coverage_artifacts(
+            Path(args.output_dir),
+            materialize=args.materialize,
+            surface_ids=args.surface_ids,
+        )
+        print(artifacts.run_dir)
+        print(artifacts.report_path)
+        print(artifacts.summary_path)
+        print(artifacts.coverage_matrix_path)
+        print(artifacts.missing_coverage_path)
+        print(artifacts.visualization_exemptions_path)
+        print(artifacts.rerun_commands_path)
+        print(artifacts.category_plot_path)
+        print(artifacts.inventory_path)
+        return 0
+
+    if args.command == "corpus-evaluation-gap-matrix":
+        artifacts = write_corpus_evaluation_gap_matrix_artifacts(
+            Path(args.output_dir),
+            materialize=args.materialize,
+            capability_ids=args.capability_ids,
+        )
+        print(artifacts.run_dir)
+        print(artifacts.report_path)
+        print(artifacts.summary_path)
+        print(artifacts.matrix_path)
+        print(artifacts.coherence_issues_path)
+        print(artifacts.inventory_path)
+        print(artifacts.status_plot_path)
+        return 0
+
+    if args.command == "repo-shape-audit":
+        artifacts = write_repo_shape_audit_artifacts(Path(args.output_dir))
+        print(artifacts.run_dir)
+        print(artifacts.report_path)
+        print(artifacts.summary_path)
+        print(artifacts.issues_path)
         return 0
 
     if args.command == "generic-corpus-exploration-weight-sweep":
@@ -302,6 +411,18 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.claim_matrix_path)
         print(artifacts.artifact_manifest_path)
         print(artifacts.status_report_path)
+        return 0
+
+    if args.command == "trajectory-exploration":
+        artifacts = write_trajectory_exploration_artifacts(
+            Path(args.output_dir),
+            seed=args.seed,
+        )
+        print(artifacts.contract_dir)
+        print(artifacts.backend_contract_path)
+        print(artifacts.metrics_by_backend_path)
+        print(artifacts.rl_decision_report_path)
+        print(artifacts.optimizer_trace_path)
         return 0
 
     parser.error(f"unsupported command: {args.command}")

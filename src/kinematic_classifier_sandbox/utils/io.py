@@ -13,6 +13,10 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def read_csv_rows(path: Path) -> list[dict[str, str]]:
+    return _read_csv(path)
+
+
 def _read_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -32,6 +36,21 @@ def _write_csv_rows(path: Path, rows: list[Sequence[Any]], header: list[str]) ->
         writer = csv.writer(handle)
         writer.writerow(header)
         writer.writerows(rows)
+
+
+def union_fieldnames(rows: Sequence[dict[str, object]]) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        for key in row.keys():
+            if key not in seen:
+                seen.add(key)
+                ordered.append(key)
+    return ordered
+
+
+def _union_fieldnames(rows: Sequence[dict[str, object]]) -> list[str]:
+    return union_fieldnames(rows)
 
 
 def _write_json(path: Path, payload: Any) -> None:

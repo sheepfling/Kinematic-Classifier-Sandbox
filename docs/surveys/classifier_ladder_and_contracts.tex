@@ -144,7 +144,8 @@ Rung & Algorithm & Adds & Failure addressed & 1D witness \\
 3 & Kalman bank & dynamics-conditioned innovations & endpoint ambiguity under irregular timing & Kalman endpoint match \\
 4 & transition matrix & explicit mode switching & static-class assumption & transition switching \\
 5 & IMM proof & switching-aware state inference & demonstrated switching failures & advanced 1D switching witness \\
-6 & PF / RBPF gates & nonlinear or mixed-mode escalation & only justified after demonstrated failures & future gated witnesses \\
+6 & particle filter bank & sampled nonlinear / non-Gaussian evidence & linear-Gaussian assumptions fail under drag, outliers, or mean reversion & nonlinear drag and OU witnesses \\
+7 & RBPF & sampled latent mode path plus conditional Kalman state & mixed discrete/continuous latent structure & latent maneuver onset witness \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -676,9 +677,9 @@ same.'' The actual claim is:
     \rightarrow
     \text{shared evaluation contract}.
 \end{align}
-That is the contract the current IMM proof satisfies, and it remains the
-contract future PF and RBPF implementations must satisfy if they are added
-later.
+That is the contract the current IMM proof satisfies, and it now extends to the
+shared PF branch, the RBPF branch, and the OU-style mean-reversion witness that
+exercises a concrete stochastic pull-back-to-class dynamic inside the PF family.
 
 \section{Artifact Map}
 

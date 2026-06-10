@@ -104,6 +104,7 @@ def analyze_selected_generated_corpus() -> SelectedGeneratedCorpusResult:
         pair_specs=tuple(pair_specs_map.values()),
         trajectories=executable_trajectories,
         trajectories_per_case=max(len(executable_trajectories), 1),
+        include_comparison=False,
     )
 
     scoring = analyze_corpus_classifier_scoring()

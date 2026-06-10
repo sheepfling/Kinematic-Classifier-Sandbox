@@ -47,7 +47,7 @@ This paper is now meant to be both a synthesis document and a standalone math re
   \item What are the reusable layers?
   \item How do corpus, feature, classifier, and posterior machinery fit together?
   \item What evidence is used to promote or reject studies?
-  \item What remains to be proved before 3D or advanced filters are justified?
+  \item What remains to be proved before 3D lift or richer stochastic/state-space backends are justified?
 \end{enumerate}
 
 \section{Companion Deep-Dive Documents}
@@ -55,9 +55,9 @@ The implementation-linked derivations live in the survey stack. This paper integ
 \begin{itemize}
   \item \textbf{Posterior update math}: recursive inference mechanics and walkthrough artifacts.
   \item \textbf{Methodology evaluation framework}: priors, AUC, confusion, PCA, adequacy, and leakage methodology.
-  \item \textbf{Classifier ladder and contracts}: the pointwise, windowed, accumulator, Kalman, and transition ladder with shared contracts.
+  \item \textbf{Classifier ladder and contracts}: the pointwise, windowed, accumulator, Kalman, transition, IMM, PF, and RBPF ladder with shared contracts.
   \item \textbf{Corpus generation and search}: trajectory generation, corpus search, and candidate promotion logic.
-  \item \textbf{Dimensional lift and advanced-filter gates}: 3D-readiness auditing and IMM/PF/RBPF decision gates.
+  \item \textbf{Dimensional lift and advanced-filter gates}: 3D-readiness auditing, IMM/PF/RBPF decision gates, and the concrete mean-reverting OU witness.
 \end{itemize}
 
 \section{Related Methodological Threads}
@@ -174,7 +174,7 @@ promotion, and transfer logic rather than only classifier equations.
 \section{Canonical Repo Story}
 The repository now has one intended front-door story:
 \begin{quote}
-\textit{This repository is a methodology workbench for kinematic classification studies. It declares a study candidate, generates or selects a corpus, validates class labels and feature excitation, runs evidence providers, updates posteriors under explicit priors, evaluates separability/calibration/confusion/adequacy, and assigns a promotion decision. The current 1D witness problems are controlled proofs of that machinery before 3D lift.}
+\textit{This repository is a methodology workbench for kinematic classification studies. It declares a study candidate, generates or selects a corpus, validates class labels and feature excitation, runs evidence providers, updates posteriors under explicit priors, evaluates separability/calibration/confusion/adequacy, and assigns a promotion decision. The current 1D witness problems are controlled proofs of that machinery before 3D lift, including switching, nonlinear particle, RBPF, and mean-reverting stochastic witnesses.}
 \end{quote}
 The central study object is
 \begin{equation}

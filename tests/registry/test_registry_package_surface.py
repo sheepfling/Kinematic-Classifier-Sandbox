@@ -9,6 +9,10 @@ class RegistryPackageSurfaceTests(unittest.TestCase):
     def test_curated_surface_exposes_catalog_and_entrypoints(self) -> None:
         self.assertTrue(registry.METHOD_CATALOG)
         self.assertTrue(callable(registry.method_families))
+        self.assertTrue(callable(registry.analyze_corpus_evaluation_gap_matrix))
+        self.assertTrue(callable(registry.write_corpus_evaluation_gap_matrix_artifacts))
+        self.assertTrue(callable(registry.analyze_exported_surface_coverage))
+        self.assertTrue(callable(registry.write_exported_surface_coverage_artifacts))
         self.assertTrue(callable(registry.analyze_formal_math_registry))
         self.assertTrue(callable(registry.write_formal_math_registry_artifacts))
         self.assertTrue(callable(registry.analyze_functional_surface_catalog))

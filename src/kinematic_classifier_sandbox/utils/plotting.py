@@ -141,3 +141,34 @@ def figure_to_png_bytes(fig: Figure, *, dpi: int = 160, close: bool = True) -> b
 
 def _figure_to_png(fig: Figure) -> bytes:
     return figure_to_png_bytes(fig)
+
+
+def render_labeled_heatmap(
+    matrix: list[list[float]],
+    row_labels: list[str],
+    col_labels: list[str],
+    *,
+    title: str,
+    cmap: str = "Blues",
+    figsize: tuple[float, float] = (8.5, 6.8),
+    aspect: str = "auto",
+    value_format: str = ".2f",
+    colorbar_label: str | None = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> Figure:
+    fig, ax = plt.subplots(figsize=figsize)
+    image = ax.imshow(matrix, cmap=cmap, aspect=aspect, vmin=vmin, vmax=vmax)
+    ax.set_title(title, loc="left", fontweight="bold")
+    ax.set_xticks(range(len(col_labels)))
+    ax.set_xticklabels(col_labels, rotation=35, ha="right")
+    ax.set_yticks(range(len(row_labels)))
+    ax.set_yticklabels(row_labels)
+    for row_index, row in enumerate(matrix):
+        for col_index, value in enumerate(row):
+            ax.text(col_index, row_index, format(value, value_format), ha="center", va="center", fontsize=8)
+    colorbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+    if colorbar_label is not None:
+        colorbar.set_label(colorbar_label)
+    fig.tight_layout()
+    return fig

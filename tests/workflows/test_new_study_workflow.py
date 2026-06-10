@@ -50,6 +50,8 @@ class NewStudyWorkflowTests(unittest.TestCase):
                 workflow_root / "03_corpus_audit" / "corpus_decision_gate.json",
                 workflow_root / "04_ladder_evaluation" / "posterior_history_by_method.csv",
                 workflow_root / "04_ladder_evaluation" / "sufficiency_matrix.csv",
+                workflow_root / "04b_confidence" / "study_confidence_summary.json",
+                workflow_root / "04b_confidence" / "confidence_dashboard.png",
                 workflow_root / "05_report" / "study_report.md",
                 workflow_root / "05_report" / "decision_card.md",
                 workflow_root / "05_report" / "visual_gallery.md",

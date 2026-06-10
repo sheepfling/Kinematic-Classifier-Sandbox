@@ -2,9 +2,10 @@
 
 The advanced-state-inference rung is the switching-aware extension of the
 classifier/filter ladder. In this repo it is currently proved with a 1D
-interacting multiple model (IMM) witness, but the contract is intentionally
-dimension-agnostic so the same evaluation surface can lift to 3D PVA without
-changing the downstream harness.
+interacting multiple model (IMM) witness, and the adjacent advanced branch now
+also includes particle-filter, RBPF, and mean-reverting OU-style witnesses. The
+contract is intentionally dimension-agnostic so the same evaluation surface can
+lift to 3D PVA without changing the downstream harness.
 
 The decision to escalate into this rung is governed by the rung sufficiency
 evaluator in `PLN-026`. That layer decides whether the current rung is
@@ -21,7 +22,7 @@ measured improvement over the transition-matrix rung is real.
   rather than method-specific internals.
 - The comparison target remains the same ladder contract:
   `pointwise -> windowed -> sequential Bayes -> Kalman bank -> transition
-  matrix -> advanced state inference`.
+  matrix -> IMM -> PF -> RBPF`.
 
 ## What changes in 3D PVA
 
@@ -41,9 +42,10 @@ The 1D IMM witness proves the integration claim that matters most:
 3. state estimates and diagnostics can be written into the same artifact
    pipeline as the rest of the study framework.
 
-That means the repo is not committing to PF or RBPF prematurely. It is proving
-the switching-aware rung first, then keeping the contract stable for the later
-3D lift.
+That means the repo is not hand-waving the advanced branch anymore. It now has
+an explicit switching witness, a nonlinear/non-Gaussian particle witness, an
+RBPF latent-mode witness, and a concrete mean-reverting stochastic witness
+while keeping the contract stable for the later 3D lift.
 
 ## Expected 3D artifact differences
 
@@ -57,5 +59,5 @@ the switching-aware rung first, then keeping the contract stable for the later
 
 If a future 3D backend can be compared through the same `FilterEvidence`,
 `FilterStateSummary`, and shared posterior history rows, it belongs in the same
-advanced-state-inference rung. If it needs a different evaluation surface, the
-contract is too narrow and should be widened before the lift.
+advanced-state-inference family. If it needs a different evaluation surface,
+the contract is too narrow and should be widened before the lift.

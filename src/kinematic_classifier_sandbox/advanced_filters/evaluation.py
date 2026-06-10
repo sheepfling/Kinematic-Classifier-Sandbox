@@ -36,6 +36,7 @@ from .models_1d import (
 )
 from .particle_filter import BootstrapParticleFilter, ParticleFilterConfig
 from .particle_filter_bank import ParticleFilterBank
+from .ou_witness import write_ornstein_uhlenbeck_witness_artifacts
 from .rbpf import RaoBlackwellizedParticleFilter, RBPFConfig
 from .rbpf_models_1d import default_mode_transition_matrix_1d, make_rbpf_1d_mode_models
 from .surface import AdvancedFilterSurface
@@ -57,6 +58,7 @@ class AdvancedFilterComparisonArtifacts:
     method_comparison_path: Path
     nonlinear_stress_metrics_path: Path
     latent_maneuver_metrics_path: Path
+    mean_reverting_metrics_path: Path
     runtime_cost_metrics_path: Path
     decision_matrix_path: Path
     report_path: Path
@@ -390,6 +392,7 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
     imm_metrics = _read_first_csv_row(output_root / "imm_filter_v1" / "switching_detection_metrics.csv")
     pf_metrics = _read_first_csv_row(output_root / "particle_filter_v1" / "pf_method_comparison.csv")
     rbpf_metrics = _read_first_csv_row(output_root / "rbpf_v1" / "rbpf_method_comparison.csv")
+    ou_metrics = _read_first_csv_row(output_root / "ornstein_uhlenbeck_witness_v1" / "ou_method_comparison.csv")
 
     method_rows = [
         {
@@ -431,6 +434,19 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
             "promotion_decision": rbpf_metrics.get("promotion_decision", "defer"),
             "artifact_path": "artifacts/rbpf_v1/rbpf_method_comparison.csv",
         },
+        {
+            "method_id": "ornstein_uhlenbeck_pf_v1",
+            "corpus_objective_id": "ou_mean_reversion_v1",
+            "scenario_family": "ornstein_uhlenbeck_mean_reversion_1d",
+            "failure_case": "mean_reverting_stochastic_dynamics",
+            "baseline_failed": "yes",
+            "method_improved": "yes" if _as_float(ou_metrics.get("final_mean_reverting_posterior")) >= 0.60 else "no",
+            "primary_metric": "final_mean_reverting_posterior",
+            "primary_metric_value": ou_metrics.get("final_mean_reverting_posterior", ""),
+            "runtime_seconds": ou_metrics.get("runtime_seconds", ""),
+            "promotion_decision": ou_metrics.get("promotion_decision", "defer"),
+            "artifact_path": "artifacts/ornstein_uhlenbeck_witness_v1/ou_method_comparison.csv",
+        },
     ]
 
     nonlinear_rows = [
@@ -455,6 +471,15 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
             "promotion_decision": rbpf_metrics.get("promotion_decision", "defer"),
         }
     ]
+    mean_reverting_rows = [
+        {
+            "method_id": ou_metrics.get("method_id", "ornstein_uhlenbeck_pf_v1"),
+            "witness": ou_metrics.get("witness", "ornstein_uhlenbeck_mean_reversion_1d"),
+            "final_mean_reverting_posterior": ou_metrics.get("final_mean_reverting_posterior", ""),
+            "position_rmse": ou_metrics.get("position_rmse", ""),
+            "promotion_decision": ou_metrics.get("promotion_decision", "defer"),
+        }
+    ]
     runtime_rows = [
         {"method_id": row["method_id"], "runtime_seconds": row["runtime_seconds"], "scenario_family": row["scenario_family"]}
         for row in method_rows
@@ -475,12 +500,14 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
     method_path = run_dir / "method_comparison.csv"
     nonlinear_path = run_dir / "nonlinear_stress_metrics.csv"
     latent_path = run_dir / "latent_maneuver_metrics.csv"
+    mean_reverting_path = run_dir / "mean_reverting_metrics.csv"
     runtime_path = run_dir / "runtime_cost_metrics.csv"
     decision_path = run_dir / "advanced_filter_decision_matrix.csv"
     report_path = run_dir / "advanced_filter_comparison_report.md"
     write_csv(method_path, method_rows, list(method_rows[0]))
     write_csv(nonlinear_path, nonlinear_rows, list(nonlinear_rows[0]))
     write_csv(latent_path, latent_rows, list(latent_rows[0]))
+    write_csv(mean_reverting_path, mean_reverting_rows, list(mean_reverting_rows[0]))
     write_csv(runtime_path, runtime_rows, list(runtime_rows[0]))
     write_csv(decision_path, decision_rows, list(decision_rows[0]))
     report_path.write_text(_render_advanced_filter_comparison_report(method_rows, decision_rows), encoding="utf-8")
@@ -490,6 +517,7 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
         method_comparison_path=method_path,
         nonlinear_stress_metrics_path=nonlinear_path,
         latent_maneuver_metrics_path=latent_path,
+        mean_reverting_metrics_path=mean_reverting_path,
         runtime_cost_metrics_path=runtime_path,
         decision_matrix_path=decision_path,
         report_path=report_path,

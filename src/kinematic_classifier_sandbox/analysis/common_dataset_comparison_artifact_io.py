@@ -7,11 +7,31 @@ from kinematic_classifier_sandbox.utils.io import write_csv
 
 from ..utils.plotting import _figure_to_png
 from ..utils.plotting import plt
+from ..utils.plotting import render_labeled_heatmap
 from ..validation.shared_evaluation import sensor_regime_summary_rows
 from .common_dataset_comparison_contracts import CommonComparisonArtifacts, CommonComparisonResult
 from .common_dataset_comparison_reporting import render_common_dataset_comparison_report
 
 CLASS_NAMES = ("constant_velocity", "constant_acceleration")
+METHOD_COLOR_SEQUENCE = (
+    "#2563eb",
+    "#dc2626",
+    "#d97706",
+    "#16a34a",
+    "#7c3aed",
+    "#0f766e",
+    "#db2777",
+    "#0891b2",
+    "#65a30d",
+)
+KNOWN_METHOD_COLORS = {
+    "pointwise": "#2563eb",
+    "windowed_raw": "#dc2626",
+    "windowed_robust": "#d97706",
+    "accumulator": "#16a34a",
+    "kalman_bank": "#7c3aed",
+    "kalman_bank_velocity_aided": "#0f766e",
+}
 
 
 def _sensor_regime_metadata() -> tuple[dict[str, object], ...]:
@@ -37,6 +57,17 @@ def _sensor_regime_summary_rows(result: CommonComparisonResult) -> list[dict[str
     return sensor_regime_summary_rows(result.runs)
 
 
+def _method_palette(method_names: list[str]) -> dict[str, str]:
+    palette = dict(KNOWN_METHOD_COLORS)
+    fallback_index = 0
+    for method_name in method_names:
+        if method_name in palette:
+            continue
+        palette[method_name] = METHOD_COLOR_SEQUENCE[fallback_index % len(METHOD_COLOR_SEQUENCE)]
+        fallback_index += 1
+    return palette
+
+
 def _render_common_metric_heatmap(result: CommonComparisonResult):
     fields = (
         "overall_accuracy",
@@ -49,19 +80,18 @@ def _render_common_metric_heatmap(result: CommonComparisonResult):
         "prior_flip_fraction",
     )
     matrix = [[getattr(row, field) for field in fields] for row in result.rows]
-    fig, ax = plt.subplots(figsize=(10.6, 4.8))
-    image = ax.imshow(matrix, aspect="auto", cmap="YlGnBu", vmin=0.0, vmax=1.0)
-    ax.set_title("Common-Dataset Method Metrics", loc="left", fontsize=13, fontweight="bold")
-    ax.set_xticks(range(len(fields)))
-    ax.set_xticklabels(["overall", "easy", "irregular", "endpoint", "short", "short_noisy", "outlier", "prior_flip"], rotation=25, ha="right")
-    ax.set_yticks(range(len(result.rows)))
-    ax.set_yticklabels([row.method_name for row in result.rows])
-    for row_index, row in enumerate(result.rows):
-        for col_index, field in enumerate(fields):
-            ax.text(col_index, row_index, f"{getattr(row, field):.2f}", ha="center", va="center", fontsize=8)
-    fig.colorbar(image, ax=ax, label="metric value")
-    fig.tight_layout()
-    return fig
+    return render_labeled_heatmap(
+        matrix,
+        [row.method_name for row in result.rows],
+        ["overall", "easy", "irregular", "endpoint", "short", "short_noisy", "outlier", "prior_flip"],
+        title="Common-Dataset Method Metrics",
+        cmap="YlGnBu",
+        figsize=(10.6, 4.8),
+        aspect="auto",
+        colorbar_label="metric value",
+        vmin=0.0,
+        vmax=1.0,
+    )
 
 
 def _render_common_confusion_bars(result: CommonComparisonResult):
@@ -137,31 +167,21 @@ def _render_covariate_audit(result: CommonComparisonResult):
             ]
         )
 
-    fig, ax = plt.subplots(figsize=(8.8, 4.8))
-    image = ax.imshow(matrix, aspect="auto", cmap="YlOrBr")
-    ax.set_title("Scenario Covariate Audit", loc="left", fontsize=13, fontweight="bold")
-    ax.set_xticks(range(len(metrics)))
-    ax.set_xticklabels(metrics, rotation=20, ha="right")
-    ax.set_yticks(range(len(scenario_names)))
-    ax.set_yticklabels(scenario_names)
-    for row_index, row in enumerate(matrix):
-        for col_index, value in enumerate(row):
-            ax.text(col_index, row_index, f"{value:.2f}", ha="center", va="center", fontsize=8)
-    fig.colorbar(image, ax=ax, label="mean value")
-    fig.tight_layout()
-    return fig
+    return render_labeled_heatmap(
+        matrix,
+        scenario_names,
+        list(metrics),
+        title="Scenario Covariate Audit",
+        cmap="YlOrBr",
+        figsize=(8.8, 4.8),
+        aspect="auto",
+        colorbar_label="mean value",
+    )
 
 
 def _render_scenario_profile(result: CommonComparisonResult):
     scenario_order = ["easy", "irregular", "endpoint_match", "short", "short_noisy", "outlier"]
-    palette = {
-        "pointwise": "#2563eb",
-        "windowed_raw": "#dc2626",
-        "windowed_robust": "#d97706",
-        "accumulator": "#16a34a",
-        "kalman_bank": "#7c3aed",
-        "kalman_bank_velocity_aided": "#0f766e",
-    }
+    palette = _method_palette([row.method_name for row in result.rows])
     labels = {
         "easy": "easy",
         "irregular": "irregular",
@@ -203,14 +223,7 @@ def _render_scenario_profile(result: CommonComparisonResult):
 
 
 def _render_prior_flip_tradeoff(result: CommonComparisonResult):
-    palette = {
-        "pointwise": "#2563eb",
-        "windowed_raw": "#dc2626",
-        "windowed_robust": "#d97706",
-        "accumulator": "#16a34a",
-        "kalman_bank": "#7c3aed",
-        "kalman_bank_velocity_aided": "#0f766e",
-    }
+    palette = _method_palette([row.method_name for row in result.rows])
     fig, ax = plt.subplots(figsize=(8.6, 5.2))
     for row in result.rows:
         ax.scatter(

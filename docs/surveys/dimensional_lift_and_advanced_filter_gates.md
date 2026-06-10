@@ -773,11 +773,14 @@ bottleneck is not yet “we need a particle filter.”
 
 ### 8.3 Implementation Mapping
 
+- shared PF/RBPF registry adapters in
+  `advanced_filters/shared_classifier_methods.py`
 - short-horizon identifiability metrics from
   `short_horizon_identifiability.py`
 - velocity-aided comparison from `inference/velocity_aided_kalman_comparison.py`
 - robust Kalman comparison from `inference/kalman_variant_comparison.py`
 - gate assembly in `advanced_filter_decision.py`
+- mean-reverting witness in `advanced_filters/ou_witness.py`
 
 ## 9. RBPF Gate
 
@@ -840,5 +843,5 @@ This note is complete only if it supports the following claims:
 - dimensional lift is being audited through explicit contracts and assumption
   rows
 - 3D readiness is defined by adapters and interfaces, not slogans
-- IMM, PF, and RBPF are decision-gated by measured evidence
+- IMM, PF, and RBPF are decision-gated by measured evidence even though PF and RBPF now have shared-surface implementations
 - the current go/no-go outcome is numerically justified by a real walkthrough

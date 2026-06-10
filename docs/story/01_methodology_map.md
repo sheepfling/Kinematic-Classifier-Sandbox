@@ -9,6 +9,7 @@ Corpus Objective
   -> Feature Set + Class Validity
   -> Evidence Provider
   -> Posterior Updater + Prior
+  -> State Tracker / Switching Filter / Particle Witness
   -> Metrics / Separability / Confusion / Calibration
   -> Validation Ladder
   -> Promote / Revise / Reject / Defer
@@ -32,6 +33,7 @@ The study candidate is the unit that lets the repo compare feature sets, class s
 | Feature analysis | Check excitation, overlap, AUC, PCA, and class confusability | `artifacts/feature_analysis_v1/feature_separation_scores.csv` |
 | Evidence provider | Convert observations, features, or residuals into comparable evidence | `artifacts/classification_evidence_proof/evidence_provider_manifest.json` |
 | Posterior updater | Apply priors and accumulate evidence into posterior histories | `artifacts/generic_inference_contract/posterior_history_schema.json` |
+| State tracking | Maintain latent state, switching state, or particle-supported state summaries when the ladder needs more than feature-only evidence | `artifacts/advanced_state_inference_v1/posterior_history.csv` |
 | Evaluation | Inspect separability, calibration, confusion, oracle gap, and prior sensitivity | `artifacts/monte_carlo_accumulator/calibration_bins.csv` |
 | Promotion | Assign promote, revise, reject, or defer | `artifacts/validation_ladder/validation_ladder_decisions.csv` |
 

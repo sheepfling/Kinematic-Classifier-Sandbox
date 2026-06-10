@@ -2,6 +2,15 @@
 
 The Corpus Explorer is the corpus governance layer. It is broader than a data generator: it declares objectives, samples candidates, adapts backends, scores validity and difficulty, audits leakage, maintains archives, and selects corpora for study evaluation.
 
+## Current Support Boundary
+
+The current strongest supported corpus-evaluation path is the repo's default generated/common-study corpus evaluation flow.
+
+- default generated/common-study corpus evaluation is the strongest supported path today
+- selected generated corpus packet rerun is also strong because the selected packet is pushed back through adequacy, leakage, and regression checks
+- the adapter contract for provided or external corpus sources exists, but it is not yet a full arbitrary-corpus adequacy pipeline
+- this is therefore not yet a full generic corpus evaluation for any provided corpus
+
 ## Corpus Flow
 
 ```text
@@ -45,3 +54,5 @@ The repo already has 1D examples of the external-backend interface shape that a 
 - `corpus/exploration/external_backend_examples.py` packages that lifecycle into TAOS-like and TGx-like 1D examples with explicit input-deck, execution-log, raw-output, normalized-output, and validation-report artifacts.
 
 That means the 3D lift does not need a new interface design. It needs a richer backend implementation behind the same contract.
+
+That adapter contract for provided or external corpus sources is important, but it should be read as an interface and normalization proof, not yet a full arbitrary-corpus adequacy pipeline.

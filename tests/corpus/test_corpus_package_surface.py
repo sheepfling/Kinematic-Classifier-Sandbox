@@ -19,6 +19,8 @@ class CorpusPackageSurfaceTests(unittest.TestCase):
         self.assertTrue(callable(corpus.write_selected_generated_corpus_artifacts))
         self.assertTrue(callable(corpus.analyze_rl_backend_decision))
         self.assertTrue(callable(corpus.write_rl_backend_decision_artifacts))
+        self.assertTrue(callable(corpus.analyze_trajectory_exploration_benchmarks))
+        self.assertTrue(callable(corpus.write_trajectory_exploration_artifacts))
 
     def test_curated_surface_exposes_core_contracts(self) -> None:
         self.assertEqual(corpus.CorpusAdequacyResult.__name__, "CorpusAdequacyResult")
@@ -27,6 +29,8 @@ class CorpusPackageSurfaceTests(unittest.TestCase):
         self.assertEqual(corpus.CorpusSynthesisComparisonResult.__name__, "CorpusSynthesisComparisonResult")
         self.assertEqual(corpus.SelectedGeneratedCorpusResult.__name__, "SelectedGeneratedCorpusResult")
         self.assertEqual(corpus.RlBackendDecisionResult.__name__, "RlBackendDecisionResult")
+        self.assertEqual(corpus.TrajectoryExplorationResult.__name__, "TrajectoryExplorationResult")
+        self.assertEqual(corpus.TrajectoryExplorationObjective.__name__, "TrajectoryExplorationObjective")
 
 
 if __name__ == "__main__":

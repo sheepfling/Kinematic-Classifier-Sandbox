@@ -5,6 +5,7 @@ from pathlib import Path
 from ..corpus.adequacy_audit import CorpusAdequacyArtifacts
 from ..corpus.coverage_report import CoverageReportArtifacts
 from ..markdown_builder import MarkdownDocument
+from ..utils.categorical import status_score
 from ..utils.plotting import plt
 from .feature_analysis import FeatureAnalysisArtifacts
 from .pca_analysis import PcaAnalysisArtifacts
@@ -18,7 +19,7 @@ def render_feature_set_summary_chart(rows: list[dict[str, object]]):
     min_auc = [float(row["min_pairwise_auc"]) for row in rows]
     avg_overlap = [float(row["avg_overlap"]) for row in rows]
     max_overlap = [float(row["max_overlap"]) for row in rows]
-    adequacy = [_status_score(str(row["feature_set_status"])) for row in rows]
+    adequacy = [status_score(str(row["feature_set_status"]), yellow=0.6, red=0.2) for row in rows]
 
     flat_axes[0].bar(labels, avg_auc, color="#376996")
     flat_axes[0].set_title("Average Pairwise AUC")
@@ -219,7 +220,3 @@ def render_abstract_inspection_index(
 
 def _link(path: Path) -> str:
     return path.name
-
-
-def _status_score(status: str) -> float:
-    return {"green": 1.0, "yellow": 0.6, "red": 0.2}.get(status, 0.0)

@@ -6,6 +6,8 @@ __all__ = [
     "write_methodology_section_symbol_audit_artifacts",
     "write_methodology_compendium_artifacts",
     "write_methodology_latex_artifacts",
+    "analyze_repo_shape",
+    "write_repo_shape_audit_artifacts",
 ]
 
 
@@ -35,5 +37,17 @@ def write_methodology_compendium_artifacts(*args, **kwargs):
 
 def write_methodology_latex_artifacts(*args, **kwargs):
     from ..methodology.latex import write_methodology_latex_artifacts as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_repo_shape(*args, **kwargs):
+    from .repo_shape_audit import analyze_repo_shape as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def write_repo_shape_audit_artifacts(*args, **kwargs):
+    from .repo_shape_audit import write_repo_shape_audit_artifacts as _impl
 
     return _impl(*args, **kwargs)

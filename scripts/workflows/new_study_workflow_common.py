@@ -59,6 +59,7 @@ PHASES = (
     "02_corpus_generation",
     "03_corpus_audit",
     "04_ladder_evaluation",
+    "04b_confidence",
     "05_report",
 )
 
@@ -322,8 +323,15 @@ def derive_corpus_decision_gate(
     write_json(output_path, payload)
 
 
-def derive_decision_card(audit_gate_path: Path, sufficiency_matrix_path: Path, output_path: Path, study: dict[str, Any]) -> None:
+def derive_decision_card(
+    audit_gate_path: Path,
+    sufficiency_matrix_path: Path,
+    confidence_summary_path: Path,
+    output_path: Path,
+    study: dict[str, Any],
+) -> None:
     audit_gate = json.loads(audit_gate_path.read_text(encoding="utf-8"))
+    confidence_summary = json.loads(confidence_summary_path.read_text(encoding="utf-8"))
     promotion_rows = read_csv(sufficiency_matrix_path)
     promote_rows = [row for row in promotion_rows if str(row.get("decision", "")) == "promote"]
     revise_rows = [row for row in promotion_rows if str(row.get("decision", "")).startswith("revise")]
@@ -348,7 +356,20 @@ def derive_decision_card(audit_gate_path: Path, sufficiency_matrix_path: Path, o
         f"- Corpus gate status: `{audit_gate['overall_status']}`",
         f"- Corpus gate pass: `{audit_gate['overall_pass']}`",
         f"- Recommendation count: `{audit_gate['recommendation_count']}`",
+        f"- Aggregate confidence: `{float(confidence_summary['aggregate_confidence']):.3f}`",
+        f"- Best-case confidence: `{float(confidence_summary['best_case_confidence']):.3f}`",
+        f"- Confidence band: `{confidence_summary['confidence_band']}`",
     ]
+    selected_claim = confidence_summary.get("selected_claim")
+    if isinstance(selected_claim, dict):
+        lines.extend(
+            [
+                f"- Selected classifier claim: `{selected_claim.get('classifier_id', 'n/a')}` on `{selected_claim.get('class_pair_id', 'n/a')}` / `{selected_claim.get('feature_set_id', 'n/a')}`",
+                f"- Selected claim action: `{selected_claim.get('recommended_action', 'n/a')}`",
+                f"- Selected claim failure mode: `{selected_claim.get('failure_mode', 'n/a')}`",
+                f"- Selected claim oracle gap: `{float(selected_claim.get('oracle_gap', 0.0)):.3f}`",
+            ]
+        )
     write_text(output_path, "\n".join(lines) + "\n")
 
 
@@ -375,6 +396,11 @@ def write_visual_gallery(output_dir: str | Path, study: dict[str, Any]) -> Path:
         "",
         f"- [Promotion Decision Matrix]({root / '04_ladder_evaluation' / 'promotion_decision_matrix.png'})",
         f"- [Posterior Quality By Rung]({root / '04_ladder_evaluation' / 'posterior_quality_by_rung.png'})",
+        "",
+        "## Confidence",
+        "",
+        f"- [Confidence Report]({root / '04b_confidence' / 'confidence_report.md'})",
+        f"- [Confidence Dashboard]({root / '04b_confidence' / 'confidence_dashboard.png'})",
     ]
     output_path = report_dir / "visual_gallery.md"
     write_text(output_path, "\n".join(str(line) for line in lines) + "\n")

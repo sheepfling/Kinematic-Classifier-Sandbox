@@ -12,7 +12,7 @@ def test_promotion_rows_include_stay_and_promote():
     result = analyze_rung_sufficiency(seed=7, trajectories_per_case=6)
     decisions = [row["decision"] for row in result.promotion_rows]
     assert "promote" in decisions
-    assert "stay" in decisions
+    assert "reject_escalation" in decisions
 
 
 def test_artifact_writer_emits_expected_files(tmp_path: Path):

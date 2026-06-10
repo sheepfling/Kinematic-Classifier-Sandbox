@@ -12,8 +12,13 @@ from kinematic_classifier_sandbox.methodology.inference_contract import (
 
 
 class GenericInferenceContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.result = analyze_generic_inference_contract()
+
     def test_generic_inference_contract_artifacts_are_generated(self) -> None:
-        result = analyze_generic_inference_contract()
+        result = self.result
 
         self.assertEqual(result.validation_results["overall_status"], "pass")
         self.assertTrue(result.validation_results["classifier_output_contract"]["all_schema_checks_passed"])

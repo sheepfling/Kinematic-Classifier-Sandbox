@@ -6,6 +6,11 @@ from math import log
 
 from ..inference.kalman_filter_bank import KalmanModelSpec, run_kalman_filter_bank
 from ..inference.kalman_filter_bank import KalmanTrajectory as SharedKalmanTrajectory
+from ..advanced_filters.shared_classifier_methods import (
+    as_shared_classifier_run,
+    run_shared_particle_filter_classifier,
+    run_shared_rbpf_classifier,
+)
 from ..scenarios import (
     SCENARIO_MEASUREMENT_SIGMA,
     SCENARIO_TIMES,
@@ -349,6 +354,28 @@ def _kalman_velocity_aided_predict(
     )
 
 
+def _particle_filter_predict(
+    trajectory: SharedDynamicsTrajectory,
+    *,
+    prior: dict[str, float] | None = None,
+) -> CommonMethodRun:
+    return as_shared_classifier_run(
+        trajectory,
+        run_shared_particle_filter_classifier(trajectory, prior=prior),
+    )
+
+
+def _rbpf_predict(
+    trajectory: SharedDynamicsTrajectory,
+    *,
+    prior: dict[str, float] | None = None,
+) -> CommonMethodRun:
+    return as_shared_classifier_run(
+        trajectory,
+        run_shared_rbpf_classifier(trajectory, prior=prior),
+    )
+
+
 def _predict_with_method(
     method_name: str,
     trajectory: SharedDynamicsTrajectory,
@@ -367,6 +394,10 @@ def _predict_with_method(
         return _kalman_predict(trajectory, prior=prior)
     if method_name == "kalman_bank_velocity_aided":
         return _kalman_velocity_aided_predict(trajectory, prior=prior)
+    if method_name == "particle_filter_bank":
+        return _particle_filter_predict(trajectory, prior=prior)
+    if method_name == "rbpf":
+        return _rbpf_predict(trajectory, prior=prior)
     raise ValueError(f"Unsupported method: {method_name}")
 
 
@@ -401,6 +432,16 @@ def default_shared_classifier_adapters() -> tuple[CallableSharedClassifierAdapte
             method_name="kalman_bank_velocity_aided",
             sensor_regime_id="position_plus_direct_velocity",
             predict_fn=lambda trajectory, prior=None: _kalman_velocity_aided_predict(trajectory, prior=prior),
+        ),
+        CallableSharedClassifierAdapter(
+            method_name="particle_filter_bank",
+            sensor_regime_id="position_only",
+            predict_fn=lambda trajectory, prior=None: _particle_filter_predict(trajectory, prior=prior),
+        ),
+        CallableSharedClassifierAdapter(
+            method_name="rbpf",
+            sensor_regime_id="position_only",
+            predict_fn=lambda trajectory, prior=None: _rbpf_predict(trajectory, prior=prior),
         ),
     )
 

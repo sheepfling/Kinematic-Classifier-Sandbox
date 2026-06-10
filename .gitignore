@@ -56,3 +56,18 @@ pytestdebug.log
 *.db
 *.sqlite
 *.sqlite3
+
+# LaTeX build byproducts
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
+*.synctex.gz
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+docs/latex/*.pdf
+kinematic_classifier_methodology.pdf

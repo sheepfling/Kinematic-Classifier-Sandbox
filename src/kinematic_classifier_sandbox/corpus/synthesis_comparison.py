@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+from ..utils.categorical import bucket_thresholds
 from ..utils.math import _mean
 from .adaptive_stress import analyze_adaptive_stress_corpus
 from .gym import CorpusGymAction, CorpusGymEnvironment, default_corpus_gym_targets
@@ -16,11 +17,7 @@ from .synthesis_comparison_contracts import (
 
 
 def _bucket(value: float, thresholds: tuple[float, float]) -> str:
-    if value < thresholds[0]:
-        return "low"
-    if value < thresholds[1]:
-        return "medium"
-    return "high"
+    return bucket_thresholds(value, thresholds)
 
 
 class ArchiveCellId(NamedTuple):

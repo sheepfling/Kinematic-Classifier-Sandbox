@@ -32,6 +32,14 @@ from .search_baseline_contracts import (
     CorpusSearchBaselineArtifacts,
     CorpusSearchBaselineResult,
 )
+from .trajectory_exploration.contracts import (
+    TrajectoryExplorationArtifacts,
+    TrajectoryExplorationBenchmarkResult,
+    TrajectoryExplorationEvaluation,
+    TrajectoryExplorationObjective,
+    TrajectoryExplorationProposal,
+    TrajectoryExplorationResult,
+)
 from .selected_generated_corpus_contracts import (
     SelectedGeneratedCorpusArtifacts,
     SelectedGeneratedCorpusResult,
@@ -59,6 +67,12 @@ __all__ = [
     "RlBackendDecisionArtifacts",
     "RlBackendDecisionGateRow",
     "RlBackendDecisionResult",
+    "TrajectoryExplorationArtifacts",
+    "TrajectoryExplorationBenchmarkResult",
+    "TrajectoryExplorationEvaluation",
+    "TrajectoryExplorationObjective",
+    "TrajectoryExplorationProposal",
+    "TrajectoryExplorationResult",
     "SelectedGeneratedCorpusArtifacts",
     "SelectedGeneratedCorpusResult",
     "analyze_corpus_adequacy",
@@ -68,6 +82,7 @@ __all__ = [
     "analyze_coverage_report",
     "analyze_rl_backend_decision",
     "analyze_selected_generated_corpus",
+    "analyze_trajectory_exploration_benchmarks",
     "render_corpus_adequacy_report",
     "render_coverage_report",
     "render_rl_backend_decision_report",
@@ -78,6 +93,7 @@ __all__ = [
     "write_coverage_report_artifacts",
     "write_rl_backend_decision_artifacts",
     "write_selected_generated_corpus_artifacts",
+    "write_trajectory_exploration_artifacts",
 ]
 
 
@@ -119,6 +135,12 @@ def analyze_rl_backend_decision(*args, **kwargs):
 
 def analyze_selected_generated_corpus(*args, **kwargs):
     from .selected_generated_corpus import analyze_selected_generated_corpus as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_trajectory_exploration_benchmarks(*args, **kwargs):
+    from .trajectory_exploration import analyze_trajectory_exploration_benchmarks as _impl
 
     return _impl(*args, **kwargs)
 
@@ -181,5 +203,11 @@ def write_selected_generated_corpus_artifacts(*args, **kwargs):
     from .selected_generated_corpus_artifact_io import (
         write_selected_generated_corpus_artifacts as _impl,
     )
+
+    return _impl(*args, **kwargs)
+
+
+def write_trajectory_exploration_artifacts(*args, **kwargs):
+    from .trajectory_exploration import write_trajectory_exploration_artifacts as _impl
 
     return _impl(*args, **kwargs)

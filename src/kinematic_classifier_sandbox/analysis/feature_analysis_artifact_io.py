@@ -9,6 +9,7 @@ from kinematic_classifier_sandbox.utils.io import write_csv
 
 from ..utils.plotting import _figure_to_png
 from ..utils.plotting import plt
+from ..utils.plotting import render_labeled_heatmap
 from .feature_analysis_contracts import FeatureAnalysisArtifacts
 from .feature_analysis_reporting import render_feature_analysis_report
 
@@ -20,19 +21,15 @@ def _render_heatmap(
     title: str,
     cmap: str = "Blues",
 ):
-    fig, ax = plt.subplots(figsize=(8.5, 6.8))
-    image = ax.imshow(matrix, cmap=cmap)
-    ax.set_title(title, loc="left", fontweight="bold")
-    ax.set_xticks(range(len(col_labels)))
-    ax.set_xticklabels(col_labels, rotation=35, ha="right")
-    ax.set_yticks(range(len(row_labels)))
-    ax.set_yticklabels(row_labels)
-    for row_index, row in enumerate(matrix):
-        for col_index, value in enumerate(row):
-            ax.text(col_index, row_index, f"{value:.2f}", ha="center", va="center", fontsize=8)
-    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
-    fig.tight_layout()
-    return fig
+    return render_labeled_heatmap(
+        matrix,
+        row_labels,
+        col_labels,
+        title=title,
+        cmap=cmap,
+        figsize=(8.5, 6.8),
+        aspect="auto",
+    )
 
 
 def _render_feature_scatter(result):
@@ -118,13 +115,14 @@ def write_feature_analysis_artifacts(
     trajectories_per_class: int = 5,
     feature_set: str | None = None,
     feature_names: tuple[str, ...] | list[str] | None = None,
+    result=None,
 ) -> FeatureAnalysisArtifacts:
     from .feature_analysis import (
         FEATURE_ROW_METADATA_FIELDNAMES,
         analyze_feature_datasets,
     )
 
-    result = analyze_feature_datasets(
+    result = result or analyze_feature_datasets(
         seed=seed,
         trajectories_per_class=trajectories_per_class,
         feature_set=feature_set,

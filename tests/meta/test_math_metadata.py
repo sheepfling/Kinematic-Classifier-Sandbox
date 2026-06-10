@@ -56,7 +56,7 @@ class MathMetadataTests(unittest.TestCase):
         self.assertIn("Advanced-filter gate", text)
 
     def test_renderer_emits_generated_math_metadata_artifacts(self) -> None:
-        script_path = self.root / "scripts" / "render_math_metadata.py"
+        script_path = self.root / "scripts" / "render" / "render_math_metadata.py"
         subprocess.run(["python3", str(script_path)], check=True, cwd=self.root)
 
         outputs = (

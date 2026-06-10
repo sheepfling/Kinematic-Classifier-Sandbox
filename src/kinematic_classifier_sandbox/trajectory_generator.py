@@ -650,3 +650,21 @@ def generate_trajectory_datasets(
         )
         for index, tier_definition in enumerate(resolved_tier_definitions)
     )
+
+
+def generate_short_horizon_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifact, ...]:
+    from .witnesses.trajectory_scenarios import generate_short_horizon_scenarios as _generate
+
+    return _generate(seed=seed)
+
+
+def generate_perturbation_sweep_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifact, ...]:
+    from .witnesses.trajectory_scenarios import generate_perturbation_sweep_scenarios as _generate
+
+    return _generate(seed=seed)
+
+
+def generate_switching_scenarios(*, seed: int = 7) -> tuple[TrajectoryArtifact, ...]:
+    from .witnesses.trajectory_scenarios import generate_switching_scenarios as _generate
+
+    return _generate(seed=seed)

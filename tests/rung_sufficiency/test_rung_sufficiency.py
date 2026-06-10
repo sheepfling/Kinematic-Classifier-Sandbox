@@ -22,7 +22,7 @@ def test_rung_sufficiency_finds_multiple_decision_types():
     result = analyze_rung_sufficiency(seed=7, trajectories_per_case=6)
     decisions = {row["decision"] for row in result.promotion_rows}
     assert "promote" in decisions
-    assert "stay" in decisions
+    assert "reject_escalation" in decisions
     assert "defer_advanced" in decisions
     assert "revise_prior" in decisions
 

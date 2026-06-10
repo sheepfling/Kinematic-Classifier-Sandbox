@@ -11,6 +11,9 @@ windowed\_outlier\_witness & Show robust extrema beating raw extrema under outli
 sequential\_history\_help & Demonstrate that sequential accumulation improves over pointwise evidence & History can improve classification and exposes prior sensitivity explicitly. & Still static-class unless switching logic is added. \\
 kalman\_endpoint\_match & Show model-based filtering on matched-endpoint irregular tracks & Dynamics-aware evidence helps when endpoint-only reasoning fails. & Position-only sensing remains weak on short noisy horizons. \\
 transition\_switching\_bridge & Bridge from static accumulation to explicit switching dynamics & Switching structure can help before IMM is justified. & Not yet a full IMM or nonlinear filter. \\
+nonlinear\_drag\_particle\_filter & Show nonlinear/non-Gaussian filtering beyond linear-Gaussian dynamics & Particle evidence can absorb drag and outlier behavior through sampled state histories. & Witness is targeted and does not replace simpler rungs on easy regimes. \\
+ornstein\_uhlenbeck\_mean\_reversion & Demonstrate mean-reverting stochastic dynamics as a concrete SDE-style witness & The advanced branch can represent pull-back-to-class behavior with a typed witness rather than only prose. & This is a 1D witness, not a general continuous-time SDE framework. \\
+latent\_maneuver\_onset\_rbpf & Separate sampled latent mode timing from conditional continuous state filtering & RBPF can carry discrete latent timing while retaining analytic conditional state updates. & Current witness is still 1D and mode-structured. \\
 \bottomrule
 \end{tabularx}
 \end{table}

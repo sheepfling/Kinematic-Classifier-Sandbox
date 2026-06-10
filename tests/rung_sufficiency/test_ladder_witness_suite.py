@@ -62,7 +62,7 @@ class LadderWitnessSuiteTests(unittest.TestCase):
             self.assertEqual(manifest["suite_id"], "ladder_witness_suite_v1")
             self.assertEqual(manifest["witness_count"], 13)
 
-            script_path = self.root / "scripts" / "render_ladder_witness_suite.py"
+            script_path = self.root / "scripts" / "render" / "render_ladder_witness_suite.py"
             subprocess.run(
                 ["python3", str(script_path), "--output-dir", temp_dir, "--config", str(self.config_path)],
                 check=True,

@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+from ..utils.categorical import bucket_thresholds
+
 
 def _bucket(value: float, thresholds: tuple[float, float]) -> str:
-    if value < thresholds[0]:
-        return "low"
-    if value < thresholds[1]:
-        return "medium"
-    return "high"
+    return bucket_thresholds(value, thresholds)
 
 
 class ArchiveCellId(NamedTuple):

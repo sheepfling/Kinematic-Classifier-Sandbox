@@ -12,8 +12,13 @@ from kinematic_classifier_sandbox.corpus.selected_generated_corpus import (
 
 
 class SelectedGeneratedCorpusTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.result = analyze_selected_generated_corpus()
+
     def test_selected_corpus_is_consumable_by_common_harness(self) -> None:
-        result = analyze_selected_generated_corpus()
+        result = self.result
         self.assertGreater(len(result.trajectory_rows), 0)
         self.assertGreater(len(result.feature_rows), 0)
         self.assertGreater(len(result.classifier_score_rows), 0)
@@ -32,7 +37,7 @@ class SelectedGeneratedCorpusTests(unittest.TestCase):
 
     def test_artifacts_are_written(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            artifacts = write_selected_generated_corpus_artifacts(temp_dir)
+            artifacts = write_selected_generated_corpus_artifacts(temp_dir, result=self.result)
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "selected_generated_corpus")
             self.assertTrue(artifacts.manifest_path.exists())
             self.assertTrue(artifacts.trajectories_path.exists())

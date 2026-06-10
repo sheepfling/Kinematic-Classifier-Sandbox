@@ -16,6 +16,7 @@ from new_study_workflow_common import (
     write_visual_gallery,
 )
 from run_classifier_ladder import run_phase as run_ladder_phase
+from score_study_confidence import run_phase as run_confidence_phase
 
 
 def run_workflow(study_path: str | Path, output_dir: str | Path) -> Path:
@@ -25,6 +26,7 @@ def run_workflow(study_path: str | Path, output_dir: str | Path) -> Path:
     run_generation_phase(study_path, output_dir)
     run_audit_phase(study_path, output_dir)
     run_ladder_phase(study_path, output_dir)
+    run_confidence_phase(study_path, output_dir)
 
     root = workflow_root(output_dir, study)
     report_dir = root / "05_report"
@@ -33,6 +35,7 @@ def run_workflow(study_path: str | Path, output_dir: str | Path) -> Path:
     derive_decision_card(
         root / "03_corpus_audit" / "corpus_decision_gate.json",
         root / "04_ladder_evaluation" / "sufficiency_matrix.csv",
+        root / "04b_confidence" / "study_confidence_summary.json",
         report_dir / "decision_card.md",
         study,
     )
@@ -54,6 +57,7 @@ def run_workflow(study_path: str | Path, output_dir: str | Path) -> Path:
         f"- [Corpus Generation]({root / '02_corpus_generation'})",
         f"- [Corpus Audit]({root / '03_corpus_audit'})",
         f"- [Ladder Evaluation]({root / '04_ladder_evaluation'})",
+        f"- [Confidence]({root / '04b_confidence'})",
         f"- [Decision Card]({report_dir / 'decision_card.md'})",
         f"- [Visual Gallery]({report_dir / 'visual_gallery.md'})",
     ]

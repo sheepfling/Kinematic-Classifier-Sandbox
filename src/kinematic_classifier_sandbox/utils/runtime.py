@@ -23,12 +23,18 @@ def mpl_config_dir() -> Path:
 
 
 def configure_runtime_environment() -> None:
-    os.environ.setdefault("PYTHONPYCACHEPREFIX", str(pycache_prefix()))
-    os.environ.setdefault("MPLCONFIGDIR", str(mpl_config_dir()))
+    pycache_dir = pycache_prefix()
+    mpl_dir = mpl_config_dir()
+    pycache_dir.mkdir(parents=True, exist_ok=True)
+    mpl_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("PYTHONPYCACHEPREFIX", str(pycache_dir))
+    os.environ.setdefault("MPLCONFIGDIR", str(mpl_dir))
 
 
 def configure_matplotlib_environment() -> None:
-    os.environ.setdefault("MPLCONFIGDIR", str(mpl_config_dir()))
+    mpl_dir = mpl_config_dir()
+    mpl_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("MPLCONFIGDIR", str(mpl_dir))
 
 
 def repo_root() -> Path:

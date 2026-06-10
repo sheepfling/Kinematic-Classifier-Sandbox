@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import json
 from pathlib import Path
 
@@ -8,6 +7,8 @@ from ..corpus.coverage_report import CoverageReportArtifacts
 from .feature_analysis import FeatureAnalysisArtifacts
 from .inspection_bundle_artifact_io import write_abstract_inspection_artifacts
 from .inspection_bundle_contracts import AbstractInspectionArtifacts
+from ..utils.categorical import status_score
+from ..utils.io import read_csv_rows
 
 
 def recommend_feature_set(summary_payload: dict[str, object]) -> dict[str, object]:
@@ -17,7 +18,7 @@ def recommend_feature_set(summary_payload: dict[str, object]) -> dict[str, objec
     ranked = sorted(
         candidates,
         key=lambda row: (
-            -_status_score(str(row.get("feature_set_status", ""))),
+            -status_score(str(row.get("feature_set_status", "")), yellow=0.6, red=0.2),
             -float(row.get("min_pairwise_auc", 0.0)),
             -float(row.get("avg_pairwise_auc", 0.0)),
             float(row.get("max_overlap", 1.0)),
@@ -42,11 +43,6 @@ def recommend_hardest_class_pair(summary_payload: dict[str, object]) -> dict[str
     )
     return dict(ranked[0])
 
-
-def _status_score(status: str) -> float:
-    return {"green": 1.0, "yellow": 0.6, "red": 0.2}.get(status, 0.0)
-
-
 def _summary_rows(
     *,
     feature_analysis_runs: tuple[FeatureAnalysisArtifacts, ...],
@@ -55,13 +51,13 @@ def _summary_rows(
     coverage_summary = json.loads(coverage_report.summary_path.read_text(encoding="utf-8"))
     feature_set_rows = {
         str(row["feature_set"]): row
-        for row in _read_csv_rows(coverage_report.feature_set_summary_path)
+        for row in read_csv_rows(coverage_report.feature_set_summary_path)
     }
     rows: list[dict[str, object]] = []
     for artifacts in feature_analysis_runs:
         summary = json.loads((artifacts.run_dir / "feature_excitation_summary.json").read_text(encoding="utf-8"))
         feature_set_name = str(summary["feature_set_name"])
-        identifiability_rows = _read_csv_rows(artifacts.identifiability_matrix_path)
+        identifiability_rows = read_csv_rows(artifacts.identifiability_matrix_path)
         filtered_auc_values = [float(row["pairwise_auc"]) for row in identifiability_rows]
         avg_pairwise_auc = sum(filtered_auc_values) / max(len(filtered_auc_values), 1)
         min_pairwise_auc = min(filtered_auc_values) if filtered_auc_values else 0.0
@@ -86,19 +82,12 @@ def _summary_rows(
         )
     return sorted(rows, key=lambda row: str(row["feature_set"]))
 
-
-def _read_csv_rows(path: Path) -> list[dict[str, str]]:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        return [dict(row) for row in reader]
-
-
 def _class_pair_summary_rows(
     *,
     baseline_feature_analysis: FeatureAnalysisArtifacts,
     limit: int = 10,
 ) -> list[dict[str, object]]:
-    rows = _read_csv_rows(baseline_feature_analysis.identifiability_matrix_path)
+    rows = read_csv_rows(baseline_feature_analysis.identifiability_matrix_path)
     scored = [
         {
             "class_pair": f"{row['class_a']} vs {row['class_b']}",

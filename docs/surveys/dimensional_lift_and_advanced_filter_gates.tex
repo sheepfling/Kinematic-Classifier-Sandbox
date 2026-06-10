@@ -574,16 +574,20 @@ is the point.
 
 \section{Code Mapping For PF And RBPF}
 
-The current repo now has concrete PF and RBPF implementations, even though they
-remain decision-gated rather than promoted defaults. The main code surfaces
-are:
+The current repo now has concrete PF and RBPF implementations, and both are now
+also exposed through the shared classifier surface even though they remain
+decision-gated rather than universal defaults. The main code surfaces are:
 \begin{itemize}[leftmargin=1.5em]
     \item \texttt{advanced\_filters/particle\_filter.py}: bootstrap PF state,
     weight update, ESS computation, and resampling,
     \item \texttt{advanced\_filters/particle\_filter\_bank.py}: class-conditioned
     PF evidence extraction and posterior normalization across labels,
+    \item \texttt{advanced\_filters/shared\_classifier\_methods.py}: shared
+    classifier adapters that lift PF and RBPF into the generic registry,
     \item \texttt{advanced\_filters/rbpf.py}: sampled discrete latent update plus
     conditional Kalman subfilter,
+    \item \texttt{advanced\_filters/ou\_witness.py}: concrete mean-reverting
+    Ornstein-Uhlenbeck-style witness built on the PF branch,
     \item \texttt{advanced\_filters/rbpf\_models\_1d.py}: current repo-specific
     RBPF mode split with 1D PVA conditional state blocks,
     \item \texttt{advanced\_filters/resampling.py}: shared

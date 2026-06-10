@@ -17,7 +17,7 @@ def render_corpus_gym_numeric_walkthrough_markdown(
     episode = contract.example_episode
     reward = episode.reward
     lines = [
-        "# CorpusGym Numeric Walkthrough",
+        "# Corpus Gym Numeric Walkthrough",
         "",
         "This walkthrough shows how the search-facing environment computes a reward on one concrete episode.",
         "",

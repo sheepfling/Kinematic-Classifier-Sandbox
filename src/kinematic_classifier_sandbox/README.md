@@ -3,6 +3,27 @@
 The package is organized around the methodology layers, not around one single
 algorithm.
 
+## Utility lanes
+
+Shared helpers are collected into a small number of neutral utility lanes:
+
+- `utils/math.py`
+  - scalar math, normalization, vector/matrix helpers, clustering/PCA primitives,
+    and Kalman-neutral linear algebra
+- `utils/io.py`
+  - CSV/JSON/text readers and writers, fieldname union helpers, and small tabular helpers
+- `utils/plotting.py`
+  - typed matplotlib access plus reusable plotting primitives such as heatmaps and figure writers
+- `utils/types.py`
+  - reusable typing aliases such as array and callable contracts
+- `utils/categorical.py`
+  - shared categorical helpers such as status scoring and threshold bucketization
+
+Promotion rule:
+
+- move code into `utils/` only when it is domain-neutral and reused, or clearly reusable, across multiple subsystems
+- keep report-specific figure composition, domain scoring, and study-specific thresholds near the owning subsystem
+
 The `common_experiment/` area is the current reference pattern for deeper
 splitting:
 
@@ -70,6 +91,10 @@ good future candidates to migrate fully under one of the subpackages:
 - `methodology_latex.py`
 - `methodology_compendium.py`
 
+Several previously duplicated root modules now exist only as compatibility
+surfaces over grouped canonical implementations. Prefer importing from the
+grouped subpackage when working internally.
+
 ## Rule of thumb
 
 - Put new algorithm implementations under the most specific subpackage that fits.
@@ -77,3 +102,28 @@ good future candidates to migrate fully under one of the subpackages:
   or genuinely cross-cutting builders.
 - Prefer extending existing grouped areas before adding more flat top-level
   modules in this package.
+
+## Exported surface coverage
+
+The canonical exported artifact surface is the set of writers/builders called by
+`scripts/export_artifacts.py`.
+
+Coverage policy:
+
+- every exported surface should declare a durable report artifact
+- every exported surface should declare at least one machine-consumable class:
+  tabular or summary
+- visualization is required unless the exported-surface inventory records an
+  explicit exemption reason
+- the coverage audit lives under `registry/exported_surface_coverage.py`
+
+Rerun commands:
+
+- full static audit:
+  `python3 scripts/render/render_exported_surface_coverage.py --output-dir artifacts`
+- materialized subset audit:
+  `python3 scripts/render/render_exported_surface_coverage.py --output-dir artifacts --materialize --surface-id feature_analysis --surface-id functional_surface_catalog`
+- corpus-evaluation gap matrix:
+  `python3 scripts/render/render_corpus_evaluation_gap_matrix.py --output-dir artifacts`
+- materialized corpus-evaluation subset:
+  `python3 scripts/render/render_corpus_evaluation_gap_matrix.py --output-dir artifacts --materialize --capability-id corpus_adequacy_scoring --capability-id selected_corpus_closed_loop_rerun`
