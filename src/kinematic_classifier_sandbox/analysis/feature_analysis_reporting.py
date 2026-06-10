@@ -17,6 +17,8 @@ def render_feature_analysis_report(result) -> str:
             f"Top features: {', '.join(result.summary.top_features)}",
             f"Top separating pairs: {', '.join(f'{a} vs {b}' for a, b in result.summary.top_separating_pairs)}",
             f"Top confusing pairs: {', '.join(f'{a} vs {b}' for a, b in result.summary.top_confusing_pairs)}",
+            f"Caveat status: {result.summary.caveat_status}",
+            f"Caveat warnings: {result.summary.caveat_warning_count}",
         ]
     )
 
@@ -82,6 +84,27 @@ def render_feature_analysis_report(result) -> str:
             )
             for row in sorted(result.feature_separation_rows, key=lambda item: item["avg_pairwise_auc"], reverse=True)
         ],
+    )
+
+    report.heading("Evidence Caveats", level=2)
+    report.table(
+        ["feature", "history_behavior", "caveat_types", "status"],
+        [
+            (
+                row["feature"],
+                row["history_behavior"],
+                row["caveat_types"],
+                row["status"],
+            )
+            for row in result.caveat_rows
+        ],
+    )
+    report.bullet_list(
+        [
+            "History-bearing features are flagged so cumulative or windowed evidence is not treated as interchangeable with memoryless evidence.",
+            "Correlated bundles are surfaced explicitly when multiple dependency tags suggest overlap or double-counting risk.",
+            "This is a reporting layer only; it governs interpretation without redesigning the underlying classifiers.",
+        ]
     )
 
     report.heading("Validation Notes", level=2)

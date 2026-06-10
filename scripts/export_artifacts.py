@@ -177,7 +177,10 @@ from kinematic_classifier_sandbox.methodology.filtering_contract import (
 from kinematic_classifier_sandbox.methodology.inference_contract import (
     write_generic_inference_contract_artifacts,
 )
-from kinematic_classifier_sandbox.methodology.latex import write_methodology_latex_artifacts
+from kinematic_classifier_sandbox.methodology.latex import (
+    write_methodology_latex_artifacts,
+    write_methodology_section_symbol_audit_artifacts,
+)
 from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
     write_ladder_witness_suite_artifacts,
     write_rung_sufficiency_artifacts,
@@ -223,7 +226,10 @@ from kinematic_classifier_sandbox.methodology.filtering_contract import (
 from kinematic_classifier_sandbox.methodology.inference_contract import (
     write_generic_inference_contract_artifacts,
 )
-from kinematic_classifier_sandbox.methodology.latex import write_methodology_latex_artifacts
+from kinematic_classifier_sandbox.methodology.latex import (
+    write_methodology_latex_artifacts,
+    write_methodology_section_symbol_audit_artifacts,
+)
 from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
     write_ladder_witness_suite_artifacts,
 )
@@ -353,6 +359,7 @@ def main() -> int:
     coverage_report_artifacts = write_coverage_report_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
     pca_analysis_artifacts = write_pca_analysis_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5, n_components=3)
     methodology_latex_artifacts = write_methodology_latex_artifacts(ROOT / "artifacts")
+    methodology_section_symbol_audit_artifacts = write_methodology_section_symbol_audit_artifacts(ROOT / "artifacts")
     functional_surface_catalog_artifacts = write_functional_surface_catalog_artifacts(ROOT / "artifacts")
     formal_math_registry_artifacts = write_formal_math_registry_artifacts(ROOT / "artifacts")
     formal_math_visual_registry_artifacts = write_formal_math_visual_registry_artifacts(ROOT / "artifacts")
@@ -567,6 +574,8 @@ def main() -> int:
     print(methodology_latex_artifacts.artifact_tex_path)
     if methodology_latex_artifacts.pdf_path is not None:
         print(methodology_latex_artifacts.pdf_path)
+    print(methodology_section_symbol_audit_artifacts.run_dir)
+    print(methodology_section_symbol_audit_artifacts.report_path)
     print(functional_surface_catalog_artifacts.run_dir)
     print(functional_surface_catalog_artifacts.report_path)
     print(formal_math_registry_artifacts.run_dir)

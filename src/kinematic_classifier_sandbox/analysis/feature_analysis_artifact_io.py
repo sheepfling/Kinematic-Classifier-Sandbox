@@ -144,6 +144,7 @@ def write_feature_analysis_artifacts(
     feature_summary_path = run_dir / "feature_summary_by_class.csv"
     feature_excitation_path = run_dir / "feature_excitation_matrix.csv"
     feature_excitation_summary_path = run_dir / "feature_excitation_summary.json"
+    feature_caveats_path = run_dir / "feature_evidence_caveats.csv"
     feature_separation_scores_path = run_dir / "feature_separation_scores.csv"
     identifiability_matrix_path = run_dir / "identifiability_matrix.csv"
     pairwise_distance_matrix_path = run_dir / "pairwise_distance_matrix.csv"
@@ -169,6 +170,22 @@ def write_feature_analysis_artifacts(
         [*FEATURE_ROW_METADATA_FIELDNAMES, *result.summary.feature_names, *[f"{name}_level" for name in result.summary.feature_names]],
     )
     feature_excitation_summary_path.write_text(json.dumps(asdict(result.summary), indent=2, sort_keys=True), encoding="utf-8")
+    write_csv(
+        feature_caveats_path,
+        [dict(row) for row in result.caveat_rows],
+        [
+            "feature",
+            "group",
+            "history_behavior",
+            "dependency_tags",
+            "sensitivity_tags",
+            "geometry_assumption",
+            "dimensional_transfer",
+            "caveat_types",
+            "status",
+            "warning",
+        ],
+    )
     write_csv(feature_separation_scores_path, [dict(row) for row in result.feature_separation_rows], ["feature", "mean_abs_cohens_d", "avg_pairwise_auc", "max_pairwise_auc", "min_pairwise_auc"])
     write_csv(identifiability_matrix_path, [dict(row) for row in result.pairwise_rows], ["class_a", "class_b", "mean_feature_distance", "standardized_mean_difference", "mahalanobis_distance", "bhattacharyya_distance", "js_divergence", "wasserstein_distance", "overlap_estimate", "pairwise_classifier_accuracy", "average_log_likelihood_ratio", "pairwise_auc"])
 
@@ -240,6 +257,7 @@ def write_feature_analysis_artifacts(
         feature_summary_path=feature_summary_path,
         feature_excitation_path=feature_excitation_path,
         feature_excitation_summary_path=feature_excitation_summary_path,
+        feature_caveats_path=feature_caveats_path,
         feature_separation_scores_path=feature_separation_scores_path,
         identifiability_matrix_path=identifiability_matrix_path,
         pairwise_distance_matrix_path=pairwise_distance_matrix_path,

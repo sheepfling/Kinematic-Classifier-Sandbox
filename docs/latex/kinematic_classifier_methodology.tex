@@ -466,6 +466,9 @@ This is the central claim of the repository: classifiers, filters, and feature f
 \sectionsymbol{\(\phi_{ik}\)}{feature vector at trajectory \(i\), step \(k\)}{evidence-ready representation}
 \sectionsymbol{\(p_k(c)\)}{posterior probability of class \(c\) after step \(k\)}{shared decision state}
 \sectionsymbol{\(\ell_k(c)\)}{log evidence increment for class \(c\)}{common additive score across methods}
+\sectionsymbol{\(\mathcal{D}, c_i^\star, s_i, m_i\)}{corpus object, truth label, scenario metadata, and provenance metadata}{used when defining layer boundaries}
+\sectionsymbol{\(t_k, t_{1:k}, \Delta t_k, T_w\)}{sample time, history prefix, step duration, and duration-window span}{time semantics for irregular sampling}
+\sectionsymbol{\(y_k, z_k, \nu_k\)}{generic evidence input, raw observation, and innovation-like residual}{distinguishes evidence atoms across methods}
 }
 
 \noindent
@@ -566,6 +569,11 @@ sample-count sensitivity and duration sensitivity.
 \sectionsymbol{\(z_{ik}\)}{observation at sample \(k\)}{typically scalar position in the present corpus}
 \sectionsymbol{\(\Phi\)}{feature-extraction operator}{maps trajectory history into evidence-ready summaries}
 \sectionsymbol{\(\phi_{ik}\)}{feature vector emitted at sample \(k\)}{output consumed by downstream evidence providers}
+\sectionsymbol{\(\epsilon_{ik}, R_{ik}, w_{ik}, \Delta t_{ik}\)}{observation noise, observation noise scale, process noise, and sample spacing}{trajectory-model nuisance terms}
+\sectionsymbol{\(p_{ik}, v_{ik}, a_{ik}, \theta_i\)}{position, velocity, acceleration, and class-conditioned motion parameters}{latent kinematic quantities}
+\sectionsymbol{\(W_k, z_{i,1:k}, z_{i,W_k}, z_{i,k-1}, z_{i,k-2}\)}{active feature window and observation slices used by feature families}{windowed and derivative feature inputs}
+\sectionsymbol{\(h(\cdot), g(\cdot), f_{\theta_i,c_i}(\cdot)\)}{measurement map, generic feature helper, and class-conditioned motion law}{model and feature maps}
+\sectionsymbol{\(\phi, S\)}{generic feature placeholder and residual-scale matrix used in residual norms}{shorthand appearing in geometry and residual examples}
 }
 
 \noindent
@@ -704,6 +712,8 @@ The repository treats posterior updating as a reusable evidence-provider contrac
 \sectionsymbol{\(\tilde{r}_k(c)\)}{unnormalized log posterior score}{pre-normalization quantity}
 \sectionsymbol{\(Z_k\)}{normalization constant}{shared across classes at step \(k\)}
 \sectionsymbol{\(\lambda_k^{ab}\)}{log odds for class \(a\) versus \(b\)}{used for prior-flip reasoning}
+\sectionsymbol{\(y_k, \phi_k, \nu_{k,c}\)}{raw, feature, and innovation evidence atoms}{classifier-specific evidence inputs}
+\sectionsymbol{\(p_{k-1}(c), T_{jc}, \pi(c)\)}{previous posterior, transition weight, and prior probability}{context for static and switching updates}
 }
 
 \noindent
@@ -857,6 +867,8 @@ as independent is generally invalid because each \(\phi_i^{\mathrm{cum}}\) alrea
 \sectionsymbol{\(\nu_{k,c}\)}{innovation residual for class \(c\)}{observation surprise under the predicted state}
 \sectionsymbol{\(S_{k,c}\)}{innovation covariance for class \(c\)}{normalizer for Mahalanobis evidence}
 \sectionsymbol{\(\hat{x}_{k|k-1,c}, P_{k|k-1,c}\)}{predicted state mean and covariance}{filter prediction outputs before update}
+\sectionsymbol{\(x_k, x_{k-1}, w_k, v_k\)}{state, previous state, process noise, and measurement noise}{state-space model primitives}
+\sectionsymbol{\(\Delta t_k, d_z\)}{sample spacing and observation dimension}{timing and normalization terms}
 }
 
 \noindent
@@ -903,6 +915,9 @@ column name. It is a declared mapping
 \sectionsymbol{\(\mathcal{W}\)}{history window descriptor}{sample-count or duration based}
 \sectionsymbol{\(\sigma(f_j)\)}{feature sensitivity vector}{summarizes nuisance sensitivity}
 \sectionsymbol{\(T_{1\mathrm{D}\rightarrow 3\mathrm{D}}(f_j)\)}{transfer class of a feature principle}{direct, projected, model-specific, or rewrite-required}
+\sectionsymbol{\(\hat{u}, \hat{z}_{t|t-1}, \nu_t\)}{proxy derivative signal, model prediction, and residual input}{model-aware feature ingredients}
+\sectionsymbol{\(\mathbb{R}^{d_j}, d_j, \tau\)}{feature codomain, feature output dimension, and excitation threshold}{feature-shape metadata}
+\sectionsymbol{\(\mathcal{W}_{ik}, S_t^{(b)}, \hat{z}_{t|t-1}^{(b)}\)}{trajectory-local window descriptor, model-residual scale, and backend-conditioned prediction}{backend-aware feature metadata}
 }
 
 \noindent
@@ -1132,6 +1147,14 @@ sequence of justified methodological promotions.
 \sectionsymbol{\(\phi_k\)}{engineered feature vector at step \(k\)}{windowed or derived evidence summary}
 \sectionsymbol{\(\nu_k^{(m)}, S_k^{(m)}\)}{innovation residual and covariance for model \(m\)}{Kalman-rung evidence atom}
 \sectionsymbol{\(\mu_k^{(j)}, w_k^{(i)}\)}{mode posterior and particle weight symbols}{advanced-filter notation used only when justified}
+\sectionsymbol{\(L_k(c), \tilde{p}_k(c), \bar{p}_k(j)\)}{direct likelihood, unnormalized posterior, and transition-propagated prior}{recursive evidence-combination intermediates}
+\sectionsymbol{\(x_k^{(m)}, F_k^{(m)}, H_k^{(m)}, Q_k^{(m)}, R_k^{(m)}\)}{mode-specific state and model operators}{Kalman-bank rung state model}
+\sectionsymbol{\(\hat{x}_{k|k-1}^{(m)}, P_{k|k-1}^{(m)}, \Sigma_{k,c}\)}{predicted state, predicted covariance, and covariance-aware class score scale}{model-based evidence summaries}
+\sectionsymbol{\(E_k(s), \hat{v}_k, \hat{a}_k, T_{ij}\)}{transition-rung emission score, velocity proxy, acceleration proxy, and class-transition matrix}{switching-evidence terms}
+\sectionsymbol{\(\bar{\mu}_k^{(j)}, \Lambda_k^{(j)}, \Pi_{ij}\)}{IMM mode prior, mode likelihood, and mode-transition probability}{advanced-filter gate notation}
+\sectionsymbol{\(x_k^{(i)}, r_k, s_k, u_k\)}{particle state, RBPF sampled latent, RBPF analytic latent, and optional control input}{sample-based filtering primitives}
+\sectionsymbol{\(M_0, M_1, \lambda, \phi\)}{current and candidate method labels, forgetting factor, and generic feature shorthand}{ladder-promotion and accumulator notation}
+\sectionsymbol{\(\sigma_c^2, \sigma_{c,j}^2, \sigma_s^{(v)}, \sigma_s^{(a)}, v_k^{(m)}\)}{observation and feature likelihood scales, switching-emission scales, and measurement noise}{rung-specific nuisance scales}
 }
 
 \noindent
@@ -1402,6 +1425,7 @@ The repository now automatically generates study candidates from declared manife
 \sectionsymbol{\(g_{\text{oracle}}(s,r)\)}{oracle gap at study \(s\), rung \(r\)}{measures missed opportunity}
 \sectionsymbol{\(\Delta_{r \rightarrow r^+}(s)\)}{gain from the next rung}{used for promotion and escalation}
 \sectionsymbol{\(d(s,r)\)}{section-local promotion decision}{maps to revise, stay, promote, reject, or defer outcomes}
+\sectionsymbol{\(\tau_{\Delta}\)}{minimum gain threshold required for promotion}{escalation gate used by the ladder}
 }
 
 \noindent
@@ -1624,6 +1648,7 @@ These equations are included here because the methodology makes promotion decisi
 \sectionsymbol{\(v_c(\tau)\)}{validity score assigned to class \(c\) for trajectory \(\tau\)}{audits whether the requested label is plausible}
 \sectionsymbol{\(\hat{c}_{\mathrm{valid}}(\tau)\)}{highest-validity class under the audit logic}{candidate relabel target}
 \sectionsymbol{\(\alpha,\beta,\delta\)}{thresholds for valid-target, invalid, and ambiguity logic}{label-audit control parameters}
+\sectionsymbol{\(\hat{c}\)}{generic predicted or winning class symbol used inside compact audit rules}{label-audit shorthand}
 }
 
 \noindent
@@ -1679,6 +1704,9 @@ This is the architectural reason the disparate corpus, feature, and study docs b
 \sectionsymbol{\(\tilde{w}_k^{(i)}, w_k^{(i)}\)}{unnormalized and normalized particle weights}{particle-filter evidence bookkeeping}
 \sectionsymbol{\(N_{\mathrm{eff}}\)}{effective sample size}{particle-degeneracy diagnostic}
 \sectionsymbol{\(r_k, s_k\)}{sampled and conditionally tractable RBPF latent split}{used to state the Rao-Blackwell factorization}
+\sectionsymbol{\(\bar{\mu}_k^{(j)}, \Lambda_k^{(j)}, \Pi_{ij}, \omega_{ij}^{(k)}\)}{IMM predicted mode prior, mode likelihood, transition probability, and mixing weight}{switching-filter recursion terms}
+\sectionsymbol{\(\hat{p}(z_k \mid c), q(x_k \mid x_{0:k-1}, z_{1:k}), u_k\)}{particle evidence estimate, proposal density, and optional control input}{particle-filter evidence construction}
+\sectionsymbol{\(\sigma, \mathcal{D}, x_k^{(i)}\)}{noise-scale shorthand, active dataset, and sampled state particle}{gate-setting and PF notation}
 }
 
 \noindent
@@ -1805,6 +1833,9 @@ transition-aware methods without rewriting the metric layer.
 \sectionsymbol{\(f_{i,k}\)}{optional filter-state summary}{contains state estimate, covariance, residuals, and diagnostics}
 \sectionsymbol{\(\mathcal{A}\)}{artifact family consumed by the metrics layer}{union of standardized prediction and filter rows}
 \sectionsymbol{\(\Delta \mathcal{M}(r,r^+)\)}{metric gain between rungs under a shared schema}{promotion-relevant comparison quantity}
+\sectionsymbol{\(\hat{y}_{i,k}, \gamma_{i,k}, p_{i,k}(c)\)}{predicted label, reported confidence, and posterior field in one emitted row}{shared prediction-surface outputs}
+\sectionsymbol{\(\hat{x}_{i,k}, P_{i,k}, \nu_{i,k}, S_{i,k}, d_{i,k}\)}{state estimate, covariance, residual, residual covariance, and method-specific diagnostic}{optional filter-surface outputs}
+\sectionsymbol{\(T_i, \hat{y}_{i,T_i}, \gamma, \gamma_{i,T_i}, p_{i,T_i}(c)\)}{final trajectory index, final-step predicted label, generic and final-step confidence shorthand, and final posterior field}{endpoint metric notation}
 }
 
 \noindent

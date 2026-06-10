@@ -307,6 +307,8 @@ class FeatureAnalysisSummary:
     top_features: tuple[str, ...]
     top_separating_pairs: tuple[tuple[str, str], ...]
     top_confusing_pairs: tuple[tuple[str, str], ...]
+    caveat_status: str
+    caveat_warning_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -317,6 +319,7 @@ class FeatureAnalysisResult:
     summary_rows: tuple[dict[str, object], ...]
     feature_separation_rows: tuple[dict[str, object], ...]
     pairwise_rows: tuple[dict[str, object], ...]
+    caveat_rows: tuple[dict[str, object], ...]
     summary: FeatureAnalysisSummary
 
 
@@ -816,6 +819,40 @@ def _feature_row_from_trajectory(dataset: GeneratedTrajectoryDataset, trajectory
     )
 
 
+def _feature_caveat_rows(selected_feature_names: tuple[str, ...]) -> tuple[dict[str, object], ...]:
+    rows: list[dict[str, object]] = []
+    for feature_name in selected_feature_names:
+        spec = FEATURE_REGISTRY[feature_name]
+        caveat_types: list[str] = []
+        if spec.history_behavior in {"cumulative", "windowed"}:
+            caveat_types.append("history_bearing")
+        if len(spec.dependency_tags) >= 2:
+            caveat_types.append("correlated_bundle")
+        if spec.history_behavior != "memoryless":
+            caveat_types.append("not_memoryless_equivalent")
+        status = "warning" if caveat_types else "clean"
+        rows.append(
+            {
+                "feature": feature_name,
+                "group": spec.group,
+                "history_behavior": spec.history_behavior,
+                "dependency_tags": "; ".join(spec.dependency_tags),
+                "sensitivity_tags": "; ".join(spec.sensitivity_tags),
+                "geometry_assumption": spec.geometry_assumption,
+                "dimensional_transfer": spec.dimensional_transfer,
+                "caveat_types": "; ".join(caveat_types) if caveat_types else "none",
+                "status": status,
+                "warning": (
+                    "Cumulative/windowed or correlated features should be treated as governance-sensitive evidence and "
+                    "should not be compared to memoryless evidence as if they were equivalent."
+                    if status == "warning"
+                    else "No additional caveat detected."
+                ),
+            }
+        )
+    return tuple(rows)
+
+
 def _excitation_level(value: float, thresholds: tuple[float, float, float]) -> str:
     low, medium, high = thresholds
     if value >= high:
@@ -1051,6 +1088,8 @@ def analyze_feature_datasets(
     sorted_pairs = sorted(pairwise_rows, key=lambda row: row.pairwise_auc, reverse=True)
     top_separating_pairs = tuple((row.class_a, row.class_b) for row in sorted_pairs[:3])
     top_confusing_pairs = tuple((row.class_a, row.class_b) for row in sorted(pairwise_rows, key=lambda row: row.pairwise_auc)[:3])
+    caveat_rows = _feature_caveat_rows(selected_feature_names)
+    caveat_warning_count = sum(1 for row in caveat_rows if row["status"] == "warning")
     summary = FeatureAnalysisSummary(
         total_trajectories=len(feature_rows_tuple),
         class_counts={class_name: sum(1 for row in feature_rows_tuple if row.true_class == class_name) for class_name in class_names},
@@ -1060,6 +1099,8 @@ def analyze_feature_datasets(
         top_features=top_features,
         top_separating_pairs=top_separating_pairs,
         top_confusing_pairs=top_confusing_pairs,
+        caveat_status="warning" if caveat_warning_count else "clean",
+        caveat_warning_count=caveat_warning_count,
     )
     return FeatureAnalysisResult(
         datasets=resolved_datasets,
@@ -1068,6 +1109,7 @@ def analyze_feature_datasets(
         summary_rows=tuple(asdict(row) for row in summary_rows),
         feature_separation_rows=tuple(asdict(row) for row in feature_separation_rows),
         pairwise_rows=tuple(asdict(row) for row in pairwise_rows),
+        caveat_rows=caveat_rows,
         summary=summary,
     )
 

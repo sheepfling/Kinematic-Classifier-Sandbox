@@ -20,6 +20,9 @@ def write_corpus_adequacy_artifacts(
     seed: int = 7,
     trajectories_per_class: int = 5,
     thresholds: CorpusAdequacyThresholds | None = None,
+    datasets: tuple[object, ...] | None = None,
+    result: CorpusAdequacyResult | None = None,
+    run_dir_name: str = "corpus_adequacy_audit_v1",
 ) -> CorpusAdequacyArtifacts:
     from .adequacy_audit import (
         _render_covariate_leakage_plot,
@@ -28,13 +31,14 @@ def write_corpus_adequacy_artifacts(
         render_corpus_adequacy_report,
     )
 
-    result = analyze_corpus_adequacy(
+    result = result or analyze_corpus_adequacy(
         seed=seed,
         trajectories_per_class=trajectories_per_class,
         thresholds=thresholds,
+        datasets=datasets,
     )
     output_root = Path(output_dir)
-    run_dir = output_root / "corpus_adequacy_audit_v1"
+    run_dir = output_root / run_dir_name
     run_dir.mkdir(parents=True, exist_ok=True)
 
     report_path = run_dir / "corpus_adequacy_report.md"

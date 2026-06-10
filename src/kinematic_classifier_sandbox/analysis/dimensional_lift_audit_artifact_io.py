@@ -25,6 +25,7 @@ def write_dimensional_lift_audit_artifacts(
     audit_report_path = run_dir / "dimensional_lift_audit.md"
     module_status_path = run_dir / "module_dimension_status.csv"
     scalar_assumption_inventory_path = run_dir / "scalar_assumption_inventory.csv"
+    dimensional_summary_path = run_dir / "dimensional_lift_summary.json"
     required_adapters_path = run_dir / "required_3d_adapters.md"
     vector_predictions_path = run_dir / "vector_proof_predictions.csv"
     vector_posterior_history_path = run_dir / "vector_proof_posterior_history.csv"
@@ -32,6 +33,7 @@ def write_dimensional_lift_audit_artifacts(
     validation_results_path = run_dir / "validation_results.json"
 
     audit_report_path.write_text(audit.audit_markdown, encoding="utf-8")
+    dimensional_summary_path.write_text(json.dumps(audit.dimensional_summary, indent=2), encoding="utf-8")
     required_adapters_path.write_text(audit.required_adapter_markdown, encoding="utf-8")
     validation_results_path.write_text(json.dumps(audit.validation_results, indent=2), encoding="utf-8")
     write_csv(
@@ -101,6 +103,7 @@ def write_dimensional_lift_audit_artifacts(
         audit_report_path=audit_report_path,
         module_status_path=module_status_path,
         scalar_assumption_inventory_path=scalar_assumption_inventory_path,
+        dimensional_summary_path=dimensional_summary_path,
         required_adapters_path=required_adapters_path,
         vector_predictions_path=vector_predictions_path,
         vector_posterior_history_path=vector_posterior_history_path,

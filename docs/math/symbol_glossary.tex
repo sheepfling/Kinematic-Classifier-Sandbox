@@ -1,16 +1,17 @@
 \small
-\begin{tabularx}{\textwidth}{p{0.12\textwidth}X p{0.17\textwidth}p{0.17\textwidth}p{0.14\textwidth}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.11\textwidth}X>{\raggedright\arraybackslash}p{0.14\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}}
 \toprule
 Symbol & Meaning & Shape / type & Example & Source \\
 \midrule
 \(\tau_i\) & trajectory \(i\) as one sampled truth-and-observation sequence & sequence & \(\{(t_k, z_k)\}_{k=1}^{n_i}\) & trajectory artifacts \\
 \(t_k\) & timestamp at step \(k\) & scalar & \(0.5\ \mathrm{s}\) & trajectory tables \\
 \(x_k\) & latent kinematic state & vector & \([p_k, v_k, a_k]^\top\) & Kalman bank \\
-\(z_k\) & raw observation at step \(k\) & scalar now, vector later & measured position & observations.csv \\
+\(z_k\) & raw observation at step \(k\) & scalar now, vector later & measured position & observation table \\
 \(\phi_k\) & feature or evidence summary derived from history up to \(k\) & vector & range, slope, residual & feature matrix \\
 \(\nu_{k,c}\) & innovation under class-conditioned model \(c\) & vector & \(z_k - H_c \hat{x}_{k|k-1,c}\) & Kalman bank \\
 \(y_k\) & generic evidence input consumed by a classifier & scalar/vector & \(z_k\), \(\phi_k\), or \(\nu_{k,c}\) & evidence provider contract \\
-\(c\) & class label & categorical & constant\_velocity & class manifest \\
+\(c\) & class label & categorical & constant velocity & class manifest \\
 \(\mathcal{C}\) & class set or class pair & finite set & \(\{\mathrm{CV}, \mathrm{CA}\}\) & study candidate \\
 \(\pi(c)\) & prior probability on class \(c\) & probability & \(0.5\) & prior config \\
 \(p_k(c)\) & posterior after processing evidence through step \(k\) & probability & \(0.714\) & posterior history \\
@@ -18,9 +19,24 @@ Symbol & Meaning & Shape / type & Example & Source \\
 \(\mathcal{H}_{k-1}\) & evidence history before step \(k\) & set / sequence & \(\{y_1,\dots,y_{k-1}\}\) & recursive update \\
 \(\lambda_k^{ab}\) & log odds for class \(a\) versus \(b\) & scalar & \(\log \frac{p_k(a)}{p_k(b)}\) & prior-flip analysis \\
 \(T_{c'c}\) & transition probability from previous class \(c'\) to current class \(c\) & probability & \(p(c_k=c \mid c_{k-1}=c')\) & transition accumulator \\
+\(\mathcal{D}\) & active corpus or dataset under study & set / dataset & generated comparison corpus & study declarations and audits \\
+\(t_{1:k}, z_{1:k}\) & timestamp and observation prefixes through step \(k\) & sequence & \(z_{1:k} = (z_1,\dots,z_k)\) & feature and posterior recursions \\
+\(\Delta t_k, W_k\) & sample spacing and active local window & scalar / index set & \(t_k - t_{k-1}\), \(W_k = \{k-w+1,\dots,k\}\) & windowed features \\
+\(\mathcal{N}(\cdot; \mu, \Sigma)\) & Gaussian density used for evidence and residual scoring & distribution & feature or innovation likelihood & feature likelihoods and Kalman bank \\
+\(\mu_c, \Sigma_c\) & class-conditional mean and covariance in feature space & vector / matrix & Gaussian feature model & feature likelihood sections \\
+\(F, H, Q, R\) & state transition, observation, process-noise, and measurement-noise operators & matrix family & Kalman / IMM dynamics blocks & model-based filters \\
+\(\hat{x}_{k|k-1}, P_{k|k-1}, S_k\) & predicted state, predicted covariance, and innovation covariance & vector / matrix & Kalman prediction and evidence terms & Kalman bank \\
+\(\bar{p}_k(c), \tilde{p}_k(c)\) & predicted class prior and unnormalized posterior mass & probability & transition-aware recursion intermediates & Bayesian and transition updates \\
+\(\bar{\mu}_k^{(j)}, \Lambda_k^{(j)}, \Pi_{ij}, \omega_{ij}^{(k)}\) & IMM mode prior, likelihood, transition matrix, and mixing weights & probability family & switching-model recursion & IMM gating and filtering taxonomy \\
+\(\hat{p}(z_k \mid c), q(x_k \mid x_{0:k-1}, z_{1:k})\) & particle evidence estimate and proposal density & density & bootstrap or importance-sampling update & PF / RBPF sections \\
+\(\tau, \tau_{\Delta}\) & generic threshold and promotion-gain threshold & scalar threshold & prior-fragility or escalation gate & study-promotion logic \\
+\(\hat{c}_k, \hat{y}_{i,k}, \gamma_{i,k}\) & predicted class / label and reported confidence & categorical / probability & top-class output and confidence score & walkthroughs and artifact contract \\
+\(r_{i,k}, f_{i,k}, d_{i,k}\) & standard prediction row, filter row, and filter diagnostic field & artifact record & standardized emitted contract rows & artifact contract \\
+\(P_{i,k}, S_{i,k}, \nu_{i,k}\) & emitted covariance, innovation covariance, and residual summary in artifacts & matrix / vector & optional filter-state diagnostics & artifact contract \\
+\(\alpha, \beta, \delta\) & label-validity thresholds for acceptance, invalidity, and ambiguity & scalar thresholds & validity and relabel logic & class validity audit \\
 \(S_k\) & scalar corpus score for candidate \(k\) & scalar & \(0.72\) & corpus autodevelopment \\
-\(\mathbf{o}_k\) & Pareto objective vector for corpus candidate \(k\) & vector & \((B_k, C_k, F_k, D_k, -L_k, -T_k, -G_k)\) & corpus autodevelopment \\
-\(U_{\text{gym}}\) & CorpusGym total reward utility & scalar in \([0,1]\) & \(0.63\) & \texttt{corpus\_gym.py} \\
+\(\mathbf{o}_k\) & Pareto objective vector for corpus candidate \(k\) & vector & \((B_k,\dots,-G_k)\) & corpus autodevelopment \\
+\(U_{\text{gym}}\) & CorpusGym total reward utility & scalar in \([0,1]\) & \(0.63\) & CorpusGym \\
 \(U_{\text{archive}}\) & QD archive elite utility & scalar & \(0.58\) & objective-driven QD archive \\
 \(Q_{\text{static}}\) & pre-execution study screening score & scalar & \(0.47\) & static candidate scores \\
 \(Q_{\text{mc}}\) & post-execution study confirmation score & scalar & \(0.93\) & study benchmark rows \\

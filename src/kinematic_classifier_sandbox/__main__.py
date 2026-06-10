@@ -15,6 +15,7 @@ from .registry.catalog import METHOD_CATALOG
 from .rung_sufficiency.analysis import write_ladder_witness_suite_artifacts
 from .story.repo_story import write_repo_story_artifacts
 from .strict_equation_audit import write_strict_equation_audit_artifacts
+from .methodology.latex import write_methodology_section_symbol_audit_artifacts
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -127,6 +128,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         default="artifacts",
         help="Directory where the strict audit bundle should be written.",
+    )
+
+    methodology_section_symbol_audit = subparsers.add_parser(
+        "methodology-section-symbol-audit",
+        help="Render the methodology section symbol audit bundle.",
+    )
+    methodology_section_symbol_audit.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the methodology symbol audit bundle should be written.",
     )
 
     ladder_witness_suite = subparsers.add_parser(
@@ -258,6 +269,14 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.summary_path)
         print(artifacts.rows_path)
         print(artifacts.status_plot_path)
+        return 0
+
+    if args.command == "methodology-section-symbol-audit":
+        artifacts = write_methodology_section_symbol_audit_artifacts(Path(args.output_dir))
+        print(artifacts.run_dir)
+        print(artifacts.report_path)
+        print(artifacts.summary_path)
+        print(artifacts.rows_path)
         return 0
 
     if args.command == "ladder-witness-suite":

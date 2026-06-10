@@ -166,6 +166,38 @@ def _required_adapters_markdown() -> str:
         ]
     )
 
+
+def _dimensional_summary(
+    module_rows: tuple[dict[str, object], ...],
+    scalar_assumption_rows: tuple[dict[str, object], ...],
+) -> dict[str, object]:
+    status_counts: dict[str, int] = {}
+    for row in module_rows:
+        status = str(row["dimensional_status"])
+        status_counts[status] = status_counts.get(status, 0) + 1
+    blocking_rows = [row for row in scalar_assumption_rows if bool(row["blocking_for_3d"])]
+    return {
+        "dimension_agnostic_modules": status_counts.get("dimension_agnostic", 0),
+        "adapter_compatible_modules": status_counts.get("adapter_compatible", 0),
+        "rewrite_required_modules": status_counts.get("rewrite_required", 0),
+        "blocking_scalar_assumptions": len(blocking_rows),
+        "what_is_dimension_agnostic": [
+            str(row["module"]) for row in module_rows if row["dimensional_status"] == "dimension_agnostic"
+        ],
+        "what_is_adapter_compatible": [
+            str(row["module"]) for row in module_rows if row["dimensional_status"] == "adapter_compatible"
+        ],
+        "what_still_requires_rewrite": [
+            str(row["module"]) for row in module_rows if row["dimensional_status"] == "rewrite_required"
+        ],
+        "three_d_ready_evidence_required": [
+            "Vector corpus generator with explicit frame and axis metadata.",
+            "Vector-compatible feature families registered and exercised through the standard artifact surface.",
+            "Vector-backed inference-contract and filter-contract proof rows.",
+            "At least one promoted vector witness showing shared posterior/evidence outputs without scalar-only assumptions.",
+        ],
+    }
+
 def _vector_norm(values: tuple[float, ...]) -> float:
     return sqrt(sum(value * value for value in values))
 
@@ -293,6 +325,7 @@ def _vector_predictions_and_posteriors(
 def analyze_dimensional_lift_audit() -> DimensionalLiftAuditResult:
     module_rows = _module_rows()
     scalar_assumption_rows = _scalar_assumption_rows()
+    dimensional_summary = _dimensional_summary(module_rows, scalar_assumption_rows)
     required_adapter_markdown = _required_adapters_markdown()
     corpus = _fake_vector_corpus()
     trajectory_validation = {
@@ -322,6 +355,7 @@ def analyze_dimensional_lift_audit() -> DimensionalLiftAuditResult:
     result = DimensionalLiftAuditResult(
         module_rows=module_rows,
         scalar_assumption_rows=scalar_assumption_rows,
+        dimensional_summary=dimensional_summary,
         required_adapter_markdown=required_adapter_markdown,
         audit_markdown="",
         vector_predictions_rows=prediction_rows,
@@ -332,6 +366,7 @@ def analyze_dimensional_lift_audit() -> DimensionalLiftAuditResult:
     return DimensionalLiftAuditResult(
         module_rows=result.module_rows,
         scalar_assumption_rows=result.scalar_assumption_rows,
+        dimensional_summary=result.dimensional_summary,
         required_adapter_markdown=result.required_adapter_markdown,
         audit_markdown=render_dimensional_lift_audit_report(result),
         vector_predictions_rows=result.vector_predictions_rows,

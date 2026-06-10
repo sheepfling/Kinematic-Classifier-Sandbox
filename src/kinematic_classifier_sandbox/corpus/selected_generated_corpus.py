@@ -1,23 +1,80 @@
 from __future__ import annotations
 
-import json
+from dataclasses import asdict, replace
 from typing import Any
 
 from kinematic_classifier_sandbox.utils.plotting import figure_to_png_bytes
 from kinematic_classifier_sandbox.utils.plotting import plt
-from ..runtime_paths import prepare_matplotlib
 
-from ..analysis.generated_corpus_features import collect_generated_corpus_records
-from ..common_experiment.adapters import ExecutablePairSpec, ExecutableTrajectory
+from ..analysis.generated_corpus_features import (
+    collect_generated_corpus_records,
+    generated_corpus_datasets,
+)
+from ..common_experiment.adapters import ExecutablePairSpec
 from ..common_experiment.runner import analyze_common_trajectory_corpus
 from ..corpus.exploration.objective_driven_qd_archive import analyze_objective_driven_qd_archive
+from .adequacy_audit import analyze_corpus_adequacy
 from .classifier_scoring import analyze_corpus_classifier_scoring
 from .selected_generated_corpus_artifact_io import write_selected_generated_corpus_artifacts
 from .selected_generated_corpus_contracts import (
-    SelectedGeneratedCorpusArtifacts,
     SelectedGeneratedCorpusResult,
 )
 from .selected_generated_corpus_rows import _record_to_executable
+
+
+def _with_missing_boundary_fault(datasets):
+    faulted = []
+    for dataset in datasets:
+        kept = tuple(
+            trajectory
+            for trajectory in dataset.trajectories
+            if not (
+                trajectory.true_class in {"constant_acceleration", "maneuver"}
+                and dataset.tier in {"boundary", "adversarial"}
+            )
+        )
+        faulted.append(replace(dataset, trajectories=kept))
+    return tuple(faulted)
+
+
+def _with_leakage_fault(datasets):
+    faulted = []
+    for dataset in datasets:
+        updated_trajectories = []
+        for trajectory in dataset.trajectories:
+            class_scale = 0.02 if trajectory.true_class in {"stationary", "constant_velocity"} else 0.24
+            generator_parameters = dict(trajectory.generator_parameters)
+            generator_parameters["injected_leakage_fault"] = True
+            updated_trajectories.append(
+                replace(
+                    trajectory,
+                    measurement_std=class_scale,
+                    generator_parameters=generator_parameters,
+                )
+            )
+        faulted.append(replace(dataset, trajectories=tuple(updated_trajectories)))
+    return tuple(faulted)
+
+
+def _regression_rows(base_datasets):
+    rows = []
+    for regression_id, builder in (
+        ("missing_boundary", _with_missing_boundary_fault),
+        ("leakage", _with_leakage_fault),
+    ):
+        result = analyze_corpus_adequacy(datasets=builder(base_datasets))
+        rows.append(
+            {
+                "regression_id": regression_id,
+                "overall_status": result.summary.overall_status,
+                "overall_pass": result.summary.overall_pass,
+                "q_corpus": result.summary.q_corpus,
+                "leakage_penalty": result.summary.leakage_penalty,
+                "red_count": result.summary.red_count,
+                "recommendation_count": result.summary.recommendation_count,
+            }
+        )
+    return tuple(rows)
 
 
 def analyze_selected_generated_corpus() -> SelectedGeneratedCorpusResult:
@@ -28,6 +85,9 @@ def analyze_selected_generated_corpus() -> SelectedGeneratedCorpusResult:
         for row in qd.archive_elite_rows
         if str(row["candidate_id"]) in all_records
     ]
+    selected_datasets = generated_corpus_datasets(tuple(selected_records))
+    adequacy = analyze_corpus_adequacy(datasets=selected_datasets)
+    regression_rows = _regression_rows(selected_datasets)
     executable_trajectories = tuple(_record_to_executable(record) for record in selected_records)
     pair_specs_map: dict[str, ExecutablePairSpec] = {}
     for trajectory in executable_trajectories:
@@ -129,6 +189,11 @@ def analyze_selected_generated_corpus() -> SelectedGeneratedCorpusResult:
         "harness_prediction_rows": len(common_result.pair_prediction_rows),
         "harness_feature_rows": len(common_result.feature_rows),
         "consumable_by_common_harness": len(common_result.pair_prediction_rows) > 0 and len(common_result.feature_rows) > 0,
+        "adequacy_overall_status": adequacy.summary.overall_status,
+        "adequacy_q_corpus": adequacy.summary.q_corpus,
+        "adequacy_leakage_penalty": adequacy.summary.leakage_penalty,
+        "adequacy_recommendation_count": adequacy.summary.recommendation_count,
+        "regression_checks": list(regression_rows),
     }
     report_markdown = "\n".join(
         [
@@ -140,10 +205,24 @@ def analyze_selected_generated_corpus() -> SelectedGeneratedCorpusResult:
             f"- common harness prediction rows: `{len(common_result.pair_prediction_rows)}`",
             f"- common harness feature rows: `{len(common_result.feature_rows)}`",
             f"- consumable by common harness: `{manifest['consumable_by_common_harness']}`",
+            f"- adequacy overall status: `{adequacy.summary.overall_status}`",
+            f"- adequacy q_corpus: `{adequacy.summary.q_corpus:.3f}`",
+            f"- adequacy leakage penalty: `{adequacy.summary.leakage_penalty:.3f}`",
+            "",
+            "## Closed-Loop Adequacy",
+            f"- recommendations emitted: `{adequacy.summary.recommendation_count}`",
+            f"- regression checks run: `{len(regression_rows)}`",
+            "",
+            "## Regression Checks",
+            *[
+                f"- `{row['regression_id']}` -> status=`{row['overall_status']}`, leakage=`{row['leakage_penalty']:.3f}`, q_corpus=`{row['q_corpus']:.3f}`"
+                for row in regression_rows
+            ],
             "",
             "## Notes",
             "- This artifact materializes the selected generated corpus as normalized trajectory tables plus feature and classifier outputs.",
             "- Consumability is proven by routing the selected executable trajectories through the common experiment scoring path rather than by a manifest-only claim.",
+            "- Corpus selection is followed immediately by an adequacy rerun so boundary coverage, leakage, and recommendations remain attached to the selected corpus itself.",
         ]
     )
     return SelectedGeneratedCorpusResult(
@@ -157,6 +236,13 @@ def analyze_selected_generated_corpus() -> SelectedGeneratedCorpusResult:
         class_validity_rows=tuple(class_validity_rows),
         classifier_score_rows=tuple(classifier_rows),
         posterior_rows=tuple(posterior_rows),
+        adequacy_result=adequacy,
+        adequacy_summary={
+            "summary": asdict(adequacy.summary),
+            "scorecard": asdict(adequacy.scorecard),
+        },
+        adequacy_recommendations=adequacy.recommendations,
+        regression_rows=regression_rows,
         report_markdown=report_markdown,
     )
 

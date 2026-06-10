@@ -12,6 +12,7 @@ class FeatureAnalysisArtifacts:
     feature_summary_path: Path
     feature_excitation_path: Path
     feature_excitation_summary_path: Path
+    feature_caveats_path: Path
     feature_separation_scores_path: Path
     identifiability_matrix_path: Path
     pairwise_distance_matrix_path: Path

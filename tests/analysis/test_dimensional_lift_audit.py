@@ -39,7 +39,9 @@ class DimensionalLiftAuditTests(unittest.TestCase):
         self.assertTrue(result.validation_results["vector_posteriors_emitted"])
         self.assertTrue(result.module_rows)
         self.assertTrue(result.scalar_assumption_rows)
+        self.assertIn("rewrite_required_modules", result.dimensional_summary)
         self.assertIn("Dimensional Lift Audit", result.audit_markdown)
+        self.assertIn("3D-Ready Decision Boundary", result.audit_markdown)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_dimensional_lift_audit_artifacts(temp_dir, result=result)
@@ -47,6 +49,7 @@ class DimensionalLiftAuditTests(unittest.TestCase):
             self.assertTrue(artifacts.audit_report_path.exists())
             self.assertTrue(artifacts.module_status_path.exists())
             self.assertTrue(artifacts.scalar_assumption_inventory_path.exists())
+            self.assertTrue(artifacts.dimensional_summary_path.exists())
             self.assertTrue(artifacts.required_adapters_path.exists())
             self.assertTrue(artifacts.vector_predictions_path.exists())
             self.assertTrue(artifacts.vector_posterior_history_path.exists())
@@ -59,6 +62,10 @@ class DimensionalLiftAuditTests(unittest.TestCase):
             report = artifacts.audit_report_path.read_text(encoding="utf-8")
             self.assertIn("Fake Vector Proof", report)
             self.assertIn("Module Status", report)
+            self.assertIn("Evidence Required Before Calling The Methodology 3D-Ready", report)
+
+            summary = json.loads(artifacts.dimensional_summary_path.read_text(encoding="utf-8"))
+            self.assertIn("three_d_ready_evidence_required", summary)
 
             module_header = artifacts.module_status_path.read_text(encoding="utf-8").splitlines()[0]
             self.assertIn("dimensional_status", module_header)

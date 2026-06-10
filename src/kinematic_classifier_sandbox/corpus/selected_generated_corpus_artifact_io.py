@@ -9,6 +9,7 @@ from .selected_generated_corpus_contracts import (
     SelectedGeneratedCorpusArtifacts,
     SelectedGeneratedCorpusResult,
 )
+from .adequacy_artifact_io import write_corpus_adequacy_artifacts
 
 
 def write_selected_generated_corpus_artifacts(
@@ -38,6 +39,9 @@ def write_selected_generated_corpus_artifacts(
     classifier_scores_path = run_dir / "classifier_scores.csv"
     posterior_history_path = run_dir / "posterior_history.csv"
     report_path = run_dir / "selected_corpus_report.md"
+    adequacy_run_dir = run_dir / "adequacy_rerun"
+    adequacy_summary_path = run_dir / "adequacy_rerun_summary.json"
+    adequacy_regressions_path = run_dir / "adequacy_regression_checks.csv"
     summary_plot_path = run_dir / "selected_corpus_summary_dashboard.png"
     validity_plot_path = run_dir / "class_validity_breakdown.png"
     score_gallery_path = run_dir / "feature_classifier_score_gallery.png"
@@ -53,6 +57,26 @@ def write_selected_generated_corpus_artifacts(
     write_csv(classifier_scores_path, list(payload.classifier_score_rows), list(payload.classifier_score_rows[0].keys()) if payload.classifier_score_rows else [])
     write_csv(posterior_history_path, list(payload.posterior_rows), list(payload.posterior_rows[0].keys()) if payload.posterior_rows else [])
     report_path.write_text(payload.report_markdown, encoding="utf-8")
+    adequacy_summary_path.write_text(
+        json.dumps(
+            {
+                "adequacy_summary": payload.adequacy_summary,
+                "recommendations": list(payload.adequacy_recommendations),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    write_csv(
+        adequacy_regressions_path,
+        list(payload.regression_rows),
+        list(payload.regression_rows[0].keys()) if payload.regression_rows else [],
+    )
+    write_corpus_adequacy_artifacts(
+        run_dir,
+        result=payload.adequacy_result,
+        run_dir_name="adequacy_rerun",
+    )
     summary_plot_path.write_bytes(_render_summary(payload.trajectory_rows))
     validity_plot_path.write_bytes(_render_validity(payload.class_validity_rows))
     score_gallery_path.write_bytes(_render_score_gallery(payload.feature_rows, payload.classifier_score_rows))
@@ -70,6 +94,9 @@ def write_selected_generated_corpus_artifacts(
         classifier_scores_path=classifier_scores_path,
         posterior_history_path=posterior_history_path,
         report_path=report_path,
+        adequacy_run_dir=adequacy_run_dir,
+        adequacy_summary_path=adequacy_summary_path,
+        adequacy_regressions_path=adequacy_regressions_path,
         summary_plot_path=summary_plot_path,
         validity_plot_path=validity_plot_path,
         score_gallery_path=score_gallery_path,

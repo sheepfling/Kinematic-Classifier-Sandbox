@@ -8,6 +8,7 @@ from pathlib import Path
 class DimensionalLiftAuditResult:
     module_rows: tuple[dict[str, object], ...]
     scalar_assumption_rows: tuple[dict[str, object], ...]
+    dimensional_summary: dict[str, object]
     required_adapter_markdown: str
     audit_markdown: str
     vector_predictions_rows: tuple[dict[str, object], ...]
@@ -22,6 +23,7 @@ class DimensionalLiftAuditArtifacts:
     audit_report_path: Path
     module_status_path: Path
     scalar_assumption_inventory_path: Path
+    dimensional_summary_path: Path
     required_adapters_path: Path
     vector_predictions_path: Path
     vector_posterior_history_path: Path

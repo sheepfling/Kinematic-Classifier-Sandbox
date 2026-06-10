@@ -17,6 +17,10 @@ class SelectedGeneratedCorpusResult:
     class_validity_rows: tuple[dict[str, Any], ...]
     classifier_score_rows: tuple[dict[str, Any], ...]
     posterior_rows: tuple[dict[str, Any], ...]
+    adequacy_result: Any
+    adequacy_summary: dict[str, Any]
+    adequacy_recommendations: tuple[str, ...]
+    regression_rows: tuple[dict[str, Any], ...]
     report_markdown: str
 
 
@@ -34,6 +38,9 @@ class SelectedGeneratedCorpusArtifacts:
     classifier_scores_path: Path
     posterior_history_path: Path
     report_path: Path
+    adequacy_run_dir: Path
+    adequacy_summary_path: Path
+    adequacy_regressions_path: Path
     summary_plot_path: Path
     validity_plot_path: Path
     score_gallery_path: Path

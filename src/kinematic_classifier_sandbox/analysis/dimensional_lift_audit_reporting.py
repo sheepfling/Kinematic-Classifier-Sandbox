@@ -23,6 +23,17 @@ def render_dimensional_lift_audit_report(result: DimensionalLiftAuditResult) -> 
         ]
     )
 
+    doc.heading("3D-Ready Decision Boundary", level=2)
+    doc.bullet_list(
+        [
+            f"Dimension-agnostic modules: `{result.dimensional_summary['dimension_agnostic_modules']}`",
+            f"Adapter-compatible modules: `{result.dimensional_summary['adapter_compatible_modules']}`",
+            f"Rewrite-required modules: `{result.dimensional_summary['rewrite_required_modules']}`",
+            f"Blocking scalar assumptions: `{result.dimensional_summary['blocking_scalar_assumptions']}`",
+            "3D-ready remains a future claim until vector corpus, vector feature, and vector contract proofs all exist together.",
+        ]
+    )
+
     doc.heading("Module Status", level=2)
     doc.table(
         ["module", "layer", "dimensional_status", "required_3d_action"],
@@ -51,4 +62,7 @@ def render_dimensional_lift_audit_report(result: DimensionalLiftAuditResult) -> 
 
     doc.heading("Required Adapters", level=2)
     doc.paragraph(result.required_adapter_markdown)
+
+    doc.heading("Evidence Required Before Calling The Methodology 3D-Ready", level=2)
+    doc.bullet_list([str(item) for item in result.dimensional_summary["three_d_ready_evidence_required"]])
     return doc.text()

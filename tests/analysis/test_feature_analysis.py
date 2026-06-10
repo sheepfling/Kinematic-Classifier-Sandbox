@@ -77,6 +77,10 @@ class FeatureAnalysisTests(unittest.TestCase):
         self.assertIn("position_range", result.summary.top_features)
         self.assertGreater(result.summary.excitation_totals["position_range"]["strong"], 0)
         self.assertEqual(result.summary.feature_set_name, "all_engineered")
+        self.assertEqual(result.summary.caveat_status, "warning")
+        self.assertGreater(result.summary.caveat_warning_count, 0)
+        self.assertTrue(any(row["history_behavior"] == "windowed" for row in result.caveat_rows))
+        self.assertTrue(any(row["status"] == "warning" for row in result.caveat_rows))
 
         pairwise_lookup = {
             (row["class_a"], row["class_b"]): row["pairwise_auc"]
@@ -93,6 +97,7 @@ class FeatureAnalysisTests(unittest.TestCase):
             self.assertTrue(artifacts.feature_summary_path.exists())
             self.assertTrue(artifacts.feature_excitation_path.exists())
             self.assertTrue(artifacts.feature_excitation_summary_path.exists())
+            self.assertTrue(artifacts.feature_caveats_path.exists())
             self.assertTrue(artifacts.feature_separation_scores_path.exists())
             self.assertTrue(artifacts.identifiability_matrix_path.exists())
             self.assertTrue(artifacts.pairwise_distance_matrix_path.exists())
@@ -107,6 +112,11 @@ class FeatureAnalysisTests(unittest.TestCase):
             report = artifacts.report_path.read_text(encoding="utf-8")
             self.assertIn("Feature Excitation", report)
             self.assertIn("Pairwise Separability", report)
+            self.assertIn("Evidence Caveats", report)
+
+            caveat_csv = artifacts.feature_caveats_path.read_text(encoding="utf-8")
+            self.assertIn("history_behavior", caveat_csv)
+            self.assertIn("caveat_types", caveat_csv)
 
     def test_feature_analysis_can_run_with_named_feature_set(self) -> None:
         result = analyze_feature_datasets(seed=7, trajectories_per_class=5, feature_set="shape_window")

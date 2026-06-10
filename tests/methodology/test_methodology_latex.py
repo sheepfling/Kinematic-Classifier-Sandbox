@@ -4,10 +4,14 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import json
 from pathlib import Path
 
 from kinematic_classifier_sandbox.methodology_latex import (
+    analyze_section_symbol_audits,
+    analyze_section_symbol_coverage,
     analyze_methodology_latex,
+    write_methodology_section_symbol_audit_artifacts,
     write_methodology_latex_artifacts,
 )
 
@@ -29,6 +33,69 @@ class MethodologyLatexTests(unittest.TestCase):
         self.assertIn(r"\begin{equation}", result.methodology_tex)
         self.assertIn(r"\begin{enumerate}", result.corpus_synthesis_algorithm_tex)
 
+    def test_methodology_stage_sections_have_local_symbol_tables(self) -> None:
+        result = analyze_methodology_latex(seed=7, trajectories_per_case=6)
+
+        coverage = analyze_section_symbol_coverage(result.methodology_tex)
+
+        self.assertGreater(len(coverage.required_section_titles), 0)
+        self.assertTrue(
+            coverage.is_complete,
+            f"missing section symbol tables for: {coverage.missing_section_titles}",
+        )
+
+    def test_section_symbol_audit_detects_missing_symbol_family(self) -> None:
+        methodology_tex = r"""
+\section{Stage X Example}
+\paragraph{Section Symbols.}
+\sectionsymbols{
+\sectionsymbol{\(p_k(c)\)}{posterior for class \(c\)}{declared}
+\sectionsymbol{\(\ell_k(c)\)}{log evidence}{declared}
+}
+\begin{equation}
+p_k(c) = \ell_k(c) + \omega_k
+\end{equation}
+"""
+
+        audits = analyze_section_symbol_audits(methodology_tex)
+
+        self.assertEqual(len(audits), 1)
+        self.assertIn(r"\omega_*", audits[0].missing_symbols)
+        self.assertNotIn("p_*", audits[0].missing_symbols)
+        self.assertNotIn(r"\ell_*", audits[0].missing_symbols)
+
+    def test_methodology_section_symbol_audit_is_clean_for_current_manuscript(self) -> None:
+        result = analyze_methodology_latex(seed=7, trajectories_per_case=6)
+
+        audits = analyze_section_symbol_audits(result.methodology_tex)
+
+        self.assertGreater(len(audits), 0)
+        self.assertTrue(all(not audit.has_gaps for audit in audits))
+
+    def test_methodology_section_symbol_audit_artifacts_write_expected_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts = write_methodology_section_symbol_audit_artifacts(temp_dir)
+
+            self.assertEqual(artifacts.run_dir, Path(temp_dir) / "methodology_section_symbol_audit")
+            self.assertTrue(artifacts.report_path.exists())
+            self.assertTrue(artifacts.summary_path.exists())
+            self.assertTrue(artifacts.rows_path.exists())
+            self.assertTrue(artifacts.section_coverage_path.exists())
+
+            report_text = artifacts.report_path.read_text(encoding="utf-8")
+            self.assertIn("Methodology Section Symbol Audit", report_text)
+            self.assertIn("Methodology Packet Status", report_text)
+            self.assertIn("Junior rerun command", report_text)
+            self.assertIn("Section Coverage", report_text)
+            self.assertIn("Stage V Evaluate: Algorithm Ladder", report_text)
+
+            summary = json.loads(artifacts.summary_path.read_text(encoding="utf-8"))
+            self.assertIn("build_status", summary)
+            self.assertTrue(summary["section_coverage_complete"])
+
+            coverage = json.loads(artifacts.section_coverage_path.read_text(encoding="utf-8"))
+            self.assertTrue(coverage["is_complete"])
+
     def test_methodology_latex_artifacts_write_expected_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_methodology_latex_artifacts(
@@ -49,7 +116,7 @@ class MethodologyLatexTests(unittest.TestCase):
             self.assertIsNone(artifacts.pdf_path)
 
             tex_text = artifacts.artifact_tex_path.read_text(encoding="utf-8")
-            self.assertIn("\\section{Algorithm Ladder}", tex_text)
+            self.assertIn("\\section{Stage V Evaluate: Algorithm Ladder}", tex_text)
             self.assertIn("\\input{tables/algorithm_ladder_table.tex}", tex_text)
             self.assertIn("\\input{tables/corpus_synthesis_algorithm.tex}", tex_text)
 

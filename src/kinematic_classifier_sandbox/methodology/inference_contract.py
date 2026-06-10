@@ -14,6 +14,7 @@ from ..common_experiment.runner import analyze_common_experiment
 from ..contracts import ClassifierOutputArtifact, validate_classifier_output_artifact
 from ..inference.kalman_filter_bank import run_kalman_filter_bank
 from ..markdown_builder import MarkdownDocument
+from ..utils.io import write_csv
 
 
 class GenericInferenceContractResult(BaseModel):
@@ -23,6 +24,8 @@ class GenericInferenceContractResult(BaseModel):
     evidence_provider_schema: dict[str, object]
     posterior_history_schema: dict[str, object]
     filter_output_schema: dict[str, object]
+    shared_metrics_schema: dict[str, object]
+    shared_metrics_rows: tuple[dict[str, object], ...]
     validation_results: dict[str, object]
     report_markdown: str
 
@@ -36,6 +39,8 @@ class GenericInferenceContractArtifacts(BaseModel):
     evidence_provider_schema_path: Path
     posterior_history_schema_path: Path
     filter_output_schema_path: Path
+    shared_metrics_schema_path: Path
+    shared_metrics_rows_path: Path
     validation_results_path: Path
 
 
@@ -135,6 +140,30 @@ def _filter_output_schema() -> dict[str, object]:
     }
 
 
+def _shared_metrics_schema() -> dict[str, object]:
+    return {
+        "artifact": "shared_metrics_surface",
+        "required_metrics": [
+            "classifier_id",
+            "sensor_regime_id",
+            "trajectory_id",
+            "time",
+            "true_class",
+            "predicted_class",
+            "confidence",
+            "posterior_class_a",
+            "posterior_class_b",
+            "log_likelihood_class_a",
+            "log_likelihood_class_b",
+        ],
+        "optional_diagnostics_policy": (
+            "Required metrics appear for every rung. "
+            "Rung-specific diagnostics are emitted in optional columns or side tables, "
+            "not by omitting core fields."
+        ),
+    }
+
+
 def _prediction_artifact_for_classifier(
     *,
     classifier_id: str,
@@ -195,7 +224,9 @@ def _validate_common_contract_surface() -> dict[str, object]:
         likelihood_groups.setdefault((str(row["classifier_id"]), str(row["trajectory_id"])), []).append(row)
 
     classifier_results: list[dict[str, object]] = []
+    shared_metric_rows: list[dict[str, object]] = []
     all_errors: list[str] = []
+    required_shared_fields = tuple(_shared_metrics_schema()["required_metrics"])
     for method_name in methods:
         method_prediction_rows = [row for row in result.pair_prediction_rows if str(row["classifier_id"]) == method_name]
         method_errors: list[str] = []
@@ -221,12 +252,40 @@ def _validate_common_contract_surface() -> dict[str, object]:
                         break
             if not likelihood_rows:
                 method_errors.append(f"{method_name}:{trajectory_id} missing likelihood history rows")
+            else:
+                pair_count = min(len(rows), len(posterior_rows), len(likelihood_rows))
+                for index in range(pair_count):
+                    prediction_row = rows[index]
+                    posterior_row = posterior_rows[index]
+                    likelihood_row = likelihood_rows[index]
+                    shared_row = {
+                        "classifier_id": method_name,
+                        "sensor_regime_id": str(prediction_row["sensor_regime_id"]),
+                        "trajectory_id": str(prediction_row["trajectory_id"]),
+                        "time": float(prediction_row["time"]),
+                        "true_class": str(prediction_row["true_class"]),
+                        "predicted_class": str(prediction_row["predicted_class"]),
+                        "confidence": float(prediction_row["confidence"]),
+                        "posterior_class_a": float(posterior_row["posterior_class_a"]),
+                        "posterior_class_b": float(posterior_row["posterior_class_b"]),
+                        "log_likelihood_class_a": float(likelihood_row["log_likelihood_class_a"]),
+                        "log_likelihood_class_b": float(likelihood_row["log_likelihood_class_b"]),
+                    }
+                    missing_fields = [field for field in required_shared_fields if field not in shared_row]
+                    if missing_fields:
+                        method_errors.append(
+                            f"{method_name}:{trajectory_id} missing shared metric fields: {', '.join(missing_fields)}"
+                        )
+                    shared_metric_rows.append(shared_row)
         classifier_results.append(
             {
                 "classifier_id": method_name,
                 "num_prediction_rows": len(method_prediction_rows),
                 "num_trajectory_runs": len(trajectory_ids),
                 "schema_valid": not method_errors,
+                "required_shared_fields_present": not any(
+                    "missing shared metric fields" in error for error in method_errors
+                ),
                 "errors": method_errors,
             }
         )
@@ -240,6 +299,8 @@ def _validate_common_contract_surface() -> dict[str, object]:
         "measurement_dims": measurement_dims,
         "sensor_regimes": sensor_regimes,
         "classifiers": classifier_results,
+        "shared_metrics_rows": shared_metric_rows,
+        "required_shared_metrics": list(required_shared_fields),
         "all_schema_checks_passed": not all_errors,
         "errors": all_errors,
     }
@@ -281,6 +342,7 @@ def analyze_generic_inference_contract() -> GenericInferenceContractResult:
     evidence_provider_schema = _evidence_provider_schema()
     posterior_history_schema = _posterior_history_schema()
     filter_output_schema = _filter_output_schema()
+    shared_metrics_schema = _shared_metrics_schema()
     classifier_validation = _validate_common_contract_surface()
     filter_validation = _validate_filter_backend_contract()
     validation_results = {
@@ -299,6 +361,7 @@ def analyze_generic_inference_contract() -> GenericInferenceContractResult:
         evidence_provider_schema=evidence_provider_schema,
         posterior_history_schema=posterior_history_schema,
         filter_output_schema=filter_output_schema,
+        shared_metrics_schema=shared_metrics_schema,
         validation_results=validation_results,
     )
     return GenericInferenceContractResult(
@@ -306,6 +369,10 @@ def analyze_generic_inference_contract() -> GenericInferenceContractResult:
         evidence_provider_schema=evidence_provider_schema,
         posterior_history_schema=posterior_history_schema,
         filter_output_schema=filter_output_schema,
+        shared_metrics_schema=shared_metrics_schema,
+        shared_metrics_rows=tuple(
+            dict(row) for row in classifier_validation["shared_metrics_rows"]
+        ),
         validation_results=validation_results,
         report_markdown=report_markdown,
     )
@@ -317,6 +384,7 @@ def render_generic_inference_contract_report(
     evidence_provider_schema: dict[str, object],
     posterior_history_schema: dict[str, object],
     filter_output_schema: dict[str, object],
+    shared_metrics_schema: dict[str, object],
     validation_results: dict[str, object],
 ) -> str:
     report = MarkdownDocument("Generic Inference Contract")
@@ -374,6 +442,26 @@ def render_generic_inference_contract_report(
         ]
     )
 
+    report.heading("Shared Metrics Surface", level=2)
+    report.bullet_list(
+        [
+            f"Required metrics: `{', '.join(shared_metrics_schema['required_metrics'])}`",
+            f"Optional diagnostics policy: {shared_metrics_schema['optional_diagnostics_policy']}",
+        ]
+    )
+    report.table(
+        ["classifier_id", "schema_valid", "required_shared_fields_present", "num_errors"],
+        [
+            (
+                row["classifier_id"],
+                row["schema_valid"],
+                row["required_shared_fields_present"],
+                len(row["errors"]),
+            )
+            for row in validation_results["classifier_output_contract"]["classifiers"]
+        ],
+    )
+
     report.heading("Notes", level=2)
     report.bullet_list(
         [
@@ -399,6 +487,8 @@ def write_generic_inference_contract_artifacts(
     evidence_provider_schema_path = run_dir / "evidence_provider_schema.json"
     posterior_history_schema_path = run_dir / "posterior_history_schema.json"
     filter_output_schema_path = run_dir / "filter_output_schema.json"
+    shared_metrics_schema_path = run_dir / "shared_metrics_schema.json"
+    shared_metrics_rows_path = run_dir / "shared_metrics_surface.csv"
     validation_results_path = run_dir / "validation_results.json"
 
     report_path.write_text(contract.report_markdown, encoding="utf-8")
@@ -406,6 +496,12 @@ def write_generic_inference_contract_artifacts(
     evidence_provider_schema_path.write_text(json.dumps(contract.evidence_provider_schema, indent=2), encoding="utf-8")
     posterior_history_schema_path.write_text(json.dumps(contract.posterior_history_schema, indent=2), encoding="utf-8")
     filter_output_schema_path.write_text(json.dumps(contract.filter_output_schema, indent=2), encoding="utf-8")
+    shared_metrics_schema_path.write_text(json.dumps(contract.shared_metrics_schema, indent=2), encoding="utf-8")
+    write_csv(
+        shared_metrics_rows_path,
+        list(contract.shared_metrics_rows),
+        list(contract.shared_metrics_schema["required_metrics"]),
+    )
     validation_results_path.write_text(json.dumps(contract.validation_results, indent=2), encoding="utf-8")
 
     return GenericInferenceContractArtifacts(
@@ -415,5 +511,7 @@ def write_generic_inference_contract_artifacts(
         evidence_provider_schema_path=evidence_provider_schema_path,
         posterior_history_schema_path=posterior_history_schema_path,
         filter_output_schema_path=filter_output_schema_path,
+        shared_metrics_schema_path=shared_metrics_schema_path,
+        shared_metrics_rows_path=shared_metrics_rows_path,
         validation_results_path=validation_results_path,
     )

@@ -111,7 +111,6 @@ def _class_pair_rows(
     recommendations: list[str] = []
     for entry in load_class_pair_manifest():
         class_a, class_b = sorted(str(name) for name in entry["pair"])
-        metrics = pair_metrics[(class_a, class_b)]
         expected_difficulty = str(entry["expected_difficulty"])
         required_tiers = PAIR_TIER_REQUIREMENTS.get(expected_difficulty, ("boundary_v1",))
         counts_by_tier = {
@@ -124,12 +123,18 @@ def _class_pair_rows(
             if count >= thresholds.min_pair_examples_per_required_tier
         ]
         tier_ok = len(satisfied_tiers) == len(required_tiers)
-        pairwise_auc = float(metrics["pairwise_auc"])
-        overlap = float(metrics["overlap_estimate"])
-        status = _pair_status(expected_difficulty, pairwise_auc, overlap, tier_ok)
+        metrics = pair_metrics.get((class_a, class_b))
+        missing = [tier for tier in required_tiers if tier not in satisfied_tiers]
+        pairwise_auc = float(metrics["pairwise_auc"]) if metrics is not None else 0.5
+        overlap = float(metrics["overlap_estimate"]) if metrics is not None else 1.0
+        status = _pair_status(expected_difficulty, pairwise_auc, overlap, tier_ok) if metrics is not None else "red"
         recommendation = ""
-        if not tier_ok:
-            missing = [tier for tier in required_tiers if tier not in satisfied_tiers]
+        if metrics is None:
+            recommendation = (
+                f"Selected corpus is missing the declared pair `{class_a}` vs `{class_b}`; "
+                f"add trajectories in {', '.join(required_tiers)} before treating the corpus as defended."
+            )
+        elif not tier_ok:
             recommendation = (
                 f"Add at least {thresholds.min_pair_examples_per_required_tier} trajectories per class in "
                 f"{', '.join(missing)} for `{class_a}` vs `{class_b}`."
@@ -150,8 +155,8 @@ def _class_pair_rows(
                 "satisfied_tiers": " ".join(satisfied_tiers),
                 "pairwise_auc": pairwise_auc,
                 "overlap_estimate": overlap,
-                "pairwise_classifier_accuracy": float(metrics["pairwise_classifier_accuracy"]),
-                "mahalanobis_distance": float(metrics["mahalanobis_distance"]),
+                "pairwise_classifier_accuracy": float(metrics["pairwise_classifier_accuracy"]) if metrics is not None else 0.0,
+                "mahalanobis_distance": float(metrics["mahalanobis_distance"]) if metrics is not None else 0.0,
                 "required_tier_min_examples": thresholds.min_pair_examples_per_required_tier,
                 "status": status,
                 "recommendation": recommendation,
