@@ -2436,6 +2436,16 @@ In the canonical repo story, this note is the `Corpus Explorer` pillar. It is
 the part of the repo that turns an objective and backend into a selected corpus
 that the Study Candidate Evaluator can trust.
 
+## Current Support Status
+
+The current strongest supported corpus-evaluation path is the repo's default generated/common-study corpora.
+
+- default generated/common-study corpora are the strongest supported evaluation path
+- selected generated corpus packet rerun is also strong and is the main closed-loop adequacy path
+- the adapter/contract layer for provided or external corpus sources exists
+- that adapter/contract layer is not yet a full arbitrary-corpus adequacy pipeline
+- the repo should therefore not be described as offering full generic corpus evaluation for any provided corpus
+
 ## Scope and Relation to Other Documents
 
 This document owns the corpus lifecycle:

@@ -3,13 +3,11 @@ from __future__ import annotations
 from statistics import mean
 
 from ...utils.io import union_fieldnames
-from ..adaptive_stress import analyze_adaptive_stress_corpus
 from ..gym import CorpusGymEnvironment
 from ..policy import load_corpus_policy_spec
 from ..quality_diversity import analyze_quality_diversity_corpus
 from ..rl_backend_decision import analyze_rl_backend_decision
 from ..search_baseline import analyze_corpus_search_baseline
-from ..exploration.feature_gap_trajectory_explorer import analyze_feature_gap_trajectory_explorer
 from .backends import BlackBoxOptimizerBackend, HeuristicSearchBackend, StatelessRlPolicyBackend
 from .contracts import (
     TrajectoryExplorationBackend,
@@ -336,6 +334,8 @@ def adapt_quality_diversity_result(objective: TrajectoryExplorationObjective | N
 
 
 def adapt_adaptive_stress_result(objective: TrajectoryExplorationObjective | None = None) -> TrajectoryExplorationResult:
+    from ..adaptive_stress import analyze_adaptive_stress_corpus
+
     result = analyze_adaptive_stress_corpus(seed=7, random_candidates_per_mode=4, guided_candidates_per_mode=6)
     resolved = objective or default_trajectory_exploration_objectives()[1]
     candidate_rows = tuple(
@@ -347,18 +347,18 @@ def adapt_adaptive_stress_result(objective: TrajectoryExplorationObjective | Non
             "candidate_index": index,
             "target_id": str(row.get("failure_mode", resolved.target.target_id)),
             "trajectory_id": row["candidate_id"],
-            "true_class": row["true_class"],
+            "true_class": str(row.get("true_class", "")),
             "total_utility": row["stress_score"],
-            "feature_excitation": row["feature_excitation"],
+            "feature_excitation": float(row.get("feature_excitation", 0.0)),
             "coverage_gain": 0.0,
-            "boundary_closeness": row["boundary_closeness"],
-            "class_validity": row["class_validity"],
+            "boundary_closeness": float(row.get("boundary_closeness", 0.0)),
+            "class_validity": float(row.get("class_validity", 0.45)),
             "classifier_stress": row["stress_score"],
             "prior_sensitivity": row.get("prior_sensitivity", 0.0),
-            "leakage_penalty": row["leakage_penalty"],
+            "leakage_penalty": float(row.get("leakage_penalty", 0.0)),
             "physical_invalidity_penalty": 0.0,
-            "feature_cell_coverage_gain": row["feature_excitation"],
-            "class_pair_overlap_reduction": max(0.0, float(row["class_validity"]) - float(row["boundary_closeness"]) * 0.25),
+            "feature_cell_coverage_gain": float(row.get("feature_excitation", 0.0)),
+            "class_pair_overlap_reduction": max(0.0, float(row.get("class_validity", 0.45)) - float(row.get("boundary_closeness", 0.0)) * 0.25),
             "pairwise_auc_gain": 0.0,
             "pca_margin_gain": 0.0,
             "confusion_witness_score": row["stress_score"],
@@ -383,6 +383,8 @@ def adapt_adaptive_stress_result(objective: TrajectoryExplorationObjective | Non
 
 
 def adapt_feature_gap_result(objective: TrajectoryExplorationObjective | None = None) -> TrajectoryExplorationResult:
+    from ..exploration.feature_gap_trajectory_explorer import analyze_feature_gap_trajectory_explorer
+
     result = analyze_feature_gap_trajectory_explorer(seed=7, max_iterations=2)
     resolved = objective or default_trajectory_exploration_objectives()[0]
     candidate_rows = tuple(
@@ -406,8 +408,8 @@ def adapt_feature_gap_result(objective: TrajectoryExplorationObjective | None = 
             "physical_invalidity_penalty": 0.0,
             "feature_cell_coverage_gain": row["feature_excitation_score"],
             "class_pair_overlap_reduction": row["boundary_coverage_score"],
-            "pairwise_auc_gain": row["balance_score"],
-            "pca_margin_gain": row["difficulty_diversity_score"],
+            "pairwise_auc_gain": float(row.get("balance_score", 0.0)),
+            "pca_margin_gain": float(row.get("difficulty_diversity_score", 0.0)),
             "confusion_witness_score": 0.0,
             "feature_dependency_stress": 0.0,
             "prior_flip_witness_score": 0.0,

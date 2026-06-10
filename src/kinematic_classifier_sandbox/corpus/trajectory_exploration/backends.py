@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import random
-from dataclasses import replace
 
 from ..gym_types import CorpusGymAction
 from ..search_baseline_utils import _doe_actions, _random_action
-from ..adaptive_stress_utils import _guided_action
 from .contracts import (
     TrajectoryExplorationBackend,
     TrajectoryExplorationEvaluation,
@@ -46,7 +44,13 @@ def _vector_from_action(action: CorpusGymAction) -> tuple[float, float, float, f
 def _seed_action_for_objective(rng: random.Random, objective: TrajectoryExplorationObjective, seed: int) -> CorpusGymAction:
     target = objective.target
     if target.target_failure_mode:
-        return _guided_action(rng, target.target_failure_mode, target, seed=seed)
+        mode = target.target_failure_mode
+        if mode == "raw_extrema_failure":
+            return CorpusGymAction(seed=seed, tier_name=target.target_tier or "adversarial_v1", duration_scale=0.95, measurement_scale=1.12, irregularity_scale=1.28, outlier_scale=1.82, step_scale=0.96)
+        if mode == "irregular_window_failure":
+            return CorpusGymAction(seed=seed, tier_name=target.target_tier or "boundary_v1", duration_scale=1.08, measurement_scale=1.05, irregularity_scale=1.65, outlier_scale=1.00, step_scale=1.00)
+        if mode == "kalman_mismatch":
+            return CorpusGymAction(seed=seed, tier_name=target.target_tier or "stress_v1", duration_scale=0.82, measurement_scale=1.36, irregularity_scale=1.08, outlier_scale=1.18, step_scale=0.86)
     if objective.geometry_target == "maximize_prior_flip_witness":
         return CorpusGymAction(seed=seed, tier_name=target.target_tier or "boundary_v1", duration_scale=0.82, measurement_scale=1.28, irregularity_scale=1.04, outlier_scale=0.96, step_scale=0.88)
     if objective.geometry_target == "fill_underexcited_feature_cells":

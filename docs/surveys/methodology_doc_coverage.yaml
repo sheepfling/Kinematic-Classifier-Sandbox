@@ -1599,6 +1599,66 @@
       "status": "covered"
     },
     {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/__init__.py",
+      "coverage_kind": "architecture",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Corpus Explorer And Policy Surfaces",
+      "artifact_outputs": [
+        "artifacts/corpus_generation_and_search.pdf"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/artifact_io.py",
+      "coverage_kind": "architecture",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Corpus Explorer And Policy Surfaces",
+      "artifact_outputs": [
+        "artifacts/corpus_generation_and_search.pdf"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/backends.py",
+      "coverage_kind": "architecture",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Corpus Explorer And Policy Surfaces",
+      "artifact_outputs": [
+        "artifacts/corpus_generation_and_search.pdf"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/contracts.py",
+      "coverage_kind": "architecture",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Corpus Explorer And Policy Surfaces",
+      "artifact_outputs": [
+        "artifacts/corpus_generation_and_search.pdf"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/objectives.py",
+      "coverage_kind": "architecture",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Corpus Explorer And Policy Surfaces",
+      "artifact_outputs": [
+        "artifacts/corpus_generation_and_search.pdf"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_exploration/runner.py",
+      "coverage_kind": "architecture",
+      "primary_doc": "corpus_generation_and_search",
+      "primary_section": "Corpus Explorer And Policy Surfaces",
+      "artifact_outputs": [
+        "artifacts/corpus_generation_and_search.pdf"
+      ],
+      "status": "covered"
+    },
+    {
       "module_path": "src/kinematic_classifier_sandbox/corpus_adequacy_audit.py",
       "coverage_kind": "architecture",
       "primary_doc": "corpus_generation_and_search",
@@ -2100,6 +2160,16 @@
     },
     {
       "module_path": "src/kinematic_classifier_sandbox/meta/__init__.py",
+      "coverage_kind": "appendix",
+      "primary_doc": "methodology_doc_index",
+      "primary_section": "Registry And Shape Audit Appendix",
+      "artifact_outputs": [
+        "artifacts/latex/methodology_doc_coverage.md"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/meta/human_operability_audit.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Registry And Shape Audit Appendix",
@@ -2675,6 +2745,36 @@
       "primary_section": "Infrastructure Appendix",
       "artifact_outputs": [
         "artifacts/latex/methodology_doc_coverage.md"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/study_confidence/__init__.py",
+      "coverage_kind": "evaluation",
+      "primary_doc": "methodology_evaluation_framework",
+      "primary_section": "Evaluation, Validation Ladder, And Promotion Decisions",
+      "artifact_outputs": [
+        "artifacts/methodology_evaluation_framework.pdf"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/study_confidence/analysis.py",
+      "coverage_kind": "evaluation",
+      "primary_doc": "methodology_evaluation_framework",
+      "primary_section": "Evaluation, Validation Ladder, And Promotion Decisions",
+      "artifact_outputs": [
+        "artifacts/methodology_evaluation_framework.pdf"
+      ],
+      "status": "covered"
+    },
+    {
+      "module_path": "src/kinematic_classifier_sandbox/study_confidence/contracts.py",
+      "coverage_kind": "evaluation",
+      "primary_doc": "methodology_evaluation_framework",
+      "primary_section": "Evaluation, Validation Ladder, And Promotion Decisions",
+      "artifact_outputs": [
+        "artifacts/methodology_evaluation_framework.pdf"
       ],
       "status": "covered"
     },

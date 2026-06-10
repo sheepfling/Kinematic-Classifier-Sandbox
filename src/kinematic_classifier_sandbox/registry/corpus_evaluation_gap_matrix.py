@@ -7,13 +7,15 @@ from collections import Counter
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
+
+from ..utils.runtime import repo_root
 from typing import Literal
 
 from ..utils.io import _write_json, _write_text, write_csv
 from ..utils.plotting import _figure_to_png, plt
 from ..markdown_builder import MarkdownDocument
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = repo_root()
 
 CapabilityStatus = Literal["implemented", "partial", "doc_only", "missing"]
 CapabilityScope = Literal["default_common_study_only", "generic_api", "selected_corpus_only"]
@@ -435,7 +437,7 @@ CAPABILITY_SPECS: tuple[CorpusEvaluationCapabilitySpec, ...] = (
             CapabilityDocRef("docs/surveys/feature_workflow.md", required_snippets=("coverage report artifacts",)),
         ),
         latex_docs=(
-            CapabilityDocRef("docs/latex/kinematic_classifier_workflow.tex", required_snippets=("coverage_report",)),
+            CapabilityDocRef("docs/latex/kinematic_classifier_workflow.tex", required_snippets=("coverage\\_report\\_v1",)),
         ),
         scope="default_common_study_only",
         limitation_note="Classifier-support coverage is automatic for the declared classifier manifest, but that manifest is still the shipped common-study ladder surface.",
