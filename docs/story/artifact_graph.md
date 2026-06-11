@@ -70,6 +70,8 @@ decision"]
 |`artifacts/kalman_filter_bank/kalman_bank_diagnostics.png`|`artifacts/kalman_filter_bank/innovation_history.csv`|
 |`artifacts/transition_matrix_accumulator_v1/transition_matrix_diagnostics.png`|`artifacts/transition_matrix_accumulator_v1/transition_matrix_posterior_history.csv`|
 |`artifacts/advanced_filter_decision_v1/advanced_filter_decision_summary.json`|`artifacts/advanced_filter_decision_v1/advanced_filter_decision_evidence.json`|
+|`artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv`|`artifacts/advanced_filter_comparison_v1/method_comparison.csv`, `artifacts/advanced_filter_comparison_v1/advanced_filter_comparison_report.md`|
+|`artifacts/filter_trace_validation_v1/filter_trace_validation_report.md`|`artifacts/filter_trace_validation_v1/method_trace_matrix.csv`, `artifacts/filter_trace_validation_v1/filter_step_trace_schema.json`|
 |`artifacts/dimensional_lift_audit/module_dimension_status.csv`|`src/kinematic_classifier_sandbox`|
 |`artifacts/validation_ladder/validation_ladder_decisions.csv`|`artifacts/validation_ladder/validation_ladder_scores.csv`|
 
@@ -84,6 +86,8 @@ decision"]
 |`artifacts/kalman_filter_bank/kalman_bank_report.md`|innovation_history.csv, posterior_history.csv, confusion_final.csv, kalman_model_definitions.json|
 |`artifacts/transition_matrix_accumulator_v1/transition_matrix_accumulator_report.md`|transition_matrix_scenario_summary.csv, transition_matrix_posterior_history.csv, transition_matrix_config.yaml|
 |`artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md`|advanced_filter_decision_summary.json, advanced_filter_decision_evidence.json|
+|`artifacts/advanced_filter_comparison_v1/advanced_filter_comparison_report.md`|advanced_method_gate_matrix.csv, method_comparison.csv, advanced_method_promotion_cards.md|
+|`artifacts/filter_trace_validation_v1/filter_trace_validation_report.md`|method_trace_matrix.csv, trace_requirement_matrix.csv, filter_step_trace_schema.json|
 |`artifacts/dimensional_lift_audit/dimensional_lift_audit.md`|module_dimension_status.csv, scalar_assumption_inventory.csv, validation_results.json|
 
 ## Plots Supporting Claims
