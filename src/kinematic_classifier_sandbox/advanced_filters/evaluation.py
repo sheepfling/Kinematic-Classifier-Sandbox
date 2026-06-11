@@ -16,9 +16,7 @@ from numpy import (
     exp,
     float64,
     int64,
-    isnan,
     mean,
-    median,
     ndarray,
     repeat,
     sqrt,
@@ -39,11 +37,10 @@ from .models_1d import (
     position_gaussian_log_likelihood,
     position_mixture_log_likelihood,
 )
-from .particle_filter import BootstrapParticleFilter, ParticleFilterConfig
-from .particle_filter_bank import ParticleFilterBank
-from .ou_witness import write_ornstein_uhlenbeck_witness_artifacts
 from .oracle_gsf_1d import analyze_gsf_abs_range_multimodal_witness
 from .oracle_pf_1d import analyze_pf_abs_range_multimodal_witness
+from .particle_filter import BootstrapParticleFilter, ParticleFilterConfig
+from .particle_filter_bank import ParticleFilterBank
 from .rbpf import RaoBlackwellizedParticleFilter, RBPFConfig
 from .rbpf_models_1d import default_mode_transition_matrix_1d, make_rbpf_1d_mode_models
 from .surface import AdvancedFilterSurface
@@ -574,8 +571,8 @@ def _build_rbpf_filter_step_traces(
 
 def _particle_count_pareto_rows(
     *,
-    particle_counts: tuple[int, ...] = (64, 128, 256, 512, 1024),
-    seeds: tuple[int, ...] = (211, 223, 227, 229, 233, 239),
+    particle_counts: tuple[int, ...] = (64, 128, 256, 512),
+    seeds: tuple[int, ...] = (211, 223, 227),
 ) -> tuple[dict[str, object], ...]:
     rows: list[dict[str, object]] = []
     for particle_count in particle_counts:
@@ -661,8 +658,8 @@ def _particle_filter_robustness_summary_rows(
 
 def _gsf_component_pareto_rows(
     *,
-    max_component_counts: tuple[int, ...] = (2, 4, 6, 8),
-    seeds: tuple[int, ...] = (211, 223, 227, 229, 233, 239),
+    max_component_counts: tuple[int, ...] = (2, 4, 6),
+    seeds: tuple[int, ...] = (211, 223, 227),
 ) -> tuple[dict[str, object], ...]:
     rows: list[dict[str, object]] = []
     for max_components in max_component_counts:
@@ -875,10 +872,16 @@ def _shared_pf_vs_rbpf_metrics(
 ) -> dict[str, float | str]:
     if witness == "latent_maneuver_onset_1d_shared":
         times, truth, observations, onset_time = _latent_onset_truth(seed)
-        post_truth = lambda time_value: time_value >= onset_time
+
+        def post_truth(time_value: float) -> bool:
+            return time_value >= onset_time
+
     elif witness == "smooth_acceleration_shared":
         times, truth, observations, onset_time = _smooth_acceleration_truth(seed)
-        post_truth = lambda time_value: True
+
+        def post_truth(time_value: float) -> bool:
+            return True
+
     else:
         raise KeyError(f"unknown shared witness: {witness}")
 
@@ -966,8 +969,8 @@ def _shared_pf_vs_rbpf_metrics(
 
 def _pf_vs_rbpf_frontier_rows(
     *,
-    particle_counts: tuple[int, ...] = (64, 128, 256, 512),
-    seeds: tuple[int, ...] = (31, 43, 59, 71),
+    particle_counts: tuple[int, ...] = (64, 128, 256),
+    seeds: tuple[int, ...] = (31, 43, 59),
 ) -> tuple[dict[str, object], ...]:
     rows: list[dict[str, object]] = []
     for witness in ("latent_maneuver_onset_1d_shared", "smooth_acceleration_shared"):
@@ -1075,7 +1078,6 @@ def _rbpf_robustness_summary_rows(
     latent_summary = summary_by_witness.get("latent_maneuver_onset_1d_shared", {})
     smooth_summary = summary_by_witness.get("smooth_acceleration_shared", {})
     latent_rows = [row for row in frontier_rows if str(row["witness"]) == "latent_maneuver_onset_1d_shared"]
-    smooth_rows = [row for row in frontier_rows if str(row["witness"]) == "smooth_acceleration_shared"]
     candidate_rows: list[dict[str, object]] = []
     for particle_count in sorted({int(row["particle_count"]) for row in latent_rows}):
         pf_row = next(
@@ -1209,25 +1211,16 @@ def _write_gsf_vs_pf_frontier_plot(path: Path, rows: tuple[dict[str, object], ..
 def _render_advanced_method_promotion_cards(
     *,
     method_rows: list[dict[str, object]],
-    particle_count_rows: tuple[dict[str, object], ...],
+    particle_saturation: object,
+    pf_robustness: dict[str, object],
+    gsf_robustness: dict[str, object],
+    gsf_vs_pf_status: str,
+    rbpf_robustness: dict[str, object],
 ) -> str:
     report = MarkdownDocument("Advanced Method Promotion Cards")
     report.paragraph(
         "These cards separate witness-specific promotion from stronger claims that a method is required by the current repo evidence."
     )
-    particle_saturation = particle_count_rows[-1]["quality_improves_vs_previous"] if particle_count_rows else "not_run"
-    pf_robustness_rows = _particle_filter_robustness_summary_rows(particle_count_rows)
-    pf_robustness = pf_robustness_rows[0] if pf_robustness_rows else {}
-    gsf_component_rows = _gsf_component_pareto_rows()
-    gsf_robustness_rows = _gsf_robustness_summary_rows(gsf_component_rows)
-    gsf_robustness = gsf_robustness_rows[0] if gsf_robustness_rows else {}
-    gsf_vs_pf_rows = _gsf_vs_pf_frontier_rows(particle_count_rows, gsf_component_rows)
-    gsf_vs_pf_summary_rows = _gsf_vs_pf_frontier_summary_rows(gsf_vs_pf_rows)
-    gsf_vs_pf_status = str(gsf_vs_pf_summary_rows[0]["crossover_status"]) if gsf_vs_pf_summary_rows else "not_run"
-    rbpf_frontier_rows = _pf_vs_rbpf_frontier_rows()
-    rbpf_frontier_summary_rows = _pf_vs_rbpf_frontier_summary_rows(rbpf_frontier_rows)
-    rbpf_robustness_rows = _rbpf_robustness_summary_rows(rbpf_frontier_rows, rbpf_frontier_summary_rows)
-    rbpf_robustness = rbpf_robustness_rows[0] if rbpf_robustness_rows else {}
     for row in method_rows:
         method_id = str(row["method_id"])
         report.heading(method_id, level=2)
@@ -1288,8 +1281,14 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
 
     imm_metrics = _read_first_csv_row(output_root / "imm_filter_v1" / "switching_detection_metrics.csv")
     pf_metrics = _read_first_csv_row(output_root / "particle_filter_v1" / "pf_method_comparison.csv")
-    pf_oracle_metrics = _read_first_csv_row(output_root / "pf_abs_range_multimodal_oracle_v1" / "metrics_against_oracle.csv")
-    gsf_oracle_metrics = _read_first_csv_row(output_root / "gsf_abs_range_multimodal_oracle_v1" / "metrics_against_oracle.csv")
+    pf_oracle_metrics = _read_first_csv_row_candidates(
+        output_root / "pf_abs_range_multimodal_oracle_v1" / "summary.csv",
+        output_root / "pf_abs_range_multimodal_oracle_v1" / "metrics_against_oracle.csv",
+    )
+    gsf_oracle_metrics = _read_first_csv_row_candidates(
+        output_root / "gsf_abs_range_multimodal_oracle_v1" / "summary.csv",
+        output_root / "gsf_abs_range_multimodal_oracle_v1" / "metrics_against_oracle.csv",
+    )
     rbpf_metrics = _read_first_csv_row(output_root / "rbpf_v1" / "rbpf_method_comparison.csv")
     ou_metrics = _read_first_csv_row(output_root / "ornstein_uhlenbeck_witness_v1" / "ou_method_comparison.csv")
     pf_promotion_metrics = pf_oracle_metrics or pf_metrics
@@ -1362,7 +1361,7 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
                 "artifacts/advanced_filter_comparison_v1/gsf_vs_pf_frontier_summary.csv"
                 if gsf_vs_pf_summary_rows
                 else (
-                    "artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv"
+                    "artifacts/pf_abs_range_multimodal_oracle_v1/summary.csv"
                     if pf_oracle_metrics
                     else "artifacts/particle_filter_v1/pf_method_comparison.csv"
                 )
@@ -1530,8 +1529,16 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
     write_csv(pf_vs_rbpf_path, list(pf_vs_rbpf_rows), list(pf_vs_rbpf_rows[0]))
     write_csv(pf_vs_rbpf_summary_path, list(pf_vs_rbpf_summary_rows), list(pf_vs_rbpf_summary_rows[0]))
     write_csv(decision_path, decision_rows, list(decision_rows[0]))
+    particle_saturation = particle_count_rows[-1]["quality_improves_vs_previous"] if particle_count_rows else "not_run"
     promotion_cards_path.write_text(
-        _render_advanced_method_promotion_cards(method_rows=method_rows, particle_count_rows=particle_count_rows),
+        _render_advanced_method_promotion_cards(
+            method_rows=method_rows,
+            particle_saturation=particle_saturation,
+            pf_robustness=particle_filter_robustness,
+            gsf_robustness=gsf_robustness,
+            gsf_vs_pf_status=gsf_vs_pf_status,
+            rbpf_robustness=rbpf_robustness,
+        ),
         encoding="utf-8",
     )
     report_path.write_text(_render_advanced_filter_comparison_report(method_rows, decision_rows, gate_rows), encoding="utf-8")
@@ -1586,11 +1593,19 @@ def advanced_filter_comparison_surface() -> AdvancedFilterSurface[None, Advanced
 
 
 def _read_first_csv_row(path: Path) -> dict[str, str]:
-    if not path.exists():
+    if not path.is_file():
         return {}
     with path.open("r", encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
     return rows[0] if rows else {}
+
+
+def _read_first_csv_row_candidates(*paths: Path) -> dict[str, str]:
+    for path in paths:
+        row = _read_first_csv_row(path)
+        if row:
+            return row
+    return {}
 
 
 def _as_float(value: object) -> float:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -16,6 +16,10 @@ from kinematic_classifier_sandbox.utils.io import _write_json, _write_text, writ
 from kinematic_classifier_sandbox.utils.runtime import repo_root
 
 ROOT = repo_root()
+
+
+def _resolve_story_path(path: str) -> str:
+    return str((ROOT / path).resolve()) if not path.startswith("/") else path
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,17 +116,20 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
         pillar="Study Candidate Evaluator",
         evidence_doc=("docs/surveys/methodology_evaluation_framework.md", "docs/story/study_candidate_evaluator.md"),
         artifact_paths=(
+            "artifacts/static_feature_class_prior_audit_v1/static_decision_card.md",
+            "artifacts/static_feature_class_prior_audit_v1/class_confusability_matrix.csv",
+            "artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv",
             "artifacts/feature_analysis_v1/feature_separation_scores.csv",
             "artifacts/feature_analysis_v1/pairwise_auc_matrix.csv",
             "artifacts/feature_analysis_v1/pairwise_overlap_heatmap.png",
         ),
-        test_paths=("tests/analysis/test_feature_analysis.py", "tests/analysis/test_pca_analysis.py"),
+        test_paths=("tests/analysis/test_static_feature_class_prior_audit.py", "tests/analysis/test_feature_analysis.py", "tests/analysis/test_pca_analysis.py"),
         current_status="strong",
-        limitations="Feature reports now warn on history-bearing and correlated bundles, but governance warnings do not by themselves remove dependence risk.",
-        next_work="Carry the same caveat policy through every downstream evidence-study report.",
-        showcase_plot="plots/pairwise_overlap_heatmap.png",
-        showcase_table="tables/feature_separation_scores.csv",
-        supporting_equation="Pairwise overlap and AUC compare class distributions before classifier blame.",
+        limitations="The static audit is sample-backed and Gaussian-proxy prior checks are only an admissibility screen, not a final classifier guarantee.",
+        next_work="Feed the static decision card into corpus search and classifier escalation decisions.",
+        showcase_plot="plots/static_audit_decision_card.png",
+        showcase_table="tables/static_decision_card.md",
+        supporting_equation="Posterior log odds equal likelihood log ratio plus prior log odds; feature/class adequacy is checked before classifier blame.",
     ),
     ClaimEvidence(
         claim_id="C03",
@@ -235,13 +242,20 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
 )
 
 
-WITNESSES: tuple[WitnessProblem, ...] = (
-    WitnessProblem("pointwise_overlap", "Baseline likelihood and prior machinery", "current 1D pointwise classes", "instantaneous observations", "pointwise likelihood", "prior_sensitivity_pointwise", "overlapping local evidence", "posterior flips and prior effects", "history or dynamics", "artifacts/pointwise_baseline/pointwise_baseline_diagnostics.png", "artifacts/pointwise_baseline/confusion_final.csv", "promote", "vector-valued pointwise observations"),
-    WitnessProblem("windowed_outlier_extrema", "Raw versus robust feature behavior", "current 1D windowed classes", "raw and robust extrema", "windowed likelihood", "windowed raw and robust sweeps", "outlier extrema stress", "feature design changes posterior stability", "independence of overlapping windows", "artifacts/windowed_baseline/windowed_baseline_diagnostics.png", "artifacts/windowed_baseline/confusion_robust.csv", "revise/promote by case", "robust 3D extrema features"),
-    WitnessProblem("sequential_history", "History beyond pointwise evidence", "current 1D accumulator classes", "pointwise evidence history", "sequential Bayes", "accumulator priors", "time-series ambiguity", "history improves confidence", "dynamics residuals", "artifacts/bayes_accumulator/bayes_accumulator_diagnostics.png", "artifacts/bayes_accumulator/confidence_crossings.csv", "promote", "3D evidence histories"),
-    WitnessProblem("kalman_endpoint_match", "Dynamics evidence under endpoint ambiguity", "Kalman model classes", "innovation residuals", "Kalman bank", "Kalman config priors", "matched endpoint ambiguity", "innovation likelihood evidence", "general nonlinear 3D sufficiency", "artifacts/kalman_filter_bank/kalman_bank_diagnostics.png", "artifacts/kalman_filter_bank/confusion_final.csv", "promote", "3D state-space model bank"),
-    WitnessProblem("transition_switching", "Mode transition logic before IMM", "switching scenarios", "mode transition evidence", "transition matrix accumulator", "transition matrix config", "switching trajectories", "transition evidence for static-class failure", "IMM/PF/RBPF implementation", "artifacts/transition_matrix_accumulator_v1/transition_matrix_diagnostics.png", "artifacts/transition_matrix_accumulator_v1/transition_matrix_scenario_summary.csv", "pass", "3D maneuver transition states"),
-    WitnessProblem("generated_corpus_stress", "Generated hard or fragile examples", "selected generated corpus classes", "generated feature matrix", "corpus classifier scoring", "downstream study priors", "stress adequacy leakage validity and excitation", "corpus generation scoring and selection", "final corpus completeness", "artifacts/generic_corpus_exploration/selected_trajectory_gallery.png", "artifacts/generic_corpus_exploration/candidate_scores.csv", "v1 complete", "3D backend adapters and QD dimensions"),
+WITNESSES: tuple[WitnessProblem, ...] = tuple(
+    replace(
+        witness,
+        key_plot=_resolve_story_path(witness.key_plot),
+        key_table=_resolve_story_path(witness.key_table),
+    )
+    for witness in (
+        WitnessProblem("pointwise_overlap", "Baseline likelihood and prior machinery", "current 1D pointwise classes", "instantaneous observations", "pointwise likelihood", "prior_sensitivity_pointwise", "overlapping local evidence", "posterior flips and prior effects", "history or dynamics", "artifacts/pointwise_baseline/pointwise_baseline_diagnostics.png", "artifacts/pointwise_baseline/confusion_final.csv", "promote", "vector-valued pointwise observations"),
+        WitnessProblem("windowed_outlier_extrema", "Raw versus robust feature behavior", "current 1D windowed classes", "raw and robust extrema", "windowed likelihood", "windowed raw and robust sweeps", "outlier extrema stress", "feature design changes posterior stability", "independence of overlapping windows", "artifacts/windowed_baseline/windowed_baseline_diagnostics.png", "artifacts/windowed_baseline/confusion_robust.csv", "revise/promote by case", "robust 3D extrema features"),
+        WitnessProblem("sequential_history", "History beyond pointwise evidence", "current 1D accumulator classes", "pointwise evidence history", "sequential Bayes", "accumulator priors", "time-series ambiguity", "history improves confidence", "dynamics residuals", "artifacts/bayes_accumulator/bayes_accumulator_diagnostics.png", "artifacts/bayes_accumulator/confidence_crossings.csv", "promote", "3D evidence histories"),
+        WitnessProblem("kalman_endpoint_match", "Dynamics evidence under endpoint ambiguity", "Kalman model classes", "innovation residuals", "Kalman bank", "Kalman config priors", "matched endpoint ambiguity", "innovation likelihood evidence", "general nonlinear 3D sufficiency", "artifacts/kalman_filter_bank/kalman_bank_diagnostics.png", "artifacts/kalman_filter_bank/confusion_final.csv", "promote", "3D state-space model bank"),
+        WitnessProblem("transition_switching", "Mode transition logic before IMM", "switching scenarios", "mode transition evidence", "transition matrix accumulator", "transition matrix config", "switching trajectories", "transition evidence for static-class failure", "IMM/PF/RBPF implementation", "artifacts/transition_matrix_accumulator_v1/transition_matrix_diagnostics.png", "artifacts/transition_matrix_accumulator_v1/transition_matrix_scenario_summary.csv", "pass", "3D maneuver transition states"),
+        WitnessProblem("generated_corpus_stress", "Generated hard or fragile examples", "selected generated corpus classes", "generated feature matrix", "corpus classifier scoring", "downstream study priors", "stress adequacy leakage validity and excitation", "corpus generation scoring and selection", "final corpus completeness", "artifacts/generic_corpus_exploration/selected_trajectory_gallery.png", "artifacts/generic_corpus_exploration/candidate_scores.csv", "v1 complete", "3D backend adapters and QD dimensions"),
+    )
 )
 
 
@@ -264,6 +278,8 @@ ARTIFACT_MANIFEST: tuple[ArtifactManifestEntry, ...] = (
     ArtifactManifestEntry("artifacts/corpus_adequacy_audit_v1/corpus_adequacy_scorecard.csv", "src/kinematic_classifier_sandbox/corpus/adequacy_audit.py", ("artifacts/common_1d_classifier_study/dataset_manifest.json",), "Does the corpus pass adequacy gates before classifier claims?", "C01", "strong", "Some generated corpora still require hardening."),
     ArtifactManifestEntry("artifacts/corpus_adequacy_audit_v1/covariate_leakage_audit.csv", "src/kinematic_classifier_sandbox/corpus/adequacy_audit.py", ("artifacts/common_1d_classifier_study/dataset_manifest.json",), "Are there corpus shortcuts or leakage risks?", "C01", "strong", "Leakage checks are only as complete as the recorded covariates."),
     ArtifactManifestEntry("artifacts/class_validity/class_validity_scores.csv", "src/kinematic_classifier_sandbox/validation/class_validity.py", ("artifacts/class_validity/class_definition_schema.json",), "Are class definitions internally valid?", "C01", "implemented", "Class validity scores do not replace domain review."),
+    ArtifactManifestEntry("artifacts/static_feature_class_prior_audit_v1/static_decision_card.md", "src/kinematic_classifier_sandbox/analysis/static_feature_class_prior_audit.py", ("artifacts/feature_analysis_v1/feature_matrix.csv",), "Is the proposed feature/class/prior regime admissible before corpus or classifier escalation?", "C02", "strong", "Static admissibility is an early gate, not final posterior validation."),
+    ArtifactManifestEntry("artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv", "src/kinematic_classifier_sandbox/analysis/static_feature_class_prior_audit.py", ("artifacts/feature_analysis_v1/feature_matrix.csv",), "Can observed likelihood-ratio ranges overcome the proposed priors?", "C02;C03", "strong", "Gaussian likelihood proxies should be treated as prior-risk indicators."),
     ArtifactManifestEntry("artifacts/feature_analysis_v1/feature_separation_scores.csv", "src/kinematic_classifier_sandbox/analysis/feature_analysis.py", ("artifacts/feature_analysis_v1/feature_matrix.csv",), "Are classes separable under the current feature set?", "C02", "strong", "Static separability does not prove independent evidence."),
     ArtifactManifestEntry("artifacts/feature_analysis_v1/pairwise_auc_matrix.csv", "src/kinematic_classifier_sandbox/analysis/feature_analysis.py", ("artifacts/feature_analysis_v1/feature_matrix.csv",), "Which class pairs are separable by feature?", "C02", "strong", "Pairwise separability can hide multiclass interactions."),
     ArtifactManifestEntry("artifacts/feature_analysis_v1/pairwise_overlap_heatmap.png", "src/kinematic_classifier_sandbox/analysis/feature_analysis.py", ("artifacts/feature_analysis_v1/pairwise_overlap_matrix.csv",), "Where do feature distributions overlap?", "C02", "strong", "Overlap depends on the sampled corpus."),
@@ -448,6 +464,7 @@ def render_claim_evidence_markdown() -> str:
 def render_artifact_graph_markdown() -> str:
     report_rows = (
         ("artifacts/corpus_adequacy_audit_v1/corpus_adequacy_report.md", "corpus_adequacy_scorecard.csv, class_pair_coverage.csv, covariate_leakage_audit.csv, class_balance.csv"),
+        ("artifacts/static_feature_class_prior_audit_v1/static_audit_report.md", "static_decision_card.md, class_confusability_matrix.csv, feature_relevance_table.csv, prior_pathology_report.csv"),
         ("artifacts/feature_analysis_v1/feature_analysis_report.md", "feature_separation_scores.csv, pairwise_auc_matrix.csv, pairwise_overlap_matrix.csv, identifiability_matrix.csv"),
         ("artifacts/prior_sensitivity_pointwise_v1/prior_sensitivity_report.md", "prior_sensitivity.csv, prior_flip_thresholds.csv, prior_dominance_metrics.json"),
         ("artifacts/generic_corpus_exploration/corpus_exploration_report.md", "candidate_scores.csv, archive_cells.csv, backend_comparison.csv, selected_corpus_manifest.json"),
@@ -898,7 +915,7 @@ def write_repo_story_artifacts(
     })
     write_csv(run_dir / "study_candidate_evaluator_summary.csv", [
         {"section": "study_candidate", "summary": "s = (D, f, C, m, pi, b)", "primary_doc": "docs/story/study_candidate_evaluator.md", "primary_artifact": "artifacts/study_candidate_generation/m18_validation_summary.json", "status": "canonical"},
-        {"section": "static_checks", "summary": "class validity feature excitation leakage separability", "primary_doc": "docs/story/study_candidate_evaluator.md", "primary_artifact": "artifacts/feature_analysis_v1/feature_separation_scores.csv", "status": "implemented"},
+        {"section": "static_feature_class_prior_audit", "summary": "feature relevance class separability prior pathology leakage decisionability", "primary_doc": "docs/story/study_candidate_evaluator.md", "primary_artifact": "artifacts/static_feature_class_prior_audit_v1/static_decision_card.md", "status": "implemented"},
         {"section": "monte_carlo_checks", "summary": "calibration accuracy over time confusion confidence", "primary_doc": "docs/story/study_candidate_evaluator.md", "primary_artifact": "artifacts/monte_carlo_accumulator/metrics_by_time.csv", "status": "implemented"},
         {"section": "prior_sensitivity", "summary": "flip thresholds and prior dominance", "primary_doc": "docs/story/how_to_interpret_results.md", "primary_artifact": "artifacts/prior_sensitivity_pointwise_v1/prior_flip_thresholds.csv", "status": "implemented"},
         {"section": "promotion_decision", "summary": "promote revise reject defer", "primary_doc": "docs/story/study_candidate_evaluator.md", "primary_artifact": "artifacts/validation_ladder/validation_ladder_decisions.csv", "status": "implemented"},

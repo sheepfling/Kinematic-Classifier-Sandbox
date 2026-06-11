@@ -72,6 +72,7 @@ class StaticFeatureClassPriorAuditTests(unittest.TestCase):
             self.assertEqual(artifacts.run_dir, Path(temp_dir) / "static_feature_class_prior_audit_v1")
             self.assertTrue(artifacts.report_path.exists())
             self.assertTrue(artifacts.decision_card_path.exists())
+            self.assertTrue(artifacts.decision_card_png_path.exists())
             self.assertTrue(artifacts.class_confusability_matrix_path.exists())
             self.assertTrue(artifacts.feature_relevance_table_path.exists())
             self.assertTrue(artifacts.feature_redundancy_matrix_path.exists())

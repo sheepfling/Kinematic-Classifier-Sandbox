@@ -113,6 +113,9 @@ from kinematic_classifier_sandbox.analysis.pca_dimensionality_audit import (
 from kinematic_classifier_sandbox.analysis.short_horizon_identifiability_artifact_io import (
     write_short_horizon_identifiability_artifacts,
 )
+from kinematic_classifier_sandbox.analysis.static_feature_class_prior_audit_artifact_io import (
+    write_static_feature_class_prior_audit_artifacts,
+)
 from kinematic_classifier_sandbox.artifacts import (
     write_method_survey_artifact,
     write_posterior_math_artifacts,
@@ -409,6 +412,12 @@ def _run_front_door_export(output_root: Path, *, fast: bool) -> int:
         trajectories_per_class=5,
         result=feature_analysis_result,
     )
+    static_feature_class_prior_audit_artifacts = write_static_feature_class_prior_audit_artifacts(
+        output_root,
+        seed=7,
+        trajectories_per_class=5,
+        feature_analysis_result=feature_analysis_result,
+    )
     corpus_adequacy_artifacts = write_corpus_adequacy_artifacts(
         output_root,
         seed=7,
@@ -455,6 +464,9 @@ def _run_front_door_export(output_root: Path, *, fast: bool) -> int:
     print(validation_ladder_artifacts.report_path)
     print(feature_analysis_artifacts.run_dir)
     print(feature_analysis_artifacts.report_path)
+    print(static_feature_class_prior_audit_artifacts.run_dir)
+    print(static_feature_class_prior_audit_artifacts.report_path)
+    print(static_feature_class_prior_audit_artifacts.decision_card_png_path)
     print(corpus_adequacy_artifacts.run_dir)
     print(corpus_adequacy_artifacts.report_path)
     print(coverage_report_artifacts.run_dir)
@@ -605,6 +617,11 @@ def main() -> int:
         n_components=3,
     )
     feature_analysis_artifacts = write_feature_analysis_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
+    static_feature_class_prior_audit_artifacts = write_static_feature_class_prior_audit_artifacts(
+        ROOT / "artifacts",
+        seed=7,
+        trajectories_per_class=5,
+    )
     corpus_adequacy_artifacts = write_corpus_adequacy_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
     coverage_report_artifacts = write_coverage_report_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5)
     pca_analysis_artifacts = write_pca_analysis_artifacts(ROOT / "artifacts", seed=7, trajectories_per_class=5, n_components=3)
@@ -875,6 +892,9 @@ def main() -> int:
     print(abstract_inspection_artifacts.index_path)
     print(feature_analysis_artifacts.run_dir)
     print(feature_analysis_artifacts.report_path)
+    print(static_feature_class_prior_audit_artifacts.run_dir)
+    print(static_feature_class_prior_audit_artifacts.report_path)
+    print(static_feature_class_prior_audit_artifacts.decision_card_png_path)
     print(corpus_adequacy_artifacts.run_dir)
     print(corpus_adequacy_artifacts.report_path)
     print(pca_dimensionality_artifacts.run_dir)

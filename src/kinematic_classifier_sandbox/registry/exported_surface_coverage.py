@@ -2,20 +2,18 @@ from __future__ import annotations
 
 import ast
 import importlib
-import json
 import shlex
 import tempfile
 from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
-
-from ..utils.runtime import repo_root
-from typing import Any, Literal
+from typing import Literal
 
 from ..markdown_builder import MarkdownDocument
 from ..utils.io import _write_json, _write_text, write_csv
 from ..utils.plotting import _figure_to_png, plt
+from ..utils.runtime import repo_root
 
 ROOT = repo_root()
 EXPORT_SCRIPT_PATH = ROOT / "scripts" / "export_artifacts.py"
@@ -274,6 +272,13 @@ METADATA_OVERRIDES: dict[str, ExportedSurfaceMetadata] = {
     "advanced_state_inference": ExportedSurfaceMetadata(
         category="inference",
         analysis_function="analyze_advanced_state_inference",
+    ),
+    "static_feature_class_prior_audit": ExportedSurfaceMetadata(
+        category="analysis",
+        analysis_function="analyze_default_static_feature_class_prior_audit",
+        required_artifact_classes=("report", "tabular", "visual"),
+        visualization_policy="required",
+        notes="Front-door static admissibility gate over feature/class/prior adequacy before corpus or classifier escalation.",
     ),
     "pointwise_prior": ExportedSurfaceMetadata(
         category="inference",

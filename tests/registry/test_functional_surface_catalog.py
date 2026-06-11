@@ -27,6 +27,7 @@ class FunctionalSurfaceCatalogTests(unittest.TestCase):
         self.assertTrue(any(row.surface_id == "method_validation_os" for row in result.surface_rows))
         self.assertTrue(any(row.surface_id == "trajectory_exploration_backend_registry" for row in result.surface_rows))
         self.assertTrue(any(row.surface_id == "embedding_baseline_frontier" for row in result.surface_rows))
+        self.assertTrue(any(row.surface_id == "static_feature_class_prior_audit" for row in result.surface_rows))
 
     def test_catalog_writes_expected_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -45,6 +46,7 @@ class FunctionalSurfaceCatalogTests(unittest.TestCase):
             self.assertIn("algorithm_coverage_matrix", report)
             self.assertIn("trajectory_exploration_backend_registry", report)
             self.assertIn("embedding_baseline_frontier", report)
+            self.assertIn("static_feature_class_prior_audit", report)
 
             summary = json.loads(artifacts.summary_path.read_text(encoding="utf-8"))
             self.assertGreaterEqual(summary["surface_count"], 10)

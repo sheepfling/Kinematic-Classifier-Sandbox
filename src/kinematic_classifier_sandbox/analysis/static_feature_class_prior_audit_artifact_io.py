@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from kinematic_classifier_sandbox.utils.io import write_csv
+from kinematic_classifier_sandbox.utils.plotting import _figure_to_png
 
 from .static_feature_class_prior_audit_contracts import (
     StaticFeatureClassPriorAuditArtifacts,
@@ -10,6 +11,7 @@ from .static_feature_class_prior_audit_contracts import (
 )
 from .static_feature_class_prior_audit_reporting import (
     render_static_decision_card,
+    render_static_decision_card_figure,
     render_static_feature_class_prior_audit_report,
 )
 
@@ -17,14 +19,28 @@ from .static_feature_class_prior_audit_reporting import (
 def write_static_feature_class_prior_audit_artifacts(
     output_root: str | Path,
     *,
-    result: StaticFeatureClassPriorAuditResult,
+    result: StaticFeatureClassPriorAuditResult | None = None,
+    seed: int = 7,
+    trajectories_per_class: int = 5,
+    feature_analysis_result: object | None = None,
 ) -> StaticFeatureClassPriorAuditArtifacts:
     base_path = Path(output_root)
     run_dir = base_path / "static_feature_class_prior_audit_v1"
     run_dir.mkdir(parents=True, exist_ok=True)
+    if result is None:
+        from .static_feature_class_prior_audit import (
+            analyze_default_static_feature_class_prior_audit,
+        )
+
+        result = analyze_default_static_feature_class_prior_audit(
+            seed=seed,
+            trajectories_per_class=trajectories_per_class,
+            feature_analysis_result=feature_analysis_result,
+        )
 
     report_path = run_dir / "static_audit_report.md"
     decision_card_path = run_dir / "static_decision_card.md"
+    decision_card_png_path = run_dir / "static_audit_decision_card.png"
     class_confusability_matrix_path = run_dir / "class_confusability_matrix.csv"
     feature_relevance_table_path = run_dir / "feature_relevance_table.csv"
     feature_redundancy_matrix_path = run_dir / "feature_redundancy_matrix.csv"
@@ -35,6 +51,11 @@ def write_static_feature_class_prior_audit_artifacts(
 
     report_path.write_text(render_static_feature_class_prior_audit_report(result), encoding="utf-8")
     decision_card_path.write_text(render_static_decision_card(result) + "\n", encoding="utf-8")
+    decision_card_figure = render_static_decision_card_figure(result)
+    try:
+        decision_card_png_path.write_bytes(_figure_to_png(decision_card_figure))
+    finally:
+        decision_card_figure.clf()
     write_csv(
         class_confusability_matrix_path,
         [dict(row) for row in result.class_pair_rows],
@@ -128,6 +149,7 @@ def write_static_feature_class_prior_audit_artifacts(
         run_dir=run_dir,
         report_path=report_path,
         decision_card_path=decision_card_path,
+        decision_card_png_path=decision_card_png_path,
         class_confusability_matrix_path=class_confusability_matrix_path,
         feature_relevance_table_path=feature_relevance_table_path,
         feature_redundancy_matrix_path=feature_redundancy_matrix_path,

@@ -56,6 +56,8 @@ decision"]
 |`artifacts/corpus_adequacy_audit_v1/corpus_adequacy_scorecard.csv`|`artifacts/common_1d_classifier_study/dataset_manifest.json`|
 |`artifacts/corpus_adequacy_audit_v1/covariate_leakage_audit.csv`|`artifacts/common_1d_classifier_study/dataset_manifest.json`|
 |`artifacts/class_validity/class_validity_scores.csv`|`artifacts/class_validity/class_definition_schema.json`|
+|`artifacts/static_feature_class_prior_audit_v1/static_decision_card.md`|`artifacts/feature_analysis_v1/feature_matrix.csv`|
+|`artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv`|`artifacts/feature_analysis_v1/feature_matrix.csv`|
 |`artifacts/feature_analysis_v1/feature_separation_scores.csv`|`artifacts/feature_analysis_v1/feature_matrix.csv`|
 |`artifacts/feature_analysis_v1/pairwise_auc_matrix.csv`|`artifacts/feature_analysis_v1/feature_matrix.csv`|
 |`artifacts/feature_analysis_v1/pairwise_overlap_heatmap.png`|`artifacts/feature_analysis_v1/pairwise_overlap_matrix.csv`|
@@ -80,6 +82,7 @@ decision"]
 |Report|Primary tables / structured inputs|
 | :---: | :---: |
 |`artifacts/corpus_adequacy_audit_v1/corpus_adequacy_report.md`|corpus_adequacy_scorecard.csv, class_pair_coverage.csv, covariate_leakage_audit.csv, class_balance.csv|
+|`artifacts/static_feature_class_prior_audit_v1/static_audit_report.md`|static_decision_card.md, class_confusability_matrix.csv, feature_relevance_table.csv, prior_pathology_report.csv|
 |`artifacts/feature_analysis_v1/feature_analysis_report.md`|feature_separation_scores.csv, pairwise_auc_matrix.csv, pairwise_overlap_matrix.csv, identifiability_matrix.csv|
 |`artifacts/prior_sensitivity_pointwise_v1/prior_sensitivity_report.md`|prior_sensitivity.csv, prior_flip_thresholds.csv, prior_dominance_metrics.json|
 |`artifacts/generic_corpus_exploration/corpus_exploration_report.md`|candidate_scores.csv, archive_cells.csv, backend_comparison.csv, selected_corpus_manifest.json|
@@ -95,7 +98,7 @@ decision"]
 |Claim|Plot|
 | :---: | :---: |
 |C01 Corpus quality is evaluated before classifier claims.|`plots/corpus_adequacy_scorecard.png`|
-|C02 Feature/class separability can be inspected statically.|`plots/pairwise_overlap_heatmap.png`|
+|C02 Feature/class separability can be inspected statically.|`plots/static_audit_decision_card.png`|
 |C03 Priors are explicitly tested for fragility.|`plots/prior_sensitivity.png`|
 |C04 Classifiers share a posterior/evidence contract.|`plots/pointwise_vs_accumulator_posterior_timelines.png`|
 |C05 1D witness problems prove ladder layers.|`plots/pointwise_vs_accumulator_posterior_timelines.png`|

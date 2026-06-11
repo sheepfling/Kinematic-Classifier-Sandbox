@@ -148,9 +148,20 @@ class AdvancedFilterEvaluationTests(unittest.TestCase):
             self.assertIn("smooth_crossover_status", rbpf_robustness_text)
             with artifacts.gate_matrix_path.open(encoding="utf-8", newline="") as handle:
                 gate_rows = list(csv.DictReader(handle))
+            with artifacts.method_comparison_path.open(encoding="utf-8", newline="") as handle:
+                method_rows = list(csv.DictReader(handle))
             self.assertEqual(
                 {"imm_v1", "particle_filter_bank_v1", "rbpf_v1", "ornstein_uhlenbeck_pf_v1"},
                 {row["method_id"] for row in gate_rows},
+            )
+            pf_method_row = next(row for row in method_rows if row["method_id"] == "particle_filter_bank_v1")
+            self.assertTrue(
+                pf_method_row["artifact_path"].endswith(
+                    "advanced_filter_comparison_v1/gsf_vs_pf_frontier_summary.csv"
+                )
+                or pf_method_row["artifact_path"].endswith(
+                    "pf_abs_range_multimodal_oracle_v1/summary.csv"
+                )
             )
             self.assertTrue(all(row["implemented"] == "yes" for row in gate_rows))
             self.assertTrue(all(row["contract_hooked"] == "yes" for row in gate_rows))

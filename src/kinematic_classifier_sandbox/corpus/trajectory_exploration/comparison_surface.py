@@ -6,6 +6,11 @@ from typing import Iterable, Mapping, Sequence
 from ...utils.io import _write_text, write_csv
 
 
+def _resolve_output_path(run_dir: str | Path, filename: str) -> Path:
+    candidate = Path(run_dir)
+    return candidate if candidate.suffix else candidate / filename
+
+
 def write_comparison_summary_csv(
     run_dir: str | Path,
     rows: Sequence[Mapping[str, object]] | Iterable[Mapping[str, object]],
@@ -13,7 +18,7 @@ def write_comparison_summary_csv(
     filename: str = "summary.csv",
     fieldnames: Sequence[str] | None = None,
 ) -> Path:
-    output_path = Path(run_dir) / filename
+    output_path = _resolve_output_path(run_dir, filename)
     materialized_rows = list(rows)
     if materialized_rows:
         write_csv(output_path, materialized_rows, list(fieldnames or materialized_rows[0].keys()))
@@ -23,13 +28,13 @@ def write_comparison_summary_csv(
 
 
 def write_comparison_markdown(run_dir: str | Path, markdown: str, *, filename: str = "report.md") -> Path:
-    output_path = Path(run_dir) / filename
+    output_path = _resolve_output_path(run_dir, filename)
     _write_text(output_path, markdown)
     return output_path
 
 
 def write_decision_card(run_dir: str | Path, markdown: str, *, filename: str = "decision_card.md") -> Path:
-    output_path = Path(run_dir) / filename
+    output_path = _resolve_output_path(run_dir, filename)
     _write_text(output_path, markdown)
     return output_path
 

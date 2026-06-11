@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .milestone_runs import (
+from .runner import (
     MILESTONE_REGISTRY,
     MilestoneEntry,
     MilestoneRunResult,

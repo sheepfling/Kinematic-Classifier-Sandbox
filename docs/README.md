@@ -23,6 +23,7 @@ This repo is a methodology workbench for kinematic classification studies. Start
 ## Core Terms
 
 - Study Candidate Evaluator: evaluates `s = (D, f, C, m, pi, b)`.
+- Static Feature/Class/Prior Audit: checks whether `(f, C, pi)` is separable, informative, prior-robust, leak-free, and decisionable before corpus generation or classifier escalation.
 - Corpus Explorer: generates, searches, validates, scores, and selects corpora.
 - Algorithm Map: tracks promoted ladder rungs separately from benchmark, neural, calibration, and roadmap lanes.
 - Classifier/Filter Ladder: builds comparable evidence providers.

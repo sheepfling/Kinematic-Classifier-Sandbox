@@ -7,8 +7,7 @@ from pathlib import Path
 
 from ..markdown_builder import MarkdownDocument
 from ..utils.io import write_csv
-from ..utils.plotting import _figure_to_png
-from ..utils.plotting import plt
+from ..utils.plotting import _figure_to_png, plt
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +88,17 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
         evaluation_mode="pure_analysis_plus_artifact_shell",
         showcase_priority="high",
         notes="Good example of analysis-driven recommendation with sweep artifacts.",
+    ),
+    FunctionalSurfaceSpec(
+        surface_id="static_feature_class_prior_audit",
+        category="evaluation",
+        module="kinematic_classifier_sandbox.analysis.static_feature_class_prior_audit",
+        analysis_function="analyze_default_static_feature_class_prior_audit",
+        artifact_function="write_static_feature_class_prior_audit_artifacts",
+        artifact_outputs=("static_audit_report.md", "static_decision_card.md", "static_audit_decision_card.png", "prior_pathology_report.csv"),
+        evaluation_mode="pure_analysis_plus_artifact_shell",
+        showcase_priority="high",
+        notes="Front-door admissibility gate for feature relevance, class separability, prior pathology, coverage, leakage, and decisionability.",
     ),
     FunctionalSurfaceSpec(
         surface_id="embedding_baseline_frontier",

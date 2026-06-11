@@ -76,10 +76,10 @@ specific domain package:
 - `common_experiment_harness.py`: compatibility wrapper over the grouped `common_experiment/` package
 - `common_experiment_classifier_registry.py`: classifier registry for the common harness
 - `common_1d_study_adapter.py`: common 1D study adapter
-- `contracts.py`: shared schemas and contracts
-- `milestones.py`: milestone orchestration
+- `contracts.py`: compatibility wrapper over `schema/` contract modules
+- `milestones.py`: compatibility wrapper over the grouped `milestone_runs/` package
 - `showcase_builder.py`: team-facing showcase packet builder
-- `repo_story.py`: canonical repo-story generator
+- `repo_story.py`: compatibility wrapper over the grouped `story/` package
 
 Root-level compatibility wrappers are not allowed. If a function lives in
 `analysis/`, `corpus/`, `inference/`, `validation/`, `methodology/`, or

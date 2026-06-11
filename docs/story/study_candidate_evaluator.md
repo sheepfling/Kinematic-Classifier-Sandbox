@@ -35,14 +35,16 @@ d in {promote, revise, reject, defer}
 
 ## Static Checks
 
-Static checks run before treating classifier performance as evidence:
+The first static gate ignores the classifier family and asks whether `(f, C, pi)` is admissible before corpus generation or classifier escalation:
 
-- class definition validity
-- feature availability and units
-- feature excitation by class and sensor regime
-- covariate leakage audit
-- pairwise overlap and AUC
-- artifact provenance and schema compatibility
+- class separability and class-pair confusability
+- feature relevance, redundancy, and synergy candidates
+- prior pathology and likelihood-ratio flip thresholds
+- coverage feasibility over observed feature samples
+- leakage risk from provenance, future dependence, metadata, or label-rule overlap
+- decisionability: promote to corpus explorer, revise features/classes/priors, or reject
+
+The canonical static packet is `artifacts/static_feature_class_prior_audit_v1/static_audit_report.md`, with `static_decision_card.md`, `class_confusability_matrix.csv`, `feature_relevance_table.csv`, `feature_redundancy_matrix.csv`, `feature_synergy_candidates.csv`, `prior_pathology_report.csv`, `coverage_static_report.csv`, and `leakage_static_report.csv`.
 
 ## Monte Carlo Checks
 

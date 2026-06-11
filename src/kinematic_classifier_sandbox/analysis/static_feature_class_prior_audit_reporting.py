@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ..utils.plotting import plt
 from .static_feature_class_prior_audit_contracts import StaticFeatureClassPriorAuditResult
 
 
@@ -24,6 +25,54 @@ def render_static_decision_card(result: StaticFeatureClassPriorAuditResult) -> s
         result.decision_card_rows,
         ("lane", "score", "hardest_pair_or_feature", "status", "next_action"),
     )
+
+
+def render_static_decision_card_figure(result: StaticFeatureClassPriorAuditResult):
+    rows = list(result.decision_card_rows)
+    status_colors = {
+        "pass": "#d8f3dc",
+        "candidate": "#fff3bf",
+        "warning": "#ffe8cc",
+        "blocker": "#ffc9c9",
+        "promote_to_corpus_explorer": "#d8f3dc",
+        "revise_feature_set": "#ffe8cc",
+        "revise_class_set": "#ffe8cc",
+        "revise_prior": "#ffe8cc",
+        "reject": "#ffc9c9",
+    }
+    fig, ax = plt.subplots(figsize=(12.5, 5.8))
+    ax.axis("off")
+    columns = ("lane", "score", "hardest_pair_or_feature", "status", "next_action")
+    cell_text = [[_format_float(row.get(column, "")) for column in columns] for row in rows]
+    table = ax.table(
+        cellText=cell_text,
+        colLabels=("lane", "score", "hardest pair / feature", "status", "next action"),
+        loc="center",
+        cellLoc="left",
+        colLoc="left",
+        colWidths=[0.18, 0.10, 0.30, 0.18, 0.24],
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1.0, 1.45)
+    for (row_index, col_index), cell in table.get_celld().items():
+        cell.set_edgecolor("#ced4da")
+        if row_index == 0:
+            cell.set_facecolor("#212529")
+            cell.get_text().set_color("white")
+            cell.get_text().set_weight("bold")
+        elif col_index == 3:
+            status = str(rows[row_index - 1].get("status", ""))
+            cell.set_facecolor(status_colors.get(status, "#f8f9fa"))
+        else:
+            cell.set_facecolor("#ffffff" if row_index % 2 else "#f8f9fa")
+    ax.set_title(
+        "Static Feature/Class/Prior Audit Card",
+        fontsize=14,
+        fontweight="bold",
+        pad=14,
+    )
+    return fig
 
 
 def render_static_feature_class_prior_audit_report(

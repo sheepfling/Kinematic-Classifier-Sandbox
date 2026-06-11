@@ -10,6 +10,9 @@ import numpy as np
 from kinematic_classifier_sandbox.utils.math import _normalize_log_scores
 from kinematic_classifier_sandbox.utils.stats import histogram_overlap, js_divergence
 
+from .static_feature_class_prior_audit_artifact_io import (
+    write_static_feature_class_prior_audit_artifacts,
+)
 from .static_feature_class_prior_audit_contracts import (
     StaticAuditFeatureSchemaEntry,
     StaticAuditSample,
@@ -570,10 +573,57 @@ def analyze_static_feature_class_prior_audit(
         },
     )
 
+
+def analyze_default_static_feature_class_prior_audit(
+    *,
+    seed: int = 7,
+    trajectories_per_class: int = 5,
+    feature_analysis_result: object | None = None,
+    priors: dict[str, float] | None = None,
+) -> StaticFeatureClassPriorAuditResult:
+    if feature_analysis_result is None:
+        from .feature_analysis import analyze_feature_datasets
+
+        feature_analysis_result = analyze_feature_datasets(
+            seed=seed,
+            trajectories_per_class=trajectories_per_class,
+        )
+
+    from .feature_analysis import FEATURE_REGISTRY
+
+    feature_names = tuple(feature_analysis_result.summary.feature_names)
+    samples = tuple(
+        StaticAuditSample(
+            true_class=row.true_class,
+            sample_id=row.trajectory_id,
+            feature_values={feature_name: row.feature_values[feature_name] for feature_name in feature_names},
+        )
+        for row in feature_analysis_result.feature_rows
+    )
+    feature_schema = tuple(
+        StaticAuditFeatureSchemaEntry(
+            name=feature_name,
+            provenance_tags=FEATURE_REGISTRY[feature_name].dependency_tags,
+            online_available="future" not in FEATURE_REGISTRY[feature_name].dependency_tags,
+            label_rule_overlap=False,
+        )
+        for feature_name in feature_names
+        if feature_name in FEATURE_REGISTRY
+    )
+    return analyze_static_feature_class_prior_audit(
+        samples,
+        priors=priors,
+        feature_schema=feature_schema,
+        feature_names=feature_names,
+        study_name="default_kinematic_feature_class_prior_gate",
+    )
+
 __all__ = [
     "StaticAuditFeatureSchemaEntry",
     "StaticAuditSample",
     "StaticFeatureClassPriorAuditResult",
+    "analyze_default_static_feature_class_prior_audit",
     "analyze_static_feature_class_prior_audit",
     "render_static_feature_class_prior_audit_report",
+    "write_static_feature_class_prior_audit_artifacts",
 ]

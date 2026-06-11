@@ -41,6 +41,7 @@ class StaticFeatureClassPriorAuditArtifacts:
     run_dir: Path
     report_path: Path
     decision_card_path: Path
+    decision_card_png_path: Path
     class_confusability_matrix_path: Path
     feature_relevance_table_path: Path
     feature_redundancy_matrix_path: Path

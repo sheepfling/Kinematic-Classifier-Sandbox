@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 import csv
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..utils.runtime import repo_root
-
 
 REPO_ROOT = repo_root()
 PACKAGE_ROOT = REPO_ROOT / "src" / "kinematic_classifier_sandbox"
@@ -23,10 +22,8 @@ ORCHESTRATION_ROOT_MODULES = {
     "artifacts.py",
     "common_1d_study_adapter.py",
     "common_experiment_classifier_registry.py",
-    "contracts.py",
     "contracts_rendering.py",
     "markdown_builder.py",
-    "milestones.py",
     "runtime_paths.py",
     "scenarios.py",
     "showcase_builder.py",
@@ -47,6 +44,7 @@ LEGACY_COMPAT_WRAPPER_MODULES = {
     "catalog.py",
     "common_dataset_comparison.py",
     "common_experiment_harness.py",
+    "contracts.py",
     "corpus_adequacy_audit.py",
     "corpus_autodevelopment.py",
     "coverage_report.py",
@@ -69,12 +67,14 @@ LEGACY_COMPAT_WRAPPER_MODULES = {
     "kalman_variant_comparison.py",
     "methodology_compendium.py",
     "methodology_latex.py",
+    "milestones.py",
     "monte_carlo_benchmark.py",
     "pca_analysis.py",
     "pca_dimensionality_audit.py",
     "pointwise_baseline.py",
     "posterior_explainer.py",
     "prior_sensitivity_analysis.py",
+    "repo_story.py",
     "sequential_bayes_accumulator.py",
     "shared_evaluation.py",
     "short_horizon_identifiability.py",
@@ -109,7 +109,6 @@ LEGACY_ROOT_DEBT_MODULES = {
     "objective_corpus_gym_runner.py",
     "objective_driven_qd_archive.py",
     "quality_diversity_corpus.py",
-    "repo_story.py",
     "rl_backend_decision.py",
     "selected_generated_corpus.py",
 }
