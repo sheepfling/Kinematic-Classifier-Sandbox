@@ -27,6 +27,18 @@ from kinematic_classifier_sandbox.advanced_filters.oracle_pf_1d import (
 from kinematic_classifier_sandbox.advanced_filters.oracle_gsf_1d import (
     write_gsf_abs_range_multimodal_witness_artifacts,
 )
+from kinematic_classifier_sandbox.advanced_filters.oracle_ukf_1d import (
+    write_ukf_nonlinear_unimodal_witness_artifacts,
+)
+from kinematic_classifier_sandbox.advanced_filters.oracle_student_t_1d import (
+    write_student_t_heavy_tail_witness_artifacts,
+)
+from kinematic_classifier_sandbox.advanced_filters.hsmm_duration_witness import (
+    write_hsmm_duration_limited_witness_artifacts,
+)
+from kinematic_classifier_sandbox.advanced_filters.bocpd_onset_witness import (
+    write_bocpd_unknown_onset_witness_artifacts,
+)
 from kinematic_classifier_sandbox.advanced_filters.ou_witness import (
     write_ornstein_uhlenbeck_witness_artifacts,
 )
@@ -57,6 +69,30 @@ from kinematic_classifier_sandbox.validation.validation_ladder import write_vali
 from kinematic_classifier_sandbox.analysis.common_dataset_comparison_artifact_io import (
     write_common_dataset_comparison_artifacts,
 )
+from kinematic_classifier_sandbox.analysis.cmaes_generator_witness import (
+    write_continuous_generator_frontier_artifacts,
+)
+from kinematic_classifier_sandbox.analysis.shapelet_motif_witness import (
+    write_shapelet_maneuver_motif_witness_artifacts,
+)
+from kinematic_classifier_sandbox.analysis.gradient_boosted_feature_witness import (
+    write_feature_headroom_frontier_artifacts,
+)
+from kinematic_classifier_sandbox.analysis.neural_sequence_frontier import (
+    write_neural_sequence_vs_physics_frontier_artifacts,
+)
+from kinematic_classifier_sandbox.analysis.sequential_control_generator_frontier import (
+    write_sequential_control_generator_frontier_artifacts,
+)
+from kinematic_classifier_sandbox.analysis.sequential_offpolicy_control_frontier import (
+    write_sequential_offpolicy_control_frontier_artifacts,
+)
+from kinematic_classifier_sandbox.analysis.tsc_archive_frontier import (
+    write_tsc_archive_baseline_frontier_artifacts,
+)
+from kinematic_classifier_sandbox.analysis.sequential_offpolicy_control_frontier import (
+    write_sequential_offpolicy_control_frontier_artifacts,
+)
 from kinematic_classifier_sandbox.analysis.dimensional_lift_audit_artifact_io import (
     write_dimensional_lift_audit_artifacts,
 )
@@ -66,6 +102,9 @@ from kinematic_classifier_sandbox.analysis.feature_analysis import (
 from kinematic_classifier_sandbox.analysis.feature_analysis_artifact_io import write_feature_analysis_artifacts
 from kinematic_classifier_sandbox.analysis.generated_corpus_features import (
     write_generated_corpus_feature_artifacts,
+)
+from kinematic_classifier_sandbox.analysis.embedding_baseline_frontier import (
+    write_embedding_baseline_frontier_artifacts,
 )
 from kinematic_classifier_sandbox.analysis.pca_analysis_artifact_io import write_pca_analysis_artifacts
 from kinematic_classifier_sandbox.analysis.pca_dimensionality_audit import (
@@ -478,6 +517,10 @@ def main() -> int:
     particle_filter_artifacts = write_particle_filter_witness_artifacts(ROOT / "artifacts")
     pf_oracle_artifacts = write_pf_abs_range_multimodal_witness_artifacts(ROOT / "artifacts")
     gsf_oracle_artifacts = write_gsf_abs_range_multimodal_witness_artifacts(ROOT / "artifacts")
+    ukf_oracle_artifacts = write_ukf_nonlinear_unimodal_witness_artifacts(ROOT / "artifacts")
+    student_t_oracle_artifacts = write_student_t_heavy_tail_witness_artifacts(ROOT / "artifacts")
+    hsmm_duration_artifacts = write_hsmm_duration_limited_witness_artifacts(ROOT / "artifacts")
+    bocpd_onset_artifacts = write_bocpd_unknown_onset_witness_artifacts(ROOT / "artifacts")
     rbpf_artifacts = write_rbpf_witness_artifacts(ROOT / "artifacts")
     ou_witness_artifacts = write_ornstein_uhlenbeck_witness_artifacts(ROOT / "artifacts")
     advanced_filter_comparison_artifacts = write_advanced_filter_comparison_artifacts(ROOT / "artifacts")
@@ -497,6 +540,14 @@ def main() -> int:
     cross_method_prior_artifacts = write_cross_method_prior_comparison_artifacts(ROOT / "artifacts", result=cross_method_prior_result)
     technique_comparison_artifacts = write_technique_comparison_artifacts(ROOT / "artifacts")
     common_dataset_comparison_artifacts = write_common_dataset_comparison_artifacts(ROOT / "artifacts")
+    shapelet_motif_artifacts = write_shapelet_maneuver_motif_witness_artifacts(ROOT / "artifacts")
+    feature_headroom_artifacts = write_feature_headroom_frontier_artifacts(ROOT / "artifacts")
+    embedding_baseline_artifacts = write_embedding_baseline_frontier_artifacts(ROOT / "artifacts")
+    neural_sequence_frontier_artifacts = write_neural_sequence_vs_physics_frontier_artifacts(ROOT / "artifacts")
+    tsc_archive_frontier_artifacts = write_tsc_archive_baseline_frontier_artifacts(ROOT / "artifacts")
+    cmaes_generator_frontier_artifacts = write_continuous_generator_frontier_artifacts(ROOT / "artifacts")
+    sequential_control_frontier_artifacts = write_sequential_control_generator_frontier_artifacts(ROOT / "artifacts")
+    sequential_offpolicy_frontier_artifacts = write_sequential_offpolicy_control_frontier_artifacts(ROOT / "artifacts")
     common_experiment_artifacts = write_common_experiment_artifacts(ROOT / "artifacts")
     boundary_common_experiment_artifacts = write_common_experiment_artifacts(
         ROOT / "artifacts",
@@ -782,6 +833,12 @@ def main() -> int:
     print(corpus_search_baseline_artifacts.report_path)
     print(quality_diversity_corpus_artifacts.run_dir)
     print(quality_diversity_corpus_artifacts.report_path)
+    print(embedding_baseline_artifacts.run_dir)
+    print(embedding_baseline_artifacts.report_path)
+    print(sequential_control_frontier_artifacts.run_dir)
+    print(sequential_control_frontier_artifacts.report_path)
+    print(sequential_offpolicy_frontier_artifacts.run_dir)
+    print(sequential_offpolicy_frontier_artifacts.report_path)
     print(adaptive_stress_corpus_artifacts.run_dir)
     print(adaptive_stress_corpus_artifacts.report_path)
     print(rl_backend_decision_artifacts.run_dir)

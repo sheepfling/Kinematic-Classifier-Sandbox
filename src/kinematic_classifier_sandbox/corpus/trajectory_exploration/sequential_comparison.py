@@ -8,6 +8,7 @@ import numpy as np
 
 from ...utils.io import _write_json, _write_text, write_csv
 from ...utils.plotting import plt, write_plot
+from .comparison_surface import write_comparison_summary_csv, write_decision_card
 from .contracts import TrajectoryExplorationObjective
 from .ppo_boundary_control import (
     SequentialPpoConfig,
@@ -738,7 +739,21 @@ def write_sequential_ppo_vs_cem_comparison_artifacts(
     write_csv(control_sequences_path, list(result.control_rows), list(result.control_rows[0].keys()))
     write_csv(progress_rows_path, list(result.progress_rows), list(result.progress_rows[0].keys()))
     write_csv(strengths_limits_path, list(result.strengths_limits_rows), list(result.strengths_limits_rows[0].keys()))
+    write_comparison_summary_csv(run_dir, result.aggregate_backend_metrics_rows, filename="summary.csv")
     _write_text(report_path, result.report_markdown)
+    write_decision_card(
+        run_dir,
+        "\n".join(
+            [
+                "# Decision Card",
+                "",
+                f"- promoted backend: `{result.backend_decision_rows[0]['backend_id'] if result.backend_decision_rows else ''}`",
+                f"- top aggregate backend: `{result.aggregate_backend_metrics_rows[0]['backend_id'] if result.aggregate_backend_metrics_rows else ''}`",
+                f"- seed count: `{result.config_payload['seed_count']}`",
+                f"- report: `report.md`",
+            ]
+        ),
+    )
     write_plot(_render_progress_plot(list(result.progress_rows)), progress_plot_path)
     write_plot(_render_backend_metrics_plot(list(result.aggregate_backend_metrics_rows)), backend_metrics_plot_path)
     write_plot(_render_control_gallery(list(result.ppo_gallery_rollouts), list(result.cem_gallery_rollouts)), control_gallery_path)
@@ -1018,7 +1033,20 @@ def write_sequential_objective_sweep_comparison_artifacts(
     write_csv(backend_summary_path, list(result.backend_summary_rows), list(result.backend_summary_rows[0].keys()))
     write_csv(decision_summary_path, list(result.decision_summary_rows), list(result.decision_summary_rows[0].keys()))
     write_csv(objective_backend_matrix_path, list(result.objective_backend_matrix_rows), list(result.objective_backend_matrix_rows[0].keys()))
+    write_comparison_summary_csv(run_dir, result.backend_summary_rows, filename="summary.csv")
     _write_text(report_path, result.report_markdown)
+    write_decision_card(
+        run_dir,
+        "\n".join(
+            [
+                "# Decision Card",
+                "",
+                f"- best backend: `{result.backend_summary_rows[0]['backend_id'] if result.backend_summary_rows else ''}`",
+                f"- objective count: `{len(result.objective_summary_rows)}`",
+                f"- promoted decisions: `{sum(1 for row in result.decision_summary_rows if row.get('status') == 'promote')}`",
+            ]
+        ),
+    )
     write_plot(_render_objective_backend_heatmap(list(result.objective_backend_matrix_rows)), objective_backend_heatmap_path)
 
     artifacts = SequentialObjectiveSweepArtifacts(

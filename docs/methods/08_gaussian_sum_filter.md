@@ -30,11 +30,14 @@ The GSF witness emits:
 ## Current Read
 
 The current GSF witness is strong enough to mark the method
-`witness_supported` on the abs-range multimodal family. It is not yet
-`study_justified` because the repo still lacks:
+`witness_supported` on the abs-range multimodal family. The repo now also
+emits a direct GSF-vs-PF frontier under
+`artifacts/advanced_filter_comparison_v1/gsf_vs_pf_frontier_summary.csv`.
+The current crossover is `metric_split`: GSF is dramatically cheaper and has
+lower oracle KL, while PF still holds the better sign-mass error.
 
-- particle-count and seed robustness sweeps for GSF,
-- direct complexity-normalized comparison against PF across the same sweep,
+GSF is still not `study_justified` because the repo lacks:
+
 - comparison against future UKF and robust-Kalman blockers.
 
 ## Research Note

@@ -6,6 +6,7 @@ from pathlib import Path
 from ...markdown_builder import MarkdownDocument
 from ...utils.io import _write_json, _write_text, write_csv
 from ...utils.plotting import _figure_to_png, plt
+from .comparison_surface import write_comparison_summary_csv
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,7 +100,7 @@ def default_exploration_backend_specs() -> tuple[ExplorationBackendSpec, ...]:
             backend_id="latin_hypercube",
             display_name="Grid / Latin hypercube search",
             family="baseline_search",
-            implementation_status="planned",
+            implementation_status="implemented",
             evaluation_phase="phase_1",
             search_mode="parameter_proposal",
             requires_training=False,
@@ -109,13 +110,13 @@ def default_exploration_backend_specs() -> tuple[ExplorationBackendSpec, ...]:
             ready_1d=True,
             lift_ready_3d=True,
             benchmark_priority="near_term",
-            notes="Explicit low-variance DOE baseline for more disciplined fixed-budget comparisons.",
+            notes="Explicit low-variance stratified proposal baseline for disciplined fixed-budget comparisons.",
         ),
         ExplorationBackendSpec(
             backend_id="cmaes",
             display_name="CMA-ES",
             family="black_box_optimization",
-            implementation_status="planned",
+            implementation_status="implemented",
             evaluation_phase="phase_1",
             search_mode="parameter_proposal",
             requires_training=False,
@@ -125,13 +126,13 @@ def default_exploration_backend_specs() -> tuple[ExplorationBackendSpec, ...]:
             ready_1d=True,
             lift_ready_3d=True,
             benchmark_priority="near_term",
-            notes="High-value continuous optimizer for difficult nonconvex witness and corpus objectives.",
+            notes="Diagonal covariance-adapting optimizer for difficult nonconvex witness and corpus objectives under the shared proposal contract.",
         ),
         ExplorationBackendSpec(
             backend_id="bayesian_optimization",
             display_name="Bayesian optimization",
             family="black_box_optimization",
-            implementation_status="planned",
+            implementation_status="implemented",
             evaluation_phase="phase_2",
             search_mode="parameter_proposal",
             requires_training=False,
@@ -141,7 +142,7 @@ def default_exploration_backend_specs() -> tuple[ExplorationBackendSpec, ...]:
             ready_1d=True,
             lift_ready_3d=True,
             benchmark_priority="sample_efficiency",
-            notes="Candidate for expensive backends where evaluation count matters more than wall-clock simplicity.",
+            notes="Acquisition-guided proposal search for settings where evaluation count matters more than brute-force population size.",
         ),
         ExplorationBackendSpec(
             backend_id="map_elites",
@@ -366,6 +367,7 @@ def write_exploration_backend_registry_artifacts(
 
     _write_text(report_path, payload.report_markdown)
     _write_json(summary_path, payload.summary)
+    write_comparison_summary_csv(run_dir, payload.family_rows, filename="summary.csv")
     write_csv(spec_table_path, [asdict(spec) for spec in payload.specs], list(asdict(payload.specs[0]).keys()))
     _write_json(inventory_path, [asdict(spec) for spec in payload.specs])
     write_csv(

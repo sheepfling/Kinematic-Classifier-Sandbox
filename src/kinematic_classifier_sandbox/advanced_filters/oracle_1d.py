@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy.random as random
 from numpy import arange, array, cumsum, float64, mean, sqrt
 
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import write_comparison_summary_csv
 from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import plt
@@ -86,6 +87,7 @@ class LinearGaussianNegativeControlArtifacts:
     grid_oracle_posterior_path: Path
     method_posterior_path: Path
     state_estimate_history_path: Path
+    summary_path: Path
     metrics_path: Path
     decision_card_path: Path
     plot_paths: tuple[Path, ...]
@@ -261,6 +263,7 @@ def write_linear_gaussian_negative_control_artifacts(
     oracle_posterior_path = run_dir / "grid_oracle_posterior_history.csv"
     method_posterior_path = run_dir / "method_posterior_history.csv"
     state_path = run_dir / "state_estimate_history.csv"
+    summary_path = run_dir / "summary.csv"
     metrics_path = run_dir / "metrics_against_oracle.csv"
     decision_card_path = run_dir / "decision_card.md"
     overlay_plot_path = plot_dir / "final_posterior_overlay.png"
@@ -295,6 +298,7 @@ def write_linear_gaussian_negative_control_artifacts(
             "kalman_contains_truth_95",
         ],
     )
+    write_comparison_summary_csv(summary_path, [analysis.metrics])
     write_csv(metrics_path, [analysis.metrics], list(analysis.metrics))
     decision_card_path.write_text(_render_negative_control_decision_card(analysis), encoding="utf-8")
     _write_negative_control_plots(analysis, overlay_plot_path, mean_plot_path)
@@ -305,6 +309,7 @@ def write_linear_gaussian_negative_control_artifacts(
         grid_oracle_posterior_path=oracle_posterior_path,
         method_posterior_path=method_posterior_path,
         state_estimate_history_path=state_path,
+        summary_path=summary_path,
         metrics_path=metrics_path,
         decision_card_path=decision_card_path,
         plot_paths=(overlay_plot_path, mean_plot_path),

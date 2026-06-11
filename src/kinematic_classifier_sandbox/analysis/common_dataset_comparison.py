@@ -35,6 +35,11 @@ from .common_dataset_comparison_reporting import render_common_dataset_compariso
 
 
 CLASS_NAMES = ("constant_velocity", "constant_acceleration")
+_ROCKET_PROXY_KERNEL_SPECS = (
+    (3, (-1.0, 2.0, -1.0)),
+    (5, (1.0, -1.0, 0.0, 1.0, -1.0)),
+    (7, (-1.0, 0.5, 1.0, 0.0, -1.0, 0.5, 1.0)),
+)
 
 
 def _normalize_prior(prior: dict[str, float] | None) -> dict[str, float]:
@@ -68,6 +73,22 @@ def _shared_method_specs() -> tuple[SharedClassifierMethodSpec, ...]:
             capabilities=SharedMethodCapabilities(False, True, False, False, False, False, False),
         ),
         SharedClassifierMethodSpec(
+            method_name="rocket_proxy",
+            sensor_regime_id="position_only",
+            primary_evaluation_family="shared_binary_dynamics",
+            supported_scenario_families=("shared_binary_dynamics",),
+            witness_artifact="artifacts/common_dataset_comparison_v1/method_summary.csv",
+            capabilities=SharedMethodCapabilities(False, False, False, False, False, False, False),
+        ),
+        SharedClassifierMethodSpec(
+            method_name="ts2vec_proxy",
+            sensor_regime_id="position_only",
+            primary_evaluation_family="shared_binary_dynamics",
+            supported_scenario_families=("shared_binary_dynamics",),
+            witness_artifact="artifacts/embedding_baseline_frontier_v1/metric_summary.csv",
+            capabilities=SharedMethodCapabilities(False, False, False, False, False, False, False),
+        ),
+        SharedClassifierMethodSpec(
             method_name="accumulator",
             sensor_regime_id="position_only",
             primary_evaluation_family="shared_binary_dynamics",
@@ -95,7 +116,7 @@ def _shared_method_specs() -> tuple[SharedClassifierMethodSpec, ...]:
             method_name="particle_filter_bank",
             sensor_regime_id="position_only",
             primary_evaluation_family="abs_range_multimodal",
-            supported_scenario_families=("abs_range_multimodal", "ou_mean_reversion"),
+            supported_scenario_families=("abs_range_multimodal", "nonlinear_drag_outlier", "ou_mean_reversion"),
             witness_artifact="artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
             capabilities=SharedMethodCapabilities(False, True, True, False, True, True, True),
         ),
@@ -229,6 +250,78 @@ def _windowed_predict(trajectory: SharedDynamicsTrajectory, *, robust: bool, pri
     return CommonMethodRun(method_name, "position_only", trajectory.trajectory_id, trajectory.true_class, trajectory.scenario_name, predicted, weights[predicted], weights, trajectory.measurement_dim, trajectory.coordinate_frame)
 
 
+def _convolution_features(values: tuple[float, ...]) -> tuple[float, ...]:
+    series = list(values)
+    if len(series) < 3:
+        return (0.0, 0.0, 0.0, 0.0)
+    features: list[float] = []
+    centered = [value - sum(series) / len(series) for value in series]
+    for kernel_length, weights in _ROCKET_PROXY_KERNEL_SPECS:
+        responses: list[float] = []
+        if len(centered) < kernel_length:
+            continue
+        for start in range(len(centered) - kernel_length + 1):
+            window = centered[start : start + kernel_length]
+            responses.append(sum(weight * value for weight, value in zip(weights, window, strict=True)))
+        positive_fraction = sum(1.0 if response > 0.0 else 0.0 for response in responses) / max(len(responses), 1)
+        features.append(positive_fraction)
+        features.append(max(responses))
+    slope = (series[-1] - series[0]) / max(len(series) - 1, 1)
+    curvature = series[-1] - 2.0 * series[len(series) // 2] + series[0]
+    features.extend((slope, curvature))
+    return tuple(features)
+
+
+def _rocket_reference_features(class_name: str, scenario_name: str, times: tuple[float, ...]) -> tuple[float, ...]:
+    expected = tuple(_class_expected_position(class_name, time, scenario_name) for time in times)
+    return _convolution_features(expected)
+
+
+def _rocket_proxy_predict(trajectory: SharedDynamicsTrajectory, *, prior: dict[str, float] | None = None) -> CommonMethodRun:
+    prior_weights = _normalize_prior(prior)
+    observed_features = _convolution_features(trajectory.measurements)
+    reference_features = {
+        class_name: _rocket_reference_features(class_name, trajectory.scenario_name, trajectory.times)
+        for class_name in CLASS_NAMES
+    }
+    log_scores = {}
+    for class_name in CLASS_NAMES:
+        squared_distance = sum(
+            (observed - reference) ** 2
+            for observed, reference in zip(observed_features, reference_features[class_name], strict=True)
+        )
+        log_scores[class_name] = log(max(prior_weights[class_name], 1e-12)) - 0.5 * squared_distance
+    weights = _normalize_log_scores(log_scores)
+    predicted = max(weights, key=weights.get)
+    return CommonMethodRun("rocket_proxy", "position_only", trajectory.trajectory_id, trajectory.true_class, trajectory.scenario_name, predicted, weights[predicted], weights, trajectory.measurement_dim, trajectory.coordinate_frame)
+
+
+def _ts2vec_proxy_predict(
+    trajectory: SharedDynamicsTrajectory,
+    *,
+    classifier,
+) -> CommonMethodRun:
+    from .embedding_baseline_frontier import predict_ts2vec_proxy
+
+    predicted, confidence, weights = predict_ts2vec_proxy(
+        trajectory,
+        classifier=classifier,
+        strategy="nn",
+    )
+    return CommonMethodRun(
+        "ts2vec_proxy",
+        "position_only",
+        trajectory.trajectory_id,
+        trajectory.true_class,
+        trajectory.scenario_name,
+        predicted,
+        confidence,
+        weights,
+        trajectory.measurement_dim,
+        trajectory.coordinate_frame,
+    )
+
+
 def _shared_kalman_model_specs(prior_weights: dict[str, float]) -> tuple[KalmanModelSpec, ...]:
     return (
         KalmanModelSpec("constant_velocity_quiet", "constant_velocity", 2, 0.14, 0.20, 5.0, 0.75 * prior_weights["constant_velocity"]),
@@ -288,6 +381,10 @@ def _predict_with_method(method_name: str, trajectory: SharedDynamicsTrajectory,
         return _windowed_predict(trajectory, robust=False, prior=prior)
     if method_name == "windowed_robust":
         return _windowed_predict(trajectory, robust=True, prior=prior)
+    if method_name == "rocket_proxy":
+        return _rocket_proxy_predict(trajectory, prior=prior)
+    if method_name == "ts2vec_proxy":
+        raise ValueError("ts2vec_proxy requires a fitted classifier and is not available through the stateless dispatch path")
     if method_name == "accumulator":
         return _accumulator_predict(trajectory, prior=prior)
     if method_name == "kalman_bank":
@@ -301,21 +398,46 @@ def _predict_with_method(method_name: str, trajectory: SharedDynamicsTrajectory,
     raise ValueError(f"Unsupported method: {method_name}")
 
 
-def default_shared_classifier_adapters() -> tuple[CallableSharedClassifierAdapter, ...]:
+def default_shared_classifier_adapters(
+    trajectories: tuple[SharedDynamicsTrajectory, ...] | None = None,
+) -> tuple[CallableSharedClassifierAdapter, ...]:
     specs = {spec.method_name: spec for spec in _shared_method_specs()}
-    return (
+    ts2vec_classifier = None
+    if trajectories is not None:
+        from .embedding_baseline_frontier import fit_ts2vec_proxy_classifier
+
+        ts2vec_classifier = fit_ts2vec_proxy_classifier(trajectories)
+    adapters: list[CallableSharedClassifierAdapter] = [
         CallableSharedClassifierAdapter(specs["pointwise"], lambda trajectory, prior=None: _pointwise_predict(trajectory, prior=prior)),
         CallableSharedClassifierAdapter(specs["windowed_raw"], lambda trajectory, prior=None: _windowed_predict(trajectory, robust=False, prior=prior)),
         CallableSharedClassifierAdapter(specs["windowed_robust"], lambda trajectory, prior=None: _windowed_predict(trajectory, robust=True, prior=prior)),
-        CallableSharedClassifierAdapter(specs["accumulator"], lambda trajectory, prior=None: _accumulator_predict(trajectory, prior=prior)),
-        CallableSharedClassifierAdapter(specs["kalman_bank"], lambda trajectory, prior=None: _kalman_predict(trajectory, prior=prior)),
-        CallableSharedClassifierAdapter(specs["kalman_bank_velocity_aided"], lambda trajectory, prior=None: _kalman_velocity_aided_predict(trajectory, prior=prior)),
-        CallableSharedClassifierAdapter(specs["particle_filter_bank"], lambda trajectory, prior=None: _particle_filter_predict(trajectory, prior=prior)),
-        CallableSharedClassifierAdapter(specs["rbpf"], lambda trajectory, prior=None: _rbpf_predict(trajectory, prior=prior)),
+        CallableSharedClassifierAdapter(specs["rocket_proxy"], lambda trajectory, prior=None: _rocket_proxy_predict(trajectory, prior=prior)),
+    ]
+    if ts2vec_classifier is not None:
+        adapters.append(
+            CallableSharedClassifierAdapter(
+                specs["ts2vec_proxy"],
+                lambda trajectory, prior=None: _ts2vec_proxy_predict(trajectory, classifier=ts2vec_classifier),
+            )
+        )
+    adapters.extend(
+        [
+            CallableSharedClassifierAdapter(specs["accumulator"], lambda trajectory, prior=None: _accumulator_predict(trajectory, prior=prior)),
+            CallableSharedClassifierAdapter(specs["kalman_bank"], lambda trajectory, prior=None: _kalman_predict(trajectory, prior=prior)),
+            CallableSharedClassifierAdapter(specs["kalman_bank_velocity_aided"], lambda trajectory, prior=None: _kalman_velocity_aided_predict(trajectory, prior=prior)),
+            CallableSharedClassifierAdapter(specs["particle_filter_bank"], lambda trajectory, prior=None: _particle_filter_predict(trajectory, prior=prior)),
+            CallableSharedClassifierAdapter(specs["rbpf"], lambda trajectory, prior=None: _rbpf_predict(trajectory, prior=prior)),
+        ]
     )
+    return tuple(adapters)
 
 
-def _shared_prior_flip_fraction(method_name: str, trajectories: tuple[SharedDynamicsTrajectory, ...]) -> float:
+def _shared_prior_flip_fraction(
+    method_name: str,
+    trajectories: tuple[SharedDynamicsTrajectory, ...],
+    *,
+    classifier: CallableSharedClassifierAdapter | None = None,
+) -> float:
     base_prior = {"constant_velocity": 0.5, "constant_acceleration": 0.5}
     priors_to_compare = (
         {"constant_velocity": 0.25, "constant_acceleration": 0.75},
@@ -323,8 +445,12 @@ def _shared_prior_flip_fraction(method_name: str, trajectories: tuple[SharedDyna
     )
     flip_count = 0
     for trajectory in trajectories:
-        baseline = _predict_with_method(method_name, trajectory, prior=base_prior).final_predicted_class
-        alternatives = [_predict_with_method(method_name, trajectory, prior=prior).final_predicted_class for prior in priors_to_compare]
+        if classifier is None:
+            baseline = _predict_with_method(method_name, trajectory, prior=base_prior).final_predicted_class
+            alternatives = [_predict_with_method(method_name, trajectory, prior=prior).final_predicted_class for prior in priors_to_compare]
+        else:
+            baseline = classifier.predict_trajectory(trajectory, prior=base_prior).final_predicted_class
+            alternatives = [classifier.predict_trajectory(trajectory, prior=prior).final_predicted_class for prior in priors_to_compare]
         if any(predicted != baseline for predicted in alternatives):
             flip_count += 1
     return flip_count / len(trajectories)
@@ -332,7 +458,7 @@ def _shared_prior_flip_fraction(method_name: str, trajectories: tuple[SharedDyna
 
 def analyze_common_dataset_comparison(*, seed: int = 7, trajectories_per_case: int = 8) -> CommonComparisonResult:
     trajectories = generate_shared_dynamics_dataset(seed=seed, trajectories_per_case=trajectories_per_case)
-    classifiers = default_shared_classifier_adapters()
+    classifiers = default_shared_classifier_adapters(trajectories)
     method_specs = tuple(classifier.method_spec for classifier in classifiers)
     shared_classifiers = tuple(classifier for classifier in classifiers if "shared_binary_dynamics" in classifier.method_spec.supported_scenario_families)
     runs = evaluate_shared_classifier_registry(trajectories, shared_classifiers)
@@ -361,7 +487,7 @@ def analyze_common_dataset_comparison(*, seed: int = 7, trajectories_per_case: i
                 short_accuracy=_scenario_accuracy("short"),
                 noisy_accuracy=_scenario_accuracy("short_noisy"),
                 outlier_accuracy=_scenario_accuracy("outlier"),
-                prior_flip_fraction=_shared_prior_flip_fraction(method_name, trajectories),
+                prior_flip_fraction=_shared_prior_flip_fraction(method_name, trajectories, classifier=classifier if method_name == "ts2vec_proxy" else None),
             )
         )
     for spec in method_specs:

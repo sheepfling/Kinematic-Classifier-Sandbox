@@ -14,6 +14,11 @@ The repo now separates method tracking status from failure status.
 | `study_justified` | Robustness and complexity gates pass for that witness family |
 | `generalized` | Reserved for broader evidence across witnesses and corpora |
 
+The `learning_evidence` lane uses the same ladder. Supervised tabular
+baselines can be `witness_supported` when calibration and split discipline are
+audited; compact sequence learners and unsupervised discovery stay at
+`researched` until their evidence contracts are defined and validated.
+
 ## Failure Ladder
 
 | Failure status | Meaning |

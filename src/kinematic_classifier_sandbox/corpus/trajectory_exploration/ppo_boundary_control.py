@@ -9,6 +9,7 @@ import numpy as np
 
 from ...utils.io import _write_json, _write_text, write_csv
 from ...utils.plotting import plt, write_plot
+from .comparison_surface import write_comparison_summary_csv, write_decision_card
 from .contracts import TrajectoryExplorationObjective
 from .objective_generation import generate_trajectory_exploration_objective_suite
 from .sequential_gym import (
@@ -778,6 +779,7 @@ def write_sequential_ppo_boundary_control_artifacts(
     feature_progress_path = run_dir / "feature_progress.png"
     class_space_progress_path = run_dir / "class_space_progress.png"
     ppo_vs_heuristics_path = run_dir / "ppo_vs_heuristics.csv"
+    summary_path = run_dir / "summary.csv"
     report_path = run_dir / "report.md"
     rl_algorithm_decision_report_path = rl_dir / "rl_algorithm_decision_report.md"
 
@@ -809,10 +811,13 @@ def write_sequential_ppo_boundary_control_artifacts(
         snapshot_rows_path.write_text("timesteps,mean_total_utility\n", encoding="utf-8")
     if result.ppo_vs_heuristics_rows:
         write_csv(ppo_vs_heuristics_path, list(result.ppo_vs_heuristics_rows), list(result.ppo_vs_heuristics_rows[0].keys()))
+        write_comparison_summary_csv(run_dir, result.ppo_vs_heuristics_rows, filename="summary.csv")
     else:
         ppo_vs_heuristics_path.write_text("backend_id\n", encoding="utf-8")
+        summary_path.write_text("backend_id\n", encoding="utf-8")
     _write_text(report_path, result.report_markdown)
     _write_text(rl_algorithm_decision_report_path, result.rl_algorithm_decision_report_markdown)
+    write_decision_card(run_dir, result.rl_algorithm_decision_report_markdown)
     write_plot(_render_training_curve(list(result.training_curve_rows)), training_curve_path)
     write_plot(_render_rollout_gallery(list(result.gallery_rollouts)), rollout_gallery_path)
     write_plot(
@@ -941,13 +946,28 @@ def write_generated_trajectory_objective_ppo_sweep_artifacts(
     )
     manifest_path = run_dir / "manifest.json"
     summary_rows_path = run_dir / "summary_rows.csv"
+    summary_path = run_dir / "summary.csv"
     report_path = run_dir / "report.md"
     _write_json(manifest_path, manifest)
     if summary_rows:
         write_csv(summary_rows_path, summary_rows, list(summary_rows[0].keys()))
+        write_comparison_summary_csv(run_dir, summary_rows, filename="summary.csv")
     else:
         summary_rows_path.write_text("objective_id\n", encoding="utf-8")
+        summary_path.write_text("objective_id\n", encoding="utf-8")
     _write_text(report_path, report)
+    write_decision_card(
+        run_dir,
+        "\n".join(
+            [
+                "# Decision Card",
+                "",
+                f"- source spec id: `{suite.spec.spec_id}`",
+                f"- objective count: `{len(selected_objectives)}`",
+                f"- report: `report.md`",
+            ]
+        ),
+    )
     return SequentialPpoSweepArtifacts(
         run_dir=run_dir,
         manifest_path=manifest_path,

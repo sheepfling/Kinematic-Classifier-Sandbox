@@ -120,6 +120,7 @@ class TrajectoryExplorationBenchmarkResult:
     budget_efficiency_rows: tuple[dict[str, object], ...]
     backend_status_rows: tuple[dict[str, object], ...]
     rl_vs_blackbox_rows: tuple[dict[str, object], ...]
+    backend_recommendation_rows: tuple[dict[str, object], ...]
     comparison_report_markdown: str
     rl_decision_report_markdown: str
 
@@ -145,6 +146,14 @@ class TrajectoryExplorationArtifacts:
     optimizer_trace_path: Path
     elite_frontier_path: Path
     objective_progress_path: Path
+    search_backend_comparison_path: Path | None = None
+    search_backend_trace_path: Path | None = None
+    search_backend_progress_path: Path | None = None
+    backend_recommendation_path: Path | None = None
+    bayesopt_trace_path: Path | None = None
+    bayesopt_report_path: Path | None = None
+    map_elites_trace_path: Path | None = None
+    map_elites_report_path: Path | None = None
     rl_algorithm_decision_report_path: Path | None = None
     ppo_environment_contract_path: Path | None = None
     ppo_training_config_path: Path | None = None

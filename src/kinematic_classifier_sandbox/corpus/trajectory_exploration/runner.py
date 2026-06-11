@@ -8,7 +8,15 @@ from ..policy import load_corpus_policy_spec
 from ..quality_diversity import analyze_quality_diversity_corpus
 from ..rl_backend_decision import analyze_rl_backend_decision
 from ..search_baseline import analyze_corpus_search_baseline
-from .backends import BlackBoxOptimizerBackend, HeuristicSearchBackend, StatelessRlPolicyBackend
+from .backends import (
+    BayesianOptimizationBackend,
+    BlackBoxOptimizerBackend,
+    CmaEsBackend,
+    HeuristicSearchBackend,
+    LatinHypercubeBackend,
+    MapElitesBackend,
+    StatelessRlPolicyBackend,
+)
 from .contracts import (
     TrajectoryExplorationBackend,
     TrajectoryExplorationBenchmarkResult,
@@ -156,12 +164,87 @@ def _status_rows(metrics_rows: list[dict[str, object]]) -> list[dict[str, object
     for row in metrics_rows:
         by_backend.setdefault(str(row["backend_id"]), []).append(row)
     heuristic_mean = mean(float(row["mean_total_utility"]) for row in by_backend["heuristic_search"])
+    lhs_mean = mean(float(row["mean_total_utility"]) for row in by_backend["latin_hypercube"])
+    map_elites_mean = mean(float(row["mean_total_utility"]) for row in by_backend["map_elites"])
     blackbox_mean = mean(float(row["mean_total_utility"]) for row in by_backend["blackbox_optimizer"])
+    cmaes_mean = mean(float(row["mean_total_utility"]) for row in by_backend["cmaes"])
+    bayesopt_mean = mean(float(row["mean_total_utility"]) for row in by_backend["bayesian_optimization"])
     rl_mean = mean(float(row["mean_total_utility"]) for row in by_backend["rl_policy"])
     statuses.append({"backend_id": "heuristic_search", "status": "promote" if heuristic_mean >= 0.20 else "experimental", "justification": "Baseline search clears the minimum utility floor."})
+    statuses.append({"backend_id": "latin_hypercube", "status": "promote" if lhs_mean > heuristic_mean else "experimental", "justification": "Promote when stratified fixed-budget coverage beats unconstrained heuristic search."})
+    statuses.append({"backend_id": "map_elites", "status": "promote" if map_elites_mean >= lhs_mean else "experimental", "justification": "Promote when archive search maintains at least stratified-search utility while improving coverage diversity."})
     statuses.append({"backend_id": "blackbox_optimizer", "status": "promote" if blackbox_mean > heuristic_mean + 0.02 else "experimental", "justification": "Promote when fixed-budget utility materially exceeds heuristic search."})
+    statuses.append({"backend_id": "cmaes", "status": "promote" if cmaes_mean > heuristic_mean + 0.02 else "experimental", "justification": "Promote when covariance-adapting search materially exceeds heuristic search at the same budget."})
+    statuses.append({"backend_id": "bayesian_optimization", "status": "promote" if bayesopt_mean > heuristic_mean + 0.02 else "experimental", "justification": "Promote when acquisition-guided search materially exceeds heuristic search at the same budget."})
     statuses.append({"backend_id": "rl_policy", "status": "experimental" if rl_mean >= heuristic_mean else "no-go", "justification": "RL remains experimental unless it materially beats heuristic and black-box search at matched budget."})
     return statuses
+
+
+def _recommendation_rows(
+    objectives: tuple[TrajectoryExplorationObjective, ...],
+    metrics_rows: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for objective in objectives:
+        objective_metrics = [row for row in metrics_rows if row["objective_id"] == objective.objective_id]
+        ranked = sorted(objective_metrics, key=lambda row: float(row["mean_total_utility"]), reverse=True)
+        best = ranked[0]
+        selection_policy = str(objective.backend_constraints.get("selection_policy", "utility_frontier"))
+        preferred_backends = tuple(str(item) for item in objective.backend_constraints.get("preferred_backends", ()))
+        constrained_rows = [row for row in objective_metrics if str(row["backend_id"]) in preferred_backends] or objective_metrics
+        recommended_backend = str(best["backend_id"])
+        recommendation_basis = "utility_frontier"
+        if selection_policy == "coverage_first":
+            candidate = max(
+                constrained_rows,
+                key=lambda row: (
+                    float(row["mean_feature_excitation"]),
+                    float(row["mean_coverage_gain"]),
+                    float(row["mean_total_utility"]),
+                ),
+            )
+            recommended_backend = str(candidate["backend_id"])
+            recommendation_basis = "coverage_first"
+        elif selection_policy == "adaptive_continuous":
+            candidate = max(
+                constrained_rows,
+                key=lambda row: (
+                    float(row["mean_total_utility"]),
+                    float(row["budget_efficiency"]),
+                ),
+            )
+            recommended_backend = str(candidate["backend_id"])
+            recommendation_basis = "continuous_boundary_search"
+        elif selection_policy == "adversarial_witness":
+            candidate = max(
+                constrained_rows,
+                key=lambda row: (
+                    float(row["mean_failure_witness_score"]),
+                    float(row["mean_total_utility"]),
+                ),
+            )
+            recommended_backend = str(candidate["backend_id"])
+            recommendation_basis = "witness_targeting"
+        justification = {
+            "coverage_first": "Prefer stratified search when feature excitation and coverage are close to the best utility row.",
+            "continuous_boundary_search": "Prefer adaptive continuous optimizers for class-pair boundary refinement objectives.",
+            "witness_targeting": "Prefer adaptive optimizers for adversarial witness targeting under a fixed budget.",
+            "utility_frontier": "Recommend the backend with the highest observed mean utility for this objective shape.",
+        }[recommendation_basis]
+        rows.append(
+            {
+                "objective_id": objective.objective_id,
+                "mode": objective.mode,
+                "geometry_target": objective.geometry_target,
+                "selection_policy": selection_policy,
+                "recommended_backend": recommended_backend,
+                "recommendation_basis": recommendation_basis,
+                "best_observed_backend": str(best["backend_id"]),
+                "best_observed_mean_total_utility": float(best["mean_total_utility"]),
+                "justification": justification,
+            }
+        )
+    return rows
 
 
 def analyze_trajectory_exploration_benchmarks(*, seed: int = 7) -> TrajectoryExplorationBenchmarkResult:
@@ -169,7 +252,11 @@ def analyze_trajectory_exploration_benchmarks(*, seed: int = 7) -> TrajectoryExp
     results: list[TrajectoryExplorationResult] = []
     for objective_index, objective in enumerate(objectives):
         results.append(run_trajectory_exploration_backend(HeuristicSearchBackend(), objective, seed=seed + objective_index * 10))
+        results.append(run_trajectory_exploration_backend(LatinHypercubeBackend(), objective, seed=seed + objective_index * 10))
+        results.append(run_trajectory_exploration_backend(MapElitesBackend(), objective, seed=seed + objective_index * 10))
         results.append(run_trajectory_exploration_backend(BlackBoxOptimizerBackend(), objective, seed=seed + objective_index * 10))
+        results.append(run_trajectory_exploration_backend(CmaEsBackend(), objective, seed=seed + objective_index * 10))
+        results.append(run_trajectory_exploration_backend(BayesianOptimizationBackend(), objective, seed=seed + objective_index * 10))
         results.append(run_trajectory_exploration_backend(StatelessRlPolicyBackend(), objective, seed=seed + objective_index * 10))
     metrics_rows = [_aggregate_backend_metrics(result) for result in results]
     coverage_gain_rows = [{"backend_id": row["backend_id"], "objective_id": row["objective_id"], "coverage_gain": row["mean_coverage_gain"]} for row in metrics_rows]
@@ -178,6 +265,7 @@ def analyze_trajectory_exploration_benchmarks(*, seed: int = 7) -> TrajectoryExp
     failure_witness_gain_rows = [{"backend_id": row["backend_id"], "objective_id": row["objective_id"], "failure_witness_gain": row["mean_failure_witness_score"]} for row in metrics_rows]
     budget_efficiency_rows = [{"backend_id": row["backend_id"], "objective_id": row["objective_id"], "budget_efficiency": row["budget_efficiency"]} for row in metrics_rows]
     backend_status_rows = _status_rows(metrics_rows)
+    backend_recommendation_rows = _recommendation_rows(objectives, metrics_rows)
     rl_vs_blackbox_rows = []
     for objective in objectives:
         rl_row = next(row for row in metrics_rows if row["objective_id"] == objective.objective_id and row["backend_id"] == "rl_policy")
@@ -194,12 +282,18 @@ def analyze_trajectory_exploration_benchmarks(*, seed: int = 7) -> TrajectoryExp
         [
             "# Trajectory Exploration Comparison Report",
             "",
-            "This bundle compares heuristic, black-box, and RL-shaped parameter-proposal backends using one shared exploration contract.",
+            "This bundle compares heuristic, Latin-hypercube, MAP-Elites-style archive search, cross-entropy, CMA-ES-style, Bayesian-optimization-style, and RL-shaped parameter-proposal backends using one shared exploration contract.",
             "",
             "## Backend Status",
             *[
                 f"- `{row['backend_id']}`: `{row['status']}` — {row['justification']}"
                 for row in backend_status_rows
+            ],
+            "",
+            "## Objective Recommendations",
+            *[
+                f"- `{row['objective_id']}` -> `{row['recommended_backend']}` ({row['recommendation_basis']}) — {row['justification']}"
+                for row in backend_recommendation_rows
             ],
         ]
     )
@@ -218,7 +312,7 @@ def analyze_trajectory_exploration_benchmarks(*, seed: int = 7) -> TrajectoryExp
         "backend_methods": ["initialize", "propose_batch", "observe", "state_summary", "diagnostics"],
         "shared_candidate_schema": union_fieldnames(evaluation_rows),
         "objective_count": len(objectives),
-        "backend_ids": ["heuristic_search", "blackbox_optimizer", "rl_policy"],
+        "backend_ids": ["heuristic_search", "latin_hypercube", "map_elites", "blackbox_optimizer", "cmaes", "bayesian_optimization", "rl_policy"],
     }
     return TrajectoryExplorationBenchmarkResult(
         contract_payload=contract_payload,
@@ -232,6 +326,7 @@ def analyze_trajectory_exploration_benchmarks(*, seed: int = 7) -> TrajectoryExp
         budget_efficiency_rows=tuple(budget_efficiency_rows),
         backend_status_rows=tuple(backend_status_rows),
         rl_vs_blackbox_rows=tuple(rl_vs_blackbox_rows),
+        backend_recommendation_rows=tuple(backend_recommendation_rows),
         comparison_report_markdown=comparison_report_markdown,
         rl_decision_report_markdown=rl_decision_report_markdown,
     )

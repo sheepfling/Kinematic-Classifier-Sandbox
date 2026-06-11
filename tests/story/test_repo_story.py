@@ -11,6 +11,9 @@ from kinematic_classifier_sandbox.repo_story import (
     CLAIMS,
     WITNESSES,
     render_proof_gallery,
+    render_repo_story_index,
+    render_story_index,
+    render_team_packet_index,
     validate_repo_story_references,
     write_repo_story_artifacts,
 )
@@ -76,6 +79,17 @@ class RepoStoryTests(unittest.TestCase):
         self.assertIn("## Claim 8: 3D transition is a controlled lift, not a full rewrite.", text)
         self.assertIn("plots/corpus_adequacy_scorecard.png", text)
         self.assertIn("tables/advanced_filter_method_comparison.csv", text)
+
+    def test_repo_story_indices_reference_new_method_surfaces(self) -> None:
+        repo_index = render_repo_story_index()
+        showcase_index = render_story_index()
+        team_packet = render_team_packet_index()
+        self.assertIn("artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md", repo_index)
+        self.assertIn("artifacts/method_validation_os_v1/method_validation_os_report.md", repo_index)
+        self.assertIn("artifacts/trajectory_exploration_backend_registry_v1/report.md", repo_index)
+        self.assertIn("Tracked Method Surfaces", showcase_index)
+        self.assertIn("trajectory_exploration_backend_registry_v1/report.md", showcase_index)
+        self.assertIn("algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md", team_packet)
 
 
 if __name__ == "__main__":

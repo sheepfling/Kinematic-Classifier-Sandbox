@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{Broader algorithm lane map for the repository.}
+\label{tab:algorithm_lanes}
+\begin{tabularx}{\textwidth}{lXXX}
+\toprule
+lane\_id & role & tracked\_methods & status\_note \\
+\midrule
+transparent\_kinematic\_classifiers & Interpretable local evidence baselines and failure diagnostics. & pointwise, windowed, shapelet & Core proof ladder and first-pass corpus studies. \\
+modern\_time\_series\_classifiers & Strong tabular and archive-style time-series baselines. & MiniRocket-family, DrCIF, BOSS/WEASEL/TDE, HIVE-COTE, gradient boosting & Benchmark ceiling lane for comparison, not the proof ladder. \\
+learning\_evidence & Supervised, sequence, and unsupervised learning-based evidence providers. & tabular\_feature\_ml, sequence\_ml\_baselines, unsupervised\_discovery & Audited through the same split, calibration, and decision-card contracts as the filter ladder. \\
+state\_space\_filters & Physics-aware posterior and dynamics evidence. & Kalman bank, transition matrix, IMM, PF, RBPF & Advanced-filter proof ladder with witness-specific promotions. \\
+uncertainty\_calibration & Calibration, abstention, and coverage wrappers. & temperature scaling, conformal wrapper, OOD detection & Keeps evidence providers honest rather than replacing them. \\
+\bottomrule
+\end{tabularx}
+\end{table}

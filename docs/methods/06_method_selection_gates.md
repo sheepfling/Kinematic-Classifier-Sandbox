@@ -13,10 +13,14 @@ Advanced methods are selected by evidence gates, not by aspiration.
 | Intermediate trace packet | Step traces, diagnostics, intermediate plots, and selected step cards exist. |
 | Decision-card trace | The result appears in generated comparison and gate artifacts. |
 
-The current comparison artifact records robustness as `not_yet` for advanced
-filters. That is intentional: a witness win plus trace packet yields
+The current comparison artifact records robustness as `not_yet` for some
+advanced filters. That is intentional: a witness win plus trace packet yields
 `witness_supported`, not `justified_for_study`. The stronger status is reserved
-for methods whose improvement survives robustness sweeps.
+for methods whose improvement survives robustness sweeps and, where relevant,
+clears the least-complex blocker on the same witness family. For the current
+multimodal ladder that blocker is GSF, and the generated
+`gsf_vs_pf_frontier_summary.csv` explicitly records whether the crossover is
+`gsf_preferred`, `pf_preferred`, or `metric_split`.
 
 ## Canonical Artifacts
 
@@ -25,6 +29,9 @@ for methods whose improvement survives robustness sweeps.
 - `artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.json`
 - `artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv`
 - `artifacts/advanced_filter_comparison_v1/particle_filter_robustness_summary.csv`
+- `artifacts/advanced_filter_comparison_v1/gsf_robustness_summary.csv`
+- `artifacts/advanced_filter_comparison_v1/gsf_vs_pf_frontier.csv`
+- `artifacts/advanced_filter_comparison_v1/gsf_vs_pf_frontier_summary.csv`
 - `artifacts/advanced_filter_comparison_v1/rbpf_robustness_summary.csv`
 - `artifacts/imm_filter_v1/traces/filter_step_trace.csv`
 - `artifacts/imm_filter_v1/step_cards/t_switch.md`

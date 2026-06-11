@@ -4,6 +4,9 @@ import json
 
 from .adaptive_stress import analyze_adaptive_stress_corpus
 from .quality_diversity import analyze_quality_diversity_corpus
+from kinematic_classifier_sandbox.analysis.sequential_offpolicy_control_frontier import (
+    analyze_sequential_offpolicy_control_frontier,
+)
 from .rl_backend_decision_artifact_io import write_rl_backend_decision_artifacts
 from .rl_backend_decision_contracts import (
     RlBackendDecisionArtifacts,
@@ -18,6 +21,7 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
     search = analyze_corpus_search_baseline(seed=7)
     qd = analyze_quality_diversity_corpus(seed=7, iterations=42)
     stress = analyze_adaptive_stress_corpus(seed=7, random_candidates_per_mode=8, guided_candidates_per_mode=14)
+    offpolicy = analyze_sequential_offpolicy_control_frontier(seed=1409, budget_sweep_timesteps=(32, 64), eval_episodes=1)
 
     search_selected_mean_utility = sum(float(row["total_utility"]) for row in search.selected_candidate_rows) / max(
         len(search.selected_candidate_rows),
@@ -25,6 +29,9 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
     )
     qd_final_coverage_fraction = float(qd.archive_coverage_rows[-1]["coverage_fraction"])
     qd_best_feature_excitation = float(qd.corpus_manifest["best_feature_target_excitation"])
+    offpolicy_mean_best_policy_minus_best_baseline = float(offpolicy.metrics["mean_best_policy_minus_best_baseline"])
+    offpolicy_seed_promotion_rate = float(offpolicy.metrics["seed_promotion_rate"])
+    offpolicy_best_policy_backend = str(offpolicy.metrics["best_policy_backend"])
 
     stress_modes = sorted({str(row["failure_mode"]) for row in stress.stress_score_rows})
     improved_modes: list[str] = []
@@ -78,6 +85,8 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
         "qd_best_feature_excitation": round(qd_best_feature_excitation, 6),
         "stress_resolved_modes": float(len(improved_modes)),
         "stress_total_modes": float(len(stress_modes)),
+        "offpolicy_mean_best_policy_minus_best_baseline": round(offpolicy_mean_best_policy_minus_best_baseline, 6),
+        "offpolicy_seed_promotion_rate": round(offpolicy_seed_promotion_rate, 6),
     }
     success_metric = (
         "RL is justified only if, at matched evaluation budget, it improves at least one core objective by a meaningful margin "
@@ -89,6 +98,7 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
     search_already_effective = search_selected_mean_utility > 0.44
     qd_already_effective = qd_final_coverage_fraction >= 0.20 and qd_best_feature_excitation >= 1.0 - 1e-9
     stress_already_effective = len(improved_modes) == len(stress_modes)
+    offpolicy_already_effective = offpolicy_mean_best_policy_minus_best_baseline > 0.0 and offpolicy_seed_promotion_rate >= 0.5
     sequential_control_required = False
 
     decision_rows = (
@@ -122,6 +132,12 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
             value="no" if not sequential_control_required else "yes",
             note="CorpusGym episodes are still one-trajectory parameter proposals; the repo does not yet require online control to reach its current targets.",
         ),
+        RlBackendDecisionGateRow(
+            criterion="sequential_offpolicy_frontier_shows_promotion_signal",
+            status="failed" if offpolicy_already_effective else "met",
+            value=f"{offpolicy_seed_promotion_rate:.2f}",
+            note="The SAC/TD3 smoke frontier is now real, but it still trails the baselines on aggregate and does not justify promotion yet.",
+        ),
     )
 
     rl_justified = False
@@ -140,5 +156,8 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
         stress_resolved_modes=len(improved_modes),
         stress_total_modes=len(stress_modes),
         stress_improved_modes=tuple(improved_modes),
+        offpolicy_mean_best_policy_minus_best_baseline=offpolicy_mean_best_policy_minus_best_baseline,
+        offpolicy_seed_promotion_rate=offpolicy_seed_promotion_rate,
+        offpolicy_best_policy_backend=offpolicy_best_policy_backend,
         decision_rows=decision_rows,
     )

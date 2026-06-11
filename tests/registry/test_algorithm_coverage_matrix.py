@@ -19,6 +19,7 @@ class AlgorithmCoverageMatrixTests(unittest.TestCase):
             {
                 "calibration_uncertainty",
                 "core_physics_probabilistic",
+                "learning_evidence",
                 "learned_filters",
                 "neural_sequence",
                 "optimizer_generator",
@@ -36,21 +37,31 @@ class AlgorithmCoverageMatrixTests(unittest.TestCase):
         self.assertIn("hive_cote", method_ids)
         self.assertIn("changepoint_detection", method_ids)
         self.assertIn("ukf_ekf_ckf", method_ids)
+        self.assertIn("student_t_robust_kalman", method_ids)
         self.assertIn("lstm_gru", method_ids)
         self.assertIn("patchtst_style_encoder", method_ids)
         self.assertIn("kalmannet_family", method_ids)
         self.assertIn("ts2vec_family", method_ids)
         self.assertIn("ts_tcc_softclt", method_ids)
         self.assertIn("masked_timeseries_autoencoder", method_ids)
+        self.assertIn("tabular_feature_ml", method_ids)
+        self.assertIn("sequence_ml_baselines", method_ids)
+        self.assertIn("unsupervised_discovery", method_ids)
         self.assertIn("calibration_wrappers", method_ids)
         self.assertIn("deep_uncertainty_wrappers", method_ids)
         self.assertIn("ood_detection", method_ids)
         self.assertIn("glmb_pmbm", method_ids)
         self.assertIn("random_doe_search", method_ids)
-        self.assertIn("cem_cmaes", method_ids)
+        self.assertIn("latin_hypercube", method_ids)
+        self.assertIn("cem", method_ids)
+        self.assertIn("cmaes", method_ids)
+        self.assertIn("stateless_rl_policy_search", method_ids)
         self.assertIn("bayesian_optimization", method_ids)
         self.assertIn("mpc_adversarial_generator", method_ids)
-        self.assertIn("ppo_sac_td3", method_ids)
+        self.assertIn("map_elites", method_ids)
+        self.assertIn("ppo", method_ids)
+        self.assertIn("sac", method_ids)
+        self.assertIn("td3", method_ids)
 
     def test_summary_counts_are_nonempty(self) -> None:
         result = analyze_algorithm_coverage_matrix()

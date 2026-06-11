@@ -40,8 +40,12 @@ The shared classifier hook is `run_shared_particle_filter_classifier()`.
 
 The claim boundary is deliberate: the oracle witness can support
 `justified_for_study` for the multimodal posterior family once the particle
-count and seed robustness sweep passes. It still does not justify PF as a
-broad default outside that failure family.
+count and seed robustness sweep passes and the cheaper GSF blocker is checked
+on the same witness. The current `gsf_vs_pf_frontier_summary.csv` outcome is
+`metric_split`: PF keeps the better sign-mass error, while GSF is much cheaper
+and has lower oracle KL. That means PF is still witness-supported and
+study-justified for this named witness, but not because GSF was ruled out.
+It still does not justify PF as a broad default outside that failure family.
 
 ## Research Note
 

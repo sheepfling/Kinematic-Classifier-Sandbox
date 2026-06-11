@@ -41,6 +41,7 @@ class OraclePF1DTests(unittest.TestCase):
             self.assertTrue(artifacts.gaussian_baseline_posterior_path.exists())
             self.assertTrue(artifacts.state_estimate_history_path.exists())
             self.assertTrue(artifacts.particle_diagnostics_path.exists())
+            self.assertTrue(artifacts.summary_path.exists())
             self.assertTrue(artifacts.metrics_path.exists())
             self.assertTrue(artifacts.decision_card_path.exists())
             self.assertTrue(artifacts.gaussian_collapse_panel_path.exists())

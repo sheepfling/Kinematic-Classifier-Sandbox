@@ -28,7 +28,7 @@ class SharedEvaluationTests(unittest.TestCase):
         self.assertTrue(all(run.sensor_regime_id for run in runs))
         self.assertTrue(all(run.measurement_dim == 1 for run in runs))
         self.assertTrue(all(run.coordinate_frame == "scalar_line" for run in runs))
-        self.assertTrue(any(adapter.method_spec.primary_evaluation_family == "nonlinear_drag_outlier" for adapter in adapters if adapter.method_name == "particle_filter_bank"))
+        self.assertTrue(any(adapter.method_spec.primary_evaluation_family == "abs_range_multimodal" for adapter in adapters if adapter.method_name == "particle_filter_bank"))
         self.assertTrue(any("ou_mean_reversion" in adapter.method_spec.supported_scenario_families for adapter in adapters if adapter.method_name == "particle_filter_bank"))
         summary_rows = sensor_regime_summary_rows(runs)
         self.assertTrue(any(row["sensor_regime_id"] == "position_only" for row in summary_rows))

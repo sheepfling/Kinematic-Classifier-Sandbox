@@ -788,8 +788,8 @@ def _gsf_vs_pf_frontier_summary_rows(
     ]
     if not pf_rows or not gsf_rows:
         return tuple()
-    pf_best = min(pf_rows, key=lambda row: float(row["mean_runtime_seconds"]))
-    gsf_best = min(gsf_rows, key=lambda row: float(row["mean_runtime_seconds"]))
+    pf_best = min(pf_rows, key=lambda row: int(row["complexity_parameter_value"]))
+    gsf_best = min(gsf_rows, key=lambda row: int(row["complexity_parameter_value"]))
     if (
         float(gsf_best["mean_oracle_kl"]) <= float(pf_best["mean_oracle_kl"]) * 1.10
         and float(gsf_best["mean_sign_mass_error"]) <= float(pf_best["mean_sign_mass_error"]) * 1.10

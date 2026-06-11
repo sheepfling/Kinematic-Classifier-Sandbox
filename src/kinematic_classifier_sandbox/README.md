@@ -73,7 +73,7 @@ specific domain package:
 - `__main__.py`: package CLI
 - `api_core.py`: curated core entry points
 - `artifacts.py`: shared artifact writers
-- `common_experiment_harness.py`: common study runner
+- `common_experiment_harness.py`: compatibility wrapper over the grouped `common_experiment/` package
 - `common_experiment_classifier_registry.py`: classifier registry for the common harness
 - `common_1d_study_adapter.py`: common 1D study adapter
 - `contracts.py`: shared schemas and contracts

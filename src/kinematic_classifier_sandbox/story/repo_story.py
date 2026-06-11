@@ -285,6 +285,25 @@ ARTIFACT_MANIFEST: tuple[ArtifactManifestEntry, ...] = (
 )
 
 
+TRACKED_METHOD_SURFACES: tuple[tuple[str, str, str], ...] = (
+    (
+        "Algorithm coverage matrix",
+        "artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md",
+        "Broader algorithm map covering physics, benchmark TSC, neural sequence, representation, uncertainty, optimizer, and roadmap lanes.",
+    ),
+    (
+        "Method validation operating system",
+        "artifacts/method_validation_os_v1/method_validation_os_report.md",
+        "Lane, witness, and promotion-status registry tying methods to controlled evidence rather than complexity preference.",
+    ),
+    (
+        "Trajectory exploration backend registry",
+        "artifacts/trajectory_exploration_backend_registry_v1/report.md",
+        "Current and planned generator/search backends, including heuristic, CEM, MAP-Elites, PPO, CMA-ES, SAC, TD3, and MPC-style lanes.",
+    ),
+)
+
+
 
 
 
@@ -523,6 +542,11 @@ def render_artifact_index_markdown() -> str:
         ]
         report.heading(title, level=2)
         report.table(["Artifact", "Question answered", "Claim"], rows)
+    report.heading("Tracked Method Surfaces", level=2)
+    report.table(
+        ["Surface", "Bundle", "Why it matters"],
+        [(label, report.inline_code(path), summary) for label, path, summary in TRACKED_METHOD_SURFACES],
+    )
     report.paragraph(
         "Every manifest entry includes `path`, `generated_by`, `depends_on`, `question_answered`, `claim_supported`, `status`, and `known_limitation`."
     )
@@ -560,6 +584,13 @@ def render_story_index() -> str:
                 report.inline_code(claim.artifact_paths[0]),
             ]
         )
+    report.heading("Tracked Method Surfaces", level=2)
+    report.bullet_list(
+        [
+            f"{label}: {report.inline_code(path)}"
+            for label, path, _summary in TRACKED_METHOD_SURFACES
+        ]
+    )
     return report.text()
 
 
@@ -597,6 +628,9 @@ def render_team_packet_index() -> str:
             "`artifacts/showcase/story_index.md`",
             "`artifacts/repo_story/artifact_index.md`",
             "`artifacts/repo_story/witness_problem_matrix.csv`",
+            "`artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md`",
+            "`artifacts/method_validation_os_v1/method_validation_os_report.md`",
+            "`artifacts/trajectory_exploration_backend_registry_v1/report.md`",
         ]
     )
     return report.text()
@@ -614,6 +648,8 @@ def render_status_report() -> str:
             "Study Candidate Evaluator explainer.",
             "Corpus Explorer explainer.",
             "Algorithm ladder page and matrix.",
+            "Algorithm-map and method-validation registry surfaces.",
+            "Trajectory-exploration backend registry surface.",
             "Result interpretation checklist.",
             "Claim-to-evidence matrix with docs, artifacts, tests, limitations, and next work.",
             "Witness-problem cards for all six current 1D witnesses.",
@@ -641,6 +677,9 @@ def render_status_report() -> str:
             "`artifacts/repo_story/repo_layer_diagram.png`",
             "`artifacts/repo_story/artifact_dependency_graph.png`",
             "`artifacts/repo_story/pln024_status_report.md`",
+            "`artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md`",
+            "`artifacts/method_validation_os_v1/method_validation_os_report.md`",
+            "`artifacts/trajectory_exploration_backend_registry_v1/report.md`",
         ]
     )
     report.heading("Validation Evidence", level=2)
@@ -670,6 +709,7 @@ def render_status_report() -> str:
             "`docs/story/study_candidate_evaluator.md`",
             "`docs/story/corpus_explorer.md`",
             "`docs/story/algorithm_ladder.md`",
+            "`docs/story/algorithm_map.md`",
             "`docs/story/how_to_interpret_results.md`",
             "`docs/witnesses/index.md`",
             "`artifacts/repo_story/claim_evidence_matrix.csv`",
@@ -704,6 +744,8 @@ def render_repo_story_index() -> str:
             "`top_20_artifacts.md`: highest-signal artifacts for review.",
             "`witness_problem_matrix.csv`: witness-problem summary and evidence links.",
             "`algorithm_ladder_matrix.csv`: ladder rung summary.",
+            "`study_candidate_evaluator_summary.csv`: canonical study-candidate layers and primary artifacts.",
+            "`corpus_explorer_summary.csv`: canonical corpus-explorer layers and primary artifacts.",
             "`artifact_graph.json`: dependency graph source.",
             "`repo_layer_diagram.png`: repo layer diagram.",
             "`artifact_dependency_graph.png`: artifact dependency graph.",
@@ -716,8 +758,17 @@ def render_repo_story_index() -> str:
             "`docs/story/00_repo_story.md`",
             "`docs/story/01_methodology_map.md`",
             "`docs/story/02_reading_order.md`",
+            "`docs/story/algorithm_map.md`",
+            "`docs/story/corpus_explorer.md`",
             "`docs/story/claim_evidence_matrix.md`",
             "`docs/witnesses/index.md`",
+        ]
+    )
+    report.heading("Adjacent Generated Bundles", level=2)
+    report.bullet_list(
+        [
+            f"{label}: {report.inline_code(path)}"
+            for label, path, _summary in TRACKED_METHOD_SURFACES
         ]
     )
     return report.text()
@@ -728,6 +779,7 @@ def render_top_20_artifacts() -> str:
         "docs/story/00_repo_story.md",
         "docs/story/01_methodology_map.md",
         "docs/story/02_reading_order.md",
+        "docs/story/algorithm_map.md",
         "docs/story/study_candidate_evaluator.md",
         "docs/story/corpus_explorer.md",
         "docs/story/algorithm_ladder.md",
@@ -736,16 +788,16 @@ def render_top_20_artifacts() -> str:
         "artifacts/repo_story/claim_evidence_matrix.csv",
         "artifacts/repo_story/artifact_manifest.json",
         "artifacts/repo_story/witness_problem_matrix.csv",
+        "artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md",
+        "artifacts/method_validation_os_v1/method_validation_os_report.md",
+        "artifacts/trajectory_exploration_backend_registry_v1/report.md",
         "artifacts/corpus_adequacy_audit_v1/corpus_adequacy_scorecard.csv",
         "artifacts/feature_analysis_v1/feature_separation_scores.csv",
         "artifacts/prior_sensitivity_pointwise_v1/prior_sensitivity.csv",
         "artifacts/generic_inference_contract/evidence_provider_schema.json",
         "artifacts/generic_corpus_exploration/candidate_scores.csv",
         "artifacts/selected_generated_corpus/corpus_manifest.json",
-        "artifacts/validation_ladder/validation_ladder_decisions.csv",
         "artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv",
-        "artifacts/filter_trace_validation_v1/filter_trace_validation_report.md",
-        "artifacts/dimensional_lift_audit/module_dimension_status.csv",
     ]
     report = MarkdownDocument("Top 20 Story Artifacts To Review")
     report.ordered_list([f"`{entry}`" for entry in entries])
@@ -854,6 +906,7 @@ def write_repo_story_artifacts(
     write_csv(run_dir / "corpus_explorer_summary.csv", [
         {"section": "corpus_objective", "summary": "declarative target for corpus coverage stress validity and leakage", "primary_doc": "docs/story/corpus_explorer.md", "primary_artifact": "artifacts/corpus_objectives/objective_validation_report.md", "status": "implemented"},
         {"section": "backend_adapter", "summary": "generator or simulator interface that produces trajectory candidates", "primary_doc": "docs/story/corpus_explorer.md", "primary_artifact": "artifacts/backend_adapter_proof/backend_manifest.json", "status": "implemented"},
+        {"section": "backend_registry", "summary": "tracked exploration and generator backends with capability and phase labels", "primary_doc": "docs/story/corpus_explorer.md", "primary_artifact": "artifacts/trajectory_exploration_backend_registry_v1/backend_registry.csv", "status": "implemented"},
         {"section": "candidate_sampler", "summary": "samples theta under objective and backend constraints", "primary_doc": "docs/story/corpus_explorer.md", "primary_artifact": "artifacts/candidate_generation/generated_candidates.csv", "status": "implemented"},
         {"section": "class_validity", "summary": "scores whether labels are meaningful", "primary_doc": "docs/story/corpus_explorer.md", "primary_artifact": "artifacts/class_validity/class_validity_scores.csv", "status": "implemented"},
         {"section": "feature_excitation", "summary": "checks whether features are exercised", "primary_doc": "docs/story/corpus_explorer.md", "primary_artifact": "artifacts/generated_corpus_features/feature_excitation_scores.csv", "status": "implemented"},

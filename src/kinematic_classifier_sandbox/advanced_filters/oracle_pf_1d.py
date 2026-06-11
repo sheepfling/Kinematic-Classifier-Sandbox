@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy.random as random
 from numpy import arange, array, cumsum, float64, mean, sqrt
 
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import write_comparison_summary_csv
 from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import plt
@@ -129,6 +130,7 @@ class PFOracleWitnessArtifacts:
     gaussian_baseline_posterior_path: Path
     state_estimate_history_path: Path
     particle_diagnostics_path: Path
+    summary_path: Path
     metrics_path: Path
     decision_card_path: Path
     gaussian_collapse_panel_path: Path
@@ -368,6 +370,7 @@ def write_pf_abs_range_multimodal_witness_artifacts(
     gaussian_posterior_path = run_dir / "gaussian_baseline_posterior_history.csv"
     state_path = run_dir / "state_estimate_history.csv"
     particle_diagnostics_path = run_dir / "particle_diagnostics.csv"
+    summary_path = run_dir / "summary.csv"
     metrics_path = run_dir / "metrics_against_oracle.csv"
     decision_card_path = run_dir / "decision_card.md"
     final_overlay_plot_path = plot_dir / "final_posterior_overlay.png"
@@ -416,6 +419,7 @@ def write_pf_abs_range_multimodal_witness_artifacts(
         [asdict(row) for row in analysis.particle_diagnostic_rows],
         ["time", "ess_fraction", "unique_ancestor_fraction", "weight_entropy", "resampled"],
     )
+    write_comparison_summary_csv(summary_path, [analysis.metrics])
     write_csv(metrics_path, [analysis.metrics], list(analysis.metrics))
     decision_card_path.write_text(_render_pf_decision_card(analysis), encoding="utf-8")
     _write_pf_plots(
@@ -433,6 +437,7 @@ def write_pf_abs_range_multimodal_witness_artifacts(
         gaussian_baseline_posterior_path=gaussian_posterior_path,
         state_estimate_history_path=state_path,
         particle_diagnostics_path=particle_diagnostics_path,
+        summary_path=summary_path,
         metrics_path=metrics_path,
         decision_card_path=decision_card_path,
         gaussian_collapse_panel_path=gaussian_collapse_panel_path,

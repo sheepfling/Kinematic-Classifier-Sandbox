@@ -30,6 +30,9 @@ def render_rl_backend_decision_report(result: RlBackendDecisionResult) -> str:
             f"QD final coverage fraction: `{result.qd_final_coverage_fraction:.3f}`",
             f"QD best feature-target excitation: `{result.qd_best_feature_excitation:.3f}`",
             f"Stress modes improved over random baseline: `{result.stress_resolved_modes}/{result.stress_total_modes}`",
+            f"Off-policy smoke frontier best policy backend: `{result.offpolicy_best_policy_backend}`",
+            f"Off-policy smoke frontier mean best-policy-minus-best-baseline: `{result.offpolicy_mean_best_policy_minus_best_baseline:.3f}`",
+            f"Off-policy smoke frontier seed promotion rate: `{result.offpolicy_seed_promotion_rate:.2f}`",
         ]
     )
 
@@ -50,7 +53,8 @@ def render_rl_backend_decision_report(result: RlBackendDecisionResult) -> str:
         [
             "Keep RL as a no-go for now.",
             "The current repo already gets measurable gains from non-RL methods across M26, M27, and M28.",
-            "Revisit RL only after adding a genuinely sequential CorpusGym environment, or after a future corpus objective remains unresolved under matched-budget search and quality-diversity baselines.",
+            "The SAC/TD3 smoke frontier is now real, but it still trails the baselines on aggregate.",
+            "Revisit RL only after adding a genuinely sequential CorpusGym environment, or after a future corpus objective remains unresolved under matched-budget search, quality-diversity baselines, and the current off-policy smoke frontier.",
         ]
     )
 

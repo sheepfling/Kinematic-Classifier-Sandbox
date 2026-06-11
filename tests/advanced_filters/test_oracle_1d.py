@@ -33,6 +33,7 @@ class Oracle1DTests(unittest.TestCase):
             self.assertTrue(artifacts.grid_oracle_posterior_path.exists())
             self.assertTrue(artifacts.method_posterior_path.exists())
             self.assertTrue(artifacts.state_estimate_history_path.exists())
+            self.assertTrue(artifacts.summary_path.exists())
             self.assertTrue(artifacts.metrics_path.exists())
             self.assertTrue(artifacts.decision_card_path.exists())
             for plot in artifacts.plot_paths:

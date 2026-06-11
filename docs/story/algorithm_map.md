@@ -11,6 +11,12 @@ The generated artifact bundle for the broader surface is:
 - `artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix.csv`
 - `artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix.png`
 
+The RL and exploration packets now follow the same comparison convention:
+
+- `summary.csv`
+- `report.md`
+- `decision_card.md`
+
 ## Lane Structure
 
 - `core_physics_probabilistic`
@@ -22,6 +28,7 @@ The generated artifact bundle for the broader surface is:
   - transition HMM
   - Kalman bank
   - EKF / UKF / CKF
+  - Student-t / robust Kalman
   - Gaussian-sum / switching Kalman / IMM
   - PF / RBPF
 - `time_series_baselines`
@@ -32,6 +39,10 @@ The generated artifact bundle for the broader surface is:
   - ROCKET family
   - HIVE-COTE
   - gradient boosting on engineered features
+- `learning_evidence`
+  - supervised tabular evidence providers
+  - compact sequence learners
+  - unsupervised discovery and anomaly detection
 - `neural_sequence`
   - TCN / InceptionTime
   - LSTM / GRU
@@ -52,11 +63,16 @@ The generated artifact bundle for the broader surface is:
   - ensembles / MC dropout / evidential wrappers
   - OOD detection / abstention
 - `optimizer_generator`
-  - random / grid / Latin hypercube
-  - CEM / CMA-ES
+  - random / DOE / structured DOE
+  - CEM
+  - CMA-ES
   - Bayesian optimization
   - MAP-Elites
-  - PPO / SAC / TD3
+  - stateless RL-shaped policy search
+  - PPO
+  - SAC / TD3
+  - sequential-control frontier packet (PPO proxy)
+  - sequential off-policy frontier packet (SAC / TD3 smoke run)
   - MPC-style adversarial generators
 - `tracking_fusion_extension`
   - PDA / JPDA / MHT
@@ -64,9 +80,13 @@ The generated artifact bundle for the broader surface is:
 
 The concrete generator-side scaffolding now lives beside the benchmark runner in
 `src/kinematic_classifier_sandbox/corpus/trajectory_exploration/backend_registry.py`.
-That registry is intentionally broader than the currently implemented backends:
-it records which search families are active today and which ones are queued for
-phased evaluation.
+That registry is intentionally broader than the currently promoted backends and
+now maps cleanly onto the public coverage matrix:
+
+- implemented now: random / DOE heuristic search, CEM, stateless RL-shaped policy search, MAP-Elites
+- experimental now: PPO sequential control
+- planned next: Latin hypercube, CMA-ES, Bayesian optimization
+- research candidates: SAC, TD3, MPC-style adversarial generators
 
 ## Reading Rule
 
@@ -81,3 +101,5 @@ The broader map is intentionally not a flat implementation checklist.
 The key discipline is unchanged:
 
 New methods do not get promoted because they are fashionable. They get promoted because a named witness shows the simpler rung fails for a reason the new method is designed to address.
+
+The `learning_evidence` lane is intentionally separate from the proof ladder. It exists so supervised and unsupervised ML can be audited as evidence providers, not because they replace the kinematic or filter story. The repository uses that lane to keep trajectory-level split discipline, calibration checks, and discovery diagnostics explicit while preserving the main ladder for the physics-aware escalation path.

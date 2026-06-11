@@ -11,6 +11,7 @@ system rather than as isolated additions.
 | modern_time_series_classifiers | Strong classification baselines and accuracy ceilings |
 | segmentation_regime_models | Unknown switch, duration, and maneuver-onset reasoning |
 | state_space_filters | Physics-aware posterior, state, and uncertainty estimation |
+| learning_evidence | Supervised, sequence, and unsupervised learning-based evidence providers |
 | neural_sequence_models | Neural sequence baselines that stay separate from the proof ladder |
 | learned_hybrid_filters | Future learned-model and differentiable filtering lane |
 | uncertainty_calibration | Coverage, abstention, and calibration wrappers over evidence providers |
@@ -30,21 +31,58 @@ be researched and tracked here without being promoted in the classifier ladder.
 
 ## Immediate Gaps
 
-The highest-value missing blockers before broader PF/RBPF and benchmark claims are:
+The highest-value remaining blockers before broader PF/RBPF and benchmark
+claims are now outside the first-pass transparent, calibration, and continuous
+generator lanes.
 
-- `UKF / EKF`
-- `Student-t / robust Kalman`
-- `HSMM`
-- `BOCPD`
-- `MiniRocket / MultiRocket / HYDRA`
-- `shapelet / motif`
-- `TCN / InceptionTime`
-- `temperature scaling / conformal wrapper`
-- `CMA-ES`
+`shapelet / motif`, `gradient boosting on engineered features`, `BOCPD`,
+`HSMM`, `UKF / EKF`, `Student-t / robust Kalman`, and `Gaussian Sum Filter`
+have now moved from missing to witness-backed blocker lanes, but all still need
+broader robustness and comparison work before stronger claims.
 
-`Gaussian Sum Filter` has now moved from missing to an oracle-backed
-`witness_supported` blocker lane, but it still needs robustness and
-compute-normalized comparison against PF.
+`TCN / InceptionTime` now has an implemented proxy frontier packet, but it
+remains below witness-backed status until real neural training and fidelity
+checks are added.
+
+`MiniRocket / MultiRocket / HYDRA`, `DrCIF / interval forests`,
+`BOSS / WEASEL / TDE`, and `HIVE-COTE` now all have an implemented modern-TSC
+proxy frontier packet, but they remain below witness-backed status until
+faithful archive-method implementations or wrappers are added.
+
+`TS2Vec / contrastive trajectory encoder` now has a first embedding witness in
+the repository, but it remains a proxy frontier until broader external
+benchmark coverage and faithful library parity arrive.
+
+`learning_evidence` is now an explicit lane for supervised tabular baselines,
+compact sequence learners, and unsupervised discovery. The point of the lane
+is not to replace the proof ladder, but to keep ML evidence providers audited
+with the same split discipline, calibration checks, and decision-card logic.
+
+`MAP-Elites` is now witness-backed for the dedicated quality-diversity corpus
+study, but it still needs broader archive-policy and diversity-sweep coverage
+before stronger generator claims.
+
+`temperature scaling` is now witness-backed for a dedicated calibration-shift
+study, and `conformal wrapper` is now witness-backed for a dedicated
+coverage-control study.
+
+`CMA-ES` is now witness-backed for a dedicated continuous-generator frontier
+study, but it still needs broader seed, budget, and objective-family sweeps
+before stronger generator-selection claims.
+
+`learned_model_mismatch` is still missing. The learned-filter lane has a
+coverage entry for `kalmannet_family`, but it needs a real witness packet
+before KalmanNet or differentiable PF can move out of the research-candidate
+bucket.
+
+`sequential_control_generator_frontier_v1` keeps the sequential-control lane
+explicit with a PPO proxy packet, but it is still a proxy study rather than a
+claim that SAC or TD3 has already been trained in the repo.
+
+`sequential_offpolicy_control_frontier_v1` adds the first SAC/TD3 smoke run on
+the sequential-control witness surface. It is still small-budget and
+experimental, but it now gives the off-policy lane a concrete comparison packet
+with a narrow seed sweep instead of only a roadmap note.
 
 ## Generator Registry
 
@@ -55,3 +93,11 @@ That scaffold keeps three things explicit:
 - which generator backends are implemented today
 - which ones are phase-1 or phase-2 benchmark candidates
 - which ones require sequential control and should stay out of fixed-budget parameter-only comparisons
+
+The current tracked exploration surface is now explicit rather than grouped:
+
+- baseline search: random / DOE heuristic search, Latin hypercube
+- black-box optimization: CEM, CMA-ES, Bayesian optimization
+- quality-diversity: MAP-Elites
+- RL / learned search: stateless RL-shaped policy search, PPO, SAC, TD3
+- control optimization: MPC-style adversarial generator

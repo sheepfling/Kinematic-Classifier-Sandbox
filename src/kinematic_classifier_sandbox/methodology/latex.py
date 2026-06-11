@@ -31,10 +31,12 @@ _METHODOLOGY_LATEX_CACHE: dict[str, "MethodologyLatexResult"] = {}
 class MethodologyLatexResult:
     toy_problem_rows: tuple[dict[str, object], ...]
     algorithm_ladder_rows: tuple[dict[str, object], ...]
+    algorithm_lane_rows: tuple[dict[str, object], ...]
     bayesian_table_rows: tuple[dict[str, object], ...]
     methodology_tex: str
     corpus_synthesis_algorithm_tex: str
     algorithm_ladder_table_tex: str
+    algorithm_lane_table_tex: str
     bayesian_update_walkthrough_table_tex: str
     toy_problem_summary_table_tex: str
     study_candidate_generation_algorithm_tex: str
@@ -47,9 +49,11 @@ class MethodologyLatexArtifacts:
     artifact_tex_path: Path
     pdf_path: Path | None
     algorithm_ladder_csv_path: Path
+    algorithm_lane_csv_path: Path
     toy_problem_summary_csv_path: Path
     corpus_synthesis_algorithm_path: Path
     algorithm_ladder_table_path: Path
+    algorithm_lane_table_path: Path
     bayesian_update_walkthrough_table_path: Path
     toy_problem_summary_table_path: Path
     study_candidate_generation_algorithm_path: Path
@@ -825,6 +829,38 @@ def _analyze_methodology_latex_uncached(
             "promotion_status": "promote",
         },
     ]
+    algorithm_lane_rows = [
+        {
+            "lane_id": "transparent_kinematic_classifiers",
+            "role": "Interpretable local evidence baselines and failure diagnostics.",
+            "tracked_methods": "pointwise, windowed, shapelet",
+            "status_note": "Core proof ladder and first-pass corpus studies.",
+        },
+        {
+            "lane_id": "modern_time_series_classifiers",
+            "role": "Strong tabular and archive-style time-series baselines.",
+            "tracked_methods": "MiniRocket-family, DrCIF, BOSS/WEASEL/TDE, HIVE-COTE, gradient boosting",
+            "status_note": "Benchmark ceiling lane for comparison, not the proof ladder.",
+        },
+        {
+            "lane_id": "learning_evidence",
+            "role": "Supervised, sequence, and unsupervised learning-based evidence providers.",
+            "tracked_methods": "tabular_feature_ml, sequence_ml_baselines, unsupervised_discovery",
+            "status_note": "Audited through the same split, calibration, and decision-card contracts as the filter ladder.",
+        },
+        {
+            "lane_id": "state_space_filters",
+            "role": "Physics-aware posterior and dynamics evidence.",
+            "tracked_methods": "Kalman bank, transition matrix, IMM, PF, RBPF",
+            "status_note": "Advanced-filter proof ladder with witness-specific promotions.",
+        },
+        {
+            "lane_id": "uncertainty_calibration",
+            "role": "Calibration, abstention, and coverage wrappers.",
+            "tracked_methods": "temperature scaling, conformal wrapper, OOD detection",
+            "status_note": "Keeps evidence providers honest rather than replacing them.",
+        },
+    ]
 
     promoted_step_rows = [
         row for row in bayes.bayesian_step_rows if str(row.get("example_type", "")) == "trajectory_walkthrough"
@@ -852,6 +888,17 @@ def _analyze_methodology_latex_uncached(
             ("promotion_status", "c"),
         ],
         rows=algorithm_ladder_rows,
+    )
+    algorithm_lane_table_tex = _tabularx_table(
+        caption="Broader algorithm lane map for the repository.",
+        label="tab:algorithm_lanes",
+        columns=[
+            ("lane_id", "l"),
+            ("role", "X"),
+            ("tracked_methods", "X"),
+            ("status_note", "X"),
+        ],
+        rows=algorithm_lane_rows,
     )
     bayesian_update_walkthrough_table_tex = _tabularx_table(
         caption="Representative Bayesian walkthrough steps from a promoted study candidate.",
@@ -881,10 +928,12 @@ def _analyze_methodology_latex_uncached(
     return MethodologyLatexResult(
         toy_problem_rows=tuple(toy_problem_rows),
         algorithm_ladder_rows=tuple(algorithm_ladder_rows),
+        algorithm_lane_rows=tuple(algorithm_lane_rows),
         bayesian_table_rows=tuple(bayesian_table_rows),
         methodology_tex=_source_tex(),
         corpus_synthesis_algorithm_tex=_corpus_synthesis_algorithm_tex(),
         algorithm_ladder_table_tex=algorithm_ladder_table_tex,
+        algorithm_lane_table_tex=algorithm_lane_table_tex,
         bayesian_update_walkthrough_table_tex=bayesian_update_walkthrough_table_tex,
         toy_problem_summary_table_tex=toy_problem_summary_table_tex,
         study_candidate_generation_algorithm_tex=_study_candidate_generation_algorithm_tex(),
@@ -954,9 +1003,11 @@ def write_methodology_latex_artifacts(
     source_tex_path = SOURCE_TEX_PATH
     artifact_tex_path = run_dir / "kinematic_classifier_methodology.tex"
     algorithm_ladder_csv_path = run_dir / "algorithm_ladder_proof.csv"
+    algorithm_lane_csv_path = run_dir / "algorithm_lane_map.csv"
     toy_problem_summary_csv_path = run_dir / "toy_problem_summary.csv"
     corpus_synthesis_algorithm_path = tables_dir / "corpus_synthesis_algorithm.tex"
     algorithm_ladder_table_path = tables_dir / "algorithm_ladder_table.tex"
+    algorithm_lane_table_path = tables_dir / "algorithm_lane_table.tex"
     bayesian_update_walkthrough_table_path = tables_dir / "bayesian_update_walkthrough_table.tex"
     toy_problem_summary_table_path = tables_dir / "toy_problem_summary_table.tex"
     study_candidate_generation_algorithm_path = tables_dir / "study_candidate_generation_algorithm.tex"
@@ -965,17 +1016,20 @@ def write_methodology_latex_artifacts(
     artifact_tex = latex.methodology_tex.replace("../math/", "math/")
     _write_text(artifact_tex_path, artifact_tex)
     _write_text(DOCS_TABLES_DIR / "algorithm_ladder_table.tex", latex.algorithm_ladder_table_tex)
+    _write_text(DOCS_TABLES_DIR / "algorithm_lane_table.tex", latex.algorithm_lane_table_tex)
     _write_text(DOCS_TABLES_DIR / "bayesian_update_walkthrough_table.tex", latex.bayesian_update_walkthrough_table_tex)
     _write_text(DOCS_TABLES_DIR / "corpus_synthesis_algorithm.tex", latex.corpus_synthesis_algorithm_tex)
     _write_text(DOCS_TABLES_DIR / "toy_problem_summary_table.tex", latex.toy_problem_summary_table_tex)
     _write_text(DOCS_TABLES_DIR / "study_candidate_generation_algorithm.tex", latex.study_candidate_generation_algorithm_tex)
     _write_text(algorithm_ladder_table_path, latex.algorithm_ladder_table_tex)
+    _write_text(algorithm_lane_table_path, latex.algorithm_lane_table_tex)
     _write_text(bayesian_update_walkthrough_table_path, latex.bayesian_update_walkthrough_table_tex)
     _write_text(corpus_synthesis_algorithm_path, latex.corpus_synthesis_algorithm_tex)
     _write_text(toy_problem_summary_table_path, latex.toy_problem_summary_table_tex)
     _write_text(study_candidate_generation_algorithm_path, latex.study_candidate_generation_algorithm_tex)
 
     write_csv(algorithm_ladder_csv_path, list(latex.algorithm_ladder_rows), list(latex.algorithm_ladder_rows[0].keys()))
+    write_csv(algorithm_lane_csv_path, list(latex.algorithm_lane_rows), list(latex.algorithm_lane_rows[0].keys()))
     write_csv(toy_problem_summary_csv_path, list(latex.toy_problem_rows), list(latex.toy_problem_rows[0].keys()))
 
     figure_sources = {
@@ -998,9 +1052,11 @@ def write_methodology_latex_artifacts(
         artifact_tex_path=artifact_tex_path,
         pdf_path=pdf_path,
         algorithm_ladder_csv_path=algorithm_ladder_csv_path,
+        algorithm_lane_csv_path=algorithm_lane_csv_path,
         toy_problem_summary_csv_path=toy_problem_summary_csv_path,
         corpus_synthesis_algorithm_path=corpus_synthesis_algorithm_path,
         algorithm_ladder_table_path=algorithm_ladder_table_path,
+        algorithm_lane_table_path=algorithm_lane_table_path,
         bayesian_update_walkthrough_table_path=bayesian_update_walkthrough_table_path,
         toy_problem_summary_table_path=toy_problem_summary_table_path,
         study_candidate_generation_algorithm_path=study_candidate_generation_algorithm_path,

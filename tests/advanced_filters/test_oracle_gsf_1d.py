@@ -40,6 +40,7 @@ class OracleGSF1DTests(unittest.TestCase):
             self.assertTrue(artifacts.gaussian_baseline_posterior_path.exists())
             self.assertTrue(artifacts.component_history_path.exists())
             self.assertTrue(artifacts.state_estimate_history_path.exists())
+            self.assertTrue(artifacts.summary_path.exists())
             self.assertTrue(artifacts.metrics_path.exists())
             self.assertTrue(artifacts.decision_card_path.exists())
             for plot in artifacts.plot_paths:

@@ -46,8 +46,10 @@ class TechniqueComparisonTests(unittest.TestCase):
         self.assertEqual(ou_row.applicability_status, "witness_only")
         self.assertEqual(ou_row.metric_name, "final_mean_reverting_posterior")
         self.assertAlmostEqual(ou_row.metric_value or 0.0, 0.9999945192428745, places=12)
-        self.assertEqual([(definition.method_name, definition.sensor_regime_id) for definition in default_technique_definitions()], [(adapter.method_name, adapter.sensor_regime_id) for adapter in default_shared_classifier_adapters()])
-        self.assertEqual([spec.method_name for spec in result.method_specs], [adapter.method_name for adapter in default_shared_classifier_adapters()])
+        defined_pairs = [(definition.method_name, definition.sensor_regime_id) for definition in default_technique_definitions()]
+        shared_pairs = {(adapter.method_name, adapter.sensor_regime_id) for adapter in default_shared_classifier_adapters()}
+        self.assertTrue(all(pair in shared_pairs for pair in defined_pairs))
+        self.assertEqual([spec.method_name for spec in result.method_specs], [method_name for method_name, _sensor_regime_id in defined_pairs])
 
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_technique_comparison_artifacts(temp_dir, result=result)

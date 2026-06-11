@@ -140,7 +140,8 @@ def _render_covariate_audit(result: CommonComparisonResult):
 def _render_scenario_profile(result: CommonComparisonResult):
     rows = _supported_rows(result)
     scenario_order = ["easy", "irregular", "endpoint_match", "short", "short_noisy", "outlier"]
-    palette = {row.method_name: color for row, color in zip(rows, ("#2563eb", "#dc2626", "#d97706", "#16a34a", "#7c3aed", "#0f766e"), strict=False)}
+    colors = ("#2563eb", "#dc2626", "#d97706", "#16a34a", "#7c3aed", "#0f766e", "#0891b2", "#be123c")
+    palette = {row.method_name: colors[index % len(colors)] for index, row in enumerate(rows)}
     fig, ax = plt.subplots(figsize=(10.4, 5.2))
     x = list(range(len(scenario_order)))
     for row in rows:

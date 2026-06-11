@@ -25,6 +25,7 @@ class TrajectoryExplorationCliTests(unittest.TestCase):
             bundle = Path(temp_dir) / "trajectory_exploration_backend_registry_v1"
             self.assertTrue((bundle / "report.md").exists())
             self.assertTrue((bundle / "summary.json").exists())
+            self.assertTrue((bundle / "summary.csv").exists())
             self.assertTrue((bundle / "backend_registry.csv").exists())
             self.assertTrue((bundle / "family_summary.csv").exists())
             self.assertTrue((bundle / "capability_matrix.png").exists())
@@ -71,6 +72,8 @@ class TrajectoryExplorationCliTests(unittest.TestCase):
             self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "ppo_boundary_control" / "checkpoint_manifest.json").exists())
             self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "ppo_boundary_control" / "snapshot_rows.csv").exists())
             self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "ppo_boundary_control" / "report.md").exists())
+            self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "ppo_boundary_control" / "summary.csv").exists())
+            self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "ppo_boundary_control" / "decision_card.md").exists())
             self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "rl_algorithm_decision_report.md").exists())
 
     def test_generated_objective_ppo_sweep_command_writes_bundle(self) -> None:
@@ -94,7 +97,9 @@ class TrajectoryExplorationCliTests(unittest.TestCase):
                 )
             self.assertEqual(exit_code, 0)
             self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "generated_objective_sweep" / "summary_rows.csv").exists())
+            self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "generated_objective_sweep" / "summary.csv").exists())
             self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "generated_objective_sweep" / "report.md").exists())
+            self.assertTrue((Path(temp_dir) / "trajectory_exploration_rl" / "generated_objective_sweep" / "decision_card.md").exists())
 
     def test_trajectory_exploration_ppo_vs_cem_command_writes_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -124,8 +129,10 @@ class TrajectoryExplorationCliTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             bundle = Path(temp_dir) / "trajectory_exploration_rl" / "ppo_vs_cem_boundary_control"
             self.assertTrue((bundle / "metrics_by_backend.csv").exists())
+            self.assertTrue((bundle / "summary.csv").exists())
             self.assertTrue((bundle / "aggregate_metrics_by_backend.csv").exists())
             self.assertTrue((bundle / "backend_decisions.csv").exists())
+            self.assertTrue((bundle / "decision_card.md").exists())
             self.assertTrue((bundle / "artifact_manifest.json").exists())
             self.assertTrue((bundle / "progress_rows.csv").exists())
             self.assertTrue((bundle / "backend_metrics.png").exists())
@@ -162,8 +169,10 @@ class TrajectoryExplorationCliTests(unittest.TestCase):
             bundle = Path(temp_dir) / "trajectory_exploration_rl" / "ppo_vs_cem_objective_sweep"
             self.assertTrue((bundle / "artifact_manifest.json").exists())
             self.assertTrue((bundle / "objective_summary.csv").exists())
+            self.assertTrue((bundle / "summary.csv").exists())
             self.assertTrue((bundle / "backend_summary.csv").exists())
             self.assertTrue((bundle / "decision_summary.csv").exists())
+            self.assertTrue((bundle / "decision_card.md").exists())
             self.assertTrue((bundle / "objective_backend_heatmap.png").exists())
             self.assertTrue((bundle / "report.md").exists())
 

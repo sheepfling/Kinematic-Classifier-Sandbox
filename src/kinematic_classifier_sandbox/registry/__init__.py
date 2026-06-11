@@ -6,6 +6,8 @@ __all__ = [
     "METHOD_CATALOG",
     "MethodEntry",
     "method_families",
+    "analyze_algorithm_coverage_matrix",
+    "write_algorithm_coverage_matrix_artifacts",
     "analyze_corpus_evaluation_gap_matrix",
     "render_corpus_evaluation_gap_matrix_report",
     "write_corpus_evaluation_gap_matrix_artifacts",
@@ -19,10 +21,20 @@ __all__ = [
     "analyze_functional_surface_catalog",
     "render_functional_surface_catalog_report",
     "write_functional_surface_catalog_artifacts",
+    "analyze_embedding_baseline_frontier",
+    "write_embedding_baseline_frontier_artifacts",
+    "analyze_method_validation_os",
+    "write_method_validation_os_artifacts",
     "analyze_strict_equation_audit",
     "render_strict_equation_audit_report",
     "write_strict_equation_audit_artifacts",
 ]
+
+
+def analyze_algorithm_coverage_matrix(*args, **kwargs):
+    from .algorithm_coverage_matrix import analyze_algorithm_coverage_matrix as _impl
+
+    return _impl(*args, **kwargs)
 
 
 def analyze_formal_math_registry(*args, **kwargs):
@@ -110,6 +122,44 @@ def render_functional_surface_catalog_report(*args, **kwargs):
 def write_functional_surface_catalog_artifacts(*args, **kwargs):
     from .functional_surface_catalog import (
         write_functional_surface_catalog_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_embedding_baseline_frontier(*args, **kwargs):
+    from ..analysis.embedding_baseline_frontier import (
+        analyze_embedding_baseline_frontier as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_embedding_baseline_frontier_artifacts(*args, **kwargs):
+    from ..analysis.embedding_baseline_frontier import (
+        write_embedding_baseline_frontier_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_algorithm_coverage_matrix_artifacts(*args, **kwargs):
+    from .algorithm_coverage_matrix import (
+        write_algorithm_coverage_matrix_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_method_validation_os(*args, **kwargs):
+    from .method_validation_os import analyze_method_validation_os as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def write_method_validation_os_artifacts(*args, **kwargs):
+    from .method_validation_os import (
+        write_method_validation_os_artifacts as _impl,
     )
 
     return _impl(*args, **kwargs)

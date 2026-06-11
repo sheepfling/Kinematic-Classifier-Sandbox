@@ -138,8 +138,8 @@ CHART_EVIDENCE: dict[str, dict[str, str]] = {
     },
     "10f_advanced_filter_showcase_summary": {
         "evidence_tier": "ARTIFACT-BACKED",
-        "source_artifact": "artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv",
-        "claim_boundary": "witness-specific promotion scope by advanced filter",
+        "source_artifact": "artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv;artifacts/filter_trace_validation_v1/method_trace_matrix.csv",
+        "claim_boundary": "status-layer summary across trace_validated, witness_supported, and study_justified surfaces",
     },
     "11_witness_coverage_matrix": {
         "evidence_tier": "ARTIFACT-BACKED",
@@ -1149,26 +1149,61 @@ def chart_advanced_filter_sweet_spot_matrix(root: Path, output: Path) -> dict[st
 
 
 def chart_advanced_filter_showcase_summary(root: Path, output: Path) -> dict[str, str]:
-    rows = _read_csv(root / "artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv")
+    gate_rows = _read_csv(root / "artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv")
+    trace_rows = _read_csv(root / "artifacts/filter_trace_validation_v1/method_trace_matrix.csv")
+    trace_by_method = {row["method_id"]: row for row in trace_rows}
+    label_map = {
+        "imm_v1": "IMM",
+        "particle_filter_bank_v1": "Particle filter",
+        "rbpf_v1": "RBPF",
+        "ornstein_uhlenbeck_pf_v1": "OU PF",
+    }
+    status_color = {
+        "implemented": COLORS["purple"],
+        "trace_validated": COLORS["blue"],
+        "witness_supported": COLORS["yellow"],
+        "justified_for_study": COLORS["green"],
+        "generalized": COLORS["teal"],
+    }
     fig, ax = plt.subplots(figsize=(11.8, 5.8))
     ax.set_axis_off()
     ax.text(0.02, 0.92, _presentation_title("10f_advanced_filter_showcase_summary"), fontsize=17, weight="bold", color=COLORS["ink"])
-    ax.text(0.02, 0.86, "Run-backed witnesses can still be witness-specific rather than generally promoted.", fontsize=11, color=COLORS["muted"])
-    cols = ["method_id", "failure_case", "promotion_decision", "promotion_scope"]
-    x = [0.02, 0.28, 0.56, 0.76]
-    widths = [0.24, 0.26, 0.18, 0.18]
+    ax.text(0.02, 0.86, "Run-backed witnesses can still be trace-validated or witness-supported without becoming general defaults.", fontsize=11, color=COLORS["muted"])
+    cols = ["method", "trace_status", "status_level", "scenario_family", "claim_boundary"]
+    x = [0.02, 0.22, 0.40, 0.60, 0.78]
+    widths = [0.18, 0.16, 0.18, 0.16, 0.18]
     y0 = 0.74
     for xi, width, col in zip(x, widths, cols, strict=True):
         ax.add_patch(plt.Rectangle((xi, y0), width, 0.07, facecolor=COLORS["blue"], edgecolor="white"))
         ax.text(xi + 0.01, y0 + 0.035, col.replace("_", " "), va="center", fontsize=9, color="white", weight="bold")
-    for idx, row in enumerate(rows):
+    for idx, row in enumerate(gate_rows):
         y = y0 - 0.1 * (idx + 1)
-        values = [row["method_id"], row["failure_case"], row["promotion_decision"], row.get("promotion_scope", "witness_specific")]
+        trace_row = trace_by_method.get(row["method_id"], {})
+        values = [
+            label_map.get(row["method_id"], row["method_id"]),
+            trace_row.get("trace_status", "not_yet"),
+            row.get("status_level", "implemented"),
+            row.get("scenario_family", ""),
+            row.get("claim_boundary", "witness_specific"),
+        ]
         for xi, width, value in zip(x, widths, values, strict=True):
-            fill = COLORS["light"] if xi != x[2] else DECISION_COLORS.get(value, COLORS["gray"])
+            fill = COLORS["light"]
+            if xi == x[1] or xi == x[2]:
+                fill = status_color.get(str(value), COLORS["gray"])
             ax.add_patch(plt.Rectangle((xi, y), width, 0.085, facecolor=fill, edgecolor="white"))
-            ax.text(xi + 0.01, y + 0.042, _wrap(value.replace("_", " "), 22), va="center", fontsize=8, color="white" if xi == x[2] else COLORS["ink"])
-    _save(fig, output / "10f_advanced_filter_showcase_summary.png", "artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv")
+            ax.text(
+                xi + 0.01,
+                y + 0.042,
+                _wrap(str(value).replace("_", " "), 18 if xi < x[4] else 20),
+                va="center",
+                fontsize=8,
+                color="white" if (xi == x[1] or xi == x[2]) else COLORS["ink"],
+            )
+    _save(
+        fig,
+        output / "10f_advanced_filter_showcase_summary.png",
+        "artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv;artifacts/filter_trace_validation_v1/method_trace_matrix.csv",
+    )
     return {"chart_id": "10f_advanced_filter_showcase_summary", "path": str(output / "10f_advanced_filter_showcase_summary.png"), "role": "appendix"}
 
 
@@ -1577,13 +1612,13 @@ def _lane_proof_rows() -> list[dict[str, str]]:
         },
         {
             "lane": "Advanced filters",
-            "claim": "IMM/PF/RBPF are promoted only for named witness regimes and simpler-rung baseline failures",
+            "claim": "Advanced filters carry separate trace_validated, witness_supported, and study_justified status layers",
             "hero_chart": "10_advanced_filter_gate_matrix; 10e_advanced_filter_sweet_spot_matrix; 10b_imm_switching_shine_witness; 10c_pf_nonlinear_nongaussian_shine_witness; 10d_rbpf_latent_event_shine_witness",
-            "backing_artifact": "artifacts/advanced_filter_decision_v1/*; artifacts/advanced_filter_comparison_v1/*",
+            "backing_artifact": "artifacts/advanced_filter_decision_v1/*; artifacts/advanced_filter_comparison_v1/*; artifacts/filter_trace_validation_v1/*",
             "validation_check": "advanced filter tests",
             "decision_card_entry": "advanced-filter decision",
-            "limitation": "witness-supported does not mean generally preferred across all studies",
-            "next_work": "expand witness families and preserve witness-specific promotion scope",
+            "limitation": "trace-validated and witness-supported do not mean generally preferred across all studies",
+            "next_work": "expand witness families and preserve the status-layer split in public packets",
             "status": "covered",
         },
         {
@@ -1643,7 +1678,7 @@ def _slide_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
         "10c_pf_nonlinear_nongaussian_shine_witness": ("Where does PF shine?", "nonlinear / non-Gaussian posterior", "PF is shown against a simpler baseline on a named nonlinear-drag outlier witness."),
         "10d_rbpf_latent_event_shine_witness": ("Where does RBPF shine?", "sampled latent event plus conditional Kalman state", "RBPF is shown on a latent-onset witness and remains witness-specific, not universal."),
         "10e_advanced_filter_sweet_spot_matrix": ("How should filters be chosen?", "narrow fit by failure mode", "This is the selection rule before any witness deep dive."),
-        "10f_advanced_filter_showcase_summary": ("What is actually promoted?", "witness-specific promotion scope", "Run-backed does not mean universally preferred."),
+        "10f_advanced_filter_showcase_summary": ("What is the real advanced-filter status?", "trace_validated vs witness_supported vs study_justified", "Run-backed does not mean universally preferred."),
         "11_witness_coverage_matrix": ("Why 1D witnesses?", "controlled layer proofs", "This is not a toy story; witnesses isolate methods before 3D lift."),
         "12_1d_to_3d_pva_lift_map": ("What changes in 3D?", "posterior/evaluation/decision contracts stay", "3D needs adapters/features/dynamics, not a rewrite."),
         "13_claim_evidence_boundary_matrix": ("What is proven?", "architectural claim boundaries", "Executive version: keep it readable; appendix has full traceability."),
@@ -1941,11 +1976,12 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
                 "- calibration decision: `sanity-checked on current accumulator bins; broader calibration still pending`",
                 "- oracle gap decision: `present; prevents overclaiming unlearnable class/feature surfaces`",
                 "- rung decision: `shared classifier/filter ladder through transition and advanced-filter gates`",
-                "- advanced-filter decision: `IMM, PF, and RBPF have run-backed witness support, but only at witness-specific scope rather than as general defaults`",
+                "- advanced-filter decision: `advanced filters carry separate trace_validated, witness_supported, and study_justified layers; run-backed witness support does not imply a general default`",
                 "- advanced_filter_decisions:",
-                "  - imm: `witness-supported on switching-state mixing; transition matrix remains a strong simpler baseline on some aggregates`",
-                "  - pf: `witness-supported on nonlinear/non-Gaussian drag-outlier witness; not a general replacement for simpler filters`",
-                "  - rbpf: `witness-supported on latent maneuver-onset witness; not a general replacement for IMM or PF`",
+                "  - trace_validated: `step-level prior, prediction, likelihood, posterior, and diagnostics are auditable through the trace packet`",
+                "  - imm: `trace_validated and witness_supported on switching-state mixing; broader study justification remains case-specific`",
+                "  - pf: `trace_validated and study_justified on the current nonlinear/non-Gaussian multimodal witness; not a general replacement for simpler filters`",
+                "  - rbpf: `trace_validated and witness_supported on latent maneuver-onset witness; not a general replacement for IMM or PF`",
                 "- 3D transition status: `roadmap/architecture; toy 3D PVA dry run remains next work`",
                 "- gates:",
                 "  - corpus selection/audit: `pass for presentation packet; selected coverage 5 vs random 4`",
@@ -1960,6 +1996,7 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
                 "  - corpus policy stability is local to the available sweep",
                 "  - PPO does not yet beat the strongest non-RL search baselines on current objectives",
                 "  - CEM and PPO remain search-backend-specific rather than general corpus-policy winners",
+                "  - advanced filters are status-layered: trace_validated, witness_supported, and study_justified are separate claims",
                 "  - advanced filters are witness-specific promotions, not universal defaults",
                 "  - defer count differs between historical story notes and current rung matrix, and is called out on the funnel slide",
                 "- next action:",

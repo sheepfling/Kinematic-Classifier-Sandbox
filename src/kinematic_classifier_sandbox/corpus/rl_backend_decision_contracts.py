@@ -19,6 +19,9 @@ class RlBackendDecisionResult:
     stress_resolved_modes: int
     stress_total_modes: int
     stress_improved_modes: tuple[str, ...]
+    offpolicy_mean_best_policy_minus_best_baseline: float
+    offpolicy_seed_promotion_rate: float
+    offpolicy_best_policy_backend: str
     decision_rows: tuple["RlBackendDecisionGateRow", ...]
 
 

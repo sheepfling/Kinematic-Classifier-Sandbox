@@ -46,6 +46,12 @@ def default_trajectory_exploration_objectives() -> tuple[TrajectoryExplorationOb
             reward_weights=_weights(validity=0.30, excitation=0.35, coverage=0.20, geometry=0.15, stress=0.05, prior=0.02, leakage=0.14, physical=0.14),
             thresholds={"min_class_validity": 0.45, "min_feature_excitation": 0.65, "max_leakage_penalty": 0.35},
             evaluation_budget=18,
+            backend_constraints={
+                "selection_policy": "coverage_first",
+                "preferred_backends": ("map_elites", "latin_hypercube", "heuristic_search"),
+                "avoid_backends": ("rl_policy",),
+                "search_regime": "stratified_coverage",
+            },
         ),
         TrajectoryExplorationObjective(
             objective_id="class_pair_boundary_refinement",
@@ -56,6 +62,11 @@ def default_trajectory_exploration_objectives() -> tuple[TrajectoryExplorationOb
             reward_weights=_weights(validity=0.24, excitation=0.18, coverage=0.16, geometry=0.28, stress=0.12, prior=0.08, leakage=0.12, physical=0.12),
             thresholds={"min_class_validity": 0.45, "min_boundary_closeness": 0.50, "max_leakage_penalty": 0.40},
             evaluation_budget=18,
+            backend_constraints={
+                "selection_policy": "adaptive_continuous",
+                "preferred_backends": ("blackbox_optimizer", "cmaes", "bayesian_optimization"),
+                "search_regime": "continuous_boundary_search",
+            },
         ),
         TrajectoryExplorationObjective(
             objective_id="prior_flip_witness_search",
@@ -66,6 +77,12 @@ def default_trajectory_exploration_objectives() -> tuple[TrajectoryExplorationOb
             reward_weights=_weights(validity=0.20, excitation=0.10, coverage=0.12, geometry=0.14, stress=0.16, prior=0.28, leakage=0.10, physical=0.12),
             thresholds={"min_class_validity": 0.45, "min_prior_flip_witness_score": 0.45, "max_leakage_penalty": 0.45},
             evaluation_budget=18,
+            backend_constraints={
+                "selection_policy": "adversarial_witness",
+                "preferred_backends": ("bayesian_optimization", "cmaes", "blackbox_optimizer"),
+                "search_regime": "adaptive_witness_targeting",
+                "prefer_novelty": True,
+            },
         ),
     )
 
@@ -147,6 +164,7 @@ def evaluate_proposal(
             "target_type": objective.target.target_type,
             "target_class": objective.target.class_name or "",
             "target_class_pair": " vs ".join(objective.target.class_pair) if objective.target.class_pair else "",
+            **proposal.metadata,
         },
     )
 

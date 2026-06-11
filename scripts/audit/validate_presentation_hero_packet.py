@@ -100,6 +100,9 @@ def validate_packet(packet_dir: Path) -> list[str]:
     ]:
         if token not in decision_text:
             issues.append(f"decision_card.md missing token: {token}")
+    for token in ["trace_validated", "witness_supported", "study_justified"]:
+        if token not in decision_text:
+            issues.append(f"decision_card.md must name advanced-filter status layer: {token}")
     if "witness-specific" not in decision_text.lower():
         issues.append("decision_card.md must explicitly preserve witness-specific advanced-filter scope")
     if "ppo remains experimental" not in decision_text.lower():
@@ -110,6 +113,16 @@ def validate_packet(packet_dir: Path) -> list[str]:
     manifest_by_id = {row["chart_id"]: row for row in manifest_rows}
     if manifest_by_id.get("24_ppo_boundary_shaping_trace", {}).get("evidence_tier") != "EXPERIMENTAL-WITNESS":
         issues.append("24_ppo_boundary_shaping_trace must be EXPERIMENTAL-WITNESS")
+    summary_row = manifest_by_id.get("10f_advanced_filter_showcase_summary")
+    if summary_row is None:
+        issues.append("missing advanced-filter status summary chart in manifest: 10f_advanced_filter_showcase_summary")
+    else:
+        boundary = summary_row.get("claim_boundary", "")
+        source_artifact = summary_row.get("source_artifact", "")
+        if "trace_validated" not in boundary or "study_justified" not in boundary:
+            issues.append("10f_advanced_filter_showcase_summary must declare the status-layer split in claim_boundary")
+        if "filter_trace_validation_v1" not in source_artifact:
+            issues.append("10f_advanced_filter_showcase_summary must reference the trace-validation packet")
 
     for chart_id in {"10b_imm_switching_shine_witness", "10c_pf_nonlinear_nongaussian_shine_witness", "10d_rbpf_latent_event_shine_witness"}:
         row = manifest_by_id.get(chart_id)
