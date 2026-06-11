@@ -94,9 +94,9 @@ def _shared_method_specs() -> tuple[SharedClassifierMethodSpec, ...]:
         SharedClassifierMethodSpec(
             method_name="particle_filter_bank",
             sensor_regime_id="position_only",
-            primary_evaluation_family="nonlinear_drag_outlier",
-            supported_scenario_families=("nonlinear_drag_outlier", "ou_mean_reversion"),
-            witness_artifact="artifacts/particle_filter_v1/pf_method_comparison.csv",
+            primary_evaluation_family="abs_range_multimodal",
+            supported_scenario_families=("abs_range_multimodal", "ou_mean_reversion"),
+            witness_artifact="artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
             capabilities=SharedMethodCapabilities(False, True, True, False, True, True, True),
         ),
         SharedClassifierMethodSpec(
@@ -104,7 +104,7 @@ def _shared_method_specs() -> tuple[SharedClassifierMethodSpec, ...]:
             sensor_regime_id="position_only",
             primary_evaluation_family="latent_maneuver_onset",
             supported_scenario_families=("latent_maneuver_onset",),
-            witness_artifact="artifacts/rbpf_v1/rbpf_method_comparison.csv",
+            witness_artifact="artifacts/advanced_filter_comparison_v1/pf_vs_rbpf_frontier_summary.csv",
             capabilities=SharedMethodCapabilities(False, True, True, True, True, True, False),
         ),
     )

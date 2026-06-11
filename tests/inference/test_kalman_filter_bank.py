@@ -145,6 +145,17 @@ class KalmanFilterBankTests(unittest.TestCase):
             self.assertTrue(artifacts.dataset_manifest_path.exists())
             self.assertTrue(artifacts.model_definitions_path.exists())
             self.assertTrue(artifacts.plot_png_path.exists())
+            self.assertTrue(artifacts.filter_step_trace_path.exists())
+            self.assertTrue(artifacts.per_method_diagnostics_path.exists())
+            self.assertTrue(artifacts.posterior_timeline_plot_path.exists())
+            self.assertTrue(artifacts.likelihood_strip_plot_path.exists())
+            self.assertTrue(artifacts.waterfall_plot_path.exists())
+            self.assertTrue(artifacts.measurement_prediction_plot_path.exists())
+            self.assertTrue(artifacts.uncertainty_plot_path.exists())
+            self.assertGreaterEqual(len(artifacts.step_card_paths), 2)
+            trace_header = artifacts.filter_step_trace_path.read_text(encoding="utf-8").splitlines()[0]
+            self.assertIn("predicted_measurement", trace_header)
+            self.assertIn("innovation_covariance_diag", trace_header)
 
 
 if __name__ == "__main__":

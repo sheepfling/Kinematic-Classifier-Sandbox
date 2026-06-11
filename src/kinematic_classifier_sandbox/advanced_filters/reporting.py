@@ -31,6 +31,7 @@ def render_imm_report(result: IMMBenchmarkResult) -> str:
             f"State position RMSE: `{metrics['state_position_rmse']}`",
             f"State velocity RMSE: `{metrics['state_velocity_rmse']}`",
             f"Decision: `{metrics['promotion_decision']}`",
+            "Promotion scope: `witness_supported` until robustness sweeps exist; not yet `justified_for_study`.",
         ]
     )
 
@@ -47,7 +48,9 @@ def render_imm_report(result: IMMBenchmarkResult) -> str:
     doc.ordered_list(
         [
             "Confirm switching witness corpus coverage.",
+            "Inspect the mixing heatmap and mode-conditioned state traces around the switch.",
             "Inspect mode evidence and posterior history.",
+            "Compare switch recovery against the transition baseline.",
             "Compare post-switch accuracy and switch delay.",
             "Check state RMSE and entropy.",
             "Assign promote/revise/reject/defer.",
@@ -55,7 +58,7 @@ def render_imm_report(result: IMMBenchmarkResult) -> str:
     )
 
     doc.paragraph(
-        "PF and RBPF decisions are intentionally left to `artifacts/advanced_filter_comparison_v1`, where their targeted witness metrics are compared beside IMM."
+        "PF and RBPF decisions are intentionally left to `artifacts/advanced_filter_comparison_v1`, where their targeted witness metrics are compared beside IMM. The IMM witness can earn `witness_supported` with this packet, but broader study justification stays gated on robustness sweeps."
     )
 
     return doc.text()

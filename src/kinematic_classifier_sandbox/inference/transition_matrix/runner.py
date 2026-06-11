@@ -6,7 +6,7 @@ from math import log, pi
 from ...utils.math import (
     _gaussian_logpdf as _sigma_to_variance_gaussian_logpdf,
 )
-from ...utils.math import _matmul, _matvec, _mean, _normalize_log_scores, _transpose
+from ...utils.math import _logsumexp, _matmul, _matvec, _mean, _normalize_log_scores, _transpose
 from ...witnesses.trajectory_scenarios import generate_switching_scenarios
 from .contracts import (
     SwitchingModeSpec,
@@ -178,6 +178,7 @@ def _run_mode_accumulator(
             name: log(max(prior[name], 1e-12)) + emission[name]
             for name in emission
         }
+        log_normalizer = _logsumexp(list(log_scores.values()))
         posterior = _normalize_log_scores(log_scores)
         predicted = max(posterior, key=posterior.get)
         steps.append(
@@ -192,6 +193,8 @@ def _run_mode_accumulator(
                 predicted_mode=predicted,
                 true_mode=true_mode,
                 confidence=posterior[predicted],
+                emission_log_scores=emission,
+                log_normalizer=log_normalizer,
             )
         )
     switch_index = next(

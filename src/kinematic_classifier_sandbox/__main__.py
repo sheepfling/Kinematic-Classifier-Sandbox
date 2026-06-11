@@ -4,11 +4,18 @@ import argparse
 from pathlib import Path
 
 from .analysis.pca_dimensionality_audit import write_pca_dimensionality_audit_artifacts
+from .corpus.control_surfaces.backend_sweep import (
+    ControlSurfaceBackendSweepConfig,
+    write_control_surface_backend_sweep_artifacts,
+)
 from .corpus.coverage_artifact_io import write_coverage_report_artifacts
 from .corpus.exploration.generic_corpus_exploration import (
     write_generic_corpus_exploration_weight_sweep_artifacts,
 )
 from .corpus.trajectory_exploration.artifact_io import write_trajectory_exploration_artifacts
+from .corpus.trajectory_exploration.backend_registry import (
+    write_exploration_backend_registry_artifacts,
+)
 from .corpus.trajectory_exploration.objective_generation import (
     generate_trajectory_exploration_objective_suite,
     resolve_generated_trajectory_objective,
@@ -26,6 +33,7 @@ from .corpus.trajectory_exploration.sequential_comparison import (
 )
 from .corpus.trajectory_exploration.sequential_gym import SequentialBoundaryControlConfig
 from .meta.repo_shape_audit import write_repo_shape_audit_artifacts
+from .registry.algorithm_coverage_matrix import write_algorithm_coverage_matrix_artifacts
 from .registry.catalog import METHOD_CATALOG
 from .registry.corpus_evaluation_gap_matrix import write_corpus_evaluation_gap_matrix_artifacts
 from .registry.exported_surface_coverage import write_exported_surface_coverage_artifacts
@@ -35,6 +43,7 @@ from .registry.functional_surface_catalog import write_functional_surface_catalo
 from .registry.strict_equation_audit import write_strict_equation_audit_artifacts
 from .rung_sufficiency.analysis import write_ladder_witness_suite_artifacts
 from .story.repo_story import write_repo_story_artifacts
+from .tracing.filter_trace_validation_packet import write_filter_trace_validation_artifacts
 from .methodology.latex import (
     write_methodology_latex_artifacts,
     write_methodology_section_symbol_audit_artifacts,
@@ -152,6 +161,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional capability id to audit. Repeat to audit a subset.",
     )
 
+    algorithm_coverage_matrix = subparsers.add_parser(
+        "algorithm-coverage-matrix",
+        help="Render the broader algorithm lane and capability coverage matrix.",
+    )
+    algorithm_coverage_matrix.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the algorithm-coverage bundle should be written.",
+    )
+
     repo_shape_audit = subparsers.add_parser(
         "repo-shape-audit",
         help="Audit package layout, duplicate scripts, generated cruft, and oversized modules.",
@@ -160,6 +179,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         default="artifacts",
         help="Directory where the repo-shape audit bundle should be written.",
+    )
+
+    filter_trace_validation = subparsers.add_parser(
+        "filter-trace-validation",
+        help="Render the step-level filter trace validation packet.",
+    )
+    filter_trace_validation.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the trace-validation bundle should be written.",
     )
 
     corpus_sweep = subparsers.add_parser(
@@ -311,6 +340,16 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     trajectory_exploration.add_argument("--seed", type=int, default=7, help="Random seed for the benchmark runs.")
 
+    trajectory_exploration_backend_registry = subparsers.add_parser(
+        "trajectory-exploration-backend-registry",
+        help="Render the trajectory-exploration backend registry bundle.",
+    )
+    trajectory_exploration_backend_registry.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the backend-registry bundle should be written.",
+    )
+
     trajectory_exploration_objectives = subparsers.add_parser(
         "trajectory-exploration-objectives",
         help="Render the mechanically generated trajectory objective suite.",
@@ -319,6 +358,35 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         default="artifacts",
         help="Directory where the objective-suite bundle should be written.",
+    )
+
+    trajectory_control_surface_sweep = subparsers.add_parser(
+        "trajectory-control-surface-sweep",
+        help="Run the posterior-target objective across multiple 1D control-surface backends.",
+    )
+    trajectory_control_surface_sweep.add_argument(
+        "--output-dir",
+        default="artifacts",
+        help="Directory where the control-surface sweep bundle should be written.",
+    )
+    trajectory_control_surface_sweep.add_argument("--seed", type=int, default=7, help="Base seed for backend candidates.")
+    trajectory_control_surface_sweep.add_argument(
+        "--random-candidates",
+        type=int,
+        default=24,
+        help="Random candidates per backend.",
+    )
+    trajectory_control_surface_sweep.add_argument(
+        "--cem-iterations",
+        type=int,
+        default=4,
+        help="CEM iterations per backend.",
+    )
+    trajectory_control_surface_sweep.add_argument(
+        "--cem-population",
+        type=int,
+        default=16,
+        help="CEM population per iteration.",
     )
 
     trajectory_exploration_ppo = subparsers.add_parser(
@@ -518,12 +586,32 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.status_plot_path)
         return 0
 
+    if args.command == "algorithm-coverage-matrix":
+        artifacts = write_algorithm_coverage_matrix_artifacts(Path(args.output_dir))
+        print(artifacts.run_dir)
+        print(artifacts.report_path)
+        print(artifacts.summary_path)
+        print(artifacts.matrix_path)
+        print(artifacts.inventory_path)
+        print(artifacts.plot_path)
+        return 0
+
     if args.command == "repo-shape-audit":
         artifacts = write_repo_shape_audit_artifacts(Path(args.output_dir))
         print(artifacts.run_dir)
         print(artifacts.report_path)
         print(artifacts.summary_path)
         print(artifacts.issues_path)
+        return 0
+
+    if args.command == "filter-trace-validation":
+        artifacts = write_filter_trace_validation_artifacts(Path(args.output_dir))
+        print(artifacts.run_dir)
+        print(artifacts.report_path)
+        print(artifacts.summary_path)
+        print(artifacts.method_trace_matrix_path)
+        print(artifacts.trace_requirement_matrix_path)
+        print(artifacts.schema_path)
         return 0
 
     if args.command == "generic-corpus-exploration-weight-sweep":
@@ -666,6 +754,16 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.optimizer_trace_path)
         return 0
 
+    if args.command == "trajectory-exploration-backend-registry":
+        artifacts = write_exploration_backend_registry_artifacts(Path(args.output_dir))
+        print(artifacts.run_dir)
+        print(artifacts.report_path)
+        print(artifacts.summary_path)
+        print(artifacts.spec_table_path)
+        print(artifacts.family_summary_path)
+        print(artifacts.capability_plot_path)
+        return 0
+
     if args.command == "trajectory-exploration-objectives":
         artifacts = write_generated_trajectory_objective_artifacts(Path(args.output_dir))
         print(artifacts.run_dir)
@@ -673,6 +771,38 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.manifest_path)
         print(artifacts.objectives_path)
         print(artifacts.objective_table_path)
+        print(artifacts.report_path)
+        if artifacts.proof_artifacts is not None:
+            print(artifacts.proof_artifacts.run_dir)
+            print(artifacts.proof_artifacts.posterior_target_spec_path)
+            print(artifacts.proof_artifacts.proof_ladder_path)
+            print(artifacts.proof_artifacts.report_path)
+        return 0
+
+    if args.command == "trajectory-control-surface-sweep":
+        artifacts = write_control_surface_backend_sweep_artifacts(
+            Path(args.output_dir),
+            config=ControlSurfaceBackendSweepConfig(
+                seed=args.seed,
+                random_candidates_per_backend=args.random_candidates,
+                cem_iterations=args.cem_iterations,
+                cem_population=args.cem_population,
+            ),
+        )
+        print(artifacts.run_dir)
+        print(artifacts.config_path)
+        print(artifacts.control_surface_manifest_path)
+        print(artifacts.backend_capability_matrix_path)
+        print(artifacts.backend_objective_achievability_path)
+        print(artifacts.posterior_target_backend_sweep_path)
+        print(artifacts.target_vs_achieved_posterior_path)
+        print(artifacts.generator_identification_probe_path)
+        print(artifacts.backend_identification_probe_path)
+        print(artifacts.backend_identification_confusion_path)
+        print(artifacts.observation_surface_manifest_path)
+        print(artifacts.achievability_plot_path)
+        print(artifacts.posterior_plot_path)
+        print(artifacts.backend_probe_plot_path)
         print(artifacts.report_path)
         return 0
 

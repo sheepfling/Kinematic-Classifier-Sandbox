@@ -14,6 +14,12 @@ state-inference method. In practice, the IMM proof is only meaningful when the
 corpus passes preconditions, the switching witness is learnable, and the
 measured improvement over the transition-matrix rung is real.
 
+The current witness-specific status surface is
+`artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv`.
+The older `advanced_filter_decision_v1` artifact remains a conservative
+historical escalation gate; it should not be read as the current promotion
+surface for the dedicated IMM, PF, RBPF, and OU witnesses.
+
 ## What stays invariant
 
 - The backend must emit state summaries, evidence summaries, diagnostics, and

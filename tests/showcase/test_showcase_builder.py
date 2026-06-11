@@ -68,12 +68,15 @@ class ShowcaseBuilderTests(unittest.TestCase):
             self.assertTrue((artifacts.showcase_dir / "plots" / "generic_vs_1d_specific_layer_diagram.png").exists())
             self.assertTrue((artifacts.showcase_dir / "tables" / "advanced_filter_method_comparison.csv").exists())
             self.assertTrue((artifacts.showcase_dir / "tables" / "pf_rbpf_go_no_go_table.csv").exists())
+            self.assertTrue((artifacts.showcase_dir / "tables" / "filter_trace_method_matrix.csv").exists())
+            self.assertTrue((artifacts.showcase_dir / "tables" / "filter_trace_requirement_matrix.csv").exists())
             algorithm_report = (artifacts.showcase_dir / "reports" / "03_algorithm_ladder.md").read_text(encoding="utf-8")
             self.assertIn("capability-aware", algorithm_report)
             self.assertIn("witness_only", algorithm_report)
             filtering_report = (artifacts.showcase_dir / "reports" / "05_filtering_taxonomy.md").read_text(encoding="utf-8")
             self.assertIn("witness-specific promotions", filtering_report)
             self.assertIn("shared-corpus benchmark", filtering_report)
+            self.assertIn("trace-validation packet", filtering_report)
 
     def test_showcase_fast_mode_accepts_precomputed_context(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

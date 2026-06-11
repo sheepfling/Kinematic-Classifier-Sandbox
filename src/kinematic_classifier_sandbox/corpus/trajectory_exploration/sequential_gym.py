@@ -22,6 +22,7 @@ from ..gym_utils import (
     _reward_from_components,
 )
 from .contracts import TrajectoryExplorationEvaluation, TrajectoryExplorationObjective, TrajectoryExplorationProposal
+from .objective_scoring import posterior_target_spec_from_payload, score_posterior_target_distribution
 from .sequential_control_specs import (
     SequentialControlProblemSpec,
     default_air_vehicle_control_problem_spec,
@@ -166,6 +167,52 @@ def evaluate_boundary_control_rollout(
     )
     context = _one_dimensional_feature_context_from_trajectory(_trajectory_dataset(trajectory, tier_name), trajectory)
     geometry_score = mean((boundary_closeness, feature_excitation, prior_sensitivity))
+    diagnostics = {
+        "action_mode": "sequential_control",
+        "control_sequence_length": len(proposal.control_sequence or ()),
+        "rollout_return": rollout_return,
+        "duration": context.duration,
+        "acceleration_range": context.acceleration_range,
+        "acceleration_variance": context.acceleration_variance,
+        "sampling_irregularity": context.sampling_irregularity,
+        "measurement_scale": proposal.action.measurement_scale,
+        "duration_scale": proposal.action.duration_scale,
+        "irregularity_scale": proposal.action.irregularity_scale,
+        "outlier_scale": proposal.action.outlier_scale,
+        "step_scale": proposal.action.step_scale,
+    }
+    posterior_target_distribution = objective.backend_constraints.get("posterior_target_distribution")
+    total_utility = 0.5 * reward.total_utility + 0.5 * rollout_return
+    if isinstance(posterior_target_distribution, dict):
+        posterior_spec = posterior_target_spec_from_payload(
+            objective_id=objective.objective_id,
+            target_distribution={str(key): float(value) for key, value in posterior_target_distribution.items()},
+            evidence_provider_id=str(objective.backend_constraints.get("evidence_provider_id", "class_similarity_proxy_v1")),
+        )
+        posterior_score = score_posterior_target_distribution(
+            posterior_spec,
+            trajectory,
+            action=proposal.action,
+            candidate_id=proposal.proposal_id,
+            backend_id=proposal.backend_id,
+            tier_name=tier_name,
+        )
+        geometry_score = posterior_score.score
+        boundary_closeness = posterior_score.score
+        diagnostics.update(posterior_score.primary_terms)
+        diagnostics.update(posterior_score.penalties)
+        diagnostics.update(posterior_score.metadata)
+        diagnostics["posterior_target_passed_constraints"] = posterior_score.passed_constraints
+        total_utility = _clamp(
+            0.55 * posterior_score.score
+            + 0.25 * class_validity
+            + 0.10 * feature_excitation
+            + 0.10 * prior_sensitivity
+            - 0.15 * leakage_penalty
+            - 0.15 * physical_invalidity_penalty,
+            0.0,
+            1.0,
+        )
     return TrajectoryExplorationEvaluation(
         proposal_id=proposal.proposal_id,
         backend_id=proposal.backend_id,
@@ -175,7 +222,7 @@ def evaluate_boundary_control_rollout(
         target_id=objective.target.target_id,
         trajectory_id=trajectory.trajectory_id,
         true_class=trajectory.true_class,
-        total_utility=0.5 * reward.total_utility + 0.5 * rollout_return,
+        total_utility=total_utility,
         class_validity=class_validity,
         feature_excitation=feature_excitation,
         coverage_gain=coverage_gain,
@@ -192,20 +239,7 @@ def evaluate_boundary_control_rollout(
         feature_dependency_stress=context.acceleration_variance,
         prior_flip_witness_score=prior_sensitivity,
         geometry_score=geometry_score,
-        diagnostics={
-            "action_mode": "sequential_control",
-            "control_sequence_length": len(proposal.control_sequence or ()),
-            "rollout_return": rollout_return,
-            "duration": context.duration,
-            "acceleration_range": context.acceleration_range,
-            "acceleration_variance": context.acceleration_variance,
-            "sampling_irregularity": context.sampling_irregularity,
-            "measurement_scale": proposal.action.measurement_scale,
-            "duration_scale": proposal.action.duration_scale,
-            "irregularity_scale": proposal.action.irregularity_scale,
-            "outlier_scale": proposal.action.outlier_scale,
-            "step_scale": proposal.action.step_scale,
-        },
+        diagnostics=diagnostics,
     )
 
 

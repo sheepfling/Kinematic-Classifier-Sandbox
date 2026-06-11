@@ -8,6 +8,14 @@ from math import log
 from pathlib import Path
 
 from ..markdown_builder import MarkdownDocument
+from ..render.intermediate_plots import (
+    render_likelihood_strip,
+    render_posterior_timeline,
+    render_prior_likelihood_posterior_waterfall,
+)
+from ..render.step_cards import write_step_card
+from ..tracing.filter_trace import FilterStepTrace, write_filter_step_trace_csv
+from ..tracing.trace_validation import validate_filter_step_trace_set
 from ..utils.io import write_csv
 from ..utils.math import (
     _add_matrices,
@@ -102,10 +110,14 @@ class KalmanTrajectory:
 class KalmanPosteriorStep:
     time: float
     measurement: float
+    prior_weights: dict[str, float]
     posterior_weights: dict[str, float]
     log_likelihood_terms: dict[str, float]
     innovations: dict[str, float]
     innovation_variances: dict[str, float]
+    predicted_measurements: dict[str, float]
+    updated_state_means: dict[str, tuple[float, ...]]
+    updated_state_covariance_diagonals: dict[str, tuple[float, ...]]
     predicted_class: str
     confidence: float
 
@@ -156,6 +168,17 @@ class KalmanBenchmarkArtifacts:
     dataset_manifest_path: Path
     model_definitions_path: Path
     plot_png_path: Path
+    trace_dir: Path
+    filter_step_trace_path: Path
+    per_method_diagnostics_path: Path
+    intermediate_plot_dir: Path
+    posterior_timeline_plot_path: Path
+    likelihood_strip_plot_path: Path
+    waterfall_plot_path: Path
+    measurement_prediction_plot_path: Path
+    uncertainty_plot_path: Path
+    step_card_dir: Path
+    step_card_paths: tuple[Path, ...]
 
 
 def default_kalman_model_specs() -> tuple[KalmanModelSpec, ...]:
@@ -261,6 +284,72 @@ def _pad_state(mean: list[float], covariance: list[list[float]]) -> KalmanFilter
         mean=tuple(padded_mean),
         covariance=tuple(tuple(row) for row in padded_covariance),
     )
+
+
+def _class_members(
+    model_specs: tuple[KalmanModelSpec, ...],
+    *,
+    class_name: str,
+) -> list[KalmanModelSpec]:
+    return [spec for spec in model_specs if spec.class_name == class_name]
+
+
+def _normalized_model_weights(
+    model_specs: tuple[KalmanModelSpec, ...],
+    model_posterior: dict[str, float],
+    *,
+    class_name: str,
+) -> list[tuple[KalmanModelSpec, float]]:
+    members = _class_members(model_specs, class_name=class_name)
+    total = sum(model_posterior[spec.name] for spec in members)
+    return [(spec, model_posterior[spec.name] / max(total, 1.0e-12)) for spec in members]
+
+
+def _weighted_predicted_measurement(
+    model_specs: tuple[KalmanModelSpec, ...],
+    model_posterior: dict[str, float],
+    predicted_measurements: dict[str, float],
+    *,
+    class_name: str,
+) -> float:
+    return sum(
+        weight * predicted_measurements[spec.name]
+        for spec, weight in _normalized_model_weights(
+            model_specs,
+            model_posterior,
+            class_name=class_name,
+        )
+    )
+
+
+def _weighted_model_state_mean(
+    model_specs: tuple[KalmanModelSpec, ...],
+    model_posterior: dict[str, float],
+    updated_states: dict[str, tuple[list[float], list[list[float]]]],
+    *,
+    class_name: str,
+) -> tuple[float, ...]:
+    state = [0.0, 0.0, 0.0]
+    for spec, weight in _normalized_model_weights(model_specs, model_posterior, class_name=class_name):
+        mean, _ = updated_states[spec.name]
+        for index, value in enumerate(mean):
+            state[index] += weight * value
+    return tuple(state)
+
+
+def _weighted_model_state_covariance_diagonal(
+    model_specs: tuple[KalmanModelSpec, ...],
+    model_posterior: dict[str, float],
+    updated_states: dict[str, tuple[list[float], list[list[float]]]],
+    *,
+    class_name: str,
+) -> tuple[float, ...]:
+    covariance = [0.0, 0.0, 0.0]
+    for spec, weight in _normalized_model_weights(model_specs, model_posterior, class_name=class_name):
+        _, state_covariance = updated_states[spec.name]
+        for index in range(min(len(state_covariance), 3)):
+            covariance[index] += weight * state_covariance[index][index]
+    return tuple(covariance)
 
 
 def _make_kalman_trajectory(
@@ -423,10 +512,12 @@ def run_kalman_filter_bank(
         previous_time = time
         measurement_history_times.append(time)
         measurement_history_values.append(measurement)
+        class_prior = dict(model_posterior)
         model_log_scores = {}
         model_log_likelihoods = {}
         model_innovations = {}
         model_innovation_variances = {}
+        model_predicted_measurements = {}
         updated_states = {}
         updated_process_scales = {}
         for spec in model_specs:
@@ -438,6 +529,7 @@ def run_kalman_filter_bank(
                 dt,
                 process_scales[spec.name],
             )
+            model_predicted_measurements[spec.name] = predicted_mean[0]
             effective_measurement_sigma = (
                 _effective_measurement_sigma(
                     predicted_covariance,
@@ -582,10 +674,38 @@ def run_kalman_filter_bank(
             KalmanPosteriorStep(
                 time=time,
                 measurement=measurement,
+                prior_weights=class_prior,
                 posterior_weights=posterior,
                 log_likelihood_terms=log_likelihood_terms,
                 innovations=innovations,
                 innovation_variances=innovation_variances,
+                predicted_measurements={
+                    class_name: _weighted_predicted_measurement(
+                        model_specs,
+                        model_posterior,
+                        model_predicted_measurements,
+                        class_name=class_name,
+                    )
+                    for class_name in class_names
+                },
+                updated_state_means={
+                    class_name: _weighted_model_state_mean(
+                        model_specs,
+                        model_posterior,
+                        updated_states,
+                        class_name=class_name,
+                    )
+                    for class_name in class_names
+                },
+                updated_state_covariance_diagonals={
+                    class_name: _weighted_model_state_covariance_diagonal(
+                        model_specs,
+                        model_posterior,
+                        updated_states,
+                        class_name=class_name,
+                    )
+                    for class_name in class_names
+                },
                 predicted_class=predicted_class,
                 confidence=posterior[predicted_class],
             )
@@ -791,6 +911,16 @@ def write_kalman_bank_artifacts(
     dataset_manifest_path = run_dir / "dataset_manifest.json"
     model_definitions_path = run_dir / "kalman_model_definitions.json"
     plot_png_path = run_dir / "kalman_bank_diagnostics.png"
+    trace_dir = run_dir / "traces"
+    intermediate_plot_dir = run_dir / "plots" / "intermediate"
+    step_card_dir = run_dir / "step_cards"
+    filter_step_trace_path = trace_dir / "filter_step_trace.csv"
+    per_method_diagnostics_path = trace_dir / "per_method_diagnostics.csv"
+    posterior_timeline_plot_path = intermediate_plot_dir / "posterior_timeline_with_regimes.png"
+    likelihood_strip_plot_path = intermediate_plot_dir / "innovation_likelihood_strip.png"
+    waterfall_plot_path = intermediate_plot_dir / "prior_likelihood_posterior_waterfall.png"
+    measurement_prediction_plot_path = intermediate_plot_dir / "measurement_prediction_timeline.png"
+    uncertainty_plot_path = intermediate_plot_dir / "uncertainty_diagnostics.png"
 
     report_path.write_text(render_kalman_bank_report(benchmark), encoding="utf-8")
     plot_png_path.write_bytes(render_kalman_bank_png_bytes(benchmark))
@@ -893,6 +1023,42 @@ def write_kalman_bank_artifacts(
         ],
         ["true_class", *class_names],
     )
+    traces = _build_kalman_filter_step_traces(benchmark)
+    validate_filter_step_trace_set(traces)
+    write_filter_step_trace_csv(filter_step_trace_path, traces)
+    diagnostic_rows = [
+        {
+            "run_id": trace.run_id,
+            "trajectory_id": trace.trajectory_id,
+            "method_id": trace.method_id,
+            "time_index": trace.time_index,
+            "time": trace.time,
+            "class_or_model": trace.class_or_model,
+            "predicted_measurement": " ".join(f"{value:.12g}" for value in trace.predicted_measurement or ()),
+            "innovation": " ".join(f"{value:.12g}" for value in trace.innovation or ()),
+            "innovation_covariance_diag": " ".join(f"{value:.12g}" for value in trace.innovation_covariance_diag or ()),
+            "normalized_innovation_squared": trace.normalized_innovation_squared,
+            "posterior_entropy": trace.posterior_entropy,
+        }
+        for trace in traces
+    ]
+    write_csv(
+        per_method_diagnostics_path,
+        diagnostic_rows,
+        [
+            "run_id",
+            "trajectory_id",
+            "method_id",
+            "time_index",
+            "time",
+            "class_or_model",
+            "predicted_measurement",
+            "innovation",
+            "innovation_covariance_diag",
+            "normalized_innovation_squared",
+            "posterior_entropy",
+        ],
+    )
 
     config_path.write_text(
         "\n".join(
@@ -947,6 +1113,13 @@ def write_kalman_bank_artifacts(
         ),
         encoding="utf-8",
     )
+    representative = tuple(trace for trace in traces if trace.trajectory_id == benchmark.runs[0].trajectory_id)
+    render_posterior_timeline(posterior_timeline_plot_path, representative)
+    render_likelihood_strip(likelihood_strip_plot_path, representative)
+    render_prior_likelihood_posterior_waterfall(waterfall_plot_path, representative)
+    _render_kalman_measurement_prediction_plot(measurement_prediction_plot_path, benchmark)
+    _render_kalman_uncertainty_plot(uncertainty_plot_path, representative)
+    step_card_paths = _write_kalman_step_cards(step_card_dir, representative)
 
     return KalmanBenchmarkArtifacts(
         run_dir=run_dir,
@@ -959,4 +1132,123 @@ def write_kalman_bank_artifacts(
         dataset_manifest_path=dataset_manifest_path,
         model_definitions_path=model_definitions_path,
         plot_png_path=plot_png_path,
+        trace_dir=trace_dir,
+        filter_step_trace_path=filter_step_trace_path,
+        per_method_diagnostics_path=per_method_diagnostics_path,
+        intermediate_plot_dir=intermediate_plot_dir,
+        posterior_timeline_plot_path=posterior_timeline_plot_path,
+        likelihood_strip_plot_path=likelihood_strip_plot_path,
+        waterfall_plot_path=waterfall_plot_path,
+        measurement_prediction_plot_path=measurement_prediction_plot_path,
+        uncertainty_plot_path=uncertainty_plot_path,
+        step_card_dir=step_card_dir,
+        step_card_paths=step_card_paths,
     )
+
+
+def _build_kalman_filter_step_traces(result: KalmanBenchmarkResult) -> tuple[FilterStepTrace, ...]:
+    traces: list[FilterStepTrace] = []
+    for run in result.runs:
+        for step_index, step in enumerate(run.steps):
+            posterior_entropy = -sum(
+                float(value) * log(max(float(value), 1.0e-300))
+                for value in step.posterior_weights.values()
+            )
+            for class_name, posterior_probability in step.posterior_weights.items():
+                innovation = float(step.innovations[class_name])
+                innovation_variance = float(step.innovation_variances[class_name])
+                traces.append(
+                    FilterStepTrace(
+                        run_id="kalman_filter_bank",
+                        study_id="kalman_endpoint_match",
+                        trajectory_id=run.trajectory_id,
+                        method_id="kalman_bank",
+                        rung="Kalman Bank",
+                        time_index=step_index,
+                        time=step.time,
+                        dt=_kalman_step_dt(run, step_index),
+                        class_or_model=class_name,
+                        true_class=run.true_class,
+                        true_mode=None,
+                        prior_probability=step.prior_weights[class_name],
+                        predicted_probability=step.prior_weights[class_name],
+                        log_transition_probability=None,
+                        measurement=(float(step.measurement),),
+                        predicted_measurement=(float(step.predicted_measurements[class_name]),),
+                        innovation=(innovation,),
+                        innovation_covariance_diag=(innovation_variance,),
+                        normalized_innovation_squared=(innovation * innovation) / max(innovation_variance, 1.0e-9),
+                        log_likelihood=float(step.log_likelihood_terms[class_name]),
+                        incremental_log_evidence=float(step.log_likelihood_terms[class_name]),
+                        posterior_probability=posterior_probability,
+                        posterior_entropy=posterior_entropy,
+                        predicted_state_mean=step.updated_state_means[class_name],
+                        predicted_state_covariance_diag=step.updated_state_covariance_diagonals[class_name],
+                        updated_state_mean=step.updated_state_means[class_name],
+                        updated_state_covariance_diag=step.updated_state_covariance_diagonals[class_name],
+                        effective_sample_size=None,
+                        is_resampled=None,
+                    )
+                )
+    return tuple(traces)
+
+
+def _kalman_step_dt(run: KalmanClassificationRun, step_index: int) -> float:
+    if step_index == 0:
+        return max(run.steps[1].time - run.steps[0].time, 1.0e-9) if len(run.steps) > 1 else 1.0
+    return max(run.steps[step_index].time - run.steps[step_index - 1].time, 1.0e-9)
+
+
+def _render_kalman_measurement_prediction_plot(path: Path, result: KalmanBenchmarkResult) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    run = result.runs[0]
+    fig, ax = plt.subplots(figsize=(8, 4), dpi=150)
+    ax.plot([step.time for step in run.steps], [step.measurement for step in run.steps], color="#111827", label="measurement")
+    for class_name in run.steps[0].predicted_measurements:
+        ax.plot(
+            [step.time for step in run.steps],
+            [step.predicted_measurements[class_name] for step in run.steps],
+            label=f"{class_name} predicted",
+        )
+    ax.set_title("Measurement Prediction Timeline", loc="left")
+    ax.set_xlabel("time")
+    ax.set_ylabel("position")
+    ax.legend(fontsize=7)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+    return path
+
+
+def _render_kalman_uncertainty_plot(path: Path, traces: tuple[FilterStepTrace, ...]) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    grouped: dict[str, list[FilterStepTrace]] = {}
+    for trace in traces:
+        grouped.setdefault(trace.class_or_model, []).append(trace)
+    fig, axes = plt.subplots(2, 1, figsize=(8, 6), dpi=150, sharex=True)
+    for class_name, rows in sorted(grouped.items()):
+        ordered = sorted(rows, key=lambda row: row.time)
+        axes[0].plot([row.time for row in ordered], [row.normalized_innovation_squared or 0.0 for row in ordered], label=class_name)
+        axes[1].plot([row.time for row in ordered], [0.0 if row.updated_state_covariance_diag is None else row.updated_state_covariance_diag[0] for row in ordered], label=class_name)
+    axes[0].set_title("Innovation NIS", loc="left")
+    axes[1].set_title("Position Variance", loc="left")
+    axes[1].set_xlabel("time")
+    axes[0].legend(fontsize=7)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+    return path
+
+
+def _write_kalman_step_cards(step_card_dir: Path, traces: tuple[FilterStepTrace, ...]) -> tuple[Path, ...]:
+    if not traces:
+        return ()
+    final_index = max(trace.time_index for trace in traces)
+    middle_index = final_index // 2
+    selected = (0, middle_index, final_index)
+    paths: list[Path] = []
+    for label, time_index in zip(("t_000", "t_mid", "t_final"), selected, strict=True):
+        rows = tuple(trace for trace in traces if trace.time_index == time_index)
+        if rows:
+            paths.append(write_step_card(step_card_dir / f"{label}.md", rows))
+    return tuple(paths)

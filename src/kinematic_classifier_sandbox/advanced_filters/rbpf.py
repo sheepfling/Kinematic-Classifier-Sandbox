@@ -143,8 +143,10 @@ class RaoBlackwellizedParticleFilter:
         log_evidence_by_mode = self._mode_log_evidence(log_unnormalized, new_mode_indexes)
         ess = effective_sample_size(weights)
         resampled = False
+        unique_ancestor_count = self.config.particle_count
         if ess < self.config.resample_threshold_fraction * self.config.particle_count:
             indexes = systematic_resample(weights, self.rng)
+            unique_ancestor_count = len(set(int(index) for index in indexes.tolist()))
             new_mode_indexes = new_mode_indexes[indexes]
             new_means = new_means[indexes]
             new_covariances = new_covariances[indexes]
@@ -173,7 +175,10 @@ class RaoBlackwellizedParticleFilter:
             log_evidence_by_label=log_evidence_by_mode,
             diagnostics={
                 "ess": float(ess),
+                "ess_fraction": float(ess / self.config.particle_count),
                 "resampled": bool(resampled),
+                "unique_ancestor_count": int(unique_ancestor_count),
+                "unique_ancestor_fraction": float(unique_ancestor_count / self.config.particle_count),
                 "log_marginal_likelihood": float(log_marginal),
             },
         )

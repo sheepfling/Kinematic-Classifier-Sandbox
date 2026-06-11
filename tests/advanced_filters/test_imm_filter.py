@@ -59,9 +59,23 @@ class IMMFilterTests(unittest.TestCase):
             self.assertTrue(artifacts.decision_matrix_path.exists())
             self.assertTrue(artifacts.mode_probability_plot_path.exists())
             self.assertTrue(artifacts.state_plot_path.exists())
+            self.assertTrue(artifacts.filter_step_trace_path.exists())
+            self.assertTrue(artifacts.per_method_diagnostics_path.exists())
+            self.assertTrue(artifacts.posterior_timeline_plot_path.exists())
+            self.assertTrue(artifacts.likelihood_strip_plot_path.exists())
+            self.assertTrue(artifacts.waterfall_plot_path.exists())
+            self.assertTrue(artifacts.mixing_heatmap_plot_path.exists())
+            self.assertTrue(artifacts.mode_conditioned_state_plot_path.exists())
+            self.assertTrue(artifacts.switch_recovery_plot_path.exists())
+            self.assertGreaterEqual(len(artifacts.step_card_paths), 2)
+            for step_card_path in artifacts.step_card_paths:
+                self.assertTrue(step_card_path.exists())
             report = artifacts.report_path.read_text(encoding="utf-8")
             self.assertIn("IMM Filter V1 Report", report)
             self.assertIn("promote/revise/reject/defer", report)
+            mixing_header = artifacts.mixing_probability_history_path.read_text(encoding="utf-8").splitlines()[0]
+            self.assertIn("dest_mode", mixing_header)
+            self.assertIn("source_mode", mixing_header)
 
 
 if __name__ == "__main__":

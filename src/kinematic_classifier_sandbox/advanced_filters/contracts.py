@@ -33,12 +33,16 @@ class AdvancedStateSummary:
 class IMMSwitchingRun:
     trajectory_id: str
     scenario_name: str
+    mode_ids: tuple[str, ...]
     true_modes: tuple[str, ...]
     times: tuple[float, ...]
     measurements: tuple[float, ...]
     steps: tuple[AdvancedFilterStep, ...]
     state_means: tuple[tuple[float, float, float], ...]
     state_covariances: tuple[tuple[float, ...], ...]
+    mode_state_means: tuple[dict[str, tuple[float, float, float]], ...]
+    mode_state_covariances: tuple[dict[str, tuple[float, ...]], ...]
+    mixing_probabilities: tuple[dict[str, tuple[float, ...]], ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,3 +69,15 @@ class IMMArtifacts:
     plot_dir: Path
     mode_probability_plot_path: Path
     state_plot_path: Path
+    trace_dir: Path
+    filter_step_trace_path: Path
+    per_method_diagnostics_path: Path
+    intermediate_plot_dir: Path
+    posterior_timeline_plot_path: Path
+    likelihood_strip_plot_path: Path
+    waterfall_plot_path: Path
+    mixing_heatmap_plot_path: Path
+    mode_conditioned_state_plot_path: Path
+    switch_recovery_plot_path: Path
+    step_card_dir: Path
+    step_card_paths: tuple[Path, ...]

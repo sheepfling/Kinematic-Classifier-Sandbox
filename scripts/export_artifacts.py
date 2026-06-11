@@ -16,6 +16,21 @@ def _remove_svg_outputs(root: Path) -> None:
 from kinematic_classifier_sandbox.analysis.inspection_bundle import (
     write_abstract_inspection_artifacts,
 )
+from kinematic_classifier_sandbox.advanced_filters.evaluation import (
+    write_advanced_filter_comparison_artifacts,
+    write_particle_filter_witness_artifacts,
+    write_rbpf_witness_artifacts,
+)
+from kinematic_classifier_sandbox.advanced_filters.oracle_pf_1d import (
+    write_pf_abs_range_multimodal_witness_artifacts,
+)
+from kinematic_classifier_sandbox.advanced_filters.oracle_gsf_1d import (
+    write_gsf_abs_range_multimodal_witness_artifacts,
+)
+from kinematic_classifier_sandbox.advanced_filters.ou_witness import (
+    write_ornstein_uhlenbeck_witness_artifacts,
+)
+from kinematic_classifier_sandbox.advanced_filters.runner import write_imm_artifacts
 from kinematic_classifier_sandbox.common_experiment.artifact_io import (
     write_common_experiment_artifacts,
 )
@@ -185,6 +200,9 @@ from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
 )
 from kinematic_classifier_sandbox.showcase.builder import build_showcase_artifacts
 from kinematic_classifier_sandbox.story.repo_story import write_repo_story_artifacts
+from kinematic_classifier_sandbox.tracing.filter_trace_validation_packet import (
+    write_filter_trace_validation_artifacts,
+)
 from kinematic_classifier_sandbox.registry.strict_equation_audit import write_strict_equation_audit_artifacts
 from kinematic_classifier_sandbox.validation.advanced_filter_decision import (
     write_advanced_filter_decision_artifacts,
@@ -212,6 +230,9 @@ from kinematic_classifier_sandbox.registry.formal_math_visual_registry import (
 )
 from kinematic_classifier_sandbox.registry.functional_surface_catalog import (
     write_functional_surface_catalog_artifacts,
+)
+from kinematic_classifier_sandbox.registry.method_validation_os import (
+    write_method_validation_os_artifacts,
 )
 from kinematic_classifier_sandbox.methodology.classification_evidence import (
     write_generic_classification_evidence_proof_artifacts,
@@ -453,6 +474,14 @@ def main() -> int:
     irregular_window_artifacts = write_irregular_window_artifacts(ROOT / "artifacts")
     transition_benchmark_artifacts = write_transition_benchmark_artifacts(ROOT / "artifacts")
     advanced_filter_decision_artifacts = write_advanced_filter_decision_artifacts(ROOT / "artifacts")
+    imm_artifacts = write_imm_artifacts(ROOT / "artifacts")
+    particle_filter_artifacts = write_particle_filter_witness_artifacts(ROOT / "artifacts")
+    pf_oracle_artifacts = write_pf_abs_range_multimodal_witness_artifacts(ROOT / "artifacts")
+    gsf_oracle_artifacts = write_gsf_abs_range_multimodal_witness_artifacts(ROOT / "artifacts")
+    rbpf_artifacts = write_rbpf_witness_artifacts(ROOT / "artifacts")
+    ou_witness_artifacts = write_ornstein_uhlenbeck_witness_artifacts(ROOT / "artifacts")
+    advanced_filter_comparison_artifacts = write_advanced_filter_comparison_artifacts(ROOT / "artifacts")
+    filter_trace_validation_artifacts = write_filter_trace_validation_artifacts(ROOT / "artifacts")
     write_advanced_filter_contract_artifacts(ROOT / "artifacts")
     write_advanced_state_inference_artifacts(ROOT / "artifacts")
     velocity_aided_kalman_artifacts = write_velocity_aided_kalman_comparison_artifacts(ROOT / "artifacts")
@@ -538,6 +567,7 @@ def main() -> int:
         methodology_tex=methodology_latex_result.methodology_tex,
     )
     functional_surface_catalog_artifacts = write_functional_surface_catalog_artifacts(ROOT / "artifacts")
+    method_validation_os_artifacts = write_method_validation_os_artifacts(ROOT / "artifacts")
     formal_math_registry_artifacts = write_formal_math_registry_artifacts(ROOT / "artifacts")
     formal_math_visual_registry_artifacts = write_formal_math_visual_registry_artifacts(ROOT / "artifacts")
     strict_equation_audit_artifacts = write_strict_equation_audit_artifacts(ROOT / "artifacts")
@@ -659,6 +689,18 @@ def main() -> int:
     print(transition_benchmark_artifacts.report_path)
     print(advanced_filter_decision_artifacts.run_dir)
     print(advanced_filter_decision_artifacts.report_path)
+    print(imm_artifacts.run_dir)
+    print(imm_artifacts.report_path)
+    print(particle_filter_artifacts.run_dir)
+    print(particle_filter_artifacts.report_path)
+    print(rbpf_artifacts.run_dir)
+    print(rbpf_artifacts.report_path)
+    print(ou_witness_artifacts.run_dir)
+    print(ou_witness_artifacts.report_path)
+    print(advanced_filter_comparison_artifacts.run_dir)
+    print(advanced_filter_comparison_artifacts.report_path)
+    print(filter_trace_validation_artifacts.run_dir)
+    print(filter_trace_validation_artifacts.report_path)
     print(velocity_aided_kalman_artifacts.run_dir)
     print(velocity_aided_kalman_artifacts.report_path)
     print(prior_sensitivity_artifacts.run_dir)
@@ -760,6 +802,8 @@ def main() -> int:
     print(methodology_section_symbol_audit_artifacts.report_path)
     print(functional_surface_catalog_artifacts.run_dir)
     print(functional_surface_catalog_artifacts.report_path)
+    print(method_validation_os_artifacts.run_dir)
+    print(method_validation_os_artifacts.report_path)
     print(formal_math_registry_artifacts.run_dir)
     print(formal_math_registry_artifacts.report_path)
     print(formal_math_visual_registry_artifacts.run_dir)

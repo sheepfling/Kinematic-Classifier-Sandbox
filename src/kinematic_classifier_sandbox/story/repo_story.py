@@ -203,13 +203,13 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
         evidence_doc=("docs/surveys/dimensional_lift_and_advanced_filter_gates.md", "docs/story/algorithm_ladder.md"),
         artifact_paths=(
             "artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md",
-            "artifacts/advanced_filter_decision_v1/advanced_filter_decision_summary.json",
-            "artifacts/advanced_filter_decision_v1/advanced_filter_decision_evidence.json",
+            "artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv",
+            "artifacts/filter_trace_validation_v1/filter_trace_validation_report.md",
         ),
         test_paths=("tests/methodology/test_generic_inference_contract.py", "tests/methodology/test_generic_classification_evidence_proof.py"),
-        current_status="implemented",
-        limitations="Promotions are witness-specific and do not imply universal dominance over simpler methods.",
-        next_work="Lift the promoted witness evaluations to vector PVA and 3D backend adapters.",
+        current_status="trace_validated + witness_supported by case",
+        limitations="Trace validation, witness support, and broader study justification are separate layers; current promotions do not imply universal dominance over simpler methods.",
+        next_work="Lift the witness and trace packets to vector PVA and 3D backend adapters, then expand study-justification sweeps.",
         showcase_plot="plots/advanced_filter_decision_matrix.png",
         showcase_table="tables/advanced_filter_method_comparison.csv",
         supporting_equation="Advanced filters emit the shared posterior evidence contract.",
@@ -251,7 +251,7 @@ LADDER: tuple[LadderRung, ...] = (
     LadderRung("2", "Sequential Bayes", "recursive evidence", "memory", "pointwise ignores history", "sequential_history", "promote"),
     LadderRung("3", "Kalman bank", "innovation likelihood", "dynamics", "endpoint ambiguity", "kalman_endpoint_match", "promote"),
     LadderRung("4", "Transition matrix", "T_ij mode transition", "switching", "static class assumption", "transition_switching", "pass"),
-    LadderRung("5", "IMM/PF/RBPF", "advanced state inference", "nonlinear switching and mixed latent state inference", "transition static nonlinear and latent-event failures", "advanced_filter_witnesses", "promote by witness"),
+    LadderRung("5", "IMM/PF/RBPF", "advanced state inference", "nonlinear switching and mixed latent state inference", "transition static nonlinear and latent-event failures", "advanced_filter_witnesses", "witness_supported / study_justified by case"),
 )
 
 
@@ -277,7 +277,9 @@ ARTIFACT_MANIFEST: tuple[ArtifactManifestEntry, ...] = (
     ArtifactManifestEntry("artifacts/bayes_accumulator/bayes_accumulator_diagnostics.png", "src/kinematic_classifier_sandbox/inference/sequential_bayes_accumulator.py", ("artifacts/bayes_accumulator/posterior_history.csv",), "Does sequential history improve evidence over time?", "C05", "promote", "Does not model dynamics residuals."),
     ArtifactManifestEntry("artifacts/kalman_filter_bank/kalman_bank_diagnostics.png", "src/kinematic_classifier_sandbox/inference/kalman_filter_bank.py", ("artifacts/kalman_filter_bank/innovation_history.csv",), "Can innovation likelihoods serve as class evidence?", "C05", "promote", "Does not prove general nonlinear 3D performance."),
     ArtifactManifestEntry("artifacts/transition_matrix_accumulator_v1/transition_matrix_diagnostics.png", "src/kinematic_classifier_sandbox/inference/transition_matrix_accumulator.py", ("artifacts/transition_matrix_accumulator_v1/transition_matrix_posterior_history.csv",), "Does transition logic address static-class switching failures?", "C05", "pass", "Transition logic is now a baseline for IMM rather than a replacement."),
-    ArtifactManifestEntry("artifacts/advanced_filter_decision_v1/advanced_filter_decision_summary.json", "src/kinematic_classifier_sandbox/advanced_filters/evaluation.py", ("artifacts/advanced_filter_decision_v1/advanced_filter_decision_evidence.json",), "Which advanced filters promote on targeted witness failures?", "C07", "implemented", "Promotions are current-witness claims, not universal dominance claims."),
+    ArtifactManifestEntry("artifacts/advanced_filter_decision_v1/advanced_filter_decision_summary.json", "src/kinematic_classifier_sandbox/advanced_filters/evaluation.py", ("artifacts/advanced_filter_decision_v1/advanced_filter_decision_evidence.json",), "What does the conservative go/no-go gate say before broader witness promotion claims?", "C07", "implemented", "This remains the conservative gate, not the full witness and trace story."),
+    ArtifactManifestEntry("artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv", "src/kinematic_classifier_sandbox/advanced_filters/evaluation.py", ("artifacts/advanced_filter_comparison_v1/method_comparison.csv", "artifacts/advanced_filter_comparison_v1/advanced_filter_comparison_report.md"), "Which advanced methods are only witness-supported versus justified for broader study use?", "C07", "implemented", "Witness support and study justification remain witness-family specific."),
+    ArtifactManifestEntry("artifacts/filter_trace_validation_v1/filter_trace_validation_report.md", "src/kinematic_classifier_sandbox/tracing/filter_trace_validation_packet.py", ("artifacts/filter_trace_validation_v1/method_trace_matrix.csv", "artifacts/filter_trace_validation_v1/filter_step_trace_schema.json"), "Which methods expose auditable prior, prediction, likelihood, posterior, and diagnostic trace packets?", "C07", "implemented", "Trace validation proves mechanical auditability, not promotion by itself."),
     ArtifactManifestEntry("artifacts/dimensional_lift_audit/module_dimension_status.csv", "src/kinematic_classifier_sandbox/analysis/dimensional_lift_audit.py", ("src/kinematic_classifier_sandbox",), "What must change for 3D transition?", "C08", "architectural", "3D adapters and dynamics are incomplete."),
     ArtifactManifestEntry("artifacts/validation_ladder/validation_ladder_decisions.csv", "src/kinematic_classifier_sandbox/validation/validation_ladder.py", ("artifacts/validation_ladder/validation_ladder_scores.csv",), "Which studies promote, revise, reject, or defer?", "C01;C02;C03;C04", "implemented", "Promotion quality depends on upstream corpus, feature, prior, and evidence checks."),
 )
@@ -433,6 +435,8 @@ def render_artifact_graph_markdown() -> str:
         ("artifacts/kalman_filter_bank/kalman_bank_report.md", "innovation_history.csv, posterior_history.csv, confusion_final.csv, kalman_model_definitions.json"),
         ("artifacts/transition_matrix_accumulator_v1/transition_matrix_accumulator_report.md", "transition_matrix_scenario_summary.csv, transition_matrix_posterior_history.csv, transition_matrix_config.yaml"),
         ("artifacts/advanced_filter_decision_v1/advanced_filter_decision_report.md", "advanced_filter_decision_summary.json, advanced_filter_decision_evidence.json"),
+        ("artifacts/advanced_filter_comparison_v1/advanced_filter_comparison_report.md", "advanced_method_gate_matrix.csv, method_comparison.csv, advanced_method_promotion_cards.md"),
+        ("artifacts/filter_trace_validation_v1/filter_trace_validation_report.md", "method_trace_matrix.csv, trace_requirement_matrix.csv, filter_step_trace_schema.json"),
         ("artifacts/dimensional_lift_audit/dimensional_lift_audit.md", "module_dimension_status.csv, scalar_assumption_inventory.csv, validation_results.json"),
     )
     flow = MermaidFlow(
@@ -739,7 +743,8 @@ def render_top_20_artifacts() -> str:
         "artifacts/generic_corpus_exploration/candidate_scores.csv",
         "artifacts/selected_generated_corpus/corpus_manifest.json",
         "artifacts/validation_ladder/validation_ladder_decisions.csv",
-        "artifacts/advanced_filter_decision_v1/advanced_filter_decision_summary.json",
+        "artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv",
+        "artifacts/filter_trace_validation_v1/filter_trace_validation_report.md",
         "artifacts/dimensional_lift_audit/module_dimension_status.csv",
     ]
     report = MarkdownDocument("Top 20 Story Artifacts To Review")

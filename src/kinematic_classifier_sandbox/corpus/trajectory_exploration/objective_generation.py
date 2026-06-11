@@ -7,6 +7,7 @@ from pathlib import Path
 from ...utils.io import _write_json, _write_text, write_csv
 from ..gym_types import CorpusGymTarget
 from .contracts import TrajectoryExplorationObjective
+from .objective_scoring import ObjectiveProofArtifacts, write_objective_proof_artifacts
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +49,14 @@ class ClassPairRegionSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class PosteriorTargetRegionSpec:
+    region_id: str
+    posterior_distribution: dict[str, float]
+    target_tier: str = "boundary_v1"
+    evidence_provider_id: str = "class_similarity_proxy_v1"
+
+
+@dataclass(frozen=True, slots=True)
 class NoveltyRegionSpec:
     region_id: str
     description: str
@@ -64,10 +73,12 @@ class TrajectoryObjectiveGenerationSpec:
     feature_axes: tuple[FeatureAxisSpec, ...]
     feature_rows: tuple[FeatureRowSpec, ...]
     class_pair_regions: tuple[ClassPairRegionSpec, ...]
+    posterior_target_regions: tuple[PosteriorTargetRegionSpec, ...]
     novelty_regions: tuple[NoveltyRegionSpec, ...]
     include_full_feature_space: bool = True
     include_feature_rows: bool = True
     include_class_pair_regions: bool = True
+    include_posterior_target_regions: bool = True
     include_novelty_regions: bool = True
     default_evaluation_budget: int = 18
 
@@ -89,6 +100,7 @@ class GeneratedTrajectoryObjectiveArtifacts:
     objectives_path: Path
     objective_table_path: Path
     report_path: Path
+    proof_artifacts: ObjectiveProofArtifacts | None = None
 
 
 def _weights(
@@ -142,6 +154,16 @@ def default_objective_generation_spec() -> TrajectoryObjectiveGenerationSpec:
             ClassPairRegionSpec("cv_vs_ca", ("constant_velocity", "constant_acceleration")),
             ClassPairRegionSpec("cv_vs_braking", ("constant_velocity", "braking"), target_prior_sensitivity="high"),
             ClassPairRegionSpec("ca_vs_maneuver", ("constant_acceleration", "maneuver")),
+        ),
+        posterior_target_regions=(
+            PosteriorTargetRegionSpec(
+                region_id="cv_ca_50_50",
+                posterior_distribution={"constant_velocity": 0.5, "constant_acceleration": 0.5},
+            ),
+            PosteriorTargetRegionSpec(
+                region_id="cv_braking_50_50",
+                posterior_distribution={"constant_velocity": 0.5, "braking": 0.5},
+            ),
         ),
         novelty_regions=(
             NoveltyRegionSpec(
@@ -277,6 +299,41 @@ def _class_pair_objectives(spec: TrajectoryObjectiveGenerationSpec) -> list[Traj
     return objectives
 
 
+def _posterior_target_objectives(spec: TrajectoryObjectiveGenerationSpec) -> list[TrajectoryExplorationObjective]:
+    objectives: list[TrajectoryExplorationObjective] = []
+    if not spec.include_posterior_target_regions:
+        return objectives
+    for target_spec in spec.posterior_target_regions:
+        class_names = tuple(target_spec.posterior_distribution)
+        target = CorpusGymTarget(
+            target_id=f"generated_posterior_target_{target_spec.region_id}",
+            target_type="target_posterior_distribution",
+            description=f"Mechanically generated posterior target objective for {target_spec.region_id}.",
+            class_pair=(class_names[0], class_names[1]) if len(class_names) == 2 else None,
+            target_tier=target_spec.target_tier,
+        )
+        objectives.append(
+            TrajectoryExplorationObjective(
+                objective_id=f"posterior_target__{target_spec.region_id}",
+                mode="posterior_target_distribution",
+                geometry_target="match_target_posterior_distribution",
+                description=target.description,
+                target=target,
+                reward_weights=_weights(validity=0.22, excitation=0.12, coverage=0.12, geometry=0.34, stress=0.08, prior=0.08, leakage=0.12, physical=0.12),
+                thresholds={"min_class_validity": 0.35, "max_posterior_tv_error": 0.12, "max_leakage_penalty": 0.45},
+                evaluation_budget=spec.default_evaluation_budget,
+                backend_constraints={
+                    "mechanically_generated": True,
+                    "generation_scope": "posterior_target_distribution",
+                    "posterior_target_distribution": target_spec.posterior_distribution,
+                    "evidence_provider_id": target_spec.evidence_provider_id,
+                },
+                classifier_family="posterior_target_explorer",
+            )
+        )
+    return objectives
+
+
 def _novelty_objectives(spec: TrajectoryObjectiveGenerationSpec) -> list[TrajectoryExplorationObjective]:
     objectives: list[TrajectoryExplorationObjective] = []
     if not spec.include_novelty_regions:
@@ -320,6 +377,7 @@ def generate_trajectory_exploration_objective_suite(
         _feature_cell_objectives(resolved)
         + _feature_row_objectives(resolved)
         + _class_pair_objectives(resolved)
+        + _posterior_target_objectives(resolved)
         + _novelty_objectives(resolved)
     )
     objective_rows = tuple(
@@ -344,10 +402,12 @@ def generate_trajectory_exploration_objective_suite(
         "feature_cell_count": len([row for row in objective_rows if row["generation_scope"] == "feature_cell"]),
         "feature_row_count": len([row for row in objective_rows if row["generation_scope"] == "feature_row"]),
         "class_pair_region_count": len([row for row in objective_rows if row["generation_scope"] == "class_pair_region"]),
+        "posterior_target_region_count": len([row for row in objective_rows if row["generation_scope"] == "posterior_target_distribution"]),
         "novelty_region_count": len([row for row in objective_rows if row["generation_scope"] == "novelty_region"]),
         "feature_axes": [asdict(axis) for axis in resolved.feature_axes],
         "feature_rows": [asdict(row) for row in resolved.feature_rows],
         "class_pair_regions": [asdict(region) for region in resolved.class_pair_regions],
+        "posterior_target_regions": [asdict(region) for region in resolved.posterior_target_regions],
         "novelty_regions": [asdict(region) for region in resolved.novelty_regions],
     }
     report_markdown = "\n".join(
@@ -360,6 +420,7 @@ def generate_trajectory_exploration_objective_suite(
             f"- feature cells: `{manifest['feature_cell_count']}`",
             f"- feature rows: `{manifest['feature_row_count']}`",
             f"- class-pair regions: `{manifest['class_pair_region_count']}`",
+            f"- posterior-target regions: `{manifest['posterior_target_region_count']}`",
             f"- novelty regions: `{manifest['novelty_region_count']}`",
             "",
             "This bundle mechanically generates objective functions for targeted feature-space excitation, class-boundary exploration, and novelty-seeking zones that are not limited to pre-scripted trajectory families.",
@@ -410,6 +471,7 @@ def write_generated_trajectory_objective_artifacts(
     _write_json(objectives_path, [asdict(objective) for objective in suite.objectives])
     write_csv(objective_table_path, list(suite.objective_rows), list(suite.objective_rows[0].keys()))
     _write_text(report_path, suite.report_markdown)
+    proof_artifacts = write_objective_proof_artifacts(output_dir)
     return GeneratedTrajectoryObjectiveArtifacts(
         run_dir=run_dir,
         spec_path=spec_path,
@@ -417,4 +479,5 @@ def write_generated_trajectory_objective_artifacts(
         objectives_path=objectives_path,
         objective_table_path=objective_table_path,
         report_path=report_path,
+        proof_artifacts=proof_artifacts,
     )

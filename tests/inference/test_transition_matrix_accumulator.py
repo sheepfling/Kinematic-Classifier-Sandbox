@@ -45,11 +45,21 @@ class TransitionMatrixAccumulatorTests(unittest.TestCase):
             self.assertTrue(artifacts.config_path.exists())
             self.assertTrue(artifacts.dataset_manifest_path.exists())
             self.assertTrue(artifacts.plot_png_path.exists())
+            self.assertTrue(artifacts.filter_step_trace_path.exists())
+            self.assertTrue(artifacts.per_method_diagnostics_path.exists())
+            self.assertTrue(artifacts.posterior_timeline_plot_path.exists())
+            self.assertTrue(artifacts.likelihood_strip_plot_path.exists())
+            self.assertTrue(artifacts.waterfall_plot_path.exists())
+            self.assertTrue(artifacts.static_vs_transition_plot_path.exists())
+            self.assertGreaterEqual(len(artifacts.step_card_paths), 2)
             self.assertIn("Transition-Matrix Numeric Walkthrough", artifacts.numeric_walkthrough_path.read_text(encoding="utf-8"))
             header = artifacts.scenario_summary_path.read_text(encoding="utf-8").splitlines()[0]
             self.assertIn("static_post_switch_accuracy", header)
             self.assertIn("transition_post_switch_accuracy", header)
             self.assertIn("kalman_post_switch_accuracy", header)
+            trace_header = artifacts.filter_step_trace_path.read_text(encoding="utf-8").splitlines()[0]
+            self.assertIn("predicted_probability", trace_header)
+            self.assertIn("posterior_probability", trace_header)
 
 
 if __name__ == "__main__":

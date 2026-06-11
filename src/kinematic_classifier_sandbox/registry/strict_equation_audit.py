@@ -69,18 +69,18 @@ IMPLEMENTED_SOURCE_DATA: dict[str, tuple[str, ...]] = {
         "artifacts/imm_filter_v1/switching_detection_metrics.csv",
     ),
     "pf_importance_weight_update": (
-        "artifacts/particle_filter_v1/pf_method_comparison.csv",
-        "artifacts/particle_filter_v1/ess_history.csv",
-        "artifacts/particle_filter_v1/pf_report.md",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/particle_diagnostics.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/decision_card.md",
     ),
     "pf_class_evidence_extraction": (
-        "artifacts/particle_filter_v1/posterior_history.csv",
-        "artifacts/particle_filter_v1/pf_method_comparison.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/method_posterior_history.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
         "artifacts/advanced_filter_comparison_v1/method_comparison.csv",
     ),
     "rbpf_conditional_weight_update": (
+        "artifacts/advanced_filter_comparison_v1/pf_vs_rbpf_frontier_summary.csv",
         "artifacts/rbpf_v1/rbpf_method_comparison.csv",
-        "artifacts/rbpf_v1/latent_mode_posterior.csv",
         "artifacts/rbpf_v1/rbpf_report.md",
     ),
     "calibration_metrics": (
@@ -167,15 +167,15 @@ IMPLEMENTED_EXACT_ARTIFACTS: dict[str, tuple[str, ...]] = {
         "artifacts/imm_filter_v1/switching_detection_metrics.csv",
     ),
     "pf_importance_weight_update": (
-        "artifacts/particle_filter_v1/ess_history.csv",
-        "artifacts/particle_filter_v1/pf_report.md",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/particle_diagnostics.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/decision_card.md",
     ),
     "pf_class_evidence_extraction": (
-        "artifacts/particle_filter_v1/posterior_history.csv",
-        "artifacts/particle_filter_v1/pf_method_comparison.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/method_posterior_history.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
     ),
     "rbpf_conditional_weight_update": (
-        "artifacts/rbpf_v1/latent_mode_posterior.csv",
+        "artifacts/advanced_filter_comparison_v1/pf_vs_rbpf_frontier_summary.csv",
         "artifacts/rbpf_v1/rbpf_report.md",
     ),
     "calibration_metrics": (
@@ -241,17 +241,17 @@ ILLUSTRATIVE_SOURCE_DATA: dict[str, tuple[str, ...]] = {
         "artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv",
     ),
     "pf_importance_weight_update": (
-        "artifacts/particle_filter_v1/pf_method_comparison.csv",
-        "artifacts/particle_filter_v1/pf_report.md",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/decision_card.md",
         "artifacts/advanced_filter_comparison_v1/method_comparison.csv",
     ),
     "pf_class_evidence_extraction": (
-        "artifacts/particle_filter_v1/pf_method_comparison.csv",
-        "artifacts/particle_filter_v1/posterior_history.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/method_posterior_history.csv",
         "artifacts/advanced_filter_comparison_v1/method_comparison.csv",
     ),
     "rbpf_conditional_weight_update": (
-        "artifacts/rbpf_v1/rbpf_method_comparison.csv",
+        "artifacts/advanced_filter_comparison_v1/pf_vs_rbpf_frontier_summary.csv",
         "artifacts/rbpf_v1/rbpf_report.md",
         "artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv",
     ),
@@ -264,15 +264,15 @@ ILLUSTRATIVE_EXACT_ARTIFACTS: dict[str, tuple[str, ...]] = {
         "artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv",
     ),
     "pf_importance_weight_update": (
-        "artifacts/particle_filter_v1/pf_method_comparison.csv",
-        "artifacts/particle_filter_v1/pf_report.md",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/decision_card.md",
     ),
     "pf_class_evidence_extraction": (
-        "artifacts/particle_filter_v1/posterior_history.csv",
-        "artifacts/particle_filter_v1/pf_method_comparison.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/method_posterior_history.csv",
+        "artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv",
     ),
     "rbpf_conditional_weight_update": (
-        "artifacts/rbpf_v1/rbpf_method_comparison.csv",
+        "artifacts/advanced_filter_comparison_v1/pf_vs_rbpf_frontier_summary.csv",
         "artifacts/rbpf_v1/rbpf_report.md",
     ),
 }

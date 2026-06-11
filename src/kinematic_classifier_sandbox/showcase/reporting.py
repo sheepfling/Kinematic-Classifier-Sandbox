@@ -202,10 +202,12 @@ def _render_filtering_report(data: ShowcaseFilteringReportData) -> str:
     report.heading("Decision Notes", level=2)
     report.bullet_list(
         [
-            "IMM is promoted on switching-mode witnesses where explicit state mixing improves post-switch inference.",
-            "PF is promoted on the nonlinear-drag/outlier witness where the robust nonlinear particle model beats the Gaussian Kalman baseline.",
-            "RBPF is promoted on the latent maneuver-onset witness where sampled mode paths and conditional Kalman state estimates recover the post-onset mode.",
-            "These are witness-specific promotions, not claims that advanced filters dominate every simpler rung or that they should be scored on every shared-corpus benchmark.",
+            "IMM reaches `witness_supported` when switching-mode witnesses show explicit state mixing helps post-switch inference; broader `study_justified` status remains a separate gate.",
+            "PF reaches `witness_supported` or `study_justified` only on nonlinear or non-Gaussian witnesses where the particle model beats the Gaussian baseline and the robustness sweep clears.",
+            "RBPF reaches `witness_supported` on latent maneuver-onset witnesses when sampled mode paths and conditional Kalman state estimates help, but it stays distinct from broader complexity justification.",
+            "The trace-validation packet adds another explicit layer: `trace_validated` means a method can explain its update steps mechanically, but trace presence alone does not imply promotion.",
+            "These are still witness-specific promotions rather than default shared-corpus benchmark winners.",
+            "These statuses are intentionally separate so advanced filters do not silently become default shared-corpus winners.",
         ]
     )
     return report.text()

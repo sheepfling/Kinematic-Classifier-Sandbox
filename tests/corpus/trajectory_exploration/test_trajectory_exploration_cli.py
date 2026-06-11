@@ -10,6 +10,25 @@ from kinematic_classifier_sandbox.__main__ import main
 
 
 class TrajectoryExplorationCliTests(unittest.TestCase):
+    def test_trajectory_exploration_backend_registry_command_writes_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "trajectory-exploration-backend-registry",
+                        "--output-dir",
+                        temp_dir,
+                    ]
+                )
+            self.assertEqual(exit_code, 0)
+            bundle = Path(temp_dir) / "trajectory_exploration_backend_registry_v1"
+            self.assertTrue((bundle / "report.md").exists())
+            self.assertTrue((bundle / "summary.json").exists())
+            self.assertTrue((bundle / "backend_registry.csv").exists())
+            self.assertTrue((bundle / "family_summary.csv").exists())
+            self.assertTrue((bundle / "capability_matrix.png").exists())
+
     def test_trajectory_exploration_objectives_command_writes_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             stdout = io.StringIO()

@@ -38,6 +38,8 @@ class TransitionPosteriorStep:
     predicted_mode: str
     true_mode: str
     confidence: float
+    emission_log_scores: dict[str, float] | None = None
+    log_normalizer: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,3 +85,13 @@ class TransitionBenchmarkArtifacts:
     config_path: Path
     dataset_manifest_path: Path
     plot_png_path: Path
+    trace_dir: Path
+    filter_step_trace_path: Path
+    per_method_diagnostics_path: Path
+    intermediate_plot_dir: Path
+    posterior_timeline_plot_path: Path
+    likelihood_strip_plot_path: Path
+    waterfall_plot_path: Path
+    static_vs_transition_plot_path: Path
+    step_card_dir: Path
+    step_card_paths: tuple[Path, ...]

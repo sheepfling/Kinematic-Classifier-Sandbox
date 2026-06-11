@@ -42,6 +42,25 @@ Positive terms reward balance, class validity, feature excitation, and difficult
 | Does search cover useful variety? | Maintain QD archive cells and selected elites. |
 | What feeds evaluation? | Promote a `SelectedCorpus` with provenance and limitations. |
 
+## Exploration Backend Registry
+
+Expanded exploration options are now tracked explicitly rather than only
+implicitly through whichever runner is implemented first.
+
+- `src/kinematic_classifier_sandbox/corpus/trajectory_exploration/backend_registry.py`
+  records the current and planned backend families.
+- `python -m kinematic_classifier_sandbox trajectory-exploration-backend-registry`
+  writes a renderable artifact bundle for that registry.
+- The registry separates:
+  - baseline search
+  - black-box optimization
+  - quality-diversity archive search
+  - reinforcement learning
+  - trajectory optimization
+
+That separation matters because these backends should not all be compared as if
+they optimize the same objective under the same budget structure.
+
 ## Connection To Study Evaluator
 
 The Corpus Explorer produces `D` for the study candidate `s = (D, f, C, m, pi, b)`. A weak corpus can invalidate downstream classifier claims even when the posterior updater and algorithm implementation are correct.

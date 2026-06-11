@@ -58,12 +58,18 @@ class ParticleFilterBank:
             raise RuntimeError("ParticleFilterBank must be reset before update")
         log_evidence_values: list[float] = []
         ess_values: dict[str, float] = {}
+        ess_fraction_values: dict[str, float] = {}
         resampled_values: dict[str, bool] = {}
+        unique_ancestor_counts: dict[str, int] = {}
+        unique_ancestor_fractions: dict[str, float] = {}
         for label in self.label_ids:
             step = self.filters_by_label[label].update(time=time, observation=observation)
             log_evidence_values.append(step.log_marginal_likelihood)
             ess_values[label] = step.ess
+            ess_fraction_values[label] = step.ess_fraction
             resampled_values[label] = step.resampled
+            unique_ancestor_counts[label] = step.unique_ancestor_count
+            unique_ancestor_fractions[label] = step.unique_ancestor_fraction
         posterior_values, log_posterior = particle_filter_class_evidence_update(
             self.state.log_posterior,
             asarray(log_evidence_values, dtype=float64),
@@ -87,6 +93,9 @@ class ParticleFilterBank:
             },
             diagnostics={
                 **{f"ess_{label}": ess_values[label] for label in self.label_ids},
+                **{f"ess_fraction_{label}": ess_fraction_values[label] for label in self.label_ids},
                 **{f"resampled_{label}": resampled_values[label] for label in self.label_ids},
+                **{f"unique_ancestor_count_{label}": unique_ancestor_counts[label] for label in self.label_ids},
+                **{f"unique_ancestor_fraction_{label}": unique_ancestor_fractions[label] for label in self.label_ids},
             },
         )

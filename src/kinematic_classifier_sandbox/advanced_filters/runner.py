@@ -105,6 +105,9 @@ def run_imm_switching_benchmark(*, seed: int = 17, replicas: int = 12) -> IMMBen
         steps: list[AdvancedFilterStep] = []
         state_means: list[tuple[float, float, float]] = []
         state_covariances: list[tuple[float, ...]] = []
+        mode_state_means: list[dict[str, tuple[float, float, float]]] = []
+        mode_state_covariances: list[dict[str, tuple[float, ...]]] = []
+        mixing_probabilities: list[dict[str, tuple[float, ...]]] = []
         for time_value, measurement in zip(scenario.times, scenario.measurements, strict=True):
             step = imm.update(time_value, array([measurement], dtype=float64))
             validate_advanced_filter_step(step)
@@ -113,16 +116,39 @@ def run_imm_switching_benchmark(*, seed: int = 17, replicas: int = 12) -> IMMBen
             state_means.append(tuple(float(value) for value in summary.state_mean))
             assert summary.state_covariance is not None
             state_covariances.append(tuple(float(value) for value in summary.state_covariance.ravel()))
+            assert imm.state is not None
+            mode_state_means.append(
+                {
+                    mode_id: tuple(float(value) for value in imm.state.mode_states[mode_id].mean)
+                    for mode_id in imm.mode_ids
+                }
+            )
+            mode_state_covariances.append(
+                {
+                    mode_id: tuple(float(value) for value in imm.state.mode_states[mode_id].covariance.ravel())
+                    for mode_id in imm.mode_ids
+                }
+            )
+            mixing_probabilities.append(
+                {
+                    mode_id: tuple(float(value) for value in imm.state.latest_mixing_probabilities.get(mode_id, ()))
+                    for mode_id in imm.mode_ids
+                }
+            )
         runs.append(
             IMMSwitchingRun(
                 trajectory_id=scenario.trajectory_id,
                 scenario_name=scenario.scenario_name,
+                mode_ids=tuple(imm.mode_ids),
                 true_modes=scenario.true_mode_by_step,
                 times=scenario.times,
                 measurements=scenario.measurements,
                 steps=tuple(steps),
                 state_means=tuple(state_means),
                 state_covariances=tuple(state_covariances),
+                mode_state_means=tuple(mode_state_means),
+                mode_state_covariances=tuple(mode_state_covariances),
+                mixing_probabilities=tuple(mixing_probabilities),
             )
         )
     runtime_seconds = wall_time.perf_counter() - start
@@ -264,6 +290,7 @@ def advanced_filter_comparison_surface() -> AdvancedFilterSurface[None, Advanced
         describe_artifacts=lambda artifacts: (
             str(artifacts.run_dir),
             str(artifacts.method_comparison_path),
+            str(artifacts.gate_matrix_path),
             str(artifacts.decision_matrix_path),
             str(artifacts.report_path),
         ),

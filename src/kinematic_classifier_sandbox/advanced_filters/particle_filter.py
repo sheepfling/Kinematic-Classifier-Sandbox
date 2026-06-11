@@ -34,7 +34,10 @@ class ParticleFilterStep:
     state_mean: FloatArray
     state_covariance: FloatArray
     ess: float
+    ess_fraction: float
     resampled: bool
+    unique_ancestor_count: int
+    unique_ancestor_fraction: float
     weight_entropy: float
 
 
@@ -102,8 +105,10 @@ class BootstrapParticleFilter:
         log_marginal_likelihood = weight_update.log_marginal_likelihood
         ess = effective_sample_size(weights)
         resampled = False
+        unique_ancestor_count = self.config.particle_count
         if ess < self.config.resample_threshold_fraction * self.config.particle_count:
             indexes = systematic_resample(weights, self.rng)
+            unique_ancestor_count = len(set(int(index) for index in indexes.tolist()))
             propagated = propagated[indexes]
             normalized_log_weights = full(
                 self.config.particle_count,
@@ -127,6 +132,9 @@ class BootstrapParticleFilter:
             state_mean=state_mean,
             state_covariance=state_covariance,
             ess=float(ess),
+            ess_fraction=float(ess / self.config.particle_count),
             resampled=bool(resampled),
+            unique_ancestor_count=int(unique_ancestor_count),
+            unique_ancestor_fraction=float(unique_ancestor_count / self.config.particle_count),
             weight_entropy=weight_entropy,
         )

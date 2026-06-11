@@ -1875,7 +1875,7 @@ The reader-facing ladder is therefore:
 | 3 | `kalman_bank` | dynamics-conditioned innovations | endpoint ambiguity under irregular timing | Kalman endpoint match |
 | 4 | `transition_matrix` | explicit mode switching | static-class assumption | transition switching |
 | 5 | `IMM` proof | switching-aware state inference | demonstrated switching failures | advanced 1D switching witness |
-| 6 | `particle_filter_bank` | sampled nonlinear / non-Gaussian evidence | linear-Gaussian assumptions fail under drag, outliers, or mean reversion | nonlinear drag and OU witnesses |
+| 6 | `particle_filter_bank` | sampled nonlinear / non-Gaussian evidence | single-Gaussian summaries collapse multimodal posteriors or miss mean-reverting stochastic dynamics | abs-range oracle and OU witnesses |
 | 7 | `rbpf` | sampled latent mode path plus conditional Kalman state | mixed discrete/continuous latent structure | latent maneuver onset witness |
 
 ## 5. Pointwise Evidence Baseline

@@ -12,7 +12,7 @@ level & algorithm & new\_capability & failure\_mode\_addressed & promotion\_stat
 4 & kalman\_bank & Model-based innovation evidence & Endpoint ambiguity under irregular timing & reject \\
 5 & transition\_matrix & Explicit mode switching before IMM & Static accumulator under switching trajectories & pass \\
 6 & imm & Switching-aware state mixing with shared posterior output & Transition-only switching evidence saturates & defer \\
-7 & particle\_filter\_bank & Sampled nonlinear and non-Gaussian state evidence & Linear-Gaussian baselines fail under drag, outliers, or mean reversion & promote \\
+7 & particle\_filter\_bank & Sampled nonlinear and non-Gaussian state evidence & Single-Gaussian summaries collapse multimodal posteriors or miss mean-reverting stochastic dynamics & promote \\
 8 & rbpf & Sampled latent mode path with conditional analytic state filtering & Pure PF wastes structure on mixed discrete/continuous latent problems & promote \\
 \bottomrule
 \end{tabularx}
