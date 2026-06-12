@@ -61,6 +61,10 @@ from .tracing.filter_trace_validation_packet import write_filter_trace_validatio
 from .utils.analysis_cache import clear_analysis_cache, describe_analysis_cache
 from .utils.runtime import repo_root
 from .validation.correctness import run_correctness_plan
+from .validation_packets import (
+    validate_v7_anduril_c2_blend_packet,
+    write_v7_anduril_c2_blend_packet,
+)
 
 
 def _init_static_audit_bundle(output_dir: str | Path) -> Path:
@@ -244,6 +248,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         default="artifacts",
         help="Directory where the trace-validation bundle should be written.",
+    )
+
+    v7_final_packet = subparsers.add_parser(
+        "build-v7-final-packet",
+        help="Assemble the V7 integrated three-epic validation packet.",
+    )
+    v7_final_packet.add_argument(
+        "--output-dir",
+        default="artifacts/validation_packets/v7_anduril_c2_blend",
+        help="Directory where the V7 integrated packet should be written.",
     )
 
     corpus_sweep = subparsers.add_parser(
@@ -481,7 +495,7 @@ def _build_parser() -> argparse.ArgumentParser:
     validate_packet.add_argument(
         "--profile",
         default="static_admissibility_mvp",
-        choices=("static_admissibility_mvp", "corpus_explorer_mvp"),
+        choices=("static_admissibility_mvp", "corpus_explorer_mvp", "v7_anduril_c2_blend"),
         help="Packet validation profile.",
     )
 
@@ -931,6 +945,13 @@ def main(argv: list[str] | None = None) -> int:
         print(packet.hero_chart_manifest_path)
         return 0
 
+    if args.command == "build-v7-final-packet":
+        packet = write_v7_anduril_c2_blend_packet(Path(args.output_dir))
+        print(packet.packet_dir)
+        print(packet.decision_card_path)
+        print(packet.hero_chart_manifest_path)
+        return 0
+
     if args.command == "validate-correctness":
         return run_correctness_plan(args.level)
 
@@ -953,6 +974,14 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.profile == "corpus_explorer_mvp":
             issues = validate_corpus_explorer_packet(args.packet_dir)
+            if issues:
+                for issue in issues:
+                    print(f"FAIL: {issue}")
+                return 1
+            print(f"PASS: {args.packet_dir}")
+            return 0
+        if args.profile == "v7_anduril_c2_blend":
+            issues = validate_v7_anduril_c2_blend_packet(args.packet_dir)
             if issues:
                 for issue in issues:
                     print(f"FAIL: {issue}")
