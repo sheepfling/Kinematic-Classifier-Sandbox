@@ -1,0 +1,5 @@
+sample_id,true_class,feature_a,feature_b
+sample_0,class_a,0.0,0.0
+sample_1,class_a,0.1,0.1
+sample_2,class_b,1.0,1.0
+sample_3,class_b,1.1,1.1

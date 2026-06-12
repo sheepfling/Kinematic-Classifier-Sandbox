@@ -1,0 +1,5 @@
+feature_name,provenance_tags,online_available,label_rule_overlap
+speed_mean,"online,finite_difference",true,false
+speed_clone,"online,finite_difference",true,false
+xor_a,"online,shape",true,false
+xor_b,"online,shape",true,false

@@ -1,0 +1,12 @@
+static_admissibility:
+  study_id: leakage_blocker_family
+  priors:
+    a: 0.5
+    b: 0.5
+  input_bundle:
+    sample_table: samples.csv
+    feature_schema: feature_schema.csv
+    class_schema: class_schema.csv
+    feature_names:
+      - label_code
+      - useful

@@ -1,0 +1,4 @@
+class_name,notes
+stationary,low-speed anchor class
+constant_velocity,steady-motion class
+maneuver,high-variance motion class

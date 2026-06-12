@@ -1,0 +1,28 @@
+\subsection{Alias, Threshold, and Decision Redundancy}
+\label{subsec:static-admissibility-alias-threshold-redundancy}
+
+Feature redundancy is not limited to correlation. In the static admissibility
+stage, two features may be redundant because they are semantic aliases,
+deterministic transformations, near-threshold variants, logically subsuming
+indicators, or decision-equivalent measurements. The audit therefore combines
+schema-level semantic grouping, functional-equivalence tests,
+threshold-subsumption checks, observability-aware threshold-gap analysis, and
+conditional decision-gain estimates.
+
+A near-threshold pair such as \texttt{min\_altitude\_ge\_300m} and
+\texttt{min\_altitude\_ge\_301m} is not automatically collapsed if the boundary
+slice contains class-mixed samples, but if the threshold gap is below declared
+measurement uncertainty, retention is labeled candidate-level until ablation or
+observability analysis confirms that the distinction is meaningful.
+
+The practical actions are intentionally narrow:
+\begin{itemize}
+  \item exact duplicates are dropped,
+  \item unit or affine aliases are canonicalized,
+  \item threshold aliases are collapsed unless the boundary slice changes
+        decision evidence,
+  \item pair-specific retained thresholds remain candidate-level when the
+        observability gap is weak,
+  \item decision-redundant features are deprioritized unless they remain useful
+        for a named hard class pair.
+\end{itemize}

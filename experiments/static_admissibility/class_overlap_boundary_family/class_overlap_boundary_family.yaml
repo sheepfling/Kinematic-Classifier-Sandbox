@@ -1,0 +1,12 @@
+static_admissibility:
+  study_id: class_overlap_boundary_family
+  priors:
+    stationary: 0.5
+    slow_velocity: 0.5
+  input_bundle:
+    sample_table: samples.csv
+    feature_schema: feature_schema.csv
+    class_schema: class_schema.csv
+    feature_names:
+      - speed_mean
+      - duration

@@ -1,0 +1,5 @@
+feature_name,provenance_tags,online_available,label_rule_overlap
+speed_mean,"online,finite_difference",true,false
+speed_final,"online,finite_difference",true,false
+acceleration_variance,"online,residual",true,false
+sign_changes,"online,shape",true,false

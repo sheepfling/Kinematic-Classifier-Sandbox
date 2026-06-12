@@ -1,0 +1,7 @@
+sample_id,true_class,speed_mean,accel_var
+stationary_0,stationary,0.0,0.0
+stationary_1,stationary,0.1,0.0
+constant_velocity_0,constant_velocity,1.0,0.1
+constant_velocity_1,constant_velocity,1.1,0.1
+maneuver_0,maneuver,1.0,1.0
+maneuver_1,maneuver,1.1,1.2

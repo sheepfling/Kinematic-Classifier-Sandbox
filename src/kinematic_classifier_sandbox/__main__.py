@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 from pathlib import Path
 
 from .analysis.pca_dimensionality_audit import write_pca_dimensionality_audit_artifacts
@@ -31,6 +32,7 @@ from .corpus.trajectory_exploration.sequential_comparison import (
     write_sequential_ppo_vs_cem_comparison_artifacts,
 )
 from .corpus.trajectory_exploration.sequential_gym import SequentialBoundaryControlConfig
+from .corpus.validation import validate_corpus_explorer_packet
 from .meta.repo_shape_audit import write_repo_shape_audit_artifacts
 from .methodology.latex import (
     write_methodology_latex_artifacts,
@@ -46,11 +48,62 @@ from .registry.functional_surface_catalog import write_functional_surface_catalo
 from .registry.strict_equation_audit import write_strict_equation_audit_artifacts
 from .rung_sufficiency.analysis import write_ladder_witness_suite_artifacts
 from .static_admissibility.audit import run_static_admissibility_audit
+from .static_admissibility.exemplar_suite import (
+    write_static_admissibility_exemplar_suite_packet,
+)
 from .static_admissibility.io import export_static_admissibility_packet
+from .static_admissibility.multi_domain_3d import (
+    write_multidomain_3d_static_admissibility_packet,
+)
 from .static_admissibility.validation import validate_static_admissibility_packet
 from .story.repo_story import write_repo_story_artifacts
 from .tracing.filter_trace_validation_packet import write_filter_trace_validation_artifacts
 from .utils.analysis_cache import clear_analysis_cache, describe_analysis_cache
+from .utils.runtime import repo_root
+from .validation.correctness import run_correctness_plan
+
+
+def _init_static_audit_bundle(output_dir: str | Path) -> Path:
+    destination = Path(output_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+    template_dir = repo_root() / "templates"
+    template_map = {
+        "static_audit_bundle.yaml": "static_audit_bundle.yaml",
+        "samples.csv": "static_audit_samples.csv",
+        "feature_schema.csv": "static_audit_feature_schema.csv",
+        "class_schema.csv": "static_audit_class_schema.csv",
+    }
+    for output_name, template_name in template_map.items():
+        shutil.copyfile(template_dir / template_name, destination / output_name)
+    readme_lines = [
+        "# Static Audit Bundle",
+        "",
+        "This directory is a portable Epic 1 static-admissibility bundle.",
+        "",
+        "Files:",
+        "",
+        "- `static_audit_bundle.yaml`: study declaration and prior regime",
+        "- `samples.csv`: labeled feature rows",
+        "- `feature_schema.csv`: feature provenance and online/leakage flags",
+        "- `class_schema.csv`: declared class surface",
+        "",
+        "Run it with:",
+        "",
+        "```bash",
+        "PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-static-audit \\",
+        "  --bundle static_audit_bundle.yaml \\",
+        "  --output-dir artifacts/runs/my_static_audit",
+        "```",
+        "",
+        "Validate the packet with:",
+        "",
+        "```bash",
+        "PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet \\",
+        "  artifacts/runs/my_static_audit",
+        "```",
+    ]
+    (destination / "README.md").write_text("\n".join(readme_lines) + "\n", encoding="utf-8")
+    return destination
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -333,7 +386,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     run_static_audit = subparsers.add_parser(
         "run-static-audit",
-        help="Run the static feature/class/prior admissibility MVP packet.",
+        help="Run the static feature/class/prior admissibility packet from a default generator or file-backed study bundle.",
     )
     run_static_audit.add_argument(
         "config",
@@ -342,9 +395,61 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional YAML config for the static audit.",
     )
     run_static_audit.add_argument(
+        "--bundle",
+        default=None,
+        help="Explicit path to a file-backed static-audit bundle YAML. Overrides the positional config if both are provided.",
+    )
+    run_static_audit.add_argument(
         "--output-dir",
         default="artifacts/packets/static_admissibility_mvp",
         help="Directory where the static admissibility packet should be written.",
+    )
+
+    init_static_audit_bundle = subparsers.add_parser(
+        "init-static-audit-bundle",
+        help="Create a portable static-audit bundle from the repo templates.",
+    )
+    init_static_audit_bundle.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory where the starter bundle should be written.",
+    )
+
+    run_static_audit_suite = subparsers.add_parser(
+        "run-static-audit-suite",
+        help="Build the Epic 1 static-admissibility exemplar suite packet.",
+    )
+    run_static_audit_suite.add_argument(
+        "suite_manifest",
+        nargs="?",
+        default="experiments/static_admissibility/epic1_exemplar_suite.yaml",
+        help="YAML manifest declaring the exemplar family suite.",
+    )
+    run_static_audit_suite.add_argument(
+        "--output-dir",
+        default="artifacts/validation_packets/01_static_admissibility",
+        help="Directory where the Epic 1 validation packet should be written.",
+    )
+
+    run_static_audit_multi_domain_3d = subparsers.add_parser(
+        "run-static-audit-multi-domain-3d",
+        help="Build the Epic 1 multi-domain 3D static-admissibility brief packet.",
+    )
+    run_static_audit_multi_domain_3d.add_argument(
+        "--output-dir",
+        default="artifacts/validation_packets/01_static_admissibility_multi_domain_3d",
+        help="Directory where the Epic 1 multi-domain 3D packet should be written.",
+    )
+
+    validate_correctness = subparsers.add_parser(
+        "validate-correctness",
+        help="Run the layered algorithm correctness ladder.",
+    )
+    validate_correctness.add_argument(
+        "--level",
+        choices=("smoke", "full", "presentation"),
+        default="smoke",
+        help="Correctness level to run.",
     )
 
     export_packet = subparsers.add_parser(
@@ -376,7 +481,7 @@ def _build_parser() -> argparse.ArgumentParser:
     validate_packet.add_argument(
         "--profile",
         default="static_admissibility_mvp",
-        choices=("static_admissibility_mvp",),
+        choices=("static_admissibility_mvp", "corpus_explorer_mvp"),
         help="Packet validation profile.",
     )
 
@@ -794,12 +899,40 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "run-static-audit":
-        packet = run_static_admissibility_audit(args.config, Path(args.output_dir))
+        config_path = args.bundle if args.bundle is not None else args.config
+        packet = run_static_admissibility_audit(config_path, Path(args.output_dir))
         print(packet.packet_dir)
         print(packet.decision_card_path)
         print(packet.static_audit_report_path)
         print(packet.figure_manifest_path)
         return 0
+
+    if args.command == "init-static-audit-bundle":
+        bundle_dir = _init_static_audit_bundle(Path(args.output_dir))
+        print(bundle_dir)
+        print(bundle_dir / "static_audit_bundle.yaml")
+        print(bundle_dir / "README.md")
+        return 0
+
+    if args.command == "run-static-audit-suite":
+        packet = write_static_admissibility_exemplar_suite_packet(
+            Path(args.output_dir),
+            suite_manifest_path=args.suite_manifest,
+        )
+        print(packet.packet_dir)
+        print(packet.decision_card_path)
+        print(packet.hero_chart_manifest_path)
+        return 0
+
+    if args.command == "run-static-audit-multi-domain-3d":
+        packet = write_multidomain_3d_static_admissibility_packet(Path(args.output_dir))
+        print(packet.packet_dir)
+        print(packet.decision_card_path)
+        print(packet.hero_chart_manifest_path)
+        return 0
+
+    if args.command == "validate-correctness":
+        return run_correctness_plan(args.level)
 
     if args.command == "export-packet":
         if args.profile == "static_admissibility_mvp":
@@ -811,7 +944,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "validate-packet":
         if args.profile == "static_admissibility_mvp":
-            issues = validate_static_admissibility_packet(args.packet_dir)
+            issues = validate_static_admissibility_packet(args.packet_dir, repo_root=repo_root())
+            if issues:
+                for issue in issues:
+                    print(f"FAIL: {issue}")
+                return 1
+            print(f"PASS: {args.packet_dir}")
+            return 0
+        if args.profile == "corpus_explorer_mvp":
+            issues = validate_corpus_explorer_packet(args.packet_dir)
             if issues:
                 for issue in issues:
                     print(f"FAIL: {issue}")

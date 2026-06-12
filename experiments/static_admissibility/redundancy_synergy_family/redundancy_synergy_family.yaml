@@ -1,0 +1,15 @@
+static_admissibility:
+  study_id: redundancy_synergy_family
+  priors:
+    stationary: 0.34
+    zig: 0.33
+    zag: 0.33
+  input_bundle:
+    sample_table: samples.csv
+    feature_schema: feature_schema.csv
+    class_schema: class_schema.csv
+    feature_names:
+      - speed_mean
+      - speed_clone
+      - xor_a
+      - xor_b

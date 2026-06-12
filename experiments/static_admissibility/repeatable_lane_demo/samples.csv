@@ -1,0 +1,13 @@
+sample_id,true_class,speed_mean,speed_final,acceleration_variance,sign_changes
+stationary_0,stationary,0.00,0.01,0.00,0
+stationary_1,stationary,0.02,0.03,0.01,0
+stationary_2,stationary,0.03,0.04,0.00,0
+stationary_3,stationary,0.01,0.02,0.01,0
+constant_velocity_0,constant_velocity,1.00,1.01,0.02,0
+constant_velocity_1,constant_velocity,1.10,1.11,0.03,0
+constant_velocity_2,constant_velocity,0.95,0.96,0.02,0
+constant_velocity_3,constant_velocity,1.05,1.06,0.02,0
+maneuver_0,maneuver,1.00,1.01,1.10,2
+maneuver_1,maneuver,1.10,1.11,1.20,3
+maneuver_2,maneuver,0.90,0.91,1.00,2
+maneuver_3,maneuver,1.05,1.06,1.30,3

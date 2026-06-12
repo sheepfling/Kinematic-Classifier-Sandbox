@@ -1,0 +1,43 @@
+epic1_static_admissibility_exemplars:
+  - exemplar_id: promote_separable_family
+    config: repeatable_lane_demo/repeatable_lane_demo.yaml
+    expected_status: promote_to_corpus_explorer
+    expected_adequacy_label: sufficient_for_corpus_search
+    salient_deliverables: class separability, feature relevance, decisionability
+    input_signature: well-separated class means with online-safe features and balanced priors
+    matrix_constitutes: a clean admissible study bundle that should route directly to corpus search
+  - exemplar_id: class_overlap_boundary_family
+    config: class_overlap_boundary_family/class_overlap_boundary_family.yaml
+    expected_status: revise_class_set
+    expected_adequacy_label: insufficient_due_to_class_overlap
+    salient_deliverables: class confusability, feature blindness boundary diagnosis, decisionability
+    input_signature: near-overlapping class rows whose distributions cannot be separated by the declared features
+    matrix_constitutes: a boundary-definition problem that should be caught before classifier blame
+  - exemplar_id: prior_domination_family
+    config: prior_domination_family/prior_domination_family.yaml
+    expected_status: revise_prior
+    expected_adequacy_label: insufficient_due_to_prior_domination
+    salient_deliverables: prior pathology, flip thresholds, decisionability
+    input_signature: weak likelihood separation plus extreme rare-class prior skew
+    matrix_constitutes: a study where the prior overwhelms plausible evidence before any classifier is run
+  - exemplar_id: redundancy_synergy_family
+    config: redundancy_synergy_family/redundancy_synergy_family.yaml
+    expected_status: promote_to_corpus_explorer
+    expected_adequacy_label: sufficient_for_corpus_search
+    salient_deliverables: feature redundancy, candidate synergy, feature relevance
+    input_signature: duplicated speed family plus XOR-like companion features that add joint evidence
+    matrix_constitutes: a study bundle where redundant columns and pairwise interactions both need to be highlighted
+  - exemplar_id: coverage_thin_cells_family
+    config: coverage_thin_cells_family/coverage_thin_cells_family.yaml
+    expected_status: promote_to_corpus_explorer
+    expected_adequacy_label: sufficient_for_corpus_search
+    salient_deliverables: coverage feasibility, decisionability
+    input_signature: separable classes but only two samples per class-feature cell
+    matrix_constitutes: a study that is directionally admissible yet too thin to treat as fully covered
+  - exemplar_id: leakage_blocker_family
+    config: leakage_blocker_family/leakage_blocker_family.yaml
+    expected_status: reject
+    expected_adequacy_label: insufficient_due_to_leakage_risk
+    salient_deliverables: leakage provenance, hard gating, decisionability
+    input_signature: one feature overlaps the label rule directly
+    matrix_constitutes: a bundle that should be blocked regardless of superficial separability

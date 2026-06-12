@@ -1,0 +1,7 @@
+sample_id,true_class,weak_feature
+common_0,common,0.00
+common_1,common,0.02
+common_2,common,-0.02
+rare_0,rare,0.05
+rare_1,rare,0.06
+rare_2,rare,0.04

@@ -1,0 +1,11 @@
+static_admissibility:
+  study_id: prior_domination_family
+  priors:
+    common: 0.995
+    rare: 0.005
+  input_bundle:
+    sample_table: samples.csv
+    feature_schema: feature_schema.csv
+    class_schema: class_schema.csv
+    feature_names:
+      - weak_feature

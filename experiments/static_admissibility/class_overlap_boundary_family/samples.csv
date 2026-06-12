@@ -1,0 +1,9 @@
+sample_id,true_class,speed_mean,duration
+stationary_0,stationary,0.00,1.0
+stationary_1,stationary,0.05,1.1
+stationary_2,stationary,0.10,0.9
+stationary_3,stationary,0.08,1.0
+slow_velocity_0,slow_velocity,0.03,1.0
+slow_velocity_1,slow_velocity,0.07,1.1
+slow_velocity_2,slow_velocity,0.09,0.9
+slow_velocity_3,slow_velocity,0.06,1.0

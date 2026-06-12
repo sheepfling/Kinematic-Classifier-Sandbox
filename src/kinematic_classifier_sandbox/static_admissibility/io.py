@@ -5,6 +5,7 @@ from pathlib import Path
 
 from kinematic_classifier_sandbox.analysis.static_feature_class_prior_audit import (
     analyze_default_static_feature_class_prior_audit,
+    analyze_static_feature_class_prior_audit,
 )
 from kinematic_classifier_sandbox.analysis.static_feature_class_prior_audit_artifact_io import (
     write_static_feature_class_prior_audit_artifacts,
@@ -16,6 +17,7 @@ from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import plt
 
 from .schemas import StaticAdmissibilityConfig, StaticAdmissibilityPacket
+from .study_bundle import load_static_audit_bundle
 
 MAIN_FIGURES: tuple[str, ...] = (
     "02b_static_audit_decision_card.png",
@@ -50,6 +52,20 @@ TABLE_NAMES: tuple[str, ...] = (
 def build_static_admissibility_result(
     config: StaticAdmissibilityConfig,
 ) -> StaticFeatureClassPriorAuditResult:
+    if config.input_bundle is not None:
+        samples, feature_schema, _class_names, feature_names = load_static_audit_bundle(
+            sample_table_path=config.input_bundle.sample_table_path,
+            feature_schema_path=config.input_bundle.feature_schema_path,
+            class_schema_path=config.input_bundle.class_schema_path,
+            feature_names=config.input_bundle.feature_names,
+        )
+        return analyze_static_feature_class_prior_audit(
+            samples,
+            priors=config.priors,
+            feature_schema=feature_schema,
+            feature_names=feature_names,
+            study_name=config.study_id,
+        )
     return analyze_default_static_feature_class_prior_audit(
         seed=config.seed,
         trajectories_per_class=config.trajectories_per_class,
@@ -93,6 +109,7 @@ def write_static_admissibility_packet(
     figure_manifest_path = packet_dir / "figure_manifest.csv"
     lane_proof_matrix_path = packet_dir / "lane_proof_matrix.md"
     contact_sheet_path = packet_dir / "hero_chart_contact_sheet.png"
+    _copy_input_bundle_sources(packet_dir, config)
 
     decision_card_path.write_text(_render_packet_decision_card(config, result), encoding="utf-8")
     readme_path.write_text(_render_packet_readme(config, result), encoding="utf-8")
@@ -164,6 +181,22 @@ def _render_packet_readme(
     config: StaticAdmissibilityConfig,
     result: StaticFeatureClassPriorAuditResult,
 ) -> str:
+    bundle_lines: list[str] = []
+    if config.input_bundle is not None:
+        bundle_lines = [
+            "## Input Bundle",
+            "",
+            f"- `samples.csv`: `{config.input_bundle.sample_table_path}`",
+            f"- `feature_schema.csv`: `{config.input_bundle.feature_schema_path}`",
+            f"- `class_schema.csv`: `{config.input_bundle.class_schema_path}`",
+            "- copied packet inputs: `study_bundle_source.yaml`, `study_bundle_samples.csv`, `study_bundle_feature_schema.csv`, `study_bundle_class_schema.csv`",
+            "",
+        ]
+    regen_config = (
+        str(config.source_config_path)
+        if config.source_config_path is not None
+        else "experiments/static_admissibility/common_1d_static_audit.yaml"
+    )
     return "\n".join(
         [
             "# Static Admissibility MVP Packet",
@@ -182,10 +215,11 @@ def _render_packet_readme(
             "",
             *[f"- `{name}`" for name in TABLE_NAMES],
             "",
+            *bundle_lines,
             "## Regeneration",
             "",
             "```bash",
-            "PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-static-audit experiments/static_admissibility/common_1d_static_audit.yaml --output-dir artifacts/packets/static_admissibility_mvp",
+            f"PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-static-audit {regen_config} --output-dir artifacts/packets/static_admissibility_mvp",
             "PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet artifacts/packets/static_admissibility_mvp",
             "```",
             "",
@@ -247,3 +281,20 @@ def _write_contact_sheet(packet_dir: Path, output_path: Path) -> None:
     fig.savefig(output_path, dpi=150)
     plt.close(fig)
 
+
+def _copy_input_bundle_sources(packet_dir: Path, config: StaticAdmissibilityConfig) -> None:
+    if config.source_config_path is not None and config.source_config_path.exists():
+        shutil.copyfile(config.source_config_path, packet_dir / "study_bundle_source.yaml")
+    if config.input_bundle is None:
+        return
+    shutil.copyfile(config.input_bundle.sample_table_path, packet_dir / "study_bundle_samples.csv")
+    if config.input_bundle.feature_schema_path is not None:
+        shutil.copyfile(
+            config.input_bundle.feature_schema_path,
+            packet_dir / "study_bundle_feature_schema.csv",
+        )
+    if config.input_bundle.class_schema_path is not None:
+        shutil.copyfile(
+            config.input_bundle.class_schema_path,
+            packet_dir / "study_bundle_class_schema.csv",
+        )

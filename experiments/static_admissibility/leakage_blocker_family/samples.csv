@@ -1,0 +1,5 @@
+sample_id,true_class,label_code,useful
+a_0,a,0,0.0
+a_1,a,0,0.1
+b_0,b,1,1.0
+b_1,b,1,1.1

@@ -32,10 +32,29 @@ The C2/tracking presentation is an export profile over this pipeline, not a sepa
 
 ```bash
 python3 -m pip install -e '.[dev]'
+python3 -m pip install -e '.[classifiers]'
 python3 scripts/check.py
 PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-static-audit experiments/static_admissibility/common_1d_static_audit.yaml --output-dir artifacts/packets/static_admissibility_mvp
 PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet artifacts/packets/static_admissibility_mvp
 ```
+
+## Static Admissibility Quickstart
+
+Run the built-in multi-domain 3D static audit demo:
+
+```bash
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-static-audit-multi-domain-3d \
+  --output-dir artifacts/validation_packets/01_static_admissibility_multi_domain_3d
+```
+
+Validate the generated packet:
+
+```bash
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet \
+  artifacts/validation_packets/01_static_admissibility_multi_domain_3d
+```
+
+The packet includes a decision card, source bundles, source artifacts, hero charts, and a claim boundary. This demo is a notional static feature/class/prior audit, not a full 3D tracking implementation.
 
 ## Generated Packets
 
@@ -73,6 +92,7 @@ Use these commands from the repo root:
 
 ```bash
 python3 -m pip install -e '.[dev]'
+python3 -m pip install -e '.[classifiers]'
 python3 -m pip install -e '.[rl]'
 python3 scripts/check.py
 python3 scripts/check.py --fix
@@ -92,6 +112,10 @@ Use `python3 -m kinematic_classifier_sandbox --help` for runnable corpus-search 
 ## Cache Policy
 
 Keep caches, virtual environments, and bytecode outside the synced repo tree. When running Python directly, prefer setting `PYTHONPYCACHEPREFIX` to a local cache directory.
+
+The repo root `.venv` is expected to be a symlink into a local cache path, not
+an iCloud-hosted virtualenv directory. High file count and large binary wheels
+make a synced virtualenv a bad fit for this repo.
 
 ## Survey entrypoints
 

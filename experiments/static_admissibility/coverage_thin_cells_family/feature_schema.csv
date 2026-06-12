@@ -1,0 +1,3 @@
+feature_name,provenance_tags,online_available,label_rule_overlap
+speed_mean,"online,finite_difference",true,false
+accel_var,"online,residual",true,false

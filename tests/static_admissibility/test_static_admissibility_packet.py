@@ -47,6 +47,23 @@ class StaticAdmissibilityPacketTests(unittest.TestCase):
             issues = validate_static_admissibility_packet(packet.packet_dir)
             self.assertTrue(any("zero mass" in issue for issue in issues))
 
+    def test_static_admissibility_packet_accepts_file_backed_study_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            packet = run_static_admissibility_audit(
+                "experiments/static_admissibility/repeatable_lane_demo/repeatable_lane_demo.yaml",
+                Path(temp_dir) / "repeatable_lane_demo",
+            )
+
+            self.assertEqual(validate_static_admissibility_packet(packet.packet_dir), [])
+            decision_text = packet.decision_card_path.read_text(encoding="utf-8")
+            readme_text = packet.readme_path.read_text(encoding="utf-8")
+            self.assertIn("repeatable_lane_demo", decision_text)
+            self.assertIn("study_bundle_samples.csv", readme_text)
+            self.assertTrue((packet.packet_dir / "study_bundle_source.yaml").exists())
+            self.assertTrue((packet.packet_dir / "study_bundle_samples.csv").exists())
+            self.assertTrue((packet.packet_dir / "study_bundle_feature_schema.csv").exists())
+            self.assertTrue((packet.packet_dir / "study_bundle_class_schema.csv").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

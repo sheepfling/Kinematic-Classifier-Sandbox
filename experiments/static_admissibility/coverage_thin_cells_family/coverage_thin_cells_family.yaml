@@ -1,0 +1,13 @@
+static_admissibility:
+  study_id: coverage_thin_cells_family
+  priors:
+    stationary: 0.34
+    constant_velocity: 0.33
+    maneuver: 0.33
+  input_bundle:
+    sample_table: samples.csv
+    feature_schema: feature_schema.csv
+    class_schema: class_schema.csv
+    feature_names:
+      - speed_mean
+      - accel_var

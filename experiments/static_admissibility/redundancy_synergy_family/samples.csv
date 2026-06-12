@@ -1,0 +1,13 @@
+sample_id,true_class,speed_mean,speed_clone,xor_a,xor_b
+stationary_0,stationary,0.0,0.01,0,0
+stationary_1,stationary,0.1,0.11,0,0
+stationary_2,stationary,0.2,0.21,0,0
+stationary_3,stationary,0.1,0.11,0,0
+zig_0,zig,1.0,1.01,0,1
+zig_1,zig,1.1,1.11,0,1
+zig_2,zig,0.9,0.91,0,1
+zig_3,zig,1.0,1.01,0,1
+zag_0,zag,1.0,1.01,1,0
+zag_1,zag,1.1,1.11,1,0
+zag_2,zag,0.9,0.91,1,0
+zag_3,zag,1.0,1.01,1,0

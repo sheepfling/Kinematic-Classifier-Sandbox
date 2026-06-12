@@ -1,0 +1,12 @@
+static_admissibility:
+  study_id: replace_with_study_id
+  priors:
+    class_a: 0.5
+    class_b: 0.5
+  input_bundle:
+    sample_table: samples.csv
+    feature_schema: feature_schema.csv
+    class_schema: class_schema.csv
+    feature_names:
+      - feature_a
+      - feature_b
