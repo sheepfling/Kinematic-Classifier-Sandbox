@@ -7,11 +7,12 @@ from math import erf, exp, log, sqrt
 from pathlib import Path
 from typing import NamedTuple
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ...analysis.classification_benchmark import (
     summarize_classification_features,
     summarize_classification_outcomes,
 )
-from ...markdown_builder import MarkdownDocument
 from ...utils.io import _write_csv_rows
 from ...utils.math import _clamp, _entropy, _gaussian_logpdf, _logsumexp
 from ...utils.plotting import plt
@@ -139,7 +140,6 @@ def _feature_probability_profile(speeds_mph: tuple[float, ...]) -> dict[str, flo
     dynamics_profile = _observed_dynamics_profile(speeds_mph)
     signed_delta = dynamics_profile.mean_delta
     mean_abs_step_delta = dynamics_profile.mean_abs_delta
-    flip_rate = dynamics_profile.flip_rate
     cadence_like = _cadence_like_score(speeds_mph)
     bike_envelope = _clamp((24.0 - peak_speed) / 6.0, 0.0, 1.0) * _clamp((19.0 - mean_speed) / 5.0, 0.0, 1.0)
     horse_envelope = _clamp((mean_speed - 16.0) / 10.0, 0.0, 1.0) * _clamp((41.0 - peak_speed) / 18.0, 0.0, 1.0)

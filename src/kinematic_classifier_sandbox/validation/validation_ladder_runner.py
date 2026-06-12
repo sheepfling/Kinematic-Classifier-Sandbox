@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from ..common_experiment.runner import analyze_common_experiment
 from ..common_experiment.contracts import CommonExperimentResult
+from ..common_experiment.runner import analyze_common_experiment
 from ..corpus.autodevelopment import analyze_corpus_autodevelopment
 from ..corpus.autodevelopment_types import CorpusAutodevelopmentResult
-from ..study_candidate_generation import analyze_study_candidate_generation
-from ..study_candidate_generation import StudyCandidateGenerationResult
-from ..study_candidate_protocol import analyze_study_candidate_protocol
-from ..study_candidate_protocol import StudyCandidateProtocolResult
+from .study_candidate.generation import (
+    StudyCandidateGenerationResult,
+    analyze_study_candidate_generation,
+)
+from .study_candidate.protocol import StudyCandidateProtocolResult, analyze_study_candidate_protocol
 from .validation_ladder_contracts import ValidationLadderResult
 from .validation_ladder_rendering import render_validation_ladder_report
 

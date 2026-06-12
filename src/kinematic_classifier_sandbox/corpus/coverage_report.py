@@ -3,21 +3,21 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..utils.runtime import repo_root
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
 from ..analysis.feature_analysis import (
     FEATURE_SET_MANIFEST_PATH,
     load_feature_registry,
     load_feature_set_manifest,
 )
-from ..markdown_builder import MarkdownDocument
+from ..utils.runtime import repo_root
 from .adequacy_audit import (
     CorpusAdequacyResult,
     CorpusAdequacyThresholds,
     analyze_corpus_adequacy,
     render_corpus_adequacy_report,
 )
-from .coverage_contracts import CoverageReportArtifacts, CoverageReportResult, CoverageReportSummary
+from .coverage_contracts import CoverageReportResult, CoverageReportSummary
 
 
 def _status_rank(status: str) -> int:

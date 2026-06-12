@@ -6,13 +6,13 @@ import random
 from math import sin
 from typing import Any
 
-from ...trajectory_series import KinematicSeries
 from ..trajectory_backend_contract import (
     BackendContractDefinition,
     TrajectoryRun,
     default_backend_contract_definitions,
 )
 from ..trajectory_backend_contract_utils import validate_trajectory_run
+from ..trajectory_series import KinematicSeries
 from .backend_adapter_proof_types import AdapterExecutionRecord, BackendCandidateSpec
 
 

@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 
 from ..analysis.feature_analysis import (
@@ -12,7 +13,6 @@ from ..analysis.feature_analysis import (
     load_feature_set_manifest,
     resolve_feature_names,
 )
-from ..markdown_builder import MarkdownDocument
 
 
 @dataclass(frozen=True, slots=True)

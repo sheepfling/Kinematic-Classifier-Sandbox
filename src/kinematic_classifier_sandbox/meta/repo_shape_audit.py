@@ -23,19 +23,11 @@ ORCHESTRATION_ROOT_MODULES = {
     "common_1d_study_adapter.py",
     "common_experiment_classifier_registry.py",
     "contracts_rendering.py",
-    "markdown_builder.py",
     "runtime_paths.py",
     "scenarios.py",
     "showcase_builder.py",
-    "study_candidate_generation.py",
-    "study_candidate_generation_rendering.py",
-    "study_candidate_generation_types.py",
-    "study_candidate_generation_utils.py",
-    "study_candidate_protocol.py",
-    "study_candidate_protocol_utils.py",
     "trajectory_generator.py",
     "trajectory_generator_rendering.py",
-    "trajectory_series.py",
 }
 
 LEGACY_COMPAT_WRAPPER_MODULES = {

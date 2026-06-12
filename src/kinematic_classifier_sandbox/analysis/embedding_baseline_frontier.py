@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from math import sqrt
 from pathlib import Path
 
-import numpy as np
+import numpy
 
 from kinematic_classifier_sandbox.analysis.common_dataset_comparison import (
     _kalman_predict,
@@ -15,11 +14,11 @@ from kinematic_classifier_sandbox.analysis.common_dataset_comparison import (
 from kinematic_classifier_sandbox.analysis.common_dataset_comparison_contracts import (
     SharedDynamicsTrajectory,
 )
-from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import write_comparison_summary_csv
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import (
+    write_comparison_summary_csv,
+)
 from kinematic_classifier_sandbox.utils.io import write_csv
-from kinematic_classifier_sandbox.utils.plotting import _figure_to_png
-from kinematic_classifier_sandbox.utils.plotting import plt
-
+from kinematic_classifier_sandbox.utils.plotting import _figure_to_png, plt
 
 CLASS_NAMES = ("constant_velocity", "constant_acceleration")
 EMBEDDING_DIMENSION = 3
@@ -97,9 +96,9 @@ class EmbeddingBaselineFrontierArtifacts:
 
 @dataclass(frozen=True, slots=True)
 class Ts2VecProxyClassifier:
-    fit: dict[str, np.ndarray]
-    train_embeddings: tuple[tuple[str, np.ndarray], ...]
-    centroids: dict[str, np.ndarray]
+    fit: dict[str, numpy.ndarray]
+    train_embeddings: tuple[tuple[str, numpy.ndarray], ...]
+    centroids: dict[str, numpy.ndarray]
     embedding_dimension: int
 
 
@@ -148,28 +147,28 @@ def _segment_indices(length: int, segments: int = 3) -> list[tuple[int, int]]:
     return indices
 
 
-def _slope(times: np.ndarray, values: np.ndarray) -> float:
+def _slope(times: numpy.ndarray, values: numpy.ndarray) -> float:
     if len(values) < 2:
         return 0.0
-    centered_times = times - float(np.mean(times))
-    centered_values = values - float(np.mean(values))
-    denominator = float(np.dot(centered_times, centered_times))
+    centered_times = times - float(numpy.mean(times))
+    centered_values = values - float(numpy.mean(values))
+    denominator = float(numpy.dot(centered_times, centered_times))
     if denominator <= 1.0e-12:
         return 0.0
-    return float(np.dot(centered_times, centered_values) / denominator)
+    return float(numpy.dot(centered_times, centered_values) / denominator)
 
 
 def _feature_vector(times: tuple[float, ...], values: tuple[float, ...]) -> tuple[float, ...]:
     if not values:
         return (0.0,) * 24
-    time_array = np.asarray(times, dtype=float)
-    value_array = np.asarray(values, dtype=float)
-    diffs = np.diff(value_array)
-    second_diffs = np.diff(diffs) if len(diffs) >= 2 else np.asarray((), dtype=float)
+    time_array = numpy.asarray(times, dtype=float)
+    value_array = numpy.asarray(values, dtype=float)
+    diffs = numpy.diff(value_array)
+    second_diffs = numpy.diff(diffs) if len(diffs) >= 2 else numpy.asarray((), dtype=float)
     duration = float(time_array[-1] - time_array[0]) if len(time_array) > 1 else 0.0
-    total_variation = float(np.sum(np.abs(diffs))) if len(diffs) else 0.0
+    total_variation = float(numpy.sum(numpy.abs(diffs))) if len(diffs) else 0.0
     slope = _slope(time_array, value_array)
-    monotonicity = float(np.mean(np.sign(diffs))) if len(diffs) else 0.0
+    monotonicity = float(numpy.mean(numpy.sign(diffs))) if len(diffs) else 0.0
     sign_changes = 0.0
     if len(diffs) >= 2:
         non_zero = [1 if value > 1.0e-9 else -1 if value < -1.0e-9 else 0 for value in diffs.tolist()]
@@ -183,60 +182,60 @@ def _feature_vector(times: tuple[float, ...], values: tuple[float, ...]) -> tupl
         if len(segment_values) == 0:
             segment_features.extend((0.0, 0.0, 0.0))
             continue
-        segment_features.append(float(np.mean(segment_values)))
+        segment_features.append(float(numpy.mean(segment_values)))
         segment_features.append(_slope(segment_times, segment_values))
-        segment_features.append(float(np.max(segment_values) - np.min(segment_values)))
+        segment_features.append(float(numpy.max(segment_values) - numpy.min(segment_values)))
 
     return (
         float(len(value_array)),
         duration,
-        float(np.mean(value_array)),
-        float(np.std(value_array)),
-        float(np.min(value_array)),
-        float(np.max(value_array)),
+        float(numpy.mean(value_array)),
+        float(numpy.std(value_array)),
+        float(numpy.min(value_array)),
+        float(numpy.max(value_array)),
         float(value_array[0]),
         float(value_array[-1]),
         slope,
-        float(np.max(value_array) - np.min(value_array)),
+        float(numpy.max(value_array) - numpy.min(value_array)),
         total_variation,
-        float(np.mean(diffs)) if len(diffs) else 0.0,
-        float(np.std(diffs)) if len(diffs) else 0.0,
-        float(np.min(diffs)) if len(diffs) else 0.0,
-        float(np.max(diffs)) if len(diffs) else 0.0,
-        float(np.mean(second_diffs)) if len(second_diffs) else 0.0,
-        float(np.std(second_diffs)) if len(second_diffs) else 0.0,
+        float(numpy.mean(diffs)) if len(diffs) else 0.0,
+        float(numpy.std(diffs)) if len(diffs) else 0.0,
+        float(numpy.min(diffs)) if len(diffs) else 0.0,
+        float(numpy.max(diffs)) if len(diffs) else 0.0,
+        float(numpy.mean(second_diffs)) if len(second_diffs) else 0.0,
+        float(numpy.std(second_diffs)) if len(second_diffs) else 0.0,
         monotonicity,
         sign_changes,
         *segment_features,
     )
 
 
-def _normalize_rows(matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _normalize_rows(matrix: numpy.ndarray) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
     mean = matrix.mean(axis=0)
     std = matrix.std(axis=0)
-    std = np.where(std < 1.0e-9, 1.0, std)
+    std = numpy.where(std < 1.0e-9, 1.0, std)
     normalized = (matrix - mean) / std
     return normalized, mean, std
 
 
-def _inv_sqrt(matrix: np.ndarray) -> np.ndarray:
-    eigenvalues, eigenvectors = np.linalg.eigh(matrix)
-    clipped = np.clip(eigenvalues, 1.0e-8, None)
-    scale = np.diag(1.0 / np.sqrt(clipped))
+def _inv_sqrt(matrix: numpy.ndarray) -> numpy.ndarray:
+    eigenvalues, eigenvectors = numpy.linalg.eigh(matrix)
+    clipped = numpy.clip(eigenvalues, 1.0e-8, None)
+    scale = numpy.diag(1.0 / numpy.sqrt(clipped))
     return eigenvectors @ scale @ eigenvectors.T
 
 
-def _fit_cca(left: np.ndarray, right: np.ndarray, *, embedding_dimension: int) -> dict[str, np.ndarray]:
+def _fit_cca(left: numpy.ndarray, right: numpy.ndarray, *, embedding_dimension: int) -> dict[str, numpy.ndarray]:
     left_norm, left_mean, left_std = _normalize_rows(left)
     right_norm, right_mean, right_std = _normalize_rows(right)
     sample_count = max(left_norm.shape[0] - 1, 1)
-    cxx = (left_norm.T @ left_norm) / sample_count + np.eye(left_norm.shape[1]) * 1.0e-6
-    cyy = (right_norm.T @ right_norm) / sample_count + np.eye(right_norm.shape[1]) * 1.0e-6
+    cxx = (left_norm.T @ left_norm) / sample_count + numpy.eye(left_norm.shape[1]) * 1.0e-6
+    cyy = (right_norm.T @ right_norm) / sample_count + numpy.eye(right_norm.shape[1]) * 1.0e-6
     cxy = (left_norm.T @ right_norm) / sample_count
     left_whitener = _inv_sqrt(cxx)
     right_whitener = _inv_sqrt(cyy)
     canonical_matrix = left_whitener @ cxy @ right_whitener
-    u, singular_values, vt = np.linalg.svd(canonical_matrix, full_matrices=False)
+    u, singular_values, vt = numpy.linalg.svd(canonical_matrix, full_matrices=False)
     dim = min(embedding_dimension, u.shape[1], vt.shape[0])
     left_projection = left_whitener @ u[:, :dim]
     right_projection = right_whitener @ vt.T[:, :dim]
@@ -251,7 +250,7 @@ def _fit_cca(left: np.ndarray, right: np.ndarray, *, embedding_dimension: int) -
     }
 
 
-def _project_row(features: np.ndarray, *, mean: np.ndarray, std: np.ndarray, projection: np.ndarray) -> np.ndarray:
+def _project_row(features: numpy.ndarray, *, mean: numpy.ndarray, std: numpy.ndarray, projection: numpy.ndarray) -> numpy.ndarray:
     normalized = (features - mean) / std
     return normalized @ projection
 
@@ -259,14 +258,14 @@ def _project_row(features: np.ndarray, *, mean: np.ndarray, std: np.ndarray, pro
 def _embedding_from_views(
     trajectory: SharedDynamicsTrajectory,
     *,
-    fit: dict[str, np.ndarray],
+    fit: dict[str, numpy.ndarray],
     embedding_method: str,
-) -> tuple[np.ndarray, tuple[EmbeddingViewRow, ...]]:
+) -> tuple[numpy.ndarray, tuple[EmbeddingViewRow, ...]]:
     view_rows: list[EmbeddingViewRow] = []
-    projected_views: list[np.ndarray] = []
+    projected_views: list[numpy.ndarray] = []
     for view_name, which_projection in (("prefix", "left"), ("suffix", "right")):
         crop_start, crop_stop, times, values = _slice_times_and_values(trajectory, view_name=view_name)
-        feature_vector = np.asarray(_feature_vector(times, values), dtype=float)
+        feature_vector = numpy.asarray(_feature_vector(times, values), dtype=float)
         projection = fit[f"{which_projection}_projection"]
         mean = fit[f"{which_projection}_mean"]
         std = fit[f"{which_projection}_std"]
@@ -281,30 +280,30 @@ def _embedding_from_views(
                 true_class=trajectory.true_class,
                 crop_start=crop_start,
                 crop_stop=crop_stop,
-                feature_norm=float(np.linalg.norm(feature_vector)),
+                feature_norm=float(numpy.linalg.norm(feature_vector)),
             )
         )
-    embedding = np.mean(np.vstack(projected_views), axis=0)
+    embedding = numpy.mean(numpy.vstack(projected_views), axis=0)
     return embedding, tuple(view_rows)
 
 
-def _embedding_norm(embedding: np.ndarray) -> float:
-    return float(np.linalg.norm(embedding))
+def _embedding_norm(embedding: numpy.ndarray) -> float:
+    return float(numpy.linalg.norm(embedding))
 
 
 def _softmax(logits: dict[str, float]) -> dict[str, float]:
     pivot = max(logits.values())
-    weights = {label: float(np.exp(value - pivot)) for label, value in logits.items()}
+    weights = {label: float(numpy.exp(value - pivot)) for label, value in logits.items()}
     total = max(sum(weights.values()), 1.0e-12)
     return {label: value / total for label, value in weights.items()}
 
 
 def _nearest_centroid_predict(
-    embedding: np.ndarray,
+    embedding: numpy.ndarray,
     *,
-    centroids: dict[str, np.ndarray],
+    centroids: dict[str, numpy.ndarray],
 ) -> tuple[str, float]:
-    distances = {label: float(np.linalg.norm(embedding - centroid)) for label, centroid in centroids.items()}
+    distances = {label: float(numpy.linalg.norm(embedding - centroid)) for label, centroid in centroids.items()}
     logits = {label: -distance * distance for label, distance in distances.items()}
     weights = _softmax(logits)
     predicted = max(weights, key=weights.get)
@@ -312,19 +311,19 @@ def _nearest_centroid_predict(
 
 
 def _nearest_neighbor_predict(
-    embedding: np.ndarray,
+    embedding: numpy.ndarray,
     *,
-    train_embeddings: list[tuple[str, np.ndarray]],
+    train_embeddings: list[tuple[str, numpy.ndarray]],
 ) -> tuple[str, float]:
     distances = [
-        (label, float(np.linalg.norm(embedding - other_embedding)))
+        (label, float(numpy.linalg.norm(embedding - other_embedding)))
         for label, other_embedding in train_embeddings
     ]
     distances.sort(key=lambda item: item[1])
     winner_label, winner_distance = distances[0]
     logits = {label: -distance * distance for label, distance in distances[: min(5, len(distances))]}
     weights = _softmax(logits)
-    return winner_label, float(weights[winner_label] if winner_label in weights else np.exp(-winner_distance))
+    return winner_label, float(weights[winner_label] if winner_label in weights else numpy.exp(-winner_distance))
 
 
 def fit_ts2vec_proxy_classifier(
@@ -333,17 +332,17 @@ def fit_ts2vec_proxy_classifier(
     embedding_dimension: int = EMBEDDING_DIMENSION,
 ) -> Ts2VecProxyClassifier:
     train_trajectories = [trajectory for trajectory in trajectories if _trajectory_split(trajectory) == "train"]
-    left_rows: list[np.ndarray] = []
-    right_rows: list[np.ndarray] = []
+    left_rows: list[numpy.ndarray] = []
+    right_rows: list[numpy.ndarray] = []
     for trajectory in train_trajectories:
         _, _, left_times, left_values = _slice_times_and_values(trajectory, view_name="prefix")
         _, _, right_times, right_values = _slice_times_and_values(trajectory, view_name="suffix")
-        left_rows.append(np.asarray(_feature_vector(left_times, left_values), dtype=float))
-        right_rows.append(np.asarray(_feature_vector(right_times, right_values), dtype=float))
-    fit = _fit_cca(np.vstack(left_rows), np.vstack(right_rows), embedding_dimension=embedding_dimension)
+        left_rows.append(numpy.asarray(_feature_vector(left_times, left_values), dtype=float))
+        right_rows.append(numpy.asarray(_feature_vector(right_times, right_values), dtype=float))
+    fit = _fit_cca(numpy.vstack(left_rows), numpy.vstack(right_rows), embedding_dimension=embedding_dimension)
 
-    train_embeddings: list[tuple[str, np.ndarray]] = []
-    centroid_inputs: dict[str, list[np.ndarray]] = {class_name: [] for class_name in CLASS_NAMES}
+    train_embeddings: list[tuple[str, numpy.ndarray]] = []
+    centroid_inputs: dict[str, list[numpy.ndarray]] = {class_name: [] for class_name in CLASS_NAMES}
     for trajectory in train_trajectories:
         embedding, _ = _embedding_from_views(
             trajectory,
@@ -353,7 +352,7 @@ def fit_ts2vec_proxy_classifier(
         train_embeddings.append((trajectory.true_class, embedding))
         centroid_inputs[trajectory.true_class].append(embedding)
     centroids = {
-        class_name: np.mean(np.vstack(rows), axis=0) if rows else np.zeros(embedding_dimension, dtype=float)
+        class_name: numpy.mean(numpy.vstack(rows), axis=0) if rows else numpy.zeros(embedding_dimension, dtype=float)
         for class_name, rows in centroid_inputs.items()
     }
     return Ts2VecProxyClassifier(
@@ -408,7 +407,7 @@ def analyze_embedding_baseline_frontier(
 
     view_rows: list[EmbeddingViewRow] = []
     embedding_rows: list[EmbeddingRow] = []
-    embedding_lookup: dict[str, np.ndarray] = {}
+    embedding_lookup: dict[str, numpy.ndarray] = {}
 
     for trajectory in trajectories:
         embedding, trajectory_view_rows = _embedding_from_views(
@@ -491,7 +490,7 @@ def analyze_embedding_baseline_frontier(
 
     row_map = {row.method_name: row for row in metric_rows}
     canonical_correlations = fit["canonical_correlations"]
-    embedding_centroid_distance = float(np.linalg.norm(classifier.centroids[CLASS_NAMES[0]] - classifier.centroids[CLASS_NAMES[1]]))
+    embedding_centroid_distance = float(numpy.linalg.norm(classifier.centroids[CLASS_NAMES[0]] - classifier.centroids[CLASS_NAMES[1]]))
     embedding_test_accuracy = row_map["ts2vec_centroid"].test_accuracy
     embedding_nn_test_accuracy = row_map["ts2vec_nn"].test_accuracy
     best_embedding_test_accuracy = max(embedding_test_accuracy, embedding_nn_test_accuracy)
@@ -503,7 +502,7 @@ def analyze_embedding_baseline_frontier(
     promotion_decision = (
         "promote_embedding_baseline_frontier"
         if best_embedding_test_accuracy >= best_baseline_test_accuracy
-        and float(np.mean(canonical_correlations)) >= 0.70
+        and float(numpy.mean(canonical_correlations)) >= 0.70
         else "revise_embedding_baseline_frontier"
     )
 
@@ -514,7 +513,7 @@ def analyze_embedding_baseline_frontier(
         "train_count": len(train_trajectories),
         "test_count": len(test_trajectories),
         "embedding_dimension": embedding_dimension,
-        "mean_canonical_correlation": float(np.mean(canonical_correlations)) if len(canonical_correlations) else 0.0,
+        "mean_canonical_correlation": float(numpy.mean(canonical_correlations)) if len(canonical_correlations) else 0.0,
         "first_canonical_correlation": float(canonical_correlations[0]) if len(canonical_correlations) else 0.0,
         "embedding_centroid_distance": embedding_centroid_distance,
         "ts2vec_centroid_test_accuracy": embedding_test_accuracy,
@@ -661,7 +660,7 @@ def write_embedding_baseline_frontier_artifacts(
         "- Candidate method: `ts2vec`",
         "- Failure mode: handcrafted or single-pass baselines underfit reusable trajectory structure",
         f"- Improvement: NN test accuracy `{float(payload.metrics['windowed_test_accuracy']):.3f}` -> `{float(payload.metrics['ts2vec_nn_test_accuracy']):.3f}`",
-        f"- Complexity: `CCA + centroid/NN head` over paired trajectory views",
+        "- Complexity: `CCA + centroid/NN head` over paired trajectory views",
         f"- Decision: `{payload.metrics['promotion_decision']}`",
     ]
     decision_card_path.write_text("\n".join(decision_lines) + "\n", encoding="utf-8")

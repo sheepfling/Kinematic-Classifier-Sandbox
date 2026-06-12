@@ -5,7 +5,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..utils.io import write_csv
 from ..utils.plotting import plt
 
@@ -691,7 +692,6 @@ def _status_value(status: StatusId) -> int:
 def analyze_method_validation_os() -> MethodValidationOSResult:
     method_rows = default_method_specs()
     witness_rows = default_witness_specs()
-    witness_lookup = {witness.witness_id: witness for witness in witness_rows}
     promotion_status_rows: list[dict[str, object]] = []
     for method in method_rows:
         row = {

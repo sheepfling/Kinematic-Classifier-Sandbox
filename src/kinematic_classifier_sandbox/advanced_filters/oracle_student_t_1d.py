@@ -8,8 +8,10 @@ from pathlib import Path
 import numpy.random as random
 from numpy import arange, float64, mean, sqrt
 
-from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import write_comparison_summary_csv
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import (
+    write_comparison_summary_csv,
+)
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import plt
 

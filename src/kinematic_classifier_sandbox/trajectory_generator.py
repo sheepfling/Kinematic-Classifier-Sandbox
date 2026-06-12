@@ -8,7 +8,7 @@ from typing import NamedTuple
 from kinematic_classifier_sandbox.utils.math import clamp as _clamp
 
 from .contracts import TrajectoryArtifact
-from .trajectory_series import KinematicSeries
+from .corpus.trajectory_series import KinematicSeries
 
 
 class NoisyMeasurements(NamedTuple):

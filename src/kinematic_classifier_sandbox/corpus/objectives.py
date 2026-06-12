@@ -8,7 +8,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..utils.plotting import plt
 
 

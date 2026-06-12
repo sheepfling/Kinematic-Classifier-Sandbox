@@ -295,10 +295,10 @@ from kinematic_classifier_sandbox.rung_sufficiency.analysis import (
 from kinematic_classifier_sandbox.showcase.builder import build_showcase_artifacts
 from kinematic_classifier_sandbox.story.repo_story import write_repo_story_artifacts
 from kinematic_classifier_sandbox.registry.strict_equation_audit import write_strict_equation_audit_artifacts
-from kinematic_classifier_sandbox.study_candidate_generation import (
+from kinematic_classifier_sandbox.validation.study_candidate.generation import (
     write_study_candidate_generation_artifacts,
 )
-from kinematic_classifier_sandbox.study_candidate_protocol import (
+from kinematic_classifier_sandbox.validation.study_candidate.protocol import (
     write_study_candidate_protocol_artifacts,
 )
 from kinematic_classifier_sandbox.utils.analysis_cache import (

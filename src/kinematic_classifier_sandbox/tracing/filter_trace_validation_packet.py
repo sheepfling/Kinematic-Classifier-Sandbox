@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..advanced_filters.artifact_io import write_imm_artifacts
 from ..advanced_filters.evaluation import (
     write_particle_filter_witness_artifacts,
@@ -12,7 +14,6 @@ from ..advanced_filters.evaluation import (
 from ..advanced_filters.ou_witness import write_ornstein_uhlenbeck_witness_artifacts
 from ..inference.kalman_filter_bank import write_kalman_bank_artifacts
 from ..inference.transition_matrix.artifact_io import write_transition_benchmark_artifacts
-from ..markdown_builder import MarkdownDocument
 from ..registry.method_validation_os import analyze_method_validation_os
 from ..utils.io import _write_json, _write_text, read_csv_rows, write_csv
 from .trace_schema import filter_step_trace_schema

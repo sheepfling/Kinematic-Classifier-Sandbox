@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ...markdown_builder import MarkdownDocument
 from .environment_aware_corpus_core import (
     _candidate_rows,
     _coverage_rows,

@@ -1,5 +1,5 @@
 modules:
-  src/kinematic_classifier_sandbox/markdown_builder.py:
+  src/kinematic_classifier_sandbox/reports/markdown.py:
     specificity: generic
     rationale: Shared markdown construction helper used across reports and artifact writers.
   src/kinematic_classifier_sandbox/artifacts.py:

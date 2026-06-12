@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from dataclasses import replace
 from statistics import mean
 
-import numpy as np
+import numpy
 
 from ...utils.io import _write_json, _write_text, write_csv
 from ...utils.plotting import plt, write_plot
 from .comparison_surface import write_comparison_summary_csv, write_decision_card
 from .contracts import TrajectoryExplorationObjective
 from .objective_generation import generate_trajectory_exploration_objective_suite
+from .sequential_control_specs import (
+    default_air_vehicle_control_problem_spec,
+    default_three_dimensional_point_mass_problem_spec,
+)
 from .sequential_gym import (
     SequentialBoundaryControlConfig,
     SequentialRolloutSummary,
@@ -23,7 +26,6 @@ from .sequential_gym import (
     scripted_control_profiles,
     sequential_environment_contract,
 )
-from .sequential_control_specs import default_air_vehicle_control_problem_spec, default_three_dimensional_point_mass_problem_spec
 
 try:
     from stable_baselines3 import PPO
@@ -238,7 +240,7 @@ class _TrainingTraceCallback(BaseCallback):
             episode = info.get("episode")
             if not episode:
                 continue
-            entropy_proxy = float(np.exp(self.model.policy.log_std.detach().cpu().numpy()).mean()) if hasattr(self.model.policy, "log_std") else 0.0
+            entropy_proxy = float(numpy.exp(self.model.policy.log_std.detach().cpu().numpy()).mean()) if hasattr(self.model.policy, "log_std") else 0.0
             self.episode_rows.append(
                 {
                     "timesteps": float(self.num_timesteps),
@@ -300,7 +302,7 @@ def _baseline_sequences(
     for base_index, (_, sequence, _) in enumerate(doe_best):
         for mutant_index, mutant in enumerate(guided_mutation_bank(sequence)[:6]):
             guided.append((f"guided_{base_index}_{mutant_index}", mutant))
-    rng = np.random.default_rng(eval_seed + 99)
+    rng = numpy.random.default_rng(eval_seed + 99)
     random_sequences = [
         (f"random_{index}", tuple(float(value) for value in rng.uniform(-1.0, 1.0, size=config.episode_horizon)))
         for index in range(12)
@@ -466,7 +468,7 @@ def _algorithm_decision_report(training_summary: dict[str, object]) -> str:
             "## Current Witness",
             "",
             f"- objective id: `{training_summary.get('objective_id', '')}`",
-            f"- environment: `sequential_boundary_control`",
+            "- environment: `sequential_boundary_control`",
             f"- status: `{training_summary['status']}`",
             f"- resume used: `{training_summary.get('resume_used', False)}`",
             f"- beats random control: `{training_summary.get('beats_random_control', False)}`",
@@ -964,7 +966,7 @@ def write_generated_trajectory_objective_ppo_sweep_artifacts(
                 "",
                 f"- source spec id: `{suite.spec.spec_id}`",
                 f"- objective count: `{len(selected_objectives)}`",
-                f"- report: `report.md`",
+                "- report: `report.md`",
             ]
         ),
     )

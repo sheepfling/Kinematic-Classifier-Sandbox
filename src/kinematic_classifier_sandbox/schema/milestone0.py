@@ -6,7 +6,7 @@ from math import log
 from pathlib import Path
 from typing import Any
 
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.math import (
     _gaussian_logpdf,

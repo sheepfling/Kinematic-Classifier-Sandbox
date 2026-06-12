@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..corpus.adequacy_audit import CorpusAdequacyArtifacts
-from ..corpus.coverage_report import CoverageReportArtifacts
+from ..corpus.adequacy_contracts import CorpusAdequacyArtifacts
+from ..corpus.coverage_contracts import CoverageReportArtifacts
 from .feature_analysis import FeatureAnalysisArtifacts
 from .pca_analysis import PcaAnalysisArtifacts
 

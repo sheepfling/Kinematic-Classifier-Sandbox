@@ -7,9 +7,9 @@ from dataclasses import asdict, dataclass
 from math import log, sqrt
 from pathlib import Path
 
-from ...utils.io import write_csv
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
-from ...markdown_builder import MarkdownDocument
+from ...utils.io import write_csv
 from ...utils.math import (
     _gaussian_logpdf,
     _least_squares_slope,

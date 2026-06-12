@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
-from ..corpus.coverage_report import CoverageReportArtifacts
+from ..corpus.coverage_contracts import CoverageReportArtifacts
+from ..utils.categorical import status_score
+from ..utils.io import read_csv_rows
 from .feature_analysis import FeatureAnalysisArtifacts
 from .inspection_bundle_artifact_io import write_abstract_inspection_artifacts
 from .inspection_bundle_contracts import AbstractInspectionArtifacts
-from ..utils.categorical import status_score
-from ..utils.io import read_csv_rows
 
 
 def recommend_feature_set(summary_payload: dict[str, object]) -> dict[str, object]:

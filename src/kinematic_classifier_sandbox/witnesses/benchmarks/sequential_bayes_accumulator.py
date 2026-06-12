@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from math import exp, log
 from pathlib import Path
 
-from ...utils.io import write_csv
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
-from ...markdown_builder import MarkdownDocument
-from ...utils.plotting import plt
+from ...utils.io import write_csv
 from ...utils.math import _gaussian_logpdf, _normalize_log_scores
+from ...utils.plotting import plt
 
 
 @dataclass(frozen=True, slots=True)

@@ -4,22 +4,21 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean, pstdev
 
-import numpy as np
+import numpy
 
 from ...utils.io import _write_json, _write_text, write_csv
 from ...utils.plotting import plt, write_plot
 from .comparison_surface import write_comparison_summary_csv, write_decision_card
 from .contracts import TrajectoryExplorationObjective
+from .objective_generation import generate_trajectory_exploration_objective_suite
 from .ppo_boundary_control import (
     SequentialPpoConfig,
-    SequentialPpoResult,
     _baseline_sequences,
     _control_signature_distance,
     _evaluate_sequence_family,
     _selected_rows,
     analyze_sequential_ppo_boundary_control,
 )
-from .objective_generation import generate_trajectory_exploration_objective_suite
 from .sequential_gym import (
     SequentialBoundaryControlConfig,
     SequentialRolloutSummary,
@@ -144,10 +143,10 @@ def _evaluate_cem_sequences(
     cem_config: SequentialCemConfig,
     seed_index: int,
 ) -> tuple[list[SequentialRolloutSummary], list[dict[str, object]]]:
-    rng = np.random.default_rng(cem_config.eval_seed_start)
+    rng = numpy.random.default_rng(cem_config.eval_seed_start)
     horizon = config.episode_horizon
-    mean_vector = np.zeros(horizon, dtype=float)
-    std_vector = np.full(horizon, cem_config.init_std, dtype=float)
+    mean_vector = numpy.zeros(horizon, dtype=float)
+    std_vector = numpy.full(horizon, cem_config.init_std, dtype=float)
     selected: list[SequentialRolloutSummary] = []
     trace_rows: list[dict[str, object]] = []
     eval_counter = 0
@@ -155,7 +154,7 @@ def _evaluate_cem_sequences(
         batch: list[SequentialRolloutSummary] = []
         for population_index in range(cem_config.population_size):
             sampled = rng.normal(mean_vector, std_vector, size=horizon)
-            sequence = tuple(float(value) for value in np.clip(sampled, -1.0, 1.0))
+            sequence = tuple(float(value) for value in numpy.clip(sampled, -1.0, 1.0))
             summary = evaluate_control_sequence(
                 sequence,
                 objective=objective,
@@ -171,11 +170,11 @@ def _evaluate_cem_sequences(
         ranked = sorted(batch, key=lambda summary: summary.evaluation.total_utility, reverse=True)
         elite_count = max(1, int(cem_config.population_size * cem_config.elite_fraction))
         elites = ranked[:elite_count]
-        elite_array = np.asarray([summary.control_sequence for summary in elites], dtype=float)
+        elite_array = numpy.asarray([summary.control_sequence for summary in elites], dtype=float)
         elite_mean = elite_array.mean(axis=0)
         elite_std = elite_array.std(axis=0)
         mean_vector = cem_config.smoothing * mean_vector + (1.0 - cem_config.smoothing) * elite_mean
-        std_vector = np.maximum(cem_config.min_std, cem_config.smoothing * std_vector + (1.0 - cem_config.smoothing) * elite_std)
+        std_vector = numpy.maximum(cem_config.min_std, cem_config.smoothing * std_vector + (1.0 - cem_config.smoothing) * elite_std)
         selected.extend(elites[: min(4, len(elites))])
         trace_rows.append(
             {
@@ -750,7 +749,7 @@ def write_sequential_ppo_vs_cem_comparison_artifacts(
                 f"- promoted backend: `{result.backend_decision_rows[0]['backend_id'] if result.backend_decision_rows else ''}`",
                 f"- top aggregate backend: `{result.aggregate_backend_metrics_rows[0]['backend_id'] if result.aggregate_backend_metrics_rows else ''}`",
                 f"- seed count: `{result.config_payload['seed_count']}`",
-                f"- report: `report.md`",
+                "- report: `report.md`",
             ]
         ),
     )
@@ -874,7 +873,7 @@ def _decision_summary_rows(objective_rows: list[dict[str, object]]) -> list[dict
 def _render_objective_backend_heatmap(rows: list[dict[str, object]]):
     objectives = list(dict.fromkeys(str(row["objective_id"]) for row in rows))
     backends = list(dict.fromkeys(str(row["backend_id"]) for row in rows))
-    values = np.zeros((len(objectives), len(backends)), dtype=float)
+    values = numpy.zeros((len(objectives), len(backends)), dtype=float)
     for row in rows:
         values[objectives.index(str(row["objective_id"])), backends.index(str(row["backend_id"]))] = float(row["mean_total_utility"])
     fig, ax = plt.subplots(figsize=(max(8.0, 0.72 * len(backends) + 5.0), max(4.8, 0.42 * len(objectives) + 2.0)))

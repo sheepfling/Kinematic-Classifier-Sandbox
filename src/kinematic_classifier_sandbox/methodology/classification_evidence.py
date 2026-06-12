@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from math import log
 from pathlib import Path
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..common_experiment.runner import analyze_common_experiment
-from ..markdown_builder import MarkdownDocument
 from ..utils.math import _normalize_log_scores
 
 

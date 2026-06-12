@@ -5,7 +5,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..utils.io import write_csv
 from ..utils.plotting import _figure_to_png, plt
 
@@ -95,7 +96,28 @@ FUNCTIONAL_SURFACE_REGISTRY: tuple[FunctionalSurfaceSpec, ...] = (
         module="kinematic_classifier_sandbox.analysis.static_feature_class_prior_audit",
         analysis_function="analyze_default_static_feature_class_prior_audit",
         artifact_function="write_static_feature_class_prior_audit_artifacts",
-        artifact_outputs=("static_audit_report.md", "static_decision_card.md", "static_audit_decision_card.png", "prior_pathology_report.csv"),
+        artifact_outputs=(
+            "static_audit_report.md",
+            "static_decision_card.md",
+            "02b_static_audit_decision_card.png",
+            "02c_class_pair_confusability_matrix.png",
+            "02d_feature_relevance_rank.png",
+            "02e_feature_redundancy_graph.png",
+            "02f_feature_synergy_map.png",
+            "02g_prior_pathology_surface.png",
+            "02h_prior_flip_thresholds.png",
+            "02i_static_coverage_feasibility.png",
+            "02j_static_leakage_provenance_audit.png",
+            "02k_static_audit_to_action_router.png",
+            "class_confusability_matrix.csv",
+            "feature_relevance_table.csv",
+            "feature_redundancy_matrix.csv",
+            "feature_synergy_candidates.csv",
+            "prior_pathology_report.csv",
+            "prior_flip_thresholds.csv",
+            "static_coverage_feasibility.csv",
+            "static_leakage_provenance_audit.csv",
+        ),
         evaluation_mode="pure_analysis_plus_artifact_shell",
         showcase_priority="high",
         notes="Front-door admissibility gate for feature relevance, class separability, prior pathology, coverage, leakage, and decisionability.",

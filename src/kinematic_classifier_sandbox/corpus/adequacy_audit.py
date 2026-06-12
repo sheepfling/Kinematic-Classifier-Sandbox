@@ -1,37 +1,36 @@
 from __future__ import annotations
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..analysis.feature_analysis import (
     FEATURE_SET_MANIFEST_PATH,
     FeatureAnalysisResult,
     analyze_feature_datasets,
     load_feature_set_manifest,
 )
-from ..markdown_builder import MarkdownDocument
-from ..runtime_paths import prepare_matplotlib
-from ..utils.plotting import plt
 from ..utils.math import _mean
-from .adequacy_contracts import (
-    CorpusAdequacyArtifacts,
-    CorpusAdequacyResult,
-    CorpusAdequacyScorecard,
-    CorpusAdequacySummary,
-    CorpusAdequacyThresholds,
-)
+from ..utils.plotting import plt
 from .adequacy_audit_utils import (
-    _clip01,
     _class_balance_rows,
     _class_pair_rows,
+    _clip01,
     _covariate_rows,
     _degeneracy_rows,
     _distribution_balance_score,
     _feature_excitation_score,
     _feature_set_coverage_rows,
     _pair_boundary_score,
-    _triviality_penalty,
     _status_label,
+    _triviality_penalty,
     _validity_rows,
     _worst_status,
     load_class_pair_manifest,
+)
+from .adequacy_contracts import (
+    CorpusAdequacyResult,
+    CorpusAdequacyScorecard,
+    CorpusAdequacySummary,
+    CorpusAdequacyThresholds,
 )
 
 

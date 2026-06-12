@@ -39,6 +39,8 @@ The shortest accurate summary of the repository is
 \begin{align}
 \text{study declaration}
 &\rightarrow
+\text{static feature/class/prior audit}
+\rightarrow
 \text{corpus generation or selection}
 \rightarrow
 \text{class-validity and coverage audits}
@@ -68,6 +70,7 @@ b &:= \text{optional backend or dynamics family}.
 
 The workflow then has two generic engines:
 \begin{align}
+\text{Static Audit} &: (f, \mathcal{C}, \pi) \mapsto a, \\
 \text{Corpus Explorer} &: (o, b) \mapsto \mathcal{D}^{\star}, \\
 \text{Study Candidate Evaluator} &: (\mathcal{D}^{\star}, f, \mathcal{C}, m, \pi, b) \mapsto d,
 \end{align}
@@ -307,10 +310,11 @@ After posterior histories are produced, the evaluator does more than inspect top
 The evaluation layer asks two different questions:
 \begin{align}
 \text{Is the feature/class geometry promising?} \\
+\text{Is the feature/class/prior setup admissible before corpus search?} \\
 \text{Does the chosen evidence-provider family realize that promise?}
 \end{align}
 
-That is why the workflow includes both static geometry diagnostics and dynamic posterior diagnostics.
+That is why the workflow includes both static admissibility diagnostics and dynamic posterior diagnostics. The static stage records class-pair confusability, feature relevance, redundancy, candidate synergy, prior flip thresholds, coverage feasibility, and leakage provenance before classifier evidence is interpreted.
 
 \subsection{Stage 8: Promote, Revise, Reject, or Defer}
 The final output is a decision, not just a score:

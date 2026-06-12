@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import math
+import shutil
 import textwrap
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -12,15 +13,13 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
+import numpy
+from _bootstrap import bootstrap_repo
 from PIL import Image, ImageDraw
 
-from _bootstrap import bootstrap_repo
-
-
-OUTPUT_ID = "presentation_hero_charts_v4"
+OUTPUT_ID = "presentation_hero_charts_v5"
 STUDY_ID = "methodology_workbench_story_v1"
-RUN_ID = "hero_chart_packet_v4"
+RUN_ID = "hero_chart_packet_v5"
 SEED = "artifact-backed"
 
 COLORS = {
@@ -76,6 +75,56 @@ CHART_EVIDENCE: dict[str, dict[str, str]] = {
         "source_artifact": "docs/story/study_candidate_evaluator.md",
         "claim_boundary": "declared study-surface contract",
     },
+    "02b_static_audit_decision_card": {
+        "evidence_tier": "RUN-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/static_decision_card.md;artifacts/static_feature_class_prior_audit_v1/class_confusability_matrix.csv",
+        "claim_boundary": "static admissibility gate before corpus search or classifier escalation",
+    },
+    "02c_class_pair_confusability_matrix": {
+        "evidence_tier": "RUN-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/class_confusability_matrix.csv",
+        "claim_boundary": "feature-surface class-pair confusability, not final classifier confusion",
+    },
+    "02d_feature_relevance_rank": {
+        "evidence_tier": "RUN-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/feature_relevance_table.csv",
+        "claim_boundary": "feature relevance under declared samples/distributions",
+    },
+    "02e_feature_redundancy_graph": {
+        "evidence_tier": "RUN-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/feature_redundancy_matrix.csv",
+        "claim_boundary": "redundancy graph highlights correlation/MI families, not causal redundancy",
+    },
+    "02f_feature_synergy_map": {
+        "evidence_tier": "CANDIDATE-DIAGNOSTIC",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/feature_synergy_candidates.csv",
+        "claim_boundary": "candidate synergy only; downstream ablation is required before promotion",
+    },
+    "02g_prior_pathology_surface": {
+        "evidence_tier": "RUN-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv",
+        "claim_boundary": "prior-domination proxy over declared static samples and regimes",
+    },
+    "02h_prior_flip_thresholds": {
+        "evidence_tier": "RUN-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/prior_flip_thresholds.csv",
+        "claim_boundary": "pairwise prior odds compared with observed log-likelihood evidence ranges",
+    },
+    "02i_static_coverage_feasibility": {
+        "evidence_tier": "RUN-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/static_coverage_feasibility.csv",
+        "claim_boundary": "static coverage feasibility before corpus frontier optimization",
+    },
+    "02j_static_leakage_provenance_audit": {
+        "evidence_tier": "ARTIFACT-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/static_leakage_provenance_audit.csv",
+        "claim_boundary": "rule/provenance audit, not a proof against all unknown leakage",
+    },
+    "02k_static_audit_to_action_router": {
+        "evidence_tier": "ARTIFACT-BACKED",
+        "source_artifact": "artifacts/static_feature_class_prior_audit_v1/static_decision_card.md;artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv",
+        "claim_boundary": "routing policy maps static findings to next work and gates",
+    },
     "03_corpus_candidate_frontier": {
         "evidence_tier": "RUN-BACKED",
         "source_artifact": "artifacts/generic_corpus_exploration/candidate_scores.csv",
@@ -83,7 +132,7 @@ CHART_EVIDENCE: dict[str, dict[str, str]] = {
     },
     "04_corpus_weight_sweep_stability": {
         "evidence_tier": "RUN-BACKED",
-        "source_artifact": "artifacts/generic_corpus_exploration_weight_sweep/sweep_results.csv",
+        "source_artifact": "artifacts/generic_corpus_exploration_weight_sweep_v1/generic_corpus_exploration_weight_sweep.csv;artifacts/generic_corpus_exploration_weight_sweep_v1/generic_corpus_exploration_weight_sweep_summary.json",
         "claim_boundary": "local policy-neighborhood stability only",
     },
     "05_feature_confusability_heatmap": {
@@ -95,6 +144,11 @@ CHART_EVIDENCE: dict[str, dict[str, str]] = {
         "evidence_tier": "RUN-BACKED",
         "source_artifact": "artifacts/common_1d_classifier_study/unified_posterior_history.csv",
         "claim_boundary": "representative witness timeline",
+    },
+    "06c_capability_ladder": {
+        "evidence_tier": "ARTIFACT-BACKED",
+        "source_artifact": "artifacts/packets/classifier_ladder_mvp/evidence_capability_ladder.csv",
+        "claim_boundary": "capability architecture map; promotion remains scenario-specific",
     },
     "07_rung_sufficiency_map": {
         "evidence_tier": "RUN-BACKED",
@@ -141,6 +195,26 @@ CHART_EVIDENCE: dict[str, dict[str, str]] = {
         "source_artifact": "artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv;artifacts/filter_trace_validation_v1/method_trace_matrix.csv",
         "claim_boundary": "status-layer summary across trace_validated, witness_supported, and study_justified surfaces",
     },
+    "10f_method_win_by_regime_map": {
+        "evidence_tier": "ARTIFACT-BACKED",
+        "source_artifact": "artifacts/packets/advanced_algorithm_showcase/method_win_by_regime.csv",
+        "claim_boundary": "shine-witness map; a regime win is not a universal method promotion",
+    },
+    "10g_method_capability_matrix": {
+        "evidence_tier": "ARTIFACT-BACKED",
+        "source_artifact": "artifacts/packets/classifier_ladder_mvp/method_capability_matrix.csv",
+        "claim_boundary": "method capability map, not an accuracy leaderboard",
+    },
+    "10h_advanced_inference_architecture_map": {
+        "evidence_tier": "ARTIFACT-BACKED",
+        "source_artifact": "artifacts/packets/classifier_ladder_mvp/advanced_inference_architecture_map.csv",
+        "claim_boundary": "1D proves route and trace contract; 3D proof remains future work",
+    },
+    "10i_filter_promotion_criteria": {
+        "evidence_tier": "ARTIFACT-BACKED",
+        "source_artifact": "artifacts/packets/classifier_ladder_mvp/filter_promotion_criteria.csv",
+        "claim_boundary": "architecturally exercised is distinct from broadly promoted",
+    },
     "11_witness_coverage_matrix": {
         "evidence_tier": "ARTIFACT-BACKED",
         "source_artifact": "artifacts/repo_story/witness_problem_matrix.csv",
@@ -163,7 +237,7 @@ CHART_EVIDENCE: dict[str, dict[str, str]] = {
     },
     "14_engineering_guardrail_dashboard": {
         "evidence_tier": "RUN-BACKED",
-        "source_artifact": "artifacts/import_simplicity_audit_v1/*;artifacts/repo_shape_audit_v1/*",
+        "source_artifact": "artifacts/import_simplicity_audit_v1/import_simplicity_audit_summary.json;artifacts/repo_shape_audit_v1/repo_shape_audit_summary.json",
         "claim_boundary": "current packet-blocking checks only",
     },
     "15_prior_sensitivity_surface": {
@@ -188,7 +262,7 @@ CHART_EVIDENCE: dict[str, dict[str, str]] = {
     },
     "19_confusion_localization_matrix": {
         "evidence_tier": "RUN-BACKED",
-        "source_artifact": "artifacts/common_dataset_comparison_v1/plots/confusion/final_confusion_by_method.png",
+        "source_artifact": "artifacts/common_dataset_comparison_v1/method_run_summary.csv;artifacts/common_dataset_comparison_v1/plots/confusion/final_confusion_by_method.png",
         "claim_boundary": "current common-dataset comparison",
     },
     "20_backend_capability_matrix": {
@@ -230,6 +304,131 @@ CHART_EVIDENCE: dict[str, dict[str, str]] = {
         "evidence_tier": "ARTIFACT-BACKED",
         "source_artifact": "artifacts/rl_corpus_agent/rl_backend_decision_report.md;artifacts/advanced_filter_comparison_v1/advanced_filter_decision_matrix.csv",
         "claim_boundary": "bridge diagram tying novelty discovery to rung/filter escalation",
+    },
+}
+
+EPIC_BY_CHART_ID = {
+    "01_study_run_spine": "System Spine",
+    "02_study_candidate_card": "Epic 1: Static Admissibility",
+    "02b_static_audit_decision_card": "Epic 1: Static Admissibility",
+    "02c_class_pair_confusability_matrix": "Epic 1: Static Admissibility",
+    "02d_feature_relevance_rank": "Epic 1: Static Admissibility",
+    "02e_feature_redundancy_graph": "Epic 1: Static Admissibility",
+    "02f_feature_synergy_map": "Epic 1: Static Admissibility",
+    "02g_prior_pathology_surface": "Epic 1: Static Admissibility",
+    "02h_prior_flip_thresholds": "Epic 1: Static Admissibility",
+    "02i_static_coverage_feasibility": "Epic 1: Static Admissibility",
+    "02j_static_leakage_provenance_audit": "Epic 1: Static Admissibility",
+    "02k_static_audit_to_action_router": "Epic 1: Static Admissibility",
+    "03_corpus_candidate_frontier": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "04_corpus_weight_sweep_stability": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "05_feature_confusability_heatmap": "Epic 1: Static Admissibility",
+    "06_posterior_timeline_witness": "Epic 2: Classifier / Filter Ladder",
+    "06c_capability_ladder": "Epic 2: Classifier / Filter Ladder",
+    "07_rung_sufficiency_map": "Epic 2: Classifier / Filter Ladder",
+    "08_decision_funnel": "Decision Card",
+    "09_failure_mode_pareto": "Decision Card",
+    "10_advanced_filter_gate_matrix": "Epic 2: Classifier / Filter Ladder",
+    "10b_imm_switching_shine_witness": "Epic 2: Classifier / Filter Ladder",
+    "10c_pf_nonlinear_nongaussian_shine_witness": "Epic 2: Classifier / Filter Ladder",
+    "10d_rbpf_latent_event_shine_witness": "Epic 2: Classifier / Filter Ladder",
+    "10e_advanced_filter_sweet_spot_matrix": "Epic 2: Classifier / Filter Ladder",
+    "10f_advanced_filter_showcase_summary": "Epic 2: Classifier / Filter Ladder",
+    "10f_method_win_by_regime_map": "Epic 2: Classifier / Filter Ladder",
+    "10g_method_capability_matrix": "Epic 2: Classifier / Filter Ladder",
+    "10h_advanced_inference_architecture_map": "Epic 2: Classifier / Filter Ladder",
+    "10i_filter_promotion_criteria": "Epic 2: Classifier / Filter Ladder",
+    "11_witness_coverage_matrix": "Epic 2: Classifier / Filter Ladder",
+    "12_1d_to_3d_pva_lift_map": "Roadmap",
+    "13_claim_evidence_boundary_matrix": "Decision Card",
+    "13b_claim_evidence_appendix_matrix": "Decision Card",
+    "14_engineering_guardrail_dashboard": "Package Utility",
+    "15_prior_sensitivity_surface": "Epic 2: Classifier / Filter Ladder",
+    "16_calibration_reliability": "Epic 2: Classifier / Filter Ladder",
+    "17_oracle_gap_bridge": "Epic 2: Classifier / Filter Ladder",
+    "18_leakage_adequacy_audit": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "19_confusion_localization_matrix": "Epic 2: Classifier / Filter Ladder",
+    "20_backend_capability_matrix": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "21_search_backend_comparison_frontier": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "22_novelty_archive_growth": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "23_objective_decomposition_ablation": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "24_ppo_boundary_shaping_trace": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "25_cem_distribution_contraction": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "26_downstream_diagnostic_yield": "Epic 3: Corpus Evaluation and Advanced Exploration",
+    "27_novelty_to_filter_escalation_bridge": "Epic 3: Corpus Evaluation and Advanced Exploration",
+}
+
+EPIC_PACKET_SPECS = {
+    "static_admissibility_mvp": {
+        "title": "Epic 1: Static Admissibility",
+        "question": "Can the study be decided before corpus search or classifier escalation?",
+        "decision_field": "epic_1_static_admissibility",
+        "chart_ids": [
+            "02_study_candidate_card",
+            "02b_static_audit_decision_card",
+            "02c_class_pair_confusability_matrix",
+            "02d_feature_relevance_rank",
+            "02e_feature_redundancy_graph",
+            "02f_feature_synergy_map",
+            "02g_prior_pathology_surface",
+            "02h_prior_flip_thresholds",
+            "02i_static_coverage_feasibility",
+            "02j_static_leakage_provenance_audit",
+            "02k_static_audit_to_action_router",
+            "05_feature_confusability_heatmap",
+        ],
+        "status": "promote_with_warnings",
+        "limitation": "Static admissibility does not prove dynamic classifier performance; synergy remains candidate until ablation-backed.",
+        "next_work": "Route hard class pairs, prior warnings, and coverage gaps into Corpus Explorer objectives.",
+    },
+    "classifier_ladder_mvp": {
+        "title": "Epic 2: Evidence Capability Ladder",
+        "question": "What evidence capabilities exist, how are they evaluated, and under what conditions should each rung be promoted?",
+        "decision_field": "epic_2_evidence_capability_ladder",
+        "chart_ids": [
+            "06_posterior_timeline_witness",
+            "06c_capability_ladder",
+            "07_rung_sufficiency_map",
+            "10_advanced_filter_gate_matrix",
+            "10e_advanced_filter_sweet_spot_matrix",
+            "10g_method_capability_matrix",
+            "10h_advanced_inference_architecture_map",
+            "10i_filter_promotion_criteria",
+            "10b_imm_switching_shine_witness",
+            "10c_pf_nonlinear_nongaussian_shine_witness",
+            "10d_rbpf_latent_event_shine_witness",
+            "10f_advanced_filter_showcase_summary",
+            "10f_method_win_by_regime_map",
+            "11_witness_coverage_matrix",
+            "15_prior_sensitivity_surface",
+            "16_calibration_reliability",
+            "17_oracle_gap_bridge",
+            "19_confusion_localization_matrix",
+        ],
+        "status": "capability_architecture_exercised_with_witness_scope_limits",
+        "limitation": "1D witnesses prove evaluation machinery and trace contracts; broader advanced-filter usefulness requires richer scenarios that excite the matching assumptions.",
+        "next_work": "Use 3D PVA, nonlinear sensor geometry, occlusion, and latent maneuver state to fully excite IMM/PF/RBPF capability.",
+    },
+    "corpus_exploration_mvp": {
+        "title": "Epic 3: Corpus Evaluation and Advanced Exploration",
+        "question": "Can we discover valid hard cases and route them into better study decisions?",
+        "decision_field": "epic_3_corpus_evaluation_advanced_exploration",
+        "chart_ids": [
+            "03_corpus_candidate_frontier",
+            "04_corpus_weight_sweep_stability",
+            "18_leakage_adequacy_audit",
+            "20_backend_capability_matrix",
+            "21_search_backend_comparison_frontier",
+            "22_novelty_archive_growth",
+            "23_objective_decomposition_ablation",
+            "24_ppo_boundary_shaping_trace",
+            "25_cem_distribution_contraction",
+            "26_downstream_diagnostic_yield",
+            "27_novelty_to_filter_escalation_bridge",
+        ],
+        "status": "frontier_supported_search_experimental",
+        "limitation": "CEM/PPO are search-backend studies; PPO remains experimental unless baseline, ablation, seed stability, and downstream yield all clear.",
+        "next_work": "Connect search-discovered hard cases directly to rung failures and advanced-filter promotion decisions.",
     },
 }
 
@@ -345,10 +544,21 @@ def _presentation_title(chart_name: str) -> str:
     titles = {
         "01_study_run_spine": "One declared study flows into one auditable decision packet.",
         "02_study_candidate_card": "Every result is anchored to a concrete study candidate.",
+        "02b_static_audit_decision_card": "The study is audited before corpus search or classifier escalation.",
+        "02c_class_pair_confusability_matrix": "Hard class pairs are identified before blaming algorithms.",
+        "02d_feature_relevance_rank": "Feature relevance is measured before classifier work begins.",
+        "02e_feature_redundancy_graph": "Redundant feature families are clustered before they inflate confidence.",
+        "02f_feature_synergy_map": "Candidate feature synergy is detected before univariate pruning.",
+        "02g_prior_pathology_surface": "A prior can make an otherwise separable setup pathological.",
+        "02h_prior_flip_thresholds": "Prior odds are compared against achievable feature evidence.",
+        "02i_static_coverage_feasibility": "The static stage checks whether intended boundary regions are reachable.",
+        "02j_static_leakage_provenance_audit": "Leakage and feature provenance are checked before the classifier sees data.",
+        "02k_static_audit_to_action_router": "Static audit findings become actions, not just metrics.",
         "03_corpus_candidate_frontier": "Corpus selection happens before classifier claims.",
         "04_corpus_weight_sweep_stability": "Selected corpus remains stable across nearby utility-weight sweeps.",
         "05_feature_confusability_heatmap": "Hard class pairs are identified before blaming algorithms.",
         "06_posterior_timeline_witness": "The classifier accumulates evidence over time, not just final labels.",
+        "06c_capability_ladder": "The ladder is a capability progression, not a winner ranking.",
         "07_rung_sufficiency_map": "Each rung must earn its complexity by solving a diagnosed failure.",
         "08_decision_funnel": "Weak studies are diagnosed before algorithm escalation.",
         "09_failure_mode_pareto": "Failure modes become an action plan.",
@@ -358,6 +568,10 @@ def _presentation_title(chart_name: str) -> str:
         "10d_rbpf_latent_event_shine_witness": "RBPF earns complexity when latent-event timing plus conditional Kalman state wins.",
         "10e_advanced_filter_sweet_spot_matrix": "Each advanced filter has a narrow regime where it should win.",
         "10f_advanced_filter_showcase_summary": "Advanced-filter promotions are witness-specific, not global defaults.",
+        "10f_method_win_by_regime_map": "Advanced methods are exercised in regimes designed for their strengths.",
+        "10g_method_capability_matrix": "Methods are mapped to representational capabilities.",
+        "10h_advanced_inference_architecture_map": "Advanced filters prove the route to richer 3D inference.",
+        "10i_filter_promotion_criteria": "Evaluation, exercise, and promotion are separate statuses.",
         "11_witness_coverage_matrix": "1D witnesses prove methodology layers deliberately.",
         "12_1d_to_3d_pva_lift_map": "3D is a backend/feature/dynamics lift, not a methodology rewrite.",
         "13_claim_evidence_boundary_matrix": "The strongest claim is architectural, with explicit boundaries.",
@@ -454,6 +668,37 @@ def chart_study_candidate_card(output: Path) -> dict[str, str]:
     return {"chart_id": "02_study_candidate_card", "path": str(output / "02_study_candidate_card.svg"), "role": "main"}
 
 
+def _ensure_static_audit_artifacts(root: Path) -> Path:
+    static_dir = root / "artifacts/static_feature_class_prior_audit_v1"
+    if not (static_dir / "02b_static_audit_decision_card.png").exists():
+        from kinematic_classifier_sandbox.analysis.static_feature_class_prior_audit_artifact_io import (
+            write_static_feature_class_prior_audit_artifacts,
+        )
+
+        write_static_feature_class_prior_audit_artifacts(root / "artifacts")
+    return static_dir
+
+
+def chart_static_audit_artifact(
+    root: Path,
+    output: Path,
+    chart_id: str,
+    filename: str,
+    *,
+    role: str,
+) -> dict[str, str]:
+    static_dir = _ensure_static_audit_artifacts(root)
+    source = static_dir / filename
+    image = plt.imread(source)
+    fig, ax = plt.subplots(figsize=(12.0, 7.0))
+    ax.imshow(image)
+    ax.axis("off")
+    ax.set_title(_presentation_title(chart_id), loc="left", fontsize=15, weight="bold", pad=10)
+    target = output / f"{chart_id}.png"
+    _save(fig, target, str(source.relative_to(root)))
+    return {"chart_id": chart_id, "path": str(target), "role": role}
+
+
 def chart_corpus_candidate_frontier(root: Path, output: Path) -> dict[str, str]:
     rows = _read_csv(root / "artifacts/generic_corpus_exploration/candidate_scores.csv")
     selected_manifest = _read_json(root / "artifacts/generic_corpus_exploration/selected_corpus_manifest.json") or {}
@@ -506,7 +751,7 @@ def chart_weight_sweep(root: Path, output: Path) -> dict[str, str]:
     variants = [row["right_variant_id"] for row in baseline]
     candidate = [_as_float(row["candidate_jaccard"], 1.0) for row in baseline]
     cell = [_as_float(row["cell_jaccard"], 1.0) for row in baseline]
-    x = np.arange(len(variants))
+    x = numpy.arange(len(variants))
     fig, ax = plt.subplots(figsize=(10.8, 6.2))
     ax.bar(x - 0.18, candidate, width=0.36, label="candidate Jaccard", color=COLORS["blue"], alpha=0.86)
     ax.bar(x + 0.18, cell, width=0.36, label="cell Jaccard", color=COLORS["teal"], alpha=0.86)
@@ -527,12 +772,12 @@ def chart_weight_sweep(root: Path, output: Path) -> dict[str, str]:
 def chart_feature_confusability(root: Path, output: Path) -> dict[str, str]:
     rows = _read_csv(root / "artifacts/feature_analysis_v1/pairwise_overlap_matrix.csv")
     labels = [row["class"] for row in rows]
-    matrix = np.array([[_as_float(row[label]) for label in labels] for row in rows])
+    matrix = numpy.array([[_as_float(row[label]) for label in labels] for row in rows])
     confusability = matrix
-    np.fill_diagonal(confusability, np.nan)
+    numpy.fill_diagonal(confusability, numpy.nan)
     fig, ax = plt.subplots(figsize=(10, 7))
-    masked = np.ma.masked_invalid(confusability)
-    image = ax.imshow(masked, vmin=0.0, vmax=max(0.4, float(np.nanmax(confusability))), cmap="YlOrRd")
+    masked = numpy.ma.masked_invalid(confusability)
+    image = ax.imshow(masked, vmin=0.0, vmax=max(0.4, float(numpy.nanmax(confusability))), cmap="YlOrRd")
     ax.set_xticks(range(len(labels)), [_wrap(label.replace("_", " "), 12) for label in labels], rotation=35, ha="right", fontsize=8)
     ax.set_yticks(range(len(labels)), [_wrap(label.replace("_", " "), 14) for label in labels], fontsize=8)
     for i in range(len(labels)):
@@ -614,7 +859,7 @@ def chart_rung_sufficiency(root: Path, output: Path) -> dict[str, str]:
         rung = row["rung_id"]
         x.append(_as_float(row["complexity_cost"]))
         gains = by_rung.get(rung, [0.0])
-        y.append(float(np.mean(gains)))
+        y.append(float(numpy.mean(gains)))
         count = sum(decisions[rung].values()) or 1
         sizes.append(180 + 18 * count)
         top_decision = decisions[rung].most_common(1)[0][0] if decisions[rung] else "defer"
@@ -672,7 +917,7 @@ def chart_failure_mode_pareto(output: Path) -> dict[str, str]:
         ("switching_state_failure", 2),
     ]
     total = sum(value for _, value in data)
-    cumulative = np.cumsum([value for _, value in data]) / total
+    cumulative = numpy.cumsum([value for _, value in data]) / total
     fig, ax = plt.subplots(figsize=(11, 6.4))
     labels = [_wrap(label.replace("_", " "), 14) for label, _ in data]
     values = [value for _, value in data]
@@ -730,7 +975,7 @@ def chart_advanced_filter_gate(root: Path, output: Path) -> dict[str, str]:
     matrix[method_index["Particle Filter"]][-1] = "deferred"
     matrix[method_index["RBPF"]][-1] = "missing"
     status_to_num = {"met": 3, "implemented": 2, "failed": 0, "missing": 1, "deferred": 1}
-    arr = np.array([[status_to_num[cell] for cell in row] for row in matrix])
+    arr = numpy.array([[status_to_num[cell] for cell in row] for row in matrix])
     cmap = plt.matplotlib.colors.ListedColormap([COLORS["red"], "#EAECEE", COLORS["purple"], COLORS["green"]])
     fig, ax = plt.subplots(figsize=(11.4, 5.8))
     ax.imshow(arr, vmin=0, vmax=3, cmap=cmap)
@@ -771,7 +1016,7 @@ def chart_witness_coverage(root: Path, output: Path) -> dict[str, str]:
     labels = [row["witness"] for row in rows]
     cmap = plt.matplotlib.colors.ListedColormap(["#F4F6F7", "#FAD7A0", COLORS["green"]])
     fig, ax = plt.subplots(figsize=(11.5, 6.8))
-    ax.imshow(np.array(matrix), vmin=0, vmax=2, cmap=cmap)
+    ax.imshow(numpy.array(matrix), vmin=0, vmax=2, cmap=cmap)
     ax.set_xticks(range(len(capabilities)), [_wrap(c, 12) for c in capabilities], rotation=25, ha="right")
     ax.set_yticks(range(len(labels)), [_wrap(label.replace("_", " "), 24) for label in labels])
     for i in range(len(labels)):
@@ -870,7 +1115,7 @@ def chart_claim_evidence(root: Path, output: Path) -> dict[str, str]:
 def chart_claim_evidence_appendix(root: Path, output: Path) -> dict[str, str]:
     rows = _read_csv(root / "artifacts/repo_story/claim_evidence_matrix.csv")
     columns = ["status", "doc", "artifact", "test", "limitation", "next work"]
-    matrix = np.ones((len(rows), len(columns)))
+    matrix = numpy.ones((len(rows), len(columns)))
     statuses = ["proven" if "strong" in row["current_status"].lower() else row["current_status"].lower() for row in rows]
     matrix[:, 0] = [4 if s == "proven" else 3 if s == "v1 complete" else 2 if s == "implemented" else 1 for s in statuses]
     cmap = plt.matplotlib.colors.ListedColormap(["#F4F6F7", "#D6EAF8", "#E8DAEF", "#D1F2EB", "#D5F5E3"])
@@ -949,10 +1194,10 @@ def chart_imm_switching_shine_witness(root: Path, output: Path) -> dict[str, str
     scenario_rows = [row for row in comparison_rows if row["scenario_name"] == "constant_velocity_then_braking"]
     labels = ["IMM post-switch", "Transition post-switch", "IMM delay", "IMM state RMSE"]
     values = [
-        float(np.mean([_as_float(row["imm_post_switch_accuracy"]) for row in scenario_rows])) if scenario_rows else 0.0,
-        float(np.mean([_as_float(row["transition_post_switch_accuracy"]) for row in scenario_rows])) if scenario_rows else 0.0,
-        float(np.mean([_as_float(row["imm_switch_delay"]) for row in scenario_rows])) if scenario_rows else 0.0,
-        float(np.mean([_as_float(row["imm_state_rmse"]) for row in scenario_rows])) if scenario_rows else 0.0,
+        float(numpy.mean([_as_float(row["imm_post_switch_accuracy"]) for row in scenario_rows])) if scenario_rows else 0.0,
+        float(numpy.mean([_as_float(row["transition_post_switch_accuracy"]) for row in scenario_rows])) if scenario_rows else 0.0,
+        float(numpy.mean([_as_float(row["imm_switch_delay"]) for row in scenario_rows])) if scenario_rows else 0.0,
+        float(numpy.mean([_as_float(row["imm_state_rmse"]) for row in scenario_rows])) if scenario_rows else 0.0,
     ]
     axes[0, 1].bar(range(len(labels)), values, color=[COLORS["green"], COLORS["orange"], COLORS["purple"], COLORS["blue"]])
     axes[0, 1].set_xticks(range(len(labels)), [_wrap(label, 12) for label in labels], rotation=20, ha="right")
@@ -1068,7 +1313,6 @@ def chart_rbpf_latent_event_shine_witness(root: Path, output: Path) -> dict[str,
     posterior_rows = _read_csv(root / "artifacts/rbpf_v1/latent_mode_posterior.csv")
     state_rows = _read_csv(root / "artifacts/rbpf_v1/conditional_filter_history.csv")
     metric_rows = _read_csv(root / "artifacts/rbpf_v1/rbpf_method_comparison.csv")
-    times = sorted({_as_float(row["time"]) for row in posterior_rows})
     modes = sorted({row["label"] for row in posterior_rows})
     fig, axes = plt.subplots(2, 2, figsize=(13.0, 8.0))
     for mode in modes:
@@ -1133,7 +1377,7 @@ def chart_advanced_filter_sweet_spot_matrix(root: Path, output: Path) -> dict[st
         "particle_filter": [2, 1, 1, 0, 3, 3, 1, 1],
         "rbpf": [2, 2, 2, 1, 2, 2, 3, 3],
     }
-    matrix = np.array([score_map[method] for method in methods])
+    matrix = numpy.array([score_map[method] for method in methods])
     cmap = plt.matplotlib.colors.ListedColormap(["#F4F6F7", "#FDEBD0", "#D6EAF8", "#D5F5E3"])
     labels = {0: "no", 1: "partial", 2: "fit", 3: "strong"}
     fig, ax = plt.subplots(figsize=(12.8, 5.8))
@@ -1211,14 +1455,14 @@ def chart_prior_sensitivity(root: Path, output: Path) -> dict[str, str]:
     rows = _read_csv(root / "artifacts/prior_sensitivity_cross_method_v1/cross_method_prior_comparison.csv")
     methods = [row["method_name"] for row in rows]
     scenarios = [key for key in rows[0] if key not in {"method_name", "fraction_flipped_by_small_prior_perturbation"}] if rows else []
-    matrix = np.array([[_as_float(row.get(scenario), np.nan) for scenario in scenarios] for row in rows])
+    matrix = numpy.array([[_as_float(row.get(scenario), numpy.nan) for scenario in scenarios] for row in rows])
     fig, ax = plt.subplots(figsize=(10.5, 5.8))
-    image = ax.imshow(np.ma.masked_invalid(matrix), vmin=0, vmax=0.6, cmap="YlOrRd")
+    image = ax.imshow(numpy.ma.masked_invalid(matrix), vmin=0, vmax=0.6, cmap="YlOrRd")
     ax.set_xticks(range(len(scenarios)), [scenario.replace("_", " ") for scenario in scenarios], rotation=25, ha="right")
     ax.set_yticks(range(len(methods)), methods)
     for i in range(len(methods)):
         for j in range(len(scenarios)):
-            if not np.isnan(matrix[i, j]):
+            if not numpy.isnan(matrix[i, j]):
                 ax.text(j, i, f"{matrix[i,j]:.2f}", ha="center", va="center", fontsize=8)
     ax.set_title("Prior sensitivity is measured separately from model performance.", loc="left", fontsize=16, weight="bold")
     fig.colorbar(image, ax=ax, fraction=0.04, pad=0.03, label="fragility / flip proxy")
@@ -1254,9 +1498,9 @@ def chart_oracle_gap(root: Path, output: Path) -> dict[str, str]:
         grouped[row["class_pair_id"]].append(_as_float(row["best_oracle_accuracy_for_pair"]))
         current[row["class_pair_id"]].append(_as_float(row["current_accuracy"]))
     labels = sorted(grouped)
-    oracle = [float(np.mean(grouped[label])) for label in labels]
-    actual = [float(np.mean(current[label])) for label in labels]
-    x = np.arange(len(labels))
+    oracle = [float(numpy.mean(grouped[label])) for label in labels]
+    actual = [float(numpy.mean(current[label])) for label in labels]
+    x = numpy.arange(len(labels))
     fig, ax = plt.subplots(figsize=(11, 6.0))
     ax.bar(x - 0.18, oracle, width=0.36, label="feature oracle", color=COLORS["teal"])
     ax.bar(x + 0.18, actual, width=0.36, label="current classifier mean", color=COLORS["blue"])
@@ -1312,7 +1556,7 @@ def chart_backend_capability(root: Path, output: Path) -> dict[str, str]:
     rows = _read_csv(root / "artifacts/trajectory_backend_contract/capability_matrix.csv")
     backends = [row["backend_id"] for row in rows]
     cols = ["supports_environment", "supports_sequential_control", "supports_events", "supports_stochastic_runs"]
-    matrix = np.array([[_as_float(row[col]) for col in cols] for row in rows])
+    matrix = numpy.array([[_as_float(row[col]) for col in cols] for row in rows])
     fig, ax = plt.subplots(figsize=(10.5, 5.8))
     cmap = plt.matplotlib.colors.ListedColormap(["#F4F6F7", COLORS["green"]])
     ax.imshow(matrix, vmin=0, vmax=1, cmap=cmap)
@@ -1481,7 +1725,7 @@ def chart_downstream_diagnostic_yield(root: Path, output: Path) -> dict[str, str
     ]
     escalation_fit = [0.18, 0.72, 0.34, 0.42]
     adequacy = [0.92, 0.95, 0.90, 0.88]
-    x = np.arange(len(methods))
+    x = numpy.arange(len(methods))
     fig, ax = plt.subplots(figsize=(11.5, 6.0))
     ax.bar(x - 0.24, diagnostic_yield, width=0.24, label="diagnostic yield proxy", color=COLORS["blue"])
     ax.bar(x, escalation_fit, width=0.24, label="advanced-filter trigger fit", color=COLORS["orange"])
@@ -1520,6 +1764,40 @@ def chart_novelty_to_filter_escalation_bridge(output: Path) -> dict[str, str]:
     return {"chart_id": "27_novelty_to_filter_escalation_bridge", "path": str(output / "27_novelty_to_filter_escalation_bridge.png"), "role": "appendix"}
 
 
+def append_classifier_capability_packet_charts(root: Path, output: Path) -> list[dict[str, str]]:
+    from render_classifier_capability_ladder_mvp import main as render_classifier_capability_ladder_packet
+
+    render_classifier_capability_ladder_packet()
+    source_dir = root / "artifacts" / "packets" / "classifier_ladder_mvp" / "figures"
+    chart_roles = {
+        "06c_capability_ladder": "main",
+        "10g_method_capability_matrix": "appendix",
+        "10h_advanced_inference_architecture_map": "main",
+        "10i_filter_promotion_criteria": "appendix",
+    }
+    rows: list[dict[str, str]] = []
+    for chart_id, role in chart_roles.items():
+        source = source_dir / f"{chart_id}.png"
+        if not source.exists():
+            raise FileNotFoundError(source)
+        target = output / source.name
+        shutil.copyfile(source, target)
+        rows.append({"chart_id": chart_id, "path": str(target), "role": role})
+    return rows
+
+
+def append_advanced_algorithm_showcase_charts(root: Path, output: Path) -> list[dict[str, str]]:
+    from render_advanced_algorithm_showcase import main as render_advanced_algorithm_showcase_packet
+
+    render_advanced_algorithm_showcase_packet()
+    source = root / "artifacts" / "packets" / "advanced_algorithm_showcase" / "figures" / "10f_method_win_by_regime_map.png"
+    if not source.exists():
+        raise FileNotFoundError(source)
+    target = output / source.name
+    shutil.copyfile(source, target)
+    return [{"chart_id": "10f_method_win_by_regime_map", "path": str(target), "role": "appendix"}]
+
+
 def _lane_proof_rows() -> list[dict[str, str]]:
     rows = [
         {
@@ -1542,6 +1820,17 @@ def _lane_proof_rows() -> list[dict[str, str]]:
             "decision_card_entry": "study candidate fields",
             "limitation": "hero packet uses aggregate current artifacts",
             "next_work": "emit one study-specific candidate card per run",
+            "status": "covered",
+        },
+        {
+            "lane": "Static Feature/Class/Prior Audit",
+            "claim": "A proposed study can be screened for identifiability, confusability, redundancy, synergy, prior pathology, coverage feasibility, and leakage before corpus search or classifier/filter escalation.",
+            "hero_chart": "02b_static_audit_decision_card; 02c_class_pair_confusability_matrix; 02g_prior_pathology_surface",
+            "backing_artifact": "artifacts/static_feature_class_prior_audit_v1/static_audit_report.md; artifacts/static_feature_class_prior_audit_v1/class_confusability_matrix.csv; artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv",
+            "validation_check": "posterior odds thresholds finite; pairwise matrices symmetric; no missing class pairs; feature provenance complete; prior regimes sum to one; synergy candidates labeled candidate",
+            "decision_card_entry": "static_audit_decision",
+            "limitation": "Static adequacy does not prove dynamic classifier performance; synergy estimates are estimator-sensitive.",
+            "next_work": "route static warnings into Corpus Explorer objectives and classifier/filter promotion gates",
             "status": "covered",
         },
         {
@@ -1657,6 +1946,7 @@ def _lane_proof_rows() -> list[dict[str, str]]:
     ]
     for row in rows:
         first_chart = row["hero_chart"].split(";")[0].strip()
+        row["epic"] = EPIC_BY_CHART_ID.get(first_chart, "System Spine")
         row["evidence_tier"] = _chart_evidence(first_chart)["evidence_tier"]
         row["decision_card_field"] = row.pop("decision_card_entry")
     return rows
@@ -1666,10 +1956,21 @@ def _slide_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     notes = {
         "01_study_run_spine": ("Is this one coherent pipeline?", "StudySpec -> DecisionCard", "This is the architecture slide: every artifact should trace back to a declared study and packet manifest."),
         "02_study_candidate_card": ("What exactly is being evaluated?", "s=(D,f,C,m,pi,b)", "Use this before any metrics so the audience knows the study surface."),
+        "02b_static_audit_decision_card": ("Is the study admissible before corpus search?", "promote with warnings", "This is the front-door proof that feature/class/prior adequacy is screened before compute-heavy work."),
+        "02c_class_pair_confusability_matrix": ("Which pairs are hard before classifiers enter?", "hard pairs are visible early", "Use this to separate class-definition and feature-surface problems from algorithm failure."),
+        "02d_feature_relevance_rank": ("Do features carry class information?", "global and pair-specific signals", "This is the static feature-utility table rendered as a ranked proof chart."),
+        "02e_feature_redundancy_graph": ("Which features inflate confidence together?", "clusters route to keep/drop decisions", "This prevents correlated feature families from masquerading as independent evidence."),
+        "02f_feature_synergy_map": ("Are weak features strong together?", "candidate synergy only", "Keep synergy language careful until downstream ablation confirms it."),
+        "02g_prior_pathology_surface": ("Can priors dominate evidence?", "prior regimes expose collapse risk", "This is central to the posterior-fragility story and should appear before classifier escalation."),
+        "02h_prior_flip_thresholds": ("Can evidence overcome prior odds?", "observed LR range vs flip threshold", "This is the technical companion to the prior pathology surface."),
+        "02i_static_coverage_feasibility": ("Are intended boundary regions reachable?", "thin cells become corpus objectives", "This is static feasibility, not the downstream selected-corpus coverage result."),
+        "02j_static_leakage_provenance_audit": ("Are features allowed at inference?", "provenance and online flags", "Leakage is a hard gate before classifier interpretation."),
+        "02k_static_audit_to_action_router": ("What happens after warnings?", "findings route to actions", "This keeps the stage from becoming a pile of disconnected metrics."),
         "03_corpus_candidate_frontier": ("Was data selected before classifier claims?", "5 selected vs random coverage 4", "Selected points are labeled; selected set preserves backend/scenario diversity."),
         "04_corpus_weight_sweep_stability": ("Is corpus selection brittle?", "Jaccard remains 1.00 in local sweep", "This is local stability only; it does not prove all corpus policies are robust."),
         "05_feature_confusability_heatmap": ("Which class pairs are intrinsically hard?", "Overlap highlights hard pairs", "High-confusion pairs should trigger corpus/feature review before algorithm escalation."),
         "06_posterior_timeline_witness": ("Are methods comparable over time?", "posterior histories share one contract", "Keep method count small: pointwise, sequential, windowed variants."),
+        "06c_capability_ladder": ("Is this a winner ladder or capability ladder?", "representational capability increases", "Use this to reset the story: 1D proves machinery; richer 3D scenarios excite advanced methods."),
         "07_rung_sufficiency_map": ("Does a rung earn complexity?", "negative gain means not justified here", "Do not call rejected escalation a globally bad method; it is not justified for this diagnosed surface."),
         "08_decision_funnel": ("How are weak studies diagnosed?", "revise prior/corpus dominates", "Counts come from current rung promotion matrix; defer is absent in this matrix."),
         "09_failure_mode_pareto": ("What should be fixed next?", "prior/corpus/features before model escalation", "This turns evaluation output into next-work planning."),
@@ -1679,6 +1980,10 @@ def _slide_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
         "10d_rbpf_latent_event_shine_witness": ("Where does RBPF shine?", "sampled latent event plus conditional Kalman state", "RBPF is shown on a latent-onset witness and remains witness-specific, not universal."),
         "10e_advanced_filter_sweet_spot_matrix": ("How should filters be chosen?", "narrow fit by failure mode", "This is the selection rule before any witness deep dive."),
         "10f_advanced_filter_showcase_summary": ("What is the real advanced-filter status?", "trace_validated vs witness_supported vs study_justified", "Run-backed does not mean universally preferred."),
+        "10f_method_win_by_regime_map": ("Can advanced methods shine in the right regime?", "witness pass is not global promotion", "Use this to separate Claim A from Claim B: the packet proves exercise and diagnosis on tailored witnesses."),
+        "10g_method_capability_matrix": ("What capability does each method add?", "methods are representational tools", "This is an appendix proof that advanced filters are not being judged as generic accuracy contestants."),
+        "10h_advanced_inference_architecture_map": ("Can the architecture host advanced inference?", "IMM/PF/RBPF route exists", "This is the advanced-algorithm showcase slide: the route survives the future 3D lift."),
+        "10i_filter_promotion_criteria": ("What status did each method earn?", "evaluated != exercised != promoted", "Use this to explain why architectural exercise is meaningful without overclaiming promotion."),
         "11_witness_coverage_matrix": ("Why 1D witnesses?", "controlled layer proofs", "This is not a toy story; witnesses isolate methods before 3D lift."),
         "12_1d_to_3d_pva_lift_map": ("What changes in 3D?", "posterior/evaluation/decision contracts stay", "3D needs adapters/features/dynamics, not a rewrite."),
         "13_claim_evidence_boundary_matrix": ("What is proven?", "architectural claim boundaries", "Executive version: keep it readable; appendix has full traceability."),
@@ -1780,26 +2085,26 @@ def write_deck_modules(root: Path, artifact_dir: Path, rows: list[dict[str, str]
     main_chart_ids = [
         "01_study_run_spine",
         "02_study_candidate_card",
+        "02b_static_audit_decision_card",
+        "02c_class_pair_confusability_matrix",
+        "02g_prior_pathology_surface",
+        "06_posterior_timeline_witness",
+        "06c_capability_ladder",
+        "10h_advanced_inference_architecture_map",
+        "10e_advanced_filter_sweet_spot_matrix",
         "03_corpus_candidate_frontier",
         "21_search_backend_comparison_frontier",
-        "05_feature_confusability_heatmap",
-        "06_posterior_timeline_witness",
-        "07_rung_sufficiency_map",
-        "08_decision_funnel",
-        "10_advanced_filter_gate_matrix",
-        "10e_advanced_filter_sweet_spot_matrix",
-        "11_witness_coverage_matrix",
-        "12_1d_to_3d_pva_lift_map",
+        "27_novelty_to_filter_escalation_bridge",
     ]
     title_body = [
-        "A methodology workbench for kinematic-classification studies.",
-        "The packet proves the lane architecture and claim boundaries.",
-        "The workbench searches for valid hard cases and promotes advanced filters only for named failure regimes.",
+        "A kinematic-classification workbench for auditable track evidence and study decisions.",
+        "Three chapters, one system: admissibility, evidence ladder, and corpus exploration.",
+        "The workbench finds valid hard cases and promotes advanced filters only for named failure regimes.",
     ]
     (main_slides_dir / "slide-01.mjs").write_text(
         _slide_module(
-            title="V4: Novelty Search + Advanced Filter Showcase",
-            subtitle="Study declaration -> corpus governance -> posterior evidence -> promotion decision",
+            title="V5B: Three-Epic Anduril Blend",
+            subtitle="Is the study admissible? What evidence builder is sufficient? Can we discover valid hard cases?",
             image_path=None,
             evidence_tier="ARTIFACT-BACKED",
             claim_boundary="presentation packet proof; not a final production benchmark",
@@ -1823,18 +2128,20 @@ def write_deck_modules(root: Path, artifact_dir: Path, rows: list[dict[str, str]
             encoding="utf-8",
         )
     decision_body = [
-        "Final decision: promote V4 packet as methodology proof and showcase packet.",
-        "Corpus search: QD and non-RL baselines are currently stronger globally; PPO remains experimental and CEM remains witness-specific.",
-        "Advanced filters: IMM, PF, and RBPF are run-backed on named witnesses, but only at witness-specific scope rather than as defaults.",
+        "Final decision: promote V5B as a three-epic methodology walkthrough.",
+        "Epic 1: static admissibility screens feature/class/prior sufficiency before compute-heavy work.",
+        "Epic 2: the evidence ladder compares posterior-compatible methods and gates advanced filters by failure mode.",
+        "Epic 3: corpus exploration searches for valid hard cases and routes discoveries into ladder escalation evidence.",
     ]
-    (main_slides_dir / "slide-14.mjs").write_text(
+    final_slide_number = len(main_chart_ids) + 2
+    (main_slides_dir / f"slide-{final_slide_number:02d}.mjs").write_text(
         _slide_module(
             title="Decision Card Is The Final Authority",
             subtitle="The packet reconciles proof, limitations, and next work in one place.",
             image_path=None,
             evidence_tier="ARTIFACT-BACKED",
             claim_boundary="decision card governs packet claims and advanced-filter caveats",
-            slide_number=14,
+            slide_number=final_slide_number,
             text_only_body=decision_body,
         ),
         encoding="utf-8",
@@ -1856,7 +2163,7 @@ def write_deck_modules(root: Path, artifact_dir: Path, rows: list[dict[str, str]
             encoding="utf-8",
         )
     deck_manifest = {
-        "main_slide_count": 14,
+        "main_slide_count": final_slide_number,
         "appendix_slide_count": len(appendix_chart_ids),
         "main_chart_ids": main_chart_ids,
         "appendix_chart_ids": appendix_chart_ids,
@@ -1884,9 +2191,211 @@ def write_contact_sheet(artifact_dir: Path) -> None:
     sheet.save(artifact_dir / "hero_chart_contact_sheet.png")
 
 
+def _write_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str] | None = None) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if fieldnames is None:
+        fieldnames = list(rows[0]) if rows else []
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _copy_chart_into_packet(root: Path, packet_dir: Path, row: dict[str, str]) -> dict[str, str]:
+    source = root / row["path"]
+    figures_dir = packet_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    target = figures_dir / source.name
+    if source.exists():
+        shutil.copyfile(source, target)
+    png_source = source.with_suffix(".png")
+    if source.suffix.lower() == ".svg" and png_source.exists():
+        shutil.copyfile(png_source, figures_dir / png_source.name)
+    return {
+        "chart_id": row["chart_id"],
+        "epic": EPIC_BY_CHART_ID.get(row["chart_id"], "System Spine"),
+        "role": row["role"],
+        "packet_path": str(target.relative_to(root)),
+        "source_path": row["path"],
+        "evidence_tier": row["evidence_tier"],
+        "source_artifact": row["source_artifact"],
+        "claim_boundary": row["claim_boundary"],
+    }
+
+
+def _lane_rows_for_charts(lane_rows: list[dict[str, str]], chart_ids: set[str]) -> list[dict[str, str]]:
+    selected: list[dict[str, str]] = []
+    for row in lane_rows:
+        row_chart_ids = {chart.strip() for chart in row["hero_chart"].split(";")}
+        if row_chart_ids.intersection(chart_ids) or row.get("epic") in {"Decision Card", "Package Utility"}:
+            selected.append(row)
+    return selected
+
+
+def write_epic_packets(
+    root: Path,
+    artifact_dir: Path,
+    rows: list[dict[str, str]],
+    lane_rows: list[dict[str, str]],
+    slide_rows: list[dict[str, str]],
+) -> None:
+    packets_root = root / "artifacts" / "packets"
+    rows_by_id = {row["chart_id"]: row for row in rows}
+    slide_by_id = {row["chart_id"]: row for row in slide_rows}
+    for packet_name, spec in EPIC_PACKET_SPECS.items():
+        packet_dir = packets_root / packet_name
+        packet_dir.mkdir(parents=True, exist_ok=True)
+        chart_ids = [chart_id for chart_id in spec["chart_ids"] if chart_id in rows_by_id]
+        figure_rows = [_copy_chart_into_packet(root, packet_dir, rows_by_id[chart_id]) for chart_id in chart_ids]
+        _write_csv(packet_dir / "figure_manifest.csv", figure_rows)
+        selected_lane_rows = _lane_rows_for_charts(lane_rows, set(chart_ids))
+        _write_csv(packet_dir / "lane_proof_matrix.csv", selected_lane_rows, list(lane_rows[0]))
+        lane_lines = [f"# {spec['title']} Lane Proof Matrix", ""]
+        for lane_row in selected_lane_rows:
+            lane_lines.extend(
+                [
+                    f"## {lane_row['lane']}",
+                    "",
+                    f"- epic: {lane_row['epic']}",
+                    f"- claim: {lane_row['claim']}",
+                    f"- hero chart: `{lane_row['hero_chart']}`",
+                    f"- evidence tier: `{lane_row['evidence_tier']}`",
+                    f"- decision-card field: `{lane_row['decision_card_field']}`",
+                    f"- limitation: {lane_row['limitation']}",
+                    "",
+                ]
+            )
+        (packet_dir / "lane_proof_matrix.md").write_text("\n".join(lane_lines), encoding="utf-8")
+        readme_lines = [
+            f"# {spec['title']}",
+            "",
+            f"Core question: {spec['question']}",
+            "",
+            f"Decision field: `{spec['decision_field']}`",
+            f"Status: `{spec['status']}`",
+            "",
+            "This packet is an epic-level export of the shared presentation artifact set. It does not define new study logic; it references the generated chart and proof artifacts used by the blended Anduril/C2 packet.",
+            "",
+            "## Hero Figures",
+            "",
+        ]
+        for chart_id in chart_ids:
+            slide = slide_by_id.get(chart_id, {})
+            row = rows_by_id[chart_id]
+            readme_lines.append(
+                f"- `{chart_id}` ({row['evidence_tier']}): {slide.get('title', _presentation_title(chart_id))}"
+            )
+        readme_lines.extend(
+            [
+                "",
+                "## Claim Boundary",
+                "",
+                spec["limitation"],
+                "",
+                "## Next Work",
+                "",
+                spec["next_work"],
+            ]
+        )
+        (packet_dir / "README.md").write_text("\n".join(readme_lines) + "\n", encoding="utf-8")
+        (packet_dir / "decision_card.md").write_text(
+            "\n".join(
+                [
+                    f"# {spec['title']} Decision Card",
+                    "",
+                    f"- study_id: `{STUDY_ID}`",
+                    f"- run_id: `{RUN_ID}`",
+                    f"- decision_field: `{spec['decision_field']}`",
+                    f"- status: `{spec['status']}`",
+                    f"- core_question: {spec['question']}",
+                    f"- limitation: {spec['limitation']}",
+                    f"- next_action: {spec['next_work']}",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (packet_dir / "claim_boundary.md").write_text(
+            "\n".join(
+                [
+                    f"# {spec['title']} Claim Boundary",
+                    "",
+                    spec["limitation"],
+                    "",
+                    "Evidence tiers are inherited from `hero_chart_manifest.csv`; candidate and experimental evidence is not promoted by being included in this epic packet.",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    blend_dir = packets_root / "anduril_c2_blend"
+    blend_dir.mkdir(parents=True, exist_ok=True)
+    figure_rows = [_copy_chart_into_packet(root, blend_dir, row) for row in rows]
+    _write_csv(blend_dir / "figure_manifest.csv", figure_rows)
+    _write_csv(blend_dir / "lane_proof_matrix.csv", lane_rows, list(lane_rows[0]))
+    shutil.copyfile(artifact_dir / "decision_card.md", blend_dir / "decision_card.md")
+    shutil.copyfile(artifact_dir / "lane_proof_matrix.md", blend_dir / "lane_proof_matrix.md")
+    shutil.copyfile(artifact_dir / "deck_manifest.json", blend_dir / "deck_manifest.json")
+    if (artifact_dir / "hero_chart_contact_sheet.png").exists():
+        shutil.copyfile(artifact_dir / "hero_chart_contact_sheet.png", blend_dir / "hero_chart_contact_sheet.png")
+    (blend_dir / "README.md").write_text(
+        "\n".join(
+            [
+                "# Anduril/C2 Three-Epic Blend",
+                "",
+                "This packet is the audience-facing export profile over the three epic packets:",
+                "",
+                "- Epic 1: Static Admissibility",
+                "- Epic 2: Evidence Capability Ladder",
+                "- Epic 3: Corpus Evaluation and Advanced Exploration",
+                "",
+                "It consumes shared chart, decision-card, and lane-proof artifacts generated by `scripts/render/render_presentation_hero_charts.py`; it does not define independent methodology logic.",
+                "",
+                "## Main Deck Spine",
+                "",
+                "1. Thesis and one pipeline",
+                "2. Static admissibility and study decisionability",
+                "3. Evidence capability ladder and advanced-inference architecture",
+                "4. Corpus frontier and novelty-search escalation",
+                "5. Claim boundary and final decision card",
+                "",
+                "## Evidence Boundaries",
+                "",
+                "- IMM/PF/RBPF are architecturally exercised routes; broader usefulness requires scenarios that excite switching, nonlinear posterior, or latent-event assumptions.",
+                "- PPO remains experimental unless baseline comparison, ablation, seed stability, and downstream diagnostic yield all clear.",
+                "- The final authority is `decision_card.md`.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (blend_dir / "claim_boundary.md").write_text(
+        "\n".join(
+            [
+                "# Anduril/C2 Claim Boundary",
+                "",
+                "The strongest claim is methodological: the workbench screens study admissibility, compares evidence builders through shared posterior contracts, searches for valid hard cases, and exports decision packets with explicit limitations.",
+                "",
+        "The packet does not claim general deployment readiness, universal advanced-filter superiority, or generally promoted CEM/PPO novelty-search policy.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    from render_classifier_capability_ladder_mvp import main as render_classifier_capability_ladder_packet
+    from render_corpus_explorer_mvp import main as render_corpus_explorer_packet
+
+    render_classifier_capability_ladder_packet()
+    render_corpus_explorer_packet()
+
+
 def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> None:
     absolute_rows = _enrich_rows(rows)
     write_deck_modules(root, artifact_dir, absolute_rows)
+    deck_manifest = json.loads((artifact_dir / "deck_manifest.json").read_text(encoding="utf-8"))
+    main_slide_count = int(deck_manifest["main_slide_count"])
     rows = [
         {
             **row,
@@ -1919,9 +2428,9 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
         writer.writeheader()
         writer.writerows(slide_rows)
     lines = [
-        "# V4 Presentation Hero Chart Packet",
+        "# V5B Three-Epic Presentation Hero Chart Packet",
         "",
-        "This packet renders the evidence-tiered hero-chart work packet into presentation-ready figures.",
+        "This packet renders the evidence-tiered hero-chart work packet into a three-epic Anduril/C2 walkthrough.",
         "",
         "## Main Deck Charts",
         "",
@@ -1938,17 +2447,17 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
             "",
             "## Decisional Artifacts",
             "",
-            f"- `decision_card.md`",
-            f"- `presentation_readme.md`",
-            f"- `lane_proof_matrix.csv`",
-            f"- `lane_proof_matrix.md`",
-            f"- `slide_speaker_script.csv`",
+            "- `decision_card.md`",
+            "- `presentation_readme.md`",
+            "- `lane_proof_matrix.csv`",
+            "- `lane_proof_matrix.md`",
+            "- `slide_speaker_script.csv`",
             "",
             "## Regeneration",
             "",
             "```bash",
             "PYTHONPATH=src python3 scripts/render/render_presentation_hero_charts.py",
-            "python3 scripts/audit/validate_presentation_hero_packet.py --packet-dir artifacts/presentation_hero_charts_v4",
+            f"python3 scripts/audit/validate_presentation_hero_packet.py --packet-dir artifacts/{OUTPUT_ID}",
             "```",
             "",
             "Deck export uses the bundled Presentations artifact-tool helper. Set `PRESENTATIONS_SKILL_DIR` to the installed Presentations skill directory, then run the deck commands listed in `presentation_readme.md`.",
@@ -1956,7 +2465,7 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
             "",
             "## Visual Thesis",
             "",
-            "This package proves the methodology lanes for a kinematic-classification workbench: study declaration, corpus selection, corpus search, feature/class audit, posterior evidence, rung sufficiency, evaluation gates, witness coverage, claim boundaries, and engineering guardrails. Novelty-search methods are treated as search backends with explicit baselines and constraints. Advanced filters are promoted only for named witness regimes, not as global defaults.",
+            "This package proves the methodology lanes for a kinematic-classification workbench through three chapters of one system: static admissibility, classifier/filter evidence ladder, and corpus evaluation with advanced exploration. Novelty-search methods are treated as search backends with explicit baselines and constraints. Advanced filters are promoted only for named witness regimes, not as global defaults.",
         ]
     )
     report.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -1966,11 +2475,25 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
                 "# Packet Decision Card",
                 "",
                 "- study_id: `methodology_workbench_story_v1`",
-                "- run_id: `hero_chart_packet_v4`",
+                f"- run_id: `{RUN_ID}`",
                 "- seed: `artifact-backed`",
+                "- evidence_tier: `mixed`",
+                "- epic_1_static_admissibility:",
+                "  - status: `promote_with_warnings`",
+                "  - strongest_evidence: `static audit decision card; class confusability matrix; prior pathology surface`",
+                "  - limitation: `synergy remains candidate until downstream ablation-backed`",
+                "- epic_2_classifier_filter_ladder:",
+                "  - status: `witness_supported_with_scope_limits`",
+                "  - strongest_evidence: `posterior timeline; rung sufficiency map; advanced-filter gate and sweet-spot matrix`",
+                "  - limitation: `PF/RBPF are witness-specific and not globally promoted`",
+                "- epic_3_corpus_evaluation_advanced_exploration:",
+                "  - status: `corpus_frontier_supported_search_experimental`",
+                "  - strongest_evidence: `corpus frontier; search backend comparison; novelty-to-filter escalation bridge`",
+                "  - limitation: `CEM/PPO novelty claims require baseline, ablation, stability, and downstream-yield support`",
                 "- corpus decision: `presentation-ready current corpus artifacts; not a final tuned corpus policy`",
                 "- corpus_search_backend_decision: `QD and non-RL guided search are run-backed and currently stronger globally; CEM is witness-backed; PPO remains experimental sequential-control witness`",
                 "- novelty_search_claim_status: `search backends are evaluated against baseline samplers and downstream diagnostic yield; PPO is not promoted as a general novelty backend`",
+                "- static_audit_decision: `promote_to_corpus_explorer with warnings; feature/class/prior adequacy is screened before corpus search`",
                 "- feature/class decision: `audited; hard pairs visible and routed before algorithm blame`",
                 "- prior sensitivity decision: `audited; fragility remains a reportable limitation`",
                 "- calibration decision: `sanity-checked on current accumulator bins; broader calibration still pending`",
@@ -1990,7 +2513,10 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
                 "  - rung sufficiency: `present; complexity is not promoted without measured gain`",
                 "  - advanced filters: `gated by named failure modes and simpler-rung baseline comparisons`",
                 "  - 3D transition: `architectural lift map present; full 3D backend proof pending`",
-                "- final decision: `promote V4 presentation packet as methodology proof and search/filter showcase; defer general PPO/CEM backend promotion and 3D deployment claims`",
+                "- overall_decision:",
+                "  - status: `presentable_methodology_workbench`",
+                "  - rationale: `one StudySpec-to-DecisionCard pipeline organized into static, ladder, and corpus exploration epics`",
+                "- final decision: `promote V5B three-epic packet as methodology proof and Anduril/C2 walkthrough; defer general PPO/CEM backend promotion and 3D deployment claims`",
                 "- limitations:",
                 "  - charts are aggregate/current-artifact backed, not one fully regenerated run-study packet yet",
                 "  - corpus policy stability is local to the available sweep",
@@ -2010,28 +2536,42 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
         encoding="utf-8",
     )
     readme_lines = [
-        "# Presentation README And Speaker Script",
+        "# V5B Three-Epic Presentation README And Speaker Script",
         "",
-        "Each chart is intended to be one slide. Use conclusion titles, not raw chart names.",
+        "The main deck is capped at 14 slides and organized as three chapters of one system: Static Admissibility, Evidence Capability Ladder, and Corpus Evaluation with Advanced Exploration.",
         "",
         "## Build Commands",
         "",
         "```bash",
         "PYTHONPATH=src python3 scripts/render/render_presentation_hero_charts.py",
-        "node \"$PRESENTATIONS_SKILL_DIR/scripts/build_artifact_deck.mjs\" --workspace artifacts/presentation_hero_charts_v4/deck_workspaces/main --slides-dir artifacts/presentation_hero_charts_v4/deck_workspaces/main/slides --out artifacts/presentation_hero_charts_v4/main_deck.pptx --preview-dir artifacts/presentation_hero_charts_v4/deck_workspaces/main/preview --layout-dir artifacts/presentation_hero_charts_v4/deck_workspaces/main/layout --contact-sheet artifacts/presentation_hero_charts_v4/main_deck_contact_sheet.png --manifest artifacts/presentation_hero_charts_v4/deck_workspaces/main/build_manifest.json --slide-count 14",
-        "node \"$PRESENTATIONS_SKILL_DIR/scripts/build_artifact_deck.mjs\" --workspace artifacts/presentation_hero_charts_v4/deck_workspaces/appendix --slides-dir artifacts/presentation_hero_charts_v4/deck_workspaces/appendix/slides --out artifacts/presentation_hero_charts_v4/appendix_deck.pptx --preview-dir artifacts/presentation_hero_charts_v4/deck_workspaces/appendix/preview --layout-dir artifacts/presentation_hero_charts_v4/deck_workspaces/appendix/layout --contact-sheet artifacts/presentation_hero_charts_v4/appendix_deck_contact_sheet.png --manifest artifacts/presentation_hero_charts_v4/deck_workspaces/appendix/build_manifest.json",
-        "python3 scripts/audit/validate_presentation_hero_packet.py --packet-dir artifacts/presentation_hero_charts_v4",
+        f"node \"$PRESENTATIONS_SKILL_DIR/scripts/build_artifact_deck.mjs\" --workspace artifacts/{OUTPUT_ID}/deck_workspaces/main --slides-dir artifacts/{OUTPUT_ID}/deck_workspaces/main/slides --out artifacts/{OUTPUT_ID}/main_deck.pptx --preview-dir artifacts/{OUTPUT_ID}/deck_workspaces/main/preview --layout-dir artifacts/{OUTPUT_ID}/deck_workspaces/main/layout --contact-sheet artifacts/{OUTPUT_ID}/main_deck_contact_sheet.png --manifest artifacts/{OUTPUT_ID}/deck_workspaces/main/build_manifest.json --slide-count {main_slide_count}",
+        f"node \"$PRESENTATIONS_SKILL_DIR/scripts/build_artifact_deck.mjs\" --workspace artifacts/{OUTPUT_ID}/deck_workspaces/appendix --slides-dir artifacts/{OUTPUT_ID}/deck_workspaces/appendix/slides --out artifacts/{OUTPUT_ID}/appendix_deck.pptx --preview-dir artifacts/{OUTPUT_ID}/deck_workspaces/appendix/preview --layout-dir artifacts/{OUTPUT_ID}/deck_workspaces/appendix/layout --contact-sheet artifacts/{OUTPUT_ID}/appendix_deck_contact_sheet.png --manifest artifacts/{OUTPUT_ID}/deck_workspaces/appendix/build_manifest.json",
+        f"python3 scripts/audit/validate_presentation_hero_packet.py --packet-dir artifacts/{OUTPUT_ID}",
         "```",
         "",
         "Optional local cache env vars may be set by the operator, but they are intentionally omitted from this public packet.",
         "",
         "## Minimum Deck",
         "",
-        "1. Thesis: kinematic classification workbench with auditable evidence, posterior histories, and promotion gates.",
-        "2. Problem: top-line accuracy is insufficient because failures can come from corpus, features, priors, evidence, or model limits.",
+        "1. Thesis: kinematic classification workbench with auditable track evidence and study decisions.",
+        "2. One pipeline, three epics: StudySpec -> static admissibility -> evidence ladder -> corpus exploration -> DecisionCard.",
+        "3. Epic 1: Study candidate and static admissibility decision.",
+        "4. Epic 1: Class confusability and prior pathology before algorithm blame.",
+        "5. Epic 2: Posterior timeline, capability ladder, and advanced-inference architecture.",
+        "6. Epic 2: Advanced-filter sweet-spot matrix and witness-specific promotion criteria.",
+        "7. Epic 3: Corpus candidate frontier and novelty-search backend comparison.",
+        "8. Epic 3: Novelty-to-filter escalation bridge.",
+        "9. Claim boundary and final decision card.",
     ]
     for row in slide_rows:
         appendix_ids = {
+            "02d_feature_relevance_rank",
+            "02e_feature_redundancy_graph",
+            "02f_feature_synergy_map",
+            "02h_prior_flip_thresholds",
+            "02i_static_coverage_feasibility",
+            "02j_static_leakage_provenance_audit",
+            "02k_static_audit_to_action_router",
             "04_corpus_weight_sweep_stability",
             "05_feature_confusability_heatmap",
             "09_failure_mode_pareto",
@@ -2080,6 +2620,7 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
             [
                 f"## {row['lane']}",
                 "",
+                f"- epic: {row['epic']}",
                 f"- claim: {row['claim']}",
                 f"- hero chart: `{row['hero_chart']}`",
                 f"- backing artifact: `{row['backing_artifact']}`",
@@ -2094,6 +2635,7 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
         )
     lane_md.write_text("\n".join(lane_lines), encoding="utf-8")
     write_contact_sheet(artifact_dir)
+    write_epic_packets(root, artifact_dir, rows, lane_rows, slide_rows)
 
 
 def main() -> int:
@@ -2104,6 +2646,76 @@ def main() -> int:
     rows = [
         chart_study_run_spine(root, figures),
         chart_study_candidate_card(figures),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02b_static_audit_decision_card",
+            "02b_static_audit_decision_card.png",
+            role="main",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02c_class_pair_confusability_matrix",
+            "02c_class_pair_confusability_matrix.png",
+            role="main",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02d_feature_relevance_rank",
+            "02d_feature_relevance_rank.png",
+            role="appendix",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02e_feature_redundancy_graph",
+            "02e_feature_redundancy_graph.png",
+            role="appendix",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02f_feature_synergy_map",
+            "02f_feature_synergy_map.png",
+            role="appendix",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02g_prior_pathology_surface",
+            "02g_prior_pathology_surface.png",
+            role="main",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02h_prior_flip_thresholds",
+            "02h_prior_flip_thresholds.png",
+            role="appendix",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02i_static_coverage_feasibility",
+            "02i_static_coverage_feasibility.png",
+            role="appendix",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02j_static_leakage_provenance_audit",
+            "02j_static_leakage_provenance_audit.png",
+            role="appendix",
+        ),
+        chart_static_audit_artifact(
+            root,
+            figures,
+            "02k_static_audit_to_action_router",
+            "02k_static_audit_to_action_router.png",
+            role="appendix",
+        ),
         chart_corpus_candidate_frontier(root, figures),
         chart_weight_sweep(root, figures),
         chart_search_backend_comparison_frontier(root, figures),
@@ -2136,6 +2748,8 @@ def main() -> int:
         chart_downstream_diagnostic_yield(root, figures),
         chart_novelty_to_filter_escalation_bridge(figures),
     ]
+    rows.extend(append_classifier_capability_packet_charts(root, figures))
+    rows.extend(append_advanced_algorithm_showcase_charts(root, figures))
     write_report(root, artifact_dir, rows)
     print(artifact_dir)
     for row in rows:

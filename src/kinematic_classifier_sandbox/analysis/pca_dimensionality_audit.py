@@ -4,10 +4,9 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ..markdown_builder import MarkdownDocument
-from ..utils.plotting import plt
 from ..utils.math import (
     centroid as _centroid,
 )
@@ -35,7 +34,7 @@ from ..utils.math import (
 from ..utils.math import (
     silhouette_score as _silhouette_score,
 )
-from ..utils.plotting import _figure_to_png
+from ..utils.plotting import _figure_to_png, plt
 from .pca_analysis import analyze_feature_pca
 
 

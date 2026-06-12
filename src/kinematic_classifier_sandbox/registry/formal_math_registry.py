@@ -5,14 +5,13 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..utils.runtime import repo_root
-
 import yaml
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..utils.io import write_csv
-from ..utils.plotting import _figure_to_png
-from ..utils.plotting import plt
+from ..utils.plotting import _figure_to_png, plt
+from ..utils.runtime import repo_root
 
 PACKAGE_DIR = repo_root() / "src" / "kinematic_classifier_sandbox"
 SRC_DIR = PACKAGE_DIR.parent

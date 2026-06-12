@@ -4,11 +4,17 @@ from dataclasses import asdict, dataclass, field
 from statistics import mean
 
 import gymnasium as gym
-import numpy as np
+import numpy
 from gymnasium import spaces
 
 from ...analysis.feature_analysis import _one_dimensional_feature_context_from_trajectory
-from ...trajectory_generator import GeneratedTrajectoryDataset, TrajectoryArtifact, _class_by_name, _make_manual_trajectory, _tier_by_name
+from ...trajectory_generator import (
+    GeneratedTrajectoryDataset,
+    TrajectoryArtifact,
+    _class_by_name,
+    _make_manual_trajectory,
+    _tier_by_name,
+)
 from ...utils.math import _clamp
 from ..gym_types import CorpusGymAction, CorpusGymTarget
 from ..gym_utils import (
@@ -21,8 +27,15 @@ from ..gym_utils import (
     _prior_sensitivity_score,
     _reward_from_components,
 )
-from .contracts import TrajectoryExplorationEvaluation, TrajectoryExplorationObjective, TrajectoryExplorationProposal
-from .objective_scoring import posterior_target_spec_from_payload, score_posterior_target_distribution
+from .contracts import (
+    TrajectoryExplorationEvaluation,
+    TrajectoryExplorationObjective,
+    TrajectoryExplorationProposal,
+)
+from .objective_scoring import (
+    posterior_target_spec_from_payload,
+    score_posterior_target_distribution,
+)
 from .sequential_control_specs import (
     SequentialControlProblemSpec,
     default_air_vehicle_control_problem_spec,
@@ -257,9 +270,9 @@ class SequentialTrajectoryGym(gym.Env):
         self.objective = objective or default_boundary_control_objective()
         self.config = config or SequentialBoundaryControlConfig()
         self._episode_seed = seed
-        self._rng = np.random.default_rng(seed)
-        self.observation_space = spaces.Box(low=-10.0, high=10.0, shape=(9,), dtype=np.float32)
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
+        self._rng = numpy.random.default_rng(seed)
+        self.observation_space = spaces.Box(low=-10.0, high=10.0, shape=(9,), dtype=numpy.float32)
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=numpy.float32)
         self._step_index = 0
         self._position = 0.0
         self._velocity = 0.0
@@ -288,11 +301,11 @@ class SequentialTrajectoryGym(gym.Env):
         speed_span = max(abs(value) for value in self._velocities) if self._velocities else 0.0
         return _clamp(accel_range / max(self.config.acceleration_limit, 1e-6), 0.0, 1.0), _clamp(speed_span / max(self.config.velocity_limit, 1e-6), 0.0, 1.0)
 
-    def _observation(self) -> np.ndarray:
+    def _observation(self) -> numpy.ndarray:
         horizon_fraction = 1.0 - (self._step_index / max(self.config.episode_horizon, 1))
         accel_indicator, speed_indicator = self._partial_indicators()
         reward_mean = float(mean(self._rewards)) if self._rewards else 0.0
-        return np.asarray(
+        return numpy.asarray(
             [
                 self._step_index / max(self.config.episode_horizon, 1),
                 self._position / max(self.config.position_limit, 1e-6),
@@ -304,14 +317,14 @@ class SequentialTrajectoryGym(gym.Env):
                 speed_indicator,
                 reward_mean,
             ],
-            dtype=np.float32,
+            dtype=numpy.float32,
         )
 
     def reset(self, *, seed: int | None = None, options: dict[str, object] | None = None):
         super().reset(seed=seed)
         if seed is not None:
             self._episode_seed = int(seed)
-            self._rng = np.random.default_rng(seed)
+            self._rng = numpy.random.default_rng(seed)
         self._step_index = 0
         self._position = float(self._rng.uniform(-1.0, 1.0))
         self._velocity = float(self._rng.uniform(-0.45, 0.45))
@@ -348,8 +361,8 @@ class SequentialTrajectoryGym(gym.Env):
         )
         return summary.evaluation.total_utility
 
-    def step(self, action: np.ndarray):
-        jerk_command = _clamp(float(np.asarray(action, dtype=float).reshape(-1)[0]), -1.0, 1.0)
+    def step(self, action: numpy.ndarray):
+        jerk_command = _clamp(float(numpy.asarray(action, dtype=float).reshape(-1)[0]), -1.0, 1.0)
         self._controls.append(jerk_command)
         self._integrate(jerk_command)
         self._step_index += 1
@@ -454,7 +467,7 @@ def evaluate_control_sequence(
     environment = SequentialTrajectoryGym(objective=objective, config=config, seed=seed)
     environment.reset(seed=seed)
     for value in control_sequence:
-        _, _, terminated, truncated, _ = environment.step(np.asarray([value], dtype=np.float32))
+        _, _, terminated, truncated, _ = environment.step(numpy.asarray([value], dtype=numpy.float32))
         if terminated or truncated:
             break
     return environment.evaluate_current_rollout(

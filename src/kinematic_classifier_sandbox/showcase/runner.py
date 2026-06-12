@@ -6,9 +6,10 @@ import zipfile
 from dataclasses import asdict
 from pathlib import Path
 
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import _write_json, _write_text
 
+from ..methodology.context import MethodologyExecutionContext
 from ..story.repo_story import (
     render_story_index as render_repo_story_index,
 )
@@ -31,7 +32,6 @@ from .assets import (
     _render_proof_gallery,
 )
 from .contracts import ARTIFACTS_ROOT, ROOT, ShowcaseArtifacts
-from ..methodology.context import MethodologyExecutionContext
 from .reporting import (
     _render_3d_transition_report,
     _render_algorithm_ladder_report,
@@ -46,6 +46,32 @@ from .reporting import (
     _render_study_suite_report,
 )
 from .validation import required_report_names, validate_showcase_artifacts
+
+STATIC_ADMISSIBILITY_PROOF_FILES = (
+    "02b_static_audit_decision_card.png",
+    "02e_feature_redundancy_graph.png",
+    "02g_prior_pathology_surface.png",
+    "decision_card.md",
+    "feature_synergy_candidates.csv",
+    "prior_pathology_report.csv",
+)
+
+
+def _copy_static_admissibility_proof_files(showcase_dir: Path) -> list[dict[str, object]]:
+    static_packet_dir = ARTIFACTS_ROOT / "packets" / "static_admissibility_mvp"
+    manifest_entries: list[dict[str, object]] = []
+    for filename in STATIC_ADMISSIBILITY_PROOF_FILES:
+        source = static_packet_dir / filename
+        destination = showcase_dir / filename
+        if source.exists():
+            shutil.copyfile(source, destination)
+            manifest_entries.append(
+                {
+                    "kind": "static_admissibility_proof",
+                    "relative_path": filename,
+                }
+            )
+    return manifest_entries
 
 
 def build_showcase_artifacts(
@@ -104,6 +130,7 @@ def build_showcase_artifacts(
     plot_entries = _copy_showcase_plots(plots_dir)
     plot_entries.extend(_generate_showcase_derived_plots(plots_dir))
     manifest_entries.extend(plot_entries)
+    manifest_entries.extend(_copy_static_admissibility_proof_files(showcase_dir))
     manifest_entries.extend(
         _copy_showcase_tables(
             tables_dir,

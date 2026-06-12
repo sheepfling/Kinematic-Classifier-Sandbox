@@ -6,6 +6,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 
 from ..contracts import TrajectoryArtifact
@@ -13,16 +14,15 @@ from ..corpus.exploration.backend_adapter_proof import AdapterExecutionRecord, B
 from ..corpus.exploration.objective_corpus_gym_runner import (
     execute_objective_candidates_via_corpus_gym,
 )
-from ..markdown_builder import MarkdownDocument
 from ..trajectory_generator import (
     DatasetTierDefinition,
     GeneratedTrajectoryDataset,
     default_dataset_tiers,
     default_trajectory_class_definitions,
 )
+from ..utils.plotting import plt
 from ..validation.class_validity import analyze_class_validity
 from .feature_analysis import FEATURE_REGISTRY, analyze_feature_datasets
-from ..utils.plotting import plt
 
 
 @dataclass(frozen=True, slots=True)

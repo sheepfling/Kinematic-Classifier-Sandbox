@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from .common_dataset_comparison_contracts import CommonComparisonResult
 
 

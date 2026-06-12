@@ -8,13 +8,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from kinematic_classifier_sandbox.corpus.policy import load_corpus_policy_spec
-from kinematic_classifier_sandbox.methodology.context import (
-    build_methodology_execution_context,
-)
 from kinematic_classifier_sandbox.methodology.cached_analysis import (
     cached_common_experiment_analysis,
     common_experiment_cache_key,
     study_candidate_generation_cache_key,
+)
+from kinematic_classifier_sandbox.methodology.context import (
+    build_methodology_execution_context,
 )
 
 

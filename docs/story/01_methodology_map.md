@@ -30,7 +30,7 @@ The study candidate is the unit that lets the repo compare feature sets, class s
 
 | Layer | Responsibility | Representative artifacts |
 | --- | --- | --- |
-| Static feature/class/prior audit | Decide whether the proposed feature set, class set, and prior regime are admissible before corpus search or classifier escalation | `artifacts/static_feature_class_prior_audit_v1/static_decision_card.md` |
+| Static feature/class/prior audit | Decide whether the proposed feature set, class set, and prior regime are identifiable, non-pathological, non-leaky, covered enough, and decisionable before corpus search or classifier escalation | `artifacts/static_feature_class_prior_audit_v1/static_decision_card.md`; `artifacts/static_feature_class_prior_audit_v1/02b_static_audit_decision_card.png`; `artifacts/static_feature_class_prior_audit_v1/02g_prior_pathology_surface.png` |
 | Corpus objective | State the intended coverage, stress, backend, and validity target | `artifacts/corpus_objectives/objective_validation_report.md` |
 | Corpus explorer | Generate, search, score, and select trajectories | `artifacts/generic_corpus_exploration/candidate_scores.csv` |
 | Exploration backend registry | Track implemented, planned, sequential-control, and diversity-native generator backends | `artifacts/trajectory_exploration_backend_registry_v1/backend_registry.csv` |

@@ -5,11 +5,12 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..inference.kalman_filter_bank import (
     run_kalman_bank_benchmark,
 )
 from ..inference.transition_matrix_accumulator import run_transition_benchmark
-from ..markdown_builder import MarkdownDocument
 from ..validation.advanced_filter_decision import analyze_advanced_filter_decision
 
 

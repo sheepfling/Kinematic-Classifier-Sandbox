@@ -1,8 +1,8 @@
-# kinematic-classifier-sandbox
+# Kinematic Classifier Sandbox
 
-Methodology workbench for kinematic classification studies.
+This repository is a config-driven kinematic-classification workbench. It first audits whether a feature/class/prior setup is statically admissible, then searches or selects corpora, compares classifier/filter evidence providers on a shared posterior contract, and exports decision packets for technical review.
 
-This repository is a reusable kinematic-classification framework, not a single toy benchmark. It defines studies through contracts and manifests, generates or selects corpora that exercise intended boundaries, runs multiple classifier and filter families on the same evidence surface, and audits feature coverage, confusability, leakage, adequacy, and promotion decisions. The current 1D problems are witness problems, not final deployment corpora; they live under `kinematic_classifier_sandbox.witnesses`.
+The current 1D problems are witness problems, not final deployment corpora. They prove methodology layers before the framework is lifted to 3D PVA architectures.
 
 For the longer narrative, start with [docs/story/00_repo_story.md](docs/story/00_repo_story.md).
 
@@ -16,11 +16,38 @@ Start here:
 - [Canonical reading order](docs/story/02_reading_order.md)
 - [Claim evidence matrix](docs/story/claim_evidence_matrix.md)
 
-## Repo map
+## One pipeline, five lanes
+
+| Lane | Purpose | First presentable artifact |
+| --- | --- | --- |
+| Static admissibility | Analyze feature/class/prior sufficiency before corpus or classifier work. | `artifacts/packets/static_admissibility_mvp/` |
+| Advanced classifier/filter survey | Organize methods by capability, failure mode, and evidence contract. | `docs/story/algorithm_ladder.md` |
+| Corpus evaluation/exploration | Generate, select, audit, and search corpora for valid hard cases. | `artifacts/presentation_hero_charts_v4/` |
+| Presentation blend | Export the integrated story for a specific audience. | `main_deck.pptx` + `appendix_deck.pptx` |
+| Package utility | Keep the workbench installable, runnable, validated, and reusable. | CLI/API docs + tests |
+
+The C2/tracking presentation is an export profile over this pipeline, not a separate code path.
+
+## Quick Start
+
+```bash
+python3 -m pip install -e '.[dev]'
+python3 scripts/check.py
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-static-audit experiments/static_admissibility/common_1d_static_audit.yaml --output-dir artifacts/packets/static_admissibility_mvp
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet artifacts/packets/static_admissibility_mvp
+```
+
+## Generated Packets
+
+- Static admissibility MVP: `artifacts/packets/static_admissibility_mvp/`
+- Presentation V4 packet: `artifacts/presentation_hero_charts_v4/`
+- Repo story packet: `artifacts/repo_story/`
+
+## Repo Map
 
 - `docs/`: narrative front doors, plans, surveys, witness notes, and showcase/story material
 - `experiments/`: config-driven study definitions, feature-set manifests, class-pair manifests, and corpus-policy inputs
-- `src/kinematic_classifier_sandbox/`: package code, grouped into inference, corpus, analysis, validation, and advanced-filter layers
+- `src/kinematic_classifier_sandbox/`: package code, grouped into static admissibility, corpus, inference, validation, advanced filters, registry, methodology, and witnesses
 - `scripts/`: runnable entrypoints and grouped helpers under `audit/`, `build/`, `render/`, `run/`, and `workflows/`
 - `tests/`: regression suite, mostly one test module per source module or artifact family
 - `templates/`: starter manifests and YAML templates for new studies and corpus/class/feature/prior definitions
@@ -33,29 +60,12 @@ If you are new to the repo, read these in order:
 3. [src/kinematic_classifier_sandbox/README.md](src/kinematic_classifier_sandbox/README.md)
 4. [tests/README.md](tests/README.md)
 
-## Initial scope
+## Current Claim Boundaries
 
-The first phase is intentionally narrow:
-
-- map traditional feature-engineered classifiers
-- map model-based kinematic and multiple-model methods
-- map modern deep sequence and self-supervised methods
-- provide a reusable method catalog that can drive later benchmark and dataset work
-
-The repo does not yet implement:
-
-- dataset ingestion pipelines
-- benchmark training loops
-- model fitting code
-- experiment tracking
-
-## Quick start
-
-```bash
-python3 scripts/check_env.py
-PYTHONPYCACHEPREFIX=/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox/.pycache python3 scripts/all.py
-PYTHONPYCACHEPREFIX=/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox/.pycache python3 scripts/export_artifacts.py
-```
+- Static admissibility is an early screen, not a final classifier guarantee.
+- Corpus search backends are evaluated by valid hard-case discovery and downstream diagnostic yield.
+- Advanced filters are promoted only for named witness regimes, not as global defaults.
+- 3D transition is a controlled backend/feature/dynamics lift, not a completed deployment claim.
 
 ## Tooling
 
@@ -73,118 +83,15 @@ python3 scripts/format.py
 
 The `--fix` flag applies available Ruff fixes before rerunning checks. Pyright itself is still read-only at the CLI level.
 
-## RL witness reruns
+## Corpus Search And RL Witnesses
 
-The first sequential-control RL proof is a PPO-driven 1D boundary-shaping witness. It is intentionally small and still marked experimental.
+CEM/PPO novelty-search work lives in the Corpus Explorer lane. PPO is still treated as an experimental sequential-control witness unless baseline comparison, adequacy/leakage checks, and downstream diagnostic yield support a stronger claim.
 
-Install the optional RL dependencies:
+Use `python3 -m kinematic_classifier_sandbox --help` for runnable corpus-search commands and keep detailed rerun recipes in experiment or developer docs rather than the root front door.
 
-```bash
-python3 -m pip install -e '.[rl]'
-```
+## Cache Policy
 
-Run the standalone PPO witness bundle:
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo --output-dir artifacts --timesteps 1024 --episode-horizon 16 --checkpoint-interval 256 --snapshot-interval 256 --seed 7
-```
-
-The PPO command is resumable by default. Re-run the same command after an interruption and it will pick up from the latest checkpoint in the target run directory. Use `--no-resume` to force a fresh run.
-
-To train against a mechanically generated objective region instead of the default witness, pass `--objective-id`, for example:
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo --output-dir artifacts --objective-id feature_row__accel_high_row --timesteps 512 --episode-horizon 12 --seed 7
-```
-
-Run the broader multi-backend trajectory-exploration bundle, which now also writes the PPO witness artifacts:
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration --output-dir artifacts --seed 7
-```
-
-Generate a mechanical objective suite for feature-space cells, feature-space rows, class-pair regions, and novelty-targeting zones:
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-objectives --output-dir artifacts
-```
-
-Run PPO over a generated-objective subset:
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo-sweep-generated --output-dir artifacts --timesteps 256 --episode-horizon 12 --objective-id feature_row__accel_high_row --objective-id novelty_region__novel_maneuver_feature_zone
-```
-
-Run the matched-budget sequential PPO vs CEM comparison bundle:
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo-vs-cem --output-dir artifacts --timesteps 1024 --episode-horizon 16 --cem-iterations 10 --cem-population 24 --seed-count 3 --seed 7
-```
-
-Run the broader generated-objective PPO vs CEM sweep across feature and class-space regions:
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/kcs_pycache python3 -m kinematic_classifier_sandbox trajectory-exploration-ppo-vs-cem-sweep --output-dir artifacts --timesteps 256 --episode-horizon 12 --cem-iterations 5 --cem-population 12 --seed-count 2 --objective-limit 6 --seed 7
-```
-
-The PPO artifact bundle lands under:
-
-- `artifacts/trajectory_exploration_rl/ppo_boundary_control/`
-- `artifacts/trajectory_exploration_rl/rl_algorithm_decision_report.md`
-- `artifacts/trajectory_exploration_rl/ppo_vs_cem_boundary_control/`
-- `artifacts/trajectory_exploration_rl/ppo_vs_cem_objective_sweep/`
-
-Key PPO run artifacts:
-
-- `checkpoints/` for resumable model snapshots
-- `control_problem_contract.json` for the current actuator/state/measurement contract
-- `three_d_transition_report.md` for the 3D point-mass and aerodynamic-vehicle lift path
-- `checkpoint_manifest.json` for latest checkpoint and completed timestep state
-- `training_trace_rows.csv` for episode-level learning traces
-- `snapshot_rows.csv` for periodic utility / feature / class-space progress
-- `utility_progress.png` for objective improvement over time
-- `feature_progress.png` for feature-space excitation progress
-- `class_space_progress.png` for class-boundary exploration progress
-
-Key PPO vs CEM comparison artifacts:
-
-- `artifact_manifest.json` for the comparison-study bundle inventory
-- `metrics_by_backend.csv` for matched sequential backend metrics
-- `aggregate_metrics_by_backend.csv` for mean and spread across seeds
-- `backend_decisions.csv` for promote / experimental / no-go calls
-- `seed_runs.csv` for the per-seed witness runs
-- `progress_rows.csv` for PPO snapshot rows and CEM iteration progress
-- `strengths_and_limits.csv` for explicit method tradeoffs
-- `progress_comparison.png` for PPO vs CEM learning/search progress
-- `backend_metrics.png` for side-by-side backend score bars
-- `control_gallery.png` for top PPO and CEM control schedules
-- `report.md` for interpretation, winner, and method limits
-
-Key broader objective-sweep artifacts:
-
-- `objective_summary.csv` for per-objective winners and PPO/CEM deltas
-- `backend_summary.csv` for backend win fractions across the selected feature/class-space objectives
-- `decision_summary.csv` for PPO promotion status counts across objectives
-- `objective_backend_matrix.csv` for objective-by-backend utility values
-- `objective_backend_heatmap.png` for visual comparison across the selected objective surface
-
-Mechanical objective-generation artifacts:
-
-- `artifacts/trajectory_exploration_objectives/objective_generation_spec.json`
-- `artifacts/trajectory_exploration_objectives/objective_manifest.json`
-- `artifacts/trajectory_exploration_objectives/objective_table.csv`
-- `artifacts/trajectory_exploration_objectives/report.md`
-- `artifacts/trajectory_exploration_rl/generated_objective_sweep/summary_rows.csv`
-
-## Cache policy
-
-The intended cache root is:
-
-`/Users/rick/LocalStorage/GIT_LOCAL/active/CACHE/kinematic-classifier-sandbox`
-
-When the repo is promoted into its canonical CloudDocs location, keep caches and
-virtual environments outside the sync tree and prefer `PYTHONPYCACHEPREFIX`
-pointing at that cache root.
+Keep caches, virtual environments, and bytecode outside the synced repo tree. When running Python directly, prefer setting `PYTHONPYCACHEPREFIX` to a local cache directory.
 
 ## Survey entrypoints
 

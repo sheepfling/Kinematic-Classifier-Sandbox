@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from statistics import mean
-from pathlib import Path
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
-from ..markdown_builder import MarkdownDocument
 from ..utils.plotting import plt
-from ..utils.plotting import _figure_to_png
 from .autodevelopment_types import CorpusAutodevelopmentResult
 
 

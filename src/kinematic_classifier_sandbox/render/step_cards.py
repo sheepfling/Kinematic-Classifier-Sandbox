@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..tracing.filter_trace import FilterStepTrace
 
 

@@ -8,7 +8,8 @@ from typing import NamedTuple
 
 from matplotlib.patches import FancyBboxPatch
 
-from .markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from .registry.catalog import METHOD_CATALOG, MethodEntry
 from .utils.math import _logsumexp
 from .utils.plotting import plt
@@ -298,7 +299,6 @@ def _build_probability_primitives_figure():
         identity_walkthrough.posterior_weights,
         identity_walkthrough.log_terms,
     )
-    identity_rows = identity_bundle.rows
     identity_log_norm = identity_bundle.log_norm
 
     fig, axes = plt.subplots(2, 2, figsize=(13.5, 9.5))

@@ -4,15 +4,14 @@ import io
 from dataclasses import dataclass
 from pathlib import Path
 
-from ...utils.io import write_csv
-from ...utils.plotting import _figure_to_png
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
 from ...analysis.common_dataset_comparison import (
     SharedDynamicsTrajectory,
     generate_shared_dynamics_dataset,
 )
-from ...markdown_builder import MarkdownDocument
-from ...utils.plotting import plt
+from ...utils.io import write_csv
+from ...utils.plotting import _figure_to_png, plt
 from .kalman_filter_bank import (
     KalmanClassificationRun,
     KalmanModelSpec,

@@ -7,7 +7,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..utils.runtime import repo_root
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
 from ..analysis.feature_analysis_artifact_io import write_feature_analysis_artifacts
 from ..analysis.generated_corpus_features import select_generated_corpus_records
@@ -19,10 +19,10 @@ from ..inference.monte_carlo_benchmark import (
     run_accumulator_monte_carlo_benchmark,
 )
 from ..inference.transition_matrix_accumulator import write_transition_benchmark_artifacts
-from ..markdown_builder import MarkdownDocument
 from ..rung_sufficiency.analysis import write_rung_sufficiency_artifacts
 from ..utils.io import write_csv
 from ..utils.plotting import _figure_to_png, plt
+from ..utils.runtime import repo_root
 from .formal_math_registry import load_equation_registry
 
 ROOT = repo_root()

@@ -5,6 +5,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..analysis.common_dataset_comparison import (
     _shared_kalman_model_specs,
     _shared_kalman_trajectory,
@@ -13,7 +15,6 @@ from ..analysis.common_dataset_comparison import (
 from ..common_experiment.runner import analyze_common_experiment
 from ..contracts import ClassifierOutputArtifact, validate_classifier_output_artifact
 from ..inference.kalman_filter_bank import run_kalman_filter_bank
-from ..markdown_builder import MarkdownDocument
 from ..utils.io import write_csv
 
 

@@ -4,7 +4,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..utils.io import write_csv
 from ..utils.plotting import plt
 from ..utils.runtime import repo_root

@@ -4,9 +4,9 @@ import random
 from math import sin
 
 from ..corpus.adequacy_audit_utils import load_class_pair_manifest
+from ..corpus.trajectory_series import KinematicSeries
 from ..scenarios import get_scenario_measurement_sigma, get_scenario_times
 from .contracts import ExecutablePairSpec, ExecutableTrajectory
-from ..trajectory_series import KinematicSeries
 
 
 def build_pair_specs(

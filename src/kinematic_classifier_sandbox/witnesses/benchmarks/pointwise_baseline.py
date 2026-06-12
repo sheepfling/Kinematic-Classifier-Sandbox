@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from math import log
 from pathlib import Path
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ...utils.io import write_csv
 from ...utils.math import (
     gaussian_logpdf as _gaussian_logpdf,
@@ -15,8 +17,6 @@ from ...utils.math import (
     normalize_log_scores as _normalize_log_scores,
 )
 from ...utils.plotting import plt
-
-from ...markdown_builder import MarkdownDocument
 
 
 @dataclass(frozen=True, slots=True)

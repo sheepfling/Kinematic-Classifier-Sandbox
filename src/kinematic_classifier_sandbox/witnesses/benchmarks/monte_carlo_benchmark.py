@@ -7,11 +7,11 @@ from pathlib import Path
 from statistics import median
 from typing import NamedTuple
 
-from ...utils.io import write_csv
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
-from ...markdown_builder import MarkdownDocument
-from ...utils.plotting import plt
+from ...utils.io import write_csv
 from ...utils.math import _mean, _percentile, _safe_log
+from ...utils.plotting import plt
 from .sequential_bayes_accumulator import AccumulatorBenchmarkResult, run_accumulator_benchmark
 
 

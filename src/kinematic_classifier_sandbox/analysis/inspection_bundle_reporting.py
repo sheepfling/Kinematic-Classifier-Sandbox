@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..corpus.adequacy_audit import CorpusAdequacyArtifacts
-from ..corpus.coverage_report import CoverageReportArtifacts
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
+from ..corpus.adequacy_contracts import CorpusAdequacyArtifacts
+from ..corpus.coverage_contracts import CoverageReportArtifacts
 from ..utils.categorical import status_score
 from ..utils.plotting import plt
 from .feature_analysis import FeatureAnalysisArtifacts

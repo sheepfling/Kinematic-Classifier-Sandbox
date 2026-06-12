@@ -3,17 +3,18 @@ from __future__ import annotations
 from math import log
 from typing import NamedTuple
 
-from ...markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
+from ...witnesses.benchmarks.transition_matrix_runner import (
+    _emission_term_breakdown,
+    default_switching_mode_specs,
+    default_transition_matrix,
+)
 from .contracts import (
     SwitchingModeSpec,
     SwitchingScenario,
     TransitionBenchmarkResult,
     TransitionRun,
-)
-from ...witnesses.benchmarks.transition_matrix_runner import (
-    _emission_term_breakdown,
-    default_switching_mode_specs,
-    default_transition_matrix,
 )
 
 

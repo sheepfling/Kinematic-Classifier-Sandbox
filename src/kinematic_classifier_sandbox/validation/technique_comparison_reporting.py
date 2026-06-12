@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..utils.plotting import plt
 from .technique_comparison_contracts import TechniqueComparisonResult, TechniqueComparisonRow
 

@@ -4,10 +4,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..utils.io import write_csv
-from ..utils.plotting import figure_to_png_bytes
-from ..utils.plotting import plt
+from ..utils.plotting import figure_to_png_bytes, plt
 from .class_validity_contracts import ClassValidityArtifacts, ClassValidityResult
 
 

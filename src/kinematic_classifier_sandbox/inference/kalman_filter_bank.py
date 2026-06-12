@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from math import log
 from pathlib import Path
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..render.intermediate_plots import (
     render_likelihood_strip,
     render_posterior_timeline,

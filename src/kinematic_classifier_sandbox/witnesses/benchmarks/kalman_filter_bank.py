@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from math import log
 from pathlib import Path
 
-from ...utils.io import write_csv
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
-from ...markdown_builder import MarkdownDocument
+from ...utils.io import write_csv
 from ...utils.math import (
     _add_matrices,
     _identity,
@@ -23,10 +23,10 @@ from ...utils.math import (
     kalman_transition_and_noise,
     kalman_update_scalar,
 )
-from ...utils.plotting import plt
 from ...utils.math import (
     normalize_log_scores as _normalize_log_scores,
 )
+from ...utils.plotting import plt
 
 
 def _unique_class_names(model_specs: tuple[KalmanModelSpec, ...]) -> tuple[str, ...]:

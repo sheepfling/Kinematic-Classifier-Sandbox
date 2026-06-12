@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import io
 
-from ...markdown_builder import MarkdownDocument
-from ...runtime_paths import prepare_matplotlib
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ...utils.plotting import plt
 from .contracts import CrossMethodPriorComparisonResult, PriorSensitivityResult
 

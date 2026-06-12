@@ -5,22 +5,21 @@ import json
 import math
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-
-from ..utils.runtime import repo_root
 from typing import Any, Iterable
 
 import yaml
 from numpy import zeros
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import _write_text, write_csv
 
 from ..common_experiment.runner import analyze_common_experiment
 from ..corpus.adequacy_audit import analyze_corpus_adequacy
 from ..inference.advanced_state_inference import analyze_advanced_state_inference
 from ..inference.transition_matrix_accumulator import run_transition_benchmark
-from ..markdown_builder import MarkdownDocument
 from ..utils.math import _entropy, _mean
 from ..utils.plotting import plt
+from ..utils.runtime import repo_root
 from ..validation.validation_ladder import analyze_validation_ladder
 from .capability_matrix import (
     canonicalize_rung_id,

@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import importlib
-import json
 import tempfile
 from collections import Counter
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
-
-from ..utils.runtime import repo_root
 from typing import Literal
+
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
 from ..utils.io import _write_json, _write_text, write_csv
 from ..utils.plotting import _figure_to_png, plt
-from ..markdown_builder import MarkdownDocument
+from ..utils.runtime import repo_root
 
 ROOT = repo_root()
 

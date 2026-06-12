@@ -6,9 +6,14 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from kinematic_classifier_sandbox.reports.markdown import (
+    MarkdownDocument,
+    MermaidEdge,
+    MermaidFlow,
+    MermaidNode,
+)
 from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ...markdown_builder import MarkdownDocument, MermaidEdge, MermaidFlow, MermaidNode
 from ...utils.plotting import plt
 from .backend_adapter_proof_core import (
     AdapterExecutionRecord,

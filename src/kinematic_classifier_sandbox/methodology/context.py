@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..common_experiment.contracts import CommonExperimentResult
 from ..corpus.autodevelopment_types import CorpusAutodevelopmentResult
 from ..corpus.policy import CorpusPolicySpec, corpus_policy_to_dict
-from ..study_candidate_generation import StudyCandidateGenerationResult
-from ..study_candidate_protocol import (
+from ..validation.study_candidate.generation import StudyCandidateGenerationResult
+from ..validation.study_candidate.protocol import (
     StudyCandidateProtocolResult,
     analyze_study_candidate_protocol,
 )

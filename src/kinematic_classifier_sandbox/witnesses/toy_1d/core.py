@@ -8,11 +8,12 @@ from math import erf, exp, log, sqrt
 from pathlib import Path
 from typing import NamedTuple
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ...analysis.classification_benchmark import (
     summarize_classification_features,
     summarize_classification_outcomes,
 )
-from ...markdown_builder import MarkdownDocument
 from ...utils.io import _write_csv_rows
 from ...utils.math import _clamp, _entropy, _gaussian_logpdf, _innovation_log_likelihood, _logsumexp
 from ...utils.plotting import plt

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,7 +18,7 @@ def main() -> int:
 
     commands = [
         [sys.executable, "scripts/check_env.py"],
-        [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"],
+        [sys.executable, "scripts/test.py", "--lane", "fast"],
         [sys.executable, "scripts/syntax_check.py"],
     ]
     for command in commands:

@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
-from ...markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ...utils.plotting import plt
 from .core import (
     IdentityBenchmarkResult,

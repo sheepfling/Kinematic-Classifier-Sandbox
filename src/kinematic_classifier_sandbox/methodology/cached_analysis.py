@@ -8,18 +8,17 @@ from ..common_experiment.runner import analyze_common_experiment
 from ..corpus.autodevelopment import analyze_corpus_autodevelopment
 from ..corpus.autodevelopment_types import CorpusAutodevelopmentResult
 from ..corpus.policy import CorpusPolicySpec, corpus_policy_to_dict, load_corpus_policy_spec
-from ..study_candidate_generation import (
-    StudyCandidateGenerationResult,
-    analyze_study_candidate_generation,
-)
-from ..study_candidate_protocol import (
-    StudyCandidateProtocolResult,
-    analyze_study_candidate_protocol,
-)
 from ..utils.analysis_cache import (
     file_fingerprint,
     load_or_compute_pickled,
     stable_cache_key,
+)
+from ..validation.study_candidate.generation import (
+    StudyCandidateGenerationResult,
+    analyze_study_candidate_generation,
+)
+from ..validation.study_candidate.protocol import (
+    StudyCandidateProtocolResult,
 )
 from ..validation.validation_ladder import analyze_validation_ladder
 from ..validation.validation_ladder_contracts import ValidationLadderResult

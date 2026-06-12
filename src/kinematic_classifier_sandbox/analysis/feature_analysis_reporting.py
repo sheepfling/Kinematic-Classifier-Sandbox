@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
 
 def render_feature_analysis_report(result) -> str:

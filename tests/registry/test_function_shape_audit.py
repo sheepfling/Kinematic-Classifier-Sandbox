@@ -45,7 +45,7 @@ class FunctionShapeAuditTests(unittest.TestCase):
 
         overridden_module_row = rows[
             (
-                "src/kinematic_classifier_sandbox/markdown_builder.py",
+                "src/kinematic_classifier_sandbox/reports/markdown.py",
                 "build_mermaid_flow",
             )
         ]
@@ -53,7 +53,7 @@ class FunctionShapeAuditTests(unittest.TestCase):
         self.assertEqual(overridden_module_row.specificity, "generic")
         self.assertEqual(
             overridden_module_row.override_source,
-            "module:src/kinematic_classifier_sandbox/markdown_builder.py",
+            "module:src/kinematic_classifier_sandbox/reports/markdown.py",
         )
 
     def test_writer_emits_audit_artifacts(self) -> None:

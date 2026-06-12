@@ -223,7 +223,7 @@ d(s_0, \widehat{\mathcal{D}}, R)
 \end{align}
 where:
 \begin{align}
-g(s_0) &:= \text{feature/class geometry and static compatibility analysis}, \\
+g(s_0) &:= \text{static feature/class/prior admissibility audit}, \\
 \mathcal{D}^{\star}(s_0) &:= \text{selected or generated candidate corpus}, \\
 \widehat{\mathcal{D}}(s_0) &:= \text{audited corpus after validity and leakage gates}, \\
 R(s_0, \widehat{\mathcal{D}}) &:= \text{evaluation records, posterior histories, and diagnostics}, \\
@@ -257,27 +257,33 @@ still requires corpus selection and validation.
 
 \subsection{Stage 2: Analyze}
 Before more trajectories are generated, the workflow inspects whether the
-declared feature/class geometry is even promising. In abstract form, this stage
-asks whether
+declared feature set \(f\), class set \(\mathcal{C}\), and prior regime
+\(\pi\) can support the intended study claim. In abstract form, this static
+admissibility stage asks whether
 \begin{equation}
 g(s_0) =
 \left(
 \text{separability},
-\text{overlap},
-\text{dependency risk},
-\text{oracle preview},
-\text{prior fragility preview}
+\text{relevance},
+\text{redundancy/synergy},
+\text{prior robustness},
+\text{coverage feasibility},
+\text{leakage risk}
 \right)
 \end{equation}
-is methodologically plausible. The main point is to distinguish two different
-failure modes early:
+is methodologically plausible. Pairwise class confusability, feature relevance,
+feature redundancy, candidate synergy, prior flip thresholds, provenance tags,
+and static coverage feasibility are therefore front-door checks, not appendix
+afterthoughts. The main point is to distinguish two different failure modes
+early:
 \begin{align}
 \text{classifier weakness}
 \qquad\text{vs.}\qquad
 \text{feature or class-definition weakness}.
 \end{align}
-This is the role of feature AUC, overlap, PCA, identifiability, and class-pair
-inspection before the ladder is trusted.
+This is the role of feature AUC, overlap, mutual-information relevance,
+redundancy matrices, prior-domination tests, and class-pair inspection before
+the Corpus Explorer or classifier/filter ladder is trusted.
 
 \subsection{Stage 3: Generate}
 Once the study declaration is geometrically plausible, the corpus side produces
@@ -400,6 +406,8 @@ The same structure can be read as a compact inline diagram:
 \begin{align}
 \text{Corpus Objective}
 &\rightarrow
+\text{Static Feature/Class/Prior Audit}
+\rightarrow
 \text{Corpus Explorer}
 \rightarrow
 \mathcal{D}^{\star}
@@ -422,7 +430,7 @@ The repository is best understood as one compositional flow rather than separate
 \begin{align}
 \text{study declaration}
 &\rightarrow
-\text{feature/class geometry}
+\text{static feature/class/prior audit}
 \rightarrow
 \text{generated corpus}
 \rightarrow

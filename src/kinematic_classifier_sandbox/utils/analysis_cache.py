@@ -7,7 +7,7 @@ import re
 import shutil
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Callable, TypeVar
+from typing import Callable, TypeVar
 
 from .runtime import runtime_root
 
@@ -80,7 +80,7 @@ def load_or_compute_pickled(
                 cached = pickle.load(handle)
             _record_cache_event(namespace, "hit")
             return cached
-        except (pickle.PickleError, EOFError, AttributeError, ValueError):
+        except (pickle.PickleError, EOFError, AttributeError, ImportError, ValueError):
             _record_cache_event(namespace, "corrupt")
             pickle_path.unlink(missing_ok=True)
             metadata_path.unlink(missing_ok=True)

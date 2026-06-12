@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-"""Compatibility surface over the canonical ``common_experiment`` package."""
-
+# Compatibility surface over the canonical ``common_experiment`` package.
 from .common_experiment.adapters import ExecutablePairSpec, ExecutableTrajectory
 from .common_experiment.analysis import (
     analyze_common_experiment,
@@ -10,8 +9,8 @@ from .common_experiment.analysis import (
 from .common_experiment.artifact_io import write_common_experiment_artifacts
 from .common_experiment.config import (
     BOUNDARY_EXPERIMENT_DIR,
-    CLASSIFIER_MANIFEST_PATH,
     CLASS_PAIR_PATH,
+    CLASSIFIER_MANIFEST_PATH,
     CONFIG_PATH,
     EXPERIMENT_DIR,
     FEATURE_SET_PATH,

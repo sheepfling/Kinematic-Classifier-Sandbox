@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from .rl_backend_decision_contracts import RlBackendDecisionResult
 
 

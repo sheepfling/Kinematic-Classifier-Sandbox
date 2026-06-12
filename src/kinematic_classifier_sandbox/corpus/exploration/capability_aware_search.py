@@ -6,9 +6,9 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 
-from ...markdown_builder import MarkdownDocument
 from ...utils.plotting import plt
 from ..trajectory_backend_contract import (
     TrajectoryBackendCapabilities,

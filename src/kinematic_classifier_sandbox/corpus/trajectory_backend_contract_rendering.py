@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from kinematic_classifier_sandbox.markdown_builder import (
+from kinematic_classifier_sandbox.reports.markdown import (
     MarkdownDocument,
     MermaidEdge,
     MermaidFlow,

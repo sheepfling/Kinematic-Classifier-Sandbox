@@ -5,10 +5,10 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
-from kinematic_classifier_sandbox.utils.plotting import plt
 from kinematic_classifier_sandbox.utils.math import mean as _mean
+from kinematic_classifier_sandbox.utils.plotting import plt
 
 from .contracts import TrajectoryArtifact, validate_trajectory_artifact
 from .trajectory_generator import (

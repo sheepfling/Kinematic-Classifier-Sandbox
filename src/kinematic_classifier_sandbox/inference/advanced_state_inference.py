@@ -26,11 +26,9 @@ from numpy import (
 )
 from numpy import mean as nmean
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import _write_json, write_csv
 
-from ..markdown_builder import MarkdownDocument
-from ..runtime_paths import prepare_matplotlib
-from ..utils.plotting import plt
 from ..utils.io import _write_yaml_like
 from ..utils.math import (
     _as_tuple,
@@ -41,6 +39,7 @@ from ..utils.math import (
     _mean,
     _normalize_log_scores,
 )
+from ..utils.plotting import plt
 from ..witnesses.advanced_state_inference_witnesses import (
     SwitchingWitness,
     generate_advanced_state_inference_witnesses,

@@ -8,10 +8,10 @@ from typing import Any
 
 import yaml
 
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.runtime import repo_root
 
-from ...markdown_builder import MarkdownDocument
 from .backend_adapter_proof_core import _adapter_map
 from .generic_corpus_exploration_core import (
     DEFAULT_GENERIC_CORPUS_EXPLORATION_WEIGHTS,

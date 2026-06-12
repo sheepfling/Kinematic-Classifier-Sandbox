@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import NamedTuple
-
 from dataclasses import dataclass
 from math import exp, log, pi, sqrt
 from pathlib import Path
+from typing import NamedTuple
+
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 
 from ...analysis.feature_analysis import (
     load_feature_registry,
@@ -37,7 +38,6 @@ from ...common_experiment.pair_evaluation import (
 )
 from ...common_experiment.runner import analyze_common_experiment
 from ...corpus.coverage_report import load_classifier_manifest
-from ...markdown_builder import MarkdownDocument
 from ...utils.io import write_csv
 from ...utils.plotting import plt, write_plot
 
