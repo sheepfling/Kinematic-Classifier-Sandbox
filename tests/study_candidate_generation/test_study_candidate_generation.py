@@ -8,11 +8,13 @@ from unittest.mock import patch
 
 from kinematic_classifier_sandbox.common_experiment.runner import analyze_common_experiment
 from kinematic_classifier_sandbox.corpus.autodevelopment import analyze_corpus_autodevelopment
-from kinematic_classifier_sandbox.study_candidate_generation import (
+from kinematic_classifier_sandbox.validation.study_candidate.generation import (
     analyze_study_candidate_generation,
     write_study_candidate_generation_artifacts,
 )
-from kinematic_classifier_sandbox.study_candidate_protocol import analyze_study_candidate_protocol
+from kinematic_classifier_sandbox.validation.study_candidate.protocol import (
+    analyze_study_candidate_protocol,
+)
 
 
 class StudyCandidateGenerationTests(unittest.TestCase):
@@ -52,9 +54,9 @@ class StudyCandidateGenerationTests(unittest.TestCase):
 
     def test_study_candidate_generation_uses_injected_results(self) -> None:
         with (
-            patch("kinematic_classifier_sandbox.study_candidate_generation.analyze_study_candidate_protocol", side_effect=AssertionError("protocol should not be recomputed")),
-            patch("kinematic_classifier_sandbox.study_candidate_generation.analyze_common_experiment", side_effect=AssertionError("common result should not be recomputed")),
-            patch("kinematic_classifier_sandbox.study_candidate_generation.analyze_corpus_autodevelopment", side_effect=AssertionError("corpus result should not be recomputed")),
+            patch("kinematic_classifier_sandbox.validation.study_candidate.generation.analyze_study_candidate_protocol", side_effect=AssertionError("protocol should not be recomputed")),
+            patch("kinematic_classifier_sandbox.validation.study_candidate.generation.analyze_common_experiment", side_effect=AssertionError("common result should not be recomputed")),
+            patch("kinematic_classifier_sandbox.validation.study_candidate.generation.analyze_corpus_autodevelopment", side_effect=AssertionError("corpus result should not be recomputed")),
         ):
             result = analyze_study_candidate_generation(
                 seed=7,

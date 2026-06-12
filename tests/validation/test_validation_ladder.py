@@ -8,8 +8,12 @@ from unittest.mock import patch
 
 from kinematic_classifier_sandbox.common_experiment.runner import analyze_common_experiment
 from kinematic_classifier_sandbox.corpus.autodevelopment import analyze_corpus_autodevelopment
-from kinematic_classifier_sandbox.study_candidate_generation import analyze_study_candidate_generation
-from kinematic_classifier_sandbox.study_candidate_protocol import analyze_study_candidate_protocol
+from kinematic_classifier_sandbox.validation.study_candidate.generation import (
+    analyze_study_candidate_generation,
+)
+from kinematic_classifier_sandbox.validation.study_candidate.protocol import (
+    analyze_study_candidate_protocol,
+)
 from kinematic_classifier_sandbox.validation.validation_ladder import (
     analyze_validation_ladder,
     write_validation_ladder_artifacts,

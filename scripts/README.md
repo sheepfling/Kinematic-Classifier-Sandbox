@@ -7,6 +7,7 @@ Keep high-level user entrypoints at the root of `scripts/`:
 - `all.py`
 - `check.py`
 - `dev.py`
+- `test.py`
 - `export_artifacts.py`
 - `export_team_packet.py`
 - `run_study.py`
@@ -55,6 +56,12 @@ Common LaTeX rerun commands:
 Common audit and rerun commands:
 
 - Repo checks: `python3 scripts/check.py`
+- Fast package-shape tests: `PYTHONPATH=src python3 scripts/test.py`
+- Shape/import/front-door tests only: `PYTHONPATH=src python3 scripts/test.py --lane shape`
+- Corpus policy tests only: `PYTHONPATH=src python3 scripts/test.py --lane corpus-policy`
+- Advanced-filter tests only: `PYTHONPATH=src python3 scripts/test.py --lane filters`
+- Broad light pytest run without PDF/doc-build tests: `PYTHONPATH=src python3 scripts/test.py --lane all-light`
+- Heavy methodology documentation tests: `PYTHONPATH=src python3 scripts/test.py --lane docs-heavy`
 - Repo-shape audit: `python3 scripts/audit/audit_repo_shape.py`
 - Human-operability audit: `python3 scripts/audit/audit_human_operability.py --write-artifacts`
 - Analysis-cache summary: `python3 scripts/audit/manage_analysis_cache.py summary`

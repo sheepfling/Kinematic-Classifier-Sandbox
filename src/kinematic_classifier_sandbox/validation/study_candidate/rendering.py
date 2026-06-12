@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from statistics import mean
 from typing import Any
 
-from .utils.plotting import plt
+from ...utils.plotting import plt
 
 
 def _render_static_vs_statistical_score(result: Any):

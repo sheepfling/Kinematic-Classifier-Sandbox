@@ -51,7 +51,13 @@ The Corpus Explorer is the generic engine for `CorpusObjective + Backend + Searc
 
 ### Classifier / Filter Ladder
 
-The classifier ladder is the algorithm spine. Each rung is a different answer to the same question: how should class evidence be constructed from the observations, features, or filter residuals available up to time `t`?
+Epic 1 screened the proposed feature/class/prior setup. Now we assume the study is meaningful enough to run. The next question is not "which classifier is fanciest?" The question is how to build an evidence ladder that starts simple, then deliberately excites advanced algorithms with named failure regimes that anticipate the 3D lift.
+
+The classifier/filter ladder is the evidence spine. Each rung consumes the same tracklet surface and emits comparable posterior histories. Complexity is added only when a diagnosed failure mode requires a richer evidence model.
+
+The central question is:
+
+> What evidence is available up to time `t`, and how should it update belief over classes?
 
 The ladder is:
 
@@ -59,7 +65,26 @@ The ladder is:
 pointwise -> windowed -> sequential Bayes -> Kalman bank -> transition matrix -> IMM -> PF -> RBPF
 ```
 
-Each rung must add one evidence capability and be justified by a demonstrated failure mode of the previous rung.
+The ladder is not a ranking. It is a sequence of evidence capabilities.
+
+Every rung must satisfy the same contract:
+
+```text
+observations up to time t
+        -> method-specific evidence provider
+        -> class evidence / likelihood-like scores
+        -> posterior updater under explicit prior
+        -> posterior history over classes
+        -> evaluation and promotion decision
+```
+
+Every applicable rung should be evaluated on the same admissible study surface.
+Running a method is not the same as promoting it.
+
+Each rung must add one evidence capability and be justified by a demonstrated
+failure mode of the previous rung. Evaluation therefore focuses on posterior
+behavior, switch timing, calibration, confusion localization, prior
+sensitivity, oracle gap, and rung sufficiency rather than final labels alone.
 
 ### Evaluation And Promotion
 
@@ -88,6 +113,26 @@ The witness problems currently prove:
 - transition switching: transition logic is justified before IMM
 - generated corpus stress: the Corpus Explorer can discover hard or fragile examples
 
+Epic 2 follows seven beats:
+
+1. Static audit says the study is meaningful.
+2. Now we ask how evidence should accumulate over time.
+3. Every method must emit the same evidence/posterior contract.
+4. The ladder adds one capability at a time.
+5. Witness problems isolate why each capability matters.
+6. Rung sufficiency keeps complexity honest.
+7. Advanced witnesses prove the escalation path toward 3D state inference.
+
+The evaluation design has three layers:
+
+1. Baseline ladder: pointwise through transition matrix prove the shared
+   evidence/posterior contract.
+2. Advanced algorithm showcase: IMM, PF, and RBPF each get a named witness that
+   excites the assumptions the method was built for.
+3. 3D lift bridge: simple 1D witnesses keep the contract readable while vector
+   PVA, nonlinear geometry, sensor noise, occlusion, mode uncertainty, and
+   latent maneuver structure explain why advanced inference matters.
+
 ## 3D Transition
 
 The repo does not claim to be dynamically complete for 3D deployment. It does claim that the evaluation stack is generic enough that 3D transition is an adapter, feature, and dynamics lift rather than a rewrite of the posterior, artifact, and decision machinery.
@@ -98,11 +143,11 @@ The repo does not claim to be dynamically complete for 3D deployment. It does cl
 
 - The methodology stack exists end to end.
 - Corpora can be generated, audited, explored, and selected.
-- Classifiers can be compared through shared evidence and posterior contracts.
+- Classifiers and filters can be compared through a shared evidence and posterior-history contract.
 - Priors and posterior fragility are measurable.
 - Feature and class separability are inspected before blaming algorithms.
 - 1D witness problems prove the ladder layers.
-- Advanced filters are implemented and promoted only for demonstrated witness failures.
+- Advanced filters are gated, but positive showcase witnesses prove the escalation path beyond simple 1D separability.
 
 ## What Is Not Yet Proven
 
@@ -113,4 +158,4 @@ The repo does not claim to be dynamically complete for 3D deployment. It does cl
 - 3D dynamics and geometry are complete.
 - Every generated corpus passes every adequacy and leakage gate.
 
-The strongest current claim is architectural: the repo has the machinery to define, generate, evaluate, and decide kinematic classification studies under explicit evidence contracts.
+The strongest current claim is architectural: the repo has the machinery to define, generate, evaluate, and decide kinematic classification studies under explicit evidence contracts, keep simple-rung sufficiency honest, and demonstrate an escalation path toward nonlinear, switching, and latent-state inference for the 3D lift.

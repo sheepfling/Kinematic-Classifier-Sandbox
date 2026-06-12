@@ -54,11 +54,15 @@ class AdvancedFilterEvaluationTests(unittest.TestCase):
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.state_estimate_history_path.exists())
             self.assertTrue(artifacts.metrics_path.exists())
+            self.assertTrue(artifacts.method_evaluation_summary_path.exists())
             self.assertTrue((artifacts.run_dir / "traces" / "filter_step_trace.csv").exists())
             for plot in artifacts.plot_paths:
                 self.assertTrue(plot.exists())
             metrics_text = artifacts.metrics_path.read_text(encoding="utf-8")
             self.assertIn("promotion_decision", metrics_text)
+            summary_text = artifacts.method_evaluation_summary_path.read_text(encoding="utf-8")
+            self.assertIn("negative_log_likelihood", summary_text)
+            self.assertIn("brier_score", summary_text)
 
     def test_rbpf_witness_outputs_expected_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -68,11 +72,15 @@ class AdvancedFilterEvaluationTests(unittest.TestCase):
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.state_estimate_history_path.exists())
             self.assertTrue(artifacts.metrics_path.exists())
+            self.assertTrue(artifacts.method_evaluation_summary_path.exists())
             self.assertTrue((artifacts.run_dir / "traces" / "filter_step_trace.csv").exists())
             for plot in artifacts.plot_paths:
                 self.assertTrue(plot.exists())
             report = artifacts.report_path.read_text(encoding="utf-8")
             self.assertIn("conditionally Kalman-filtering", report)
+            summary_text = artifacts.method_evaluation_summary_path.read_text(encoding="utf-8")
+            self.assertIn("ece", summary_text)
+            self.assertIn("posterior_margin", summary_text)
 
     def test_ou_witness_outputs_expected_artifacts(self) -> None:
         result = analyze_ornstein_uhlenbeck_witness(seed=37)
@@ -86,6 +94,7 @@ class AdvancedFilterEvaluationTests(unittest.TestCase):
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.state_estimate_history_path.exists())
             self.assertTrue(artifacts.metrics_path.exists())
+            self.assertTrue(artifacts.method_evaluation_summary_path.exists())
             self.assertTrue((artifacts.run_dir / "traces" / "filter_step_trace.csv").exists())
             report = artifacts.report_path.read_text(encoding="utf-8")
             self.assertIn("Ornstein-Uhlenbeck", report)

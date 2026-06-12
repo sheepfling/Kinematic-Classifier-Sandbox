@@ -8,10 +8,17 @@ import numpy.random as random
 from numpy import arange, array, asarray, average, exp, float64, sqrt
 from numpy import mean as nmean
 
-from ..markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+
 from ..tracing.filter_trace import FilterStepTrace, posterior_entropy, write_filter_step_trace_csv
 from ..tracing.trace_validation import validate_filter_step_trace_set
 from ..utils.io import write_csv
+from ..utils.method_evaluation_summary import (
+    METHOD_EVALUATION_SUMMARY_FIELDS,
+    PosteriorMetricSample,
+    build_method_evaluation_summary_row,
+    compute_multiclass_posterior_metrics,
+)
 from ..utils.plotting import plt
 from .models_1d import (
     constant_velocity_transition,
@@ -66,6 +73,7 @@ class OrnsteinUhlenbeckWitnessArtifacts:
     posterior_history_path: Path
     state_estimate_history_path: Path
     metrics_path: Path
+    method_evaluation_summary_path: Path
     plot_paths: tuple[Path, ...]
 
 
@@ -208,6 +216,7 @@ def write_ornstein_uhlenbeck_witness_artifacts(
     posterior_path = run_dir / "posterior_history.csv"
     state_path = run_dir / "state_estimate_history.csv"
     metrics_path = run_dir / "ou_method_comparison.csv"
+    method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     report_path = run_dir / "ou_report.md"
     write_csv(
         posterior_path,
@@ -220,6 +229,11 @@ def write_ornstein_uhlenbeck_witness_artifacts(
         ["trajectory_id", "time", "truth_position", "truth_velocity", "observation", "pf_position", "pf_velocity", "predicted_label", "ess", "ess_fraction", "resampled", "unique_ancestor_count", "unique_ancestor_fraction"],
     )
     write_csv(metrics_path, [witness.metrics], list(witness.metrics.keys()))
+    write_csv(
+        method_evaluation_summary_path,
+        [_build_ou_method_evaluation_summary_row(witness)],
+        list(METHOD_EVALUATION_SUMMARY_FIELDS),
+    )
     traces = _build_ou_filter_step_traces(witness)
     validate_filter_step_trace_set(traces)
     write_filter_step_trace_csv(trace_dir / "filter_step_trace.csv", traces)
@@ -273,7 +287,36 @@ def write_ornstein_uhlenbeck_witness_artifacts(
         posterior_history_path=posterior_path,
         state_estimate_history_path=state_path,
         metrics_path=metrics_path,
+        method_evaluation_summary_path=method_evaluation_summary_path,
         plot_paths=(state_plot, posterior_plot),
+    )
+
+
+def _build_ou_method_evaluation_summary_row(
+    witness: OrnsteinUhlenbeckWitnessResult,
+) -> dict[str, object]:
+    samples = []
+    grouped_rows: dict[float, list[OrnsteinUhlenbeckPosteriorRow]] = {}
+    for row in witness.posterior_rows:
+        grouped_rows.setdefault(float(row.time), []).append(row)
+    for rows_at_time in grouped_rows.values():
+        posterior_by_label = {row.label: float(row.posterior) for row in rows_at_time}
+        samples.append(
+            PosteriorMetricSample(
+                true_label="mean_reverting_velocity",
+                predicted_label=rows_at_time[0].predicted_label,
+                confidence=float(rows_at_time[0].confidence),
+                posterior_by_label=posterior_by_label,
+            )
+        )
+    metrics = compute_multiclass_posterior_metrics(samples)
+    return build_method_evaluation_summary_row(
+        method_id="ornstein_uhlenbeck_pf_v1",
+        study_surface="ornstein_uhlenbeck_witness_v1",
+        evaluation_surface="nonlinear_nongaussian",
+        metrics=metrics,
+        runtime_seconds=float(witness.metrics["runtime_seconds"]),
+        promotion_decision=str(witness.metrics["promotion_decision"]),
     )
 
 

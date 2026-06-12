@@ -12,7 +12,7 @@ authors = [{ name = "Rick" }]
 dependencies = ["matplotlib>=3.10", "numpy>=2.0", "mdutils>=1.8.1", "pydantic>=2.11", "PyYAML>=6.0"]
 
 [project.optional-dependencies]
-dev = ["pyright>=1.1", "ruff>=0.8"]
+dev = ["pyright>=1.1", "pytest>=8.0", "ruff>=0.8"]
 rl = ["gymnasium>=1.0", "stable-baselines3>=2.3"]
 
 [tool.ruff]

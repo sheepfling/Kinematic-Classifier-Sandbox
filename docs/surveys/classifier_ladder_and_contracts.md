@@ -1,8 +1,8 @@
 # Classifier Ladder and Contracts
 
-This note documents the repo's classifier ladder as a sequence of increasingly
-structured evidence models. The point is not only to list which methods exist.
-The point is to show:
+This note documents the repo's classifier/filter ladder as a sequence of
+increasingly structured evidence models. The point is not only to list which
+methods exist. The point is to show:
 
 - what random variables each method assumes
 - what likelihood or score it computes
@@ -12,8 +12,15 @@ The point is to show:
 
 In the canonical repo story, this note is the `Classifier / Filter Ladder`
 pillar. It sits between the selected corpus and the evaluation layer, and its
-job is to answer one question consistently across methods: what is the next
-`ell_t(.)` and why is that evidence justified?
+job is to answer one question consistently across methods: what evidence is
+available up to time `t`, what is the next `ell_t(.)`, and why is that evidence
+justified?
+
+The Epic 2 thesis is:
+
+> The classifier/filter ladder is an evidence ladder. Each rung consumes the
+> same tracklet surface and emits comparable posterior histories. Complexity is
+> added only when a diagnosed failure mode requires a richer evidence model.
 
 ## Repo Role
 
@@ -31,12 +38,19 @@ The ladder should be read as:
 \text{Evaluation / Promotion}.
 ```
 
-The repo’s algorithm claim is deliberately narrow:
+The repo's algorithm claim is deliberately narrow:
 
 - each rung adds one new evidence capability
 - each rung must be justified by a failure mode of the previous rung
 - each rung should have at least one 1D witness problem that makes the upgrade
   legible
+- advanced filters are not defaults; they are capability-specific escalation
+  candidates
+
+Epic 1 screened the feature/class/prior setup. Epic 2 then asks a different
+question: how do we build an evidence ladder that starts simple, then
+deliberately excites advanced algorithms with named failure regimes that
+anticipate the 3D lift?
 
 ## 1. Problem Statement
 
@@ -62,6 +76,12 @@ Across the ladder, the downstream contract is intentionally stable:
 
 That is the architectural reason these methods can share evaluation and
 artifact-generation code even though their internal state is very different.
+
+The ladder is not a ranking. It is a sequence of evidence capabilities.
+
+The practical consequence is important: every applicable rung can be evaluated
+through the same contract, but the decision layer can still promote only the
+simplest sufficient method.
 
 ## 2. Global Notation
 
@@ -112,9 +132,15 @@ The methods differ in their stronger assumptions:
   linear-Gaussian state-space model
 - `inference/transition_matrix_accumulator.py`: mode persistence and switching can be
   represented with a finite transition matrix and emission model
-- `inference/advanced_state_inference.py`: IMM mixes multiple linear-Gaussian mode
-  models while preserving the same posterior/evidence/diagnostic contract and
-  emits the current 1D proof artifacts for advanced switching inference
+- `inference/advanced_state_inference.py`: IMM mixes multiple linear-Gaussian
+  mode models while preserving the same posterior/evidence/diagnostic contract
+  and emits the current 1D proof artifacts for advanced switching inference
+- `advanced_filters/oracle_pf_1d.py` and related witnesses: PF is only promoted
+  when a named nonlinear, non-Gaussian, or multimodal posterior witness breaks
+  cheaper Gaussian summaries
+- `advanced_filters/rbpf.py` and related witnesses: RBPF is only promoted when
+  the sampled discrete structure and marginalized continuous state are both
+  named explicitly and add measurable value
 
 ## 4. Ladder Overview
 
@@ -126,32 +152,65 @@ The current ladder is:
 4. `inference/kalman_filter_bank.py`
 5. `inference/transition_matrix_accumulator.py`
 6. `inference/advanced_state_inference.py`
+7. particle-filter witness surfaces
+8. RBPF witness surfaces
 
 The upgrade path is deliberate:
 
-- `pointwise`: no temporal compression beyond the posterior itself
-- `windowed`: compress recent history into engineered features
-- `state_estimate`: score the provided filtered state against class templates
-- `accumulator`: make recursive evidence accumulation explicit
-- `kalman`: let a dynamics model predict the next observation and score the
-  innovation
-- `transition_matrix`: inject explicit switching structure before paying the
-  complexity cost of full multi-model inference
-- `IMM`: mix multiple linear-Gaussian mode models when switching structure and
-  explicit state mixing are required
+- `pointwise`: local evidence
+- `windowed`: short-horizon shape
+- `sequential Bayes`: explicit evidence accumulation
+- `kalman`: dynamic residual evidence
+- `transition_matrix`: structured switching logic
+- `IMM`: mode-mixed dynamic state inference
+- `PF`: sampled nonlinear or non-Gaussian posterior evidence
+- `RBPF`: sampled latent path plus conditional continuous state inference
+
+The evaluation strategy should also be explicit:
+
+- common benchmark surface: run all applicable methods on the same admissible
+  study
+- failure-mode witness surface: show what richer rung fixes a simpler-rung
+  failure
+- shine-regime stress surface: show where advanced methods actually win
 
 The reader-facing ladder is therefore:
 
 | Rung | Algorithm | Adds | Failure addressed | 1D witness |
 | --- | --- | --- | --- | --- |
-| 0 | `pointwise` | local likelihood baseline | no audited local baseline | pointwise overlap |
+| 0 | `pointwise` | local evidence | local overlap and prior-sensitive weak evidence | pointwise overlap |
 | 1 | `windowed` | short local history | outlier and local-noise fragility | windowed outlier/extrema |
 | 2 | `sequential_bayes` | recursive memory | pointwise history blindness | sequential history |
 | 3 | `kalman_bank` | dynamics-conditioned innovations | endpoint ambiguity under irregular timing | Kalman endpoint match |
 | 4 | `transition_matrix` | explicit mode switching | static-class assumption | transition switching |
-| 5 | `IMM` proof | switching-aware state inference | demonstrated switching failures | advanced 1D switching witness |
+| 5 | `IMM` proof | switching-aware state inference with state mixing | label-level transition logic is too brittle | advanced 1D switching witness |
 | 6 | `particle_filter_bank` | sampled nonlinear / non-Gaussian evidence | single-Gaussian summaries collapse multimodal posteriors or miss mean-reverting stochastic dynamics | abs-range oracle and OU witnesses |
 | 7 | `rbpf` | sampled latent mode path plus conditional Kalman state | mixed discrete/continuous latent structure | latent maneuver onset witness |
+
+Every rung should answer five questions:
+
+- What new evidence does this rung add?
+- What previous failure mode is it meant to solve?
+- What assumption does it introduce?
+- What proof or witness justifies it?
+- What would cause it to be deferred?
+
+That is why the evaluation surface emphasizes posterior behavior, switch timing,
+calibration, confusion localization, prior sensitivity, oracle gap, and rung
+sufficiency rather than final labels alone.
+
+Method status should be recorded separately from raw metrics:
+
+- `evaluated`
+- `applicable`
+- `competitive`
+- `simplest_sufficient`
+- `witness_supported`
+- `promoted`
+- `deferred`
+- `not_applicable`
+
+This prevents "it ran" from turning into "it is now the default."
 
 ## 5. Pointwise Evidence Baseline
 

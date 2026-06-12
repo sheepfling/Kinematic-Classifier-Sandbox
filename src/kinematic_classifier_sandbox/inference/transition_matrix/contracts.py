@@ -82,6 +82,7 @@ class TransitionBenchmarkArtifacts:
     numeric_walkthrough_path: Path
     posterior_history_path: Path
     scenario_summary_path: Path
+    method_evaluation_summary_path: Path
     config_path: Path
     dataset_manifest_path: Path
     plot_png_path: Path

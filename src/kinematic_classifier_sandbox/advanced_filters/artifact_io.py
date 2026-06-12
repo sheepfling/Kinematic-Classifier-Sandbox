@@ -19,6 +19,12 @@ from ..render.intermediate_plots import (
 from ..render.step_cards import write_step_card
 from ..tracing.filter_trace import FilterStepTrace, write_filter_step_trace_csv
 from ..tracing.trace_validation import validate_filter_step_trace_set
+from ..utils.method_evaluation_summary import (
+    METHOD_EVALUATION_SUMMARY_FIELDS,
+    PosteriorMetricSample,
+    build_method_evaluation_summary_row,
+    compute_multiclass_posterior_metrics,
+)
 from .contracts import IMMArtifacts, IMMBenchmarkResult
 from .reporting import render_imm_report
 
@@ -38,6 +44,7 @@ def write_imm_artifacts(output_dir: str | Path, *, result: IMMBenchmarkResult | 
     posterior_history_path = run_dir / "posterior_history.csv"
     switching_detection_metrics_path = run_dir / "switching_detection_metrics.csv"
     method_comparison_path = run_dir / "advanced_filter_method_comparison.csv"
+    method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     decision_matrix_path = run_dir / "advanced_filter_decision_matrix.csv"
     config_path = run_dir / "imm_config.yaml"
     report_path = run_dir / "imm_report.md"
@@ -167,6 +174,11 @@ def write_imm_artifacts(output_dir: str | Path, *, result: IMMBenchmarkResult | 
     metric_rows = [result.metrics]
     write_csv(switching_detection_metrics_path, metric_rows, list(metric_rows[0]))
     write_csv(method_comparison_path, list(result.method_comparison), list(result.method_comparison[0]))
+    write_csv(
+        method_evaluation_summary_path,
+        _build_imm_method_evaluation_rows(result),
+        list(METHOD_EVALUATION_SUMMARY_FIELDS),
+    )
     decision_rows = [
         {
             "method": "IMM",
@@ -234,6 +246,7 @@ def write_imm_artifacts(output_dir: str | Path, *, result: IMMBenchmarkResult | 
         posterior_history_path,
         switching_detection_metrics_path,
         method_comparison_path,
+        method_evaluation_summary_path,
         decision_matrix_path,
         plot_dir,
         mode_probability_plot_path,
@@ -251,6 +264,33 @@ def write_imm_artifacts(output_dir: str | Path, *, result: IMMBenchmarkResult | 
         step_card_dir,
         step_card_paths,
     )
+
+
+def _build_imm_method_evaluation_rows(result: IMMBenchmarkResult) -> list[dict[str, object]]:
+    samples = [
+        PosteriorMetricSample(
+            true_label=run.true_modes[index],
+            predicted_label=step.predicted_label,
+            confidence=float(step.confidence),
+            posterior_by_label=step.posterior_by_label,
+        )
+        for run in result.runs
+        for index, step in enumerate(run.steps)
+    ]
+    metrics = compute_multiclass_posterior_metrics(samples)
+    method_row = next(row for row in result.method_comparison if row["method_id"] == "imm_v1")
+    return [
+        build_method_evaluation_summary_row(
+            method_id="imm_v1",
+            study_surface="imm_switching_v1",
+            evaluation_surface="state_mixing_switch",
+            metrics=metrics,
+            post_switch_accuracy=float(method_row["post_switch_accuracy"]),
+            switch_detection_delay=float(method_row["switch_detection_delay_median"]),
+            runtime_seconds=float(method_row["runtime_seconds"]),
+            promotion_decision=str(method_row["promotion_decision"]),
+        )
+    ]
 
 
 def render_imm_config_text() -> str:

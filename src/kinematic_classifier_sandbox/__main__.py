@@ -17,7 +17,6 @@ from .corpus.trajectory_exploration.backend_registry import (
     write_exploration_backend_registry_artifacts,
 )
 from .corpus.trajectory_exploration.objective_generation import (
-    generate_trajectory_exploration_objective_suite,
     resolve_generated_trajectory_objective,
     write_generated_trajectory_objective_artifacts,
 )
@@ -33,6 +32,10 @@ from .corpus.trajectory_exploration.sequential_comparison import (
 )
 from .corpus.trajectory_exploration.sequential_gym import SequentialBoundaryControlConfig
 from .meta.repo_shape_audit import write_repo_shape_audit_artifacts
+from .methodology.latex import (
+    write_methodology_latex_artifacts,
+    write_methodology_section_symbol_audit_artifacts,
+)
 from .registry.algorithm_coverage_matrix import write_algorithm_coverage_matrix_artifacts
 from .registry.catalog import METHOD_CATALOG
 from .registry.corpus_evaluation_gap_matrix import write_corpus_evaluation_gap_matrix_artifacts
@@ -42,12 +45,11 @@ from .registry.formal_math_visual_registry import write_formal_math_visual_regis
 from .registry.functional_surface_catalog import write_functional_surface_catalog_artifacts
 from .registry.strict_equation_audit import write_strict_equation_audit_artifacts
 from .rung_sufficiency.analysis import write_ladder_witness_suite_artifacts
+from .static_admissibility.audit import run_static_admissibility_audit
+from .static_admissibility.io import export_static_admissibility_packet
+from .static_admissibility.validation import validate_static_admissibility_packet
 from .story.repo_story import write_repo_story_artifacts
 from .tracing.filter_trace_validation_packet import write_filter_trace_validation_artifacts
-from .methodology.latex import (
-    write_methodology_latex_artifacts,
-    write_methodology_section_symbol_audit_artifacts,
-)
 from .utils.analysis_cache import clear_analysis_cache, describe_analysis_cache
 
 
@@ -327,6 +329,55 @@ def _build_parser() -> argparse.ArgumentParser:
         "--no-showcase",
         action="store_true",
         help="Do not refresh showcase/team-packet front doors.",
+    )
+
+    run_static_audit = subparsers.add_parser(
+        "run-static-audit",
+        help="Run the static feature/class/prior admissibility MVP packet.",
+    )
+    run_static_audit.add_argument(
+        "config",
+        nargs="?",
+        default=None,
+        help="Optional YAML config for the static audit.",
+    )
+    run_static_audit.add_argument(
+        "--output-dir",
+        default="artifacts/packets/static_admissibility_mvp",
+        help="Directory where the static admissibility packet should be written.",
+    )
+
+    export_packet = subparsers.add_parser(
+        "export-packet",
+        help="Export a generated run into a presentation/review packet profile.",
+    )
+    export_packet.add_argument(
+        "--profile",
+        required=True,
+        choices=("static_admissibility_mvp",),
+        help="Packet profile to export.",
+    )
+    export_packet.add_argument(
+        "--run-dir",
+        required=True,
+        help="Source run directory.",
+    )
+    export_packet.add_argument(
+        "--output-dir",
+        required=True,
+        help="Destination packet directory.",
+    )
+
+    validate_packet = subparsers.add_parser(
+        "validate-packet",
+        help="Validate a generated packet.",
+    )
+    validate_packet.add_argument("packet_dir", help="Packet directory to validate.")
+    validate_packet.add_argument(
+        "--profile",
+        default="static_admissibility_mvp",
+        choices=("static_admissibility_mvp",),
+        help="Packet validation profile.",
     )
 
     trajectory_exploration = subparsers.add_parser(
@@ -741,6 +792,32 @@ def main(argv: list[str] | None = None) -> int:
         print(artifacts.artifact_manifest_path)
         print(artifacts.status_report_path)
         return 0
+
+    if args.command == "run-static-audit":
+        packet = run_static_admissibility_audit(args.config, Path(args.output_dir))
+        print(packet.packet_dir)
+        print(packet.decision_card_path)
+        print(packet.static_audit_report_path)
+        print(packet.figure_manifest_path)
+        return 0
+
+    if args.command == "export-packet":
+        if args.profile == "static_admissibility_mvp":
+            packet = export_static_admissibility_packet(args.run_dir, args.output_dir)
+            print(packet.packet_dir)
+            print(packet.decision_card_path)
+            print(packet.figure_manifest_path)
+            return 0
+
+    if args.command == "validate-packet":
+        if args.profile == "static_admissibility_mvp":
+            issues = validate_static_admissibility_packet(args.packet_dir)
+            if issues:
+                for issue in issues:
+                    print(f"FAIL: {issue}")
+                return 1
+            print(f"PASS: {args.packet_dir}")
+            return 0
 
     if args.command == "trajectory-exploration":
         artifacts = write_trajectory_exploration_artifacts(

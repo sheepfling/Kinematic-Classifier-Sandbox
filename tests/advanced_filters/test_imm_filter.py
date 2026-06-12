@@ -56,6 +56,7 @@ class IMMFilterTests(unittest.TestCase):
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.switching_detection_metrics_path.exists())
             self.assertTrue(artifacts.method_comparison_path.exists())
+            self.assertTrue(artifacts.method_evaluation_summary_path.exists())
             self.assertTrue(artifacts.decision_matrix_path.exists())
             self.assertTrue(artifacts.mode_probability_plot_path.exists())
             self.assertTrue(artifacts.state_plot_path.exists())
@@ -76,6 +77,9 @@ class IMMFilterTests(unittest.TestCase):
             mixing_header = artifacts.mixing_probability_history_path.read_text(encoding="utf-8").splitlines()[0]
             self.assertIn("dest_mode", mixing_header)
             self.assertIn("source_mode", mixing_header)
+            summary_header = artifacts.method_evaluation_summary_path.read_text(encoding="utf-8").splitlines()[0]
+            self.assertIn("posterior_margin", summary_header)
+            self.assertIn("switch_detection_delay", summary_header)
 
 
 if __name__ == "__main__":

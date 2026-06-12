@@ -5,6 +5,12 @@ import shutil
 from pathlib import Path
 
 from kinematic_classifier_sandbox.utils.io import write_csv
+from kinematic_classifier_sandbox.utils.method_evaluation_summary import (
+    METHOD_EVALUATION_SUMMARY_FIELDS,
+    PosteriorMetricSample,
+    build_method_evaluation_summary_row,
+    compute_multiclass_posterior_metrics,
+)
 
 from ..analysis.feature_analysis import load_feature_set_manifest
 from ..scenarios import list_scenario_ids
@@ -36,6 +42,10 @@ def write_common_experiment_artifacts(
     posterior_history_path = run_dir / output_filenames.get("posterior_history_path", "unified_posterior_history.csv")
     likelihood_history_path = run_dir / output_filenames.get("likelihood_history_path",
                                                              "unified_likelihood_history.csv")
+    method_evaluation_summary_path = run_dir / output_filenames.get(
+        "method_evaluation_summary_path",
+        "method_evaluation_summary.csv",
+    )
     feature_matrix_path = run_dir / output_filenames.get("feature_matrix_path", "unified_feature_matrix.csv")
     metrics_by_classifier_path = run_dir / output_filenames.get("metrics_by_classifier_path",
                                                                 "metrics_by_classifier.csv")
@@ -117,6 +127,11 @@ def write_common_experiment_artifacts(
         "scenario_id", "scenario_family", "dataset_tier", "time", "score_type", "class_a", "class_b",
         "log_likelihood_class_a", "log_likelihood_class_b",
     ])
+    write_csv(
+        method_evaluation_summary_path,
+        _build_common_method_evaluation_rows(analysis),
+        list(METHOD_EVALUATION_SUMMARY_FIELDS),
+    )
     write_csv(feature_matrix_path, list(analysis.feature_rows), [
         "trajectory_id", "class_pair_id", "scenario_id", "scenario_family", "dataset_tier", "true_class",
         "feature_set_id", "duration", "position_range", "speed_range", "acceleration_range", "acceleration_variance",
@@ -211,6 +226,7 @@ def write_common_experiment_artifacts(
         predictions_path=predictions_path,
         posterior_history_path=posterior_history_path,
         likelihood_history_path=likelihood_history_path,
+        method_evaluation_summary_path=method_evaluation_summary_path,
         feature_matrix_path=feature_matrix_path,
         metrics_by_classifier_path=metrics_by_classifier_path,
         metrics_by_sensor_regime_path=metrics_by_sensor_regime_path,
@@ -229,3 +245,53 @@ def write_common_experiment_artifacts(
         canonical_report_path=canonical_report_path,
         plots_dir=plots_dir,
     )
+
+
+def _build_common_method_evaluation_rows(
+    analysis: CommonExperimentResult,
+) -> list[dict[str, object]]:
+    grouped_rows: dict[str, list[dict[str, object]]] = {}
+    for row in analysis.pair_prediction_rows:
+        grouped_rows.setdefault(str(row["classifier_id"]), []).append(
+            {
+                "true_class": str(row["true_class"]),
+                "predicted_class": str(row["predicted_class"]),
+                "confidence": float(row["confidence"]),
+                "posterior_by_label": {
+                    str(row["class_a"]): float(row["posterior_class_a"]),
+                    str(row["class_b"]): float(row["posterior_class_b"]),
+                },
+            }
+        )
+    rows: list[dict[str, object]] = []
+    for classifier_id, prediction_rows in sorted(grouped_rows.items()):
+        samples = [
+            PosteriorMetricSample(
+                true_label=prediction_row["true_class"],
+                predicted_label=prediction_row["predicted_class"],
+                confidence=prediction_row["confidence"],
+                posterior_by_label=prediction_row["posterior_by_label"],
+            )
+            for prediction_row in prediction_rows
+        ]
+        metrics = compute_multiclass_posterior_metrics(samples)
+        study_surface, evaluation_surface = _common_method_surfaces(classifier_id)
+        rows.append(
+            build_method_evaluation_summary_row(
+                method_id=classifier_id,
+                study_surface=study_surface,
+                evaluation_surface=evaluation_surface,
+                metrics=metrics,
+            )
+        )
+    return rows
+
+
+def _common_method_surfaces(classifier_id: str) -> tuple[str, str]:
+    mapping = {
+        "pointwise": ("common_1d_classifier_study", "local_overlap"),
+        "windowed_robust_extrema": ("common_1d_classifier_study", "window_outlier"),
+        "bayes_accumulator": ("common_1d_classifier_study", "weak_repeated_evidence"),
+        "kalman_bank": ("common_1d_classifier_study", "matched_endpoint_dynamics"),
+    }
+    return mapping.get(classifier_id, ("common_1d_classifier_study", "shared_benchmark"))

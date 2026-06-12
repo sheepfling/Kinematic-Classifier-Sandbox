@@ -42,6 +42,7 @@ class TransitionMatrixAccumulatorTests(unittest.TestCase):
             self.assertTrue(artifacts.numeric_walkthrough_path.exists())
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.scenario_summary_path.exists())
+            self.assertTrue(artifacts.method_evaluation_summary_path.exists())
             self.assertTrue(artifacts.config_path.exists())
             self.assertTrue(artifacts.dataset_manifest_path.exists())
             self.assertTrue(artifacts.plot_png_path.exists())
@@ -57,6 +58,10 @@ class TransitionMatrixAccumulatorTests(unittest.TestCase):
             self.assertIn("static_post_switch_accuracy", header)
             self.assertIn("transition_post_switch_accuracy", header)
             self.assertIn("kalman_post_switch_accuracy", header)
+            method_summary_header = artifacts.method_evaluation_summary_path.read_text(encoding="utf-8").splitlines()[0]
+            self.assertIn("negative_log_likelihood", method_summary_header)
+            self.assertIn("brier_score", method_summary_header)
+            self.assertIn("ece", method_summary_header)
             trace_header = artifacts.filter_step_trace_path.read_text(encoding="utf-8").splitlines()[0]
             self.assertIn("predicted_probability", trace_header)
             self.assertIn("posterior_probability", trace_header)

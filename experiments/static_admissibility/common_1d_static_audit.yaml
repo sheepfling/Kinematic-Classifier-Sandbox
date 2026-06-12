@@ -1,0 +1,12 @@
+static_admissibility:
+  study_id: common_1d_static_admissibility_mvp
+  seed: 7
+  trajectories_per_class: 5
+  priors:
+    bounded_acceleration: 0.142857142857
+    braking: 0.142857142857
+    constant_acceleration: 0.142857142857
+    constant_velocity: 0.142857142858
+    maneuver: 0.142857142857
+    oscillatory: 0.142857142857
+    stationary: 0.142857142857

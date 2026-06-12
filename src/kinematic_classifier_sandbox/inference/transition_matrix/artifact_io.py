@@ -16,6 +16,12 @@ from ...render.step_cards import write_step_card
 from ...tracing.filter_trace import FilterStepTrace, write_filter_step_trace_csv
 from ...tracing.trace_validation import validate_filter_step_trace_set
 from ...utils.plotting import plt
+from ...utils.method_evaluation_summary import (
+    METHOD_EVALUATION_SUMMARY_FIELDS,
+    PosteriorMetricSample,
+    build_method_evaluation_summary_row,
+    compute_multiclass_posterior_metrics,
+)
 
 from .contracts import TransitionBenchmarkArtifacts, TransitionBenchmarkResult
 from .reporting import (
@@ -67,6 +73,7 @@ def write_transition_benchmark_artifacts(
     numeric_walkthrough_path = run_dir / "transition_matrix_numeric_walkthrough.md"
     posterior_history_path = run_dir / "transition_matrix_posterior_history.csv"
     scenario_summary_path = run_dir / "transition_matrix_scenario_summary.csv"
+    method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     config_path = run_dir / "transition_matrix_config.yaml"
     dataset_manifest_path = run_dir / "transition_matrix_dataset_manifest.json"
     plot_png_path = run_dir / "transition_matrix_diagnostics.png"
@@ -122,6 +129,8 @@ def write_transition_benchmark_artifacts(
     mode_names = list(analysis.static_runs[0].steps[0].posterior_weights) if analysis.static_runs else []
     write_csv(posterior_history_path, posterior_rows, ["trajectory_id", "scenario_name", "mode", "step", "time", "measurement", "estimated_speed", "estimated_accel", "true_mode", "predicted_mode", "confidence", *[f"posterior_{name}" for name in mode_names]])
     write_csv(scenario_summary_path, scenario_rows, ["scenario_name", "trajectory_id", "static_accuracy", "transition_accuracy", "kalman_accuracy", "static_post_switch_accuracy", "transition_post_switch_accuracy", "kalman_post_switch_accuracy"])
+    method_evaluation_rows = _build_transition_method_evaluation_rows(analysis)
+    write_csv(method_evaluation_summary_path, method_evaluation_rows, list(METHOD_EVALUATION_SUMMARY_FIELDS))
     traces = _build_transition_filter_step_traces(analysis)
     validate_filter_step_trace_set(traces)
     write_filter_step_trace_csv(filter_step_trace_path, traces)
@@ -183,6 +192,7 @@ def write_transition_benchmark_artifacts(
         numeric_walkthrough_path=numeric_walkthrough_path,
         posterior_history_path=posterior_history_path,
         scenario_summary_path=scenario_summary_path,
+        method_evaluation_summary_path=method_evaluation_summary_path,
         config_path=config_path,
         dataset_manifest_path=dataset_manifest_path,
         plot_png_path=plot_png_path,
@@ -197,6 +207,46 @@ def write_transition_benchmark_artifacts(
         step_card_dir=step_card_dir,
         step_card_paths=step_card_paths,
     )
+
+
+def _build_transition_method_evaluation_rows(
+    result: TransitionBenchmarkResult,
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    run_groups = (
+        ("static_mode_accumulator", "transition_label_switching_v1", "label_switching", result.static_runs, "baseline"),
+        ("transition_matrix_accumulator", "transition_label_switching_v1", "label_switching", result.transition_runs, "promote"),
+        ("kalman_mode_bank", "transition_label_switching_v1", "matched_endpoint_dynamics", result.kalman_runs, "competitive"),
+    )
+    for method_id, study_surface, evaluation_surface, runs, decision in run_groups:
+        samples = [
+            PosteriorMetricSample(
+                true_label=step.true_mode,
+                predicted_label=step.predicted_mode,
+                confidence=float(step.confidence),
+                posterior_by_label=step.posterior_weights,
+            )
+            for run in runs
+            for step in run.steps
+        ]
+        metrics = compute_multiclass_posterior_metrics(samples)
+        rows.append(
+            build_method_evaluation_summary_row(
+                method_id=method_id,
+                study_surface=study_surface,
+                evaluation_surface=evaluation_surface,
+                metrics=metrics,
+                post_switch_accuracy=_mean_post_switch_accuracy(runs),
+                promotion_decision=decision,
+            )
+        )
+    return rows
+
+
+def _mean_post_switch_accuracy(runs) -> float:
+    if not runs:
+        return 0.0
+    return sum(float(run.post_switch_accuracy) for run in runs) / len(runs)
 
 
 def _build_transition_filter_step_traces(result: TransitionBenchmarkResult) -> tuple[FilterStepTrace, ...]:

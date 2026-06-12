@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 
 def _pair_id_from_pair(pair: tuple[str, str] | list[str]) -> str:
     class_a, class_b = (str(name) for name in pair)

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from kinematic_classifier_sandbox.markdown_builder import (
+from kinematic_classifier_sandbox.reports.markdown import (
     MarkdownDocument,
     MermaidEdge,
     MermaidFlow,
@@ -119,6 +119,8 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
             "artifacts/static_feature_class_prior_audit_v1/static_decision_card.md",
             "artifacts/static_feature_class_prior_audit_v1/class_confusability_matrix.csv",
             "artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv",
+            "artifacts/static_feature_class_prior_audit_v1/prior_flip_thresholds.csv",
+            "artifacts/static_feature_class_prior_audit_v1/static_leakage_provenance_audit.csv",
             "artifacts/feature_analysis_v1/feature_separation_scores.csv",
             "artifacts/feature_analysis_v1/pairwise_auc_matrix.csv",
             "artifacts/feature_analysis_v1/pairwise_overlap_heatmap.png",
@@ -130,6 +132,79 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
         showcase_plot="plots/static_audit_decision_card.png",
         showcase_table="tables/static_decision_card.md",
         supporting_equation="Posterior log odds equal likelihood log ratio plus prior log odds; feature/class adequacy is checked before classifier blame.",
+    ),
+    ClaimEvidence(
+        claim_id="C09",
+        claim="Study candidates are screened by static feature/class/prior admissibility before corpus search.",
+        pillar="Static Admissibility",
+        evidence_doc=(
+            "docs/story/lanes/static_admissibility.md",
+            "docs/story/study_candidate_evaluator.md",
+        ),
+        artifact_paths=(
+            "artifacts/packets/static_admissibility_mvp/decision_card.md",
+            "artifacts/packets/static_admissibility_mvp/static_audit_report.md",
+            "artifacts/packets/static_admissibility_mvp/figure_manifest.csv",
+            "artifacts/packets/static_admissibility_mvp/lane_proof_matrix.md",
+        ),
+        test_paths=(
+            "tests/static_admissibility/test_static_admissibility_packet.py",
+            "tests/analysis/test_static_feature_class_prior_audit.py",
+        ),
+        current_status="MVP",
+        limitations="The MVP is sample-backed and proxy-based; it routes study candidates before corpus search but does not prove final classifier performance.",
+        next_work="Route hard class pairs, prior pathology, and coverage gaps into generated Corpus Explorer objectives.",
+        showcase_plot="02b_static_audit_decision_card.png",
+        showcase_table="decision_card.md",
+        supporting_equation="Feature/class/prior setup -> static admissibility audit -> promote/revise/block decision.",
+    ),
+    ClaimEvidence(
+        claim_id="C10",
+        claim="Prior regimes can make a feature/class setup pathological before classifier work.",
+        pillar="Static Admissibility",
+        evidence_doc=(
+            "docs/story/lanes/static_admissibility.md",
+            "docs/methods/static_admissibility/prior_pathology.tex",
+        ),
+        artifact_paths=(
+            "artifacts/packets/static_admissibility_mvp/prior_pathology_report.csv",
+            "artifacts/packets/static_admissibility_mvp/prior_flip_thresholds.csv",
+            "artifacts/packets/static_admissibility_mvp/02g_prior_pathology_surface.png",
+        ),
+        test_paths=(
+            "tests/static_admissibility/test_static_admissibility_packet.py",
+            "tests/analysis/test_static_feature_class_prior_audit.py",
+        ),
+        current_status="MVP",
+        limitations="The prior pathology surface uses Gaussian proxy likelihood ranges; it is a warning gate, not a calibration proof.",
+        next_work="Turn flagged prior regimes into prior-sweep objectives and posterior calibration checks.",
+        showcase_plot="02g_prior_pathology_surface.png",
+        showcase_table="prior_pathology_report.csv",
+        supporting_equation="posterior log odds = likelihood log ratio + prior log odds.",
+    ),
+    ClaimEvidence(
+        claim_id="C11",
+        claim="Feature redundancy and candidate synergy can be identified before algorithm selection.",
+        pillar="Static Admissibility",
+        evidence_doc=(
+            "docs/story/lanes/static_admissibility.md",
+            "docs/methods/static_admissibility/redundancy_synergy.tex",
+        ),
+        artifact_paths=(
+            "artifacts/packets/static_admissibility_mvp/feature_redundancy_matrix.csv",
+            "artifacts/packets/static_admissibility_mvp/feature_synergy_candidates.csv",
+            "artifacts/packets/static_admissibility_mvp/02e_feature_redundancy_graph.png",
+        ),
+        test_paths=(
+            "tests/static_admissibility/test_static_admissibility_packet.py",
+            "tests/analysis/test_static_feature_class_prior_audit.py",
+        ),
+        current_status="MVP",
+        limitations="Synergy rows remain candidate evidence until downstream ablation confirms that the pair helps.",
+        next_work="Add ablation-backed synergy confirmation before allowing any synergy claim to be marked promoted.",
+        showcase_plot="02e_feature_redundancy_graph.png",
+        showcase_table="feature_synergy_candidates.csv",
+        supporting_equation="joint feature information is compared against the best single-feature information.",
     ),
     ClaimEvidence(
         claim_id="C03",
@@ -151,7 +226,7 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
     ),
     ClaimEvidence(
         claim_id="C04",
-        claim="Classifiers share a posterior/evidence contract.",
+        claim="Classifier and filter rungs share a posterior/evidence contract.",
         pillar="Classifier Ladder",
         evidence_doc=("docs/surveys/classifier_ladder_and_contracts.md", "docs/story/algorithm_ladder.md"),
         artifact_paths=(
@@ -162,7 +237,7 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
         test_paths=("tests/methodology/test_generic_inference_contract.py", "tests/methodology/test_generic_classification_evidence_proof.py"),
         current_status="strong",
         limitations="Core metrics are now normalized, but some rung-specific diagnostics still live in backend-specific side tables.",
-        next_work="Keep advanced-diagnostic side tables aligned while preserving the shared required metric surface.",
+        next_work="Keep advanced-diagnostic side tables aligned while preserving the shared required metric surface, full-ladder comparison outputs, and rung-sufficiency decision layer.",
         showcase_plot="plots/pointwise_vs_accumulator_posterior_timelines.png",
         showcase_table="tables/algorithm_ladder_proof.csv",
         supporting_equation="Each rung emits class evidence that normalizes into posterior history.",
@@ -205,7 +280,7 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
     ),
     ClaimEvidence(
         claim_id="C07",
-        claim="Advanced filters are promoted by demonstrated failure evidence.",
+        claim="Advanced filters are gated by demonstrated failure evidence and positive showcase witnesses.",
         pillar="Classifier Ladder",
         evidence_doc=("docs/surveys/dimensional_lift_and_advanced_filter_gates.md", "docs/story/algorithm_ladder.md"),
         artifact_paths=(
@@ -215,8 +290,8 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
         ),
         test_paths=("tests/methodology/test_generic_inference_contract.py", "tests/methodology/test_generic_classification_evidence_proof.py"),
         current_status="trace_validated + witness_supported by case",
-        limitations="Trace validation, witness support, and broader study justification are separate layers; current promotions do not imply universal dominance over simpler methods.",
-        next_work="Lift the witness and trace packets to vector PVA and 3D backend adapters, then expand study-justification sweeps.",
+        limitations="Trace validation, broad full-ladder evaluation, positive showcase witnesses, and broader study justification are separate layers; current promotions do not imply universal dominance over simpler methods.",
+        next_work="Keep all applicable rungs visible on common study surfaces, preserve positive IMM/PF/RBPF showcase witnesses, then lift the witness and trace packets to vector PVA and 3D backend adapters.",
         showcase_plot="plots/advanced_filter_decision_matrix.png",
         showcase_table="tables/advanced_filter_method_comparison.csv",
         supporting_equation="Advanced filters emit the shared posterior evidence contract.",
@@ -253,19 +328,21 @@ WITNESSES: tuple[WitnessProblem, ...] = tuple(
         WitnessProblem("windowed_outlier_extrema", "Raw versus robust feature behavior", "current 1D windowed classes", "raw and robust extrema", "windowed likelihood", "windowed raw and robust sweeps", "outlier extrema stress", "feature design changes posterior stability", "independence of overlapping windows", "artifacts/windowed_baseline/windowed_baseline_diagnostics.png", "artifacts/windowed_baseline/confusion_robust.csv", "revise/promote by case", "robust 3D extrema features"),
         WitnessProblem("sequential_history", "History beyond pointwise evidence", "current 1D accumulator classes", "pointwise evidence history", "sequential Bayes", "accumulator priors", "time-series ambiguity", "history improves confidence", "dynamics residuals", "artifacts/bayes_accumulator/bayes_accumulator_diagnostics.png", "artifacts/bayes_accumulator/confidence_crossings.csv", "promote", "3D evidence histories"),
         WitnessProblem("kalman_endpoint_match", "Dynamics evidence under endpoint ambiguity", "Kalman model classes", "innovation residuals", "Kalman bank", "Kalman config priors", "matched endpoint ambiguity", "innovation likelihood evidence", "general nonlinear 3D sufficiency", "artifacts/kalman_filter_bank/kalman_bank_diagnostics.png", "artifacts/kalman_filter_bank/confusion_final.csv", "promote", "3D state-space model bank"),
-        WitnessProblem("transition_switching", "Mode transition logic before IMM", "switching scenarios", "mode transition evidence", "transition matrix accumulator", "transition matrix config", "switching trajectories", "transition evidence for static-class failure", "IMM/PF/RBPF implementation", "artifacts/transition_matrix_accumulator_v1/transition_matrix_diagnostics.png", "artifacts/transition_matrix_accumulator_v1/transition_matrix_scenario_summary.csv", "pass", "3D maneuver transition states"),
+        WitnessProblem("transition_switching", "Mode transition logic before IMM", "switching scenarios", "mode transition evidence", "transition matrix accumulator", "transition matrix config", "switching trajectories", "transition evidence for static-class failure", "IMM/PF/RBPF as defaults", "artifacts/transition_matrix_accumulator_v1/transition_matrix_diagnostics.png", "artifacts/transition_matrix_accumulator_v1/transition_matrix_scenario_summary.csv", "pass", "3D maneuver transition states"),
         WitnessProblem("generated_corpus_stress", "Generated hard or fragile examples", "selected generated corpus classes", "generated feature matrix", "corpus classifier scoring", "downstream study priors", "stress adequacy leakage validity and excitation", "corpus generation scoring and selection", "final corpus completeness", "artifacts/generic_corpus_exploration/selected_trajectory_gallery.png", "artifacts/generic_corpus_exploration/candidate_scores.csv", "v1 complete", "3D backend adapters and QD dimensions"),
     )
 )
 
 
 LADDER: tuple[LadderRung, ...] = (
-    LadderRung("0", "Pointwise", "log p(y_t | c)", "local likelihood", "no baseline", "pointwise_overlap", "promote"),
-    LadderRung("1", "Windowed", "log p(phi_t | c)", "local history", "outliers and noise", "windowed_outlier_extrema", "revise/promote by case"),
-    LadderRung("2", "Sequential Bayes", "recursive evidence", "memory", "pointwise ignores history", "sequential_history", "promote"),
-    LadderRung("3", "Kalman bank", "innovation likelihood", "dynamics", "endpoint ambiguity", "kalman_endpoint_match", "promote"),
-    LadderRung("4", "Transition matrix", "T_ij mode transition", "switching", "static class assumption", "transition_switching", "pass"),
-    LadderRung("5", "IMM/PF/RBPF", "advanced state inference", "nonlinear switching and mixed latent state inference", "transition static nonlinear and latent-event failures", "advanced_filter_witnesses", "witness_supported / study_justified by case"),
+    LadderRung("0", "Pointwise", "log p(y_t | c)", "local evidence", "local overlap and weak single-frame evidence", "pointwise_overlap", "promote"),
+    LadderRung("1", "Windowed", "log p(phi_t | c)", "short-horizon shape", "outliers and local-noise fragility", "windowed_outlier_extrema", "revise/promote by case"),
+    LadderRung("2", "Sequential Bayes", "recursive evidence", "history accumulation", "pointwise and windowed history blindness", "sequential_history", "promote"),
+    LadderRung("3", "Kalman bank", "innovation likelihood", "dynamic residual evidence", "endpoint ambiguity under matched local features", "kalman_endpoint_match", "promote"),
+    LadderRung("4", "Transition matrix", "T_ij mode transition", "switching logic", "static-class assumption under regime changes", "transition_switching", "pass"),
+    LadderRung("5", "IMM", "mixed mode-conditioned filter evidence", "mode-mixed state inference", "switching dynamics where label-only transition logic is too brittle", "imm_switching_v1", "witness_supported / study_justified by case"),
+    LadderRung("6", "PF", "sampled posterior evidence", "nonlinear or non-Gaussian posterior evidence", "single-Gaussian projections collapse the relevant posterior structure", "pf_abs_range_multimodal_oracle_v1", "witness_supported / study_justified by case"),
+    LadderRung("7", "RBPF", "sampled discrete path with conditional Kalman evidence", "latent event structure plus conditional state inference", "plain PF wastes structure on mixed discrete/continuous latent problems", "latent_maneuver_onset_1d", "witness_supported / study_justified by case"),
 )
 
 
@@ -280,6 +357,9 @@ ARTIFACT_MANIFEST: tuple[ArtifactManifestEntry, ...] = (
     ArtifactManifestEntry("artifacts/class_validity/class_validity_scores.csv", "src/kinematic_classifier_sandbox/validation/class_validity.py", ("artifacts/class_validity/class_definition_schema.json",), "Are class definitions internally valid?", "C01", "implemented", "Class validity scores do not replace domain review."),
     ArtifactManifestEntry("artifacts/static_feature_class_prior_audit_v1/static_decision_card.md", "src/kinematic_classifier_sandbox/analysis/static_feature_class_prior_audit.py", ("artifacts/feature_analysis_v1/feature_matrix.csv",), "Is the proposed feature/class/prior regime admissible before corpus or classifier escalation?", "C02", "strong", "Static admissibility is an early gate, not final posterior validation."),
     ArtifactManifestEntry("artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv", "src/kinematic_classifier_sandbox/analysis/static_feature_class_prior_audit.py", ("artifacts/feature_analysis_v1/feature_matrix.csv",), "Can observed likelihood-ratio ranges overcome the proposed priors?", "C02;C03", "strong", "Gaussian likelihood proxies should be treated as prior-risk indicators."),
+    ArtifactManifestEntry("artifacts/packets/static_admissibility_mvp/decision_card.md", "src/kinematic_classifier_sandbox/static_admissibility/audit.py", ("experiments/static_admissibility/common_1d_static_audit.yaml",), "Does the feature/class/prior setup route to corpus exploration, revision, blocking, or rejection?", "C09", "MVP", "The static packet routes study candidates but does not prove downstream classifier performance."),
+    ArtifactManifestEntry("artifacts/packets/static_admissibility_mvp/prior_pathology_report.csv", "src/kinematic_classifier_sandbox/static_admissibility/audit.py", ("experiments/static_admissibility/common_1d_static_audit.yaml",), "Which prior regimes dominate or flip admissibility before classifier work?", "C10", "MVP", "Prior pathology uses proxy likelihood ranges and must be confirmed by posterior calibration studies."),
+    ArtifactManifestEntry("artifacts/packets/static_admissibility_mvp/feature_synergy_candidates.csv", "src/kinematic_classifier_sandbox/static_admissibility/audit.py", ("experiments/static_admissibility/common_1d_static_audit.yaml",), "Which redundant or synergistic feature pairs should be routed to ablation before algorithm selection?", "C11", "MVP", "Synergy remains candidate evidence until downstream ablation confirms it."),
     ArtifactManifestEntry("artifacts/feature_analysis_v1/feature_separation_scores.csv", "src/kinematic_classifier_sandbox/analysis/feature_analysis.py", ("artifacts/feature_analysis_v1/feature_matrix.csv",), "Are classes separable under the current feature set?", "C02", "strong", "Static separability does not prove independent evidence."),
     ArtifactManifestEntry("artifacts/feature_analysis_v1/pairwise_auc_matrix.csv", "src/kinematic_classifier_sandbox/analysis/feature_analysis.py", ("artifacts/feature_analysis_v1/feature_matrix.csv",), "Which class pairs are separable by feature?", "C02", "strong", "Pairwise separability can hide multiclass interactions."),
     ArtifactManifestEntry("artifacts/feature_analysis_v1/pairwise_overlap_heatmap.png", "src/kinematic_classifier_sandbox/analysis/feature_analysis.py", ("artifacts/feature_analysis_v1/pairwise_overlap_matrix.csv",), "Where do feature distributions overlap?", "C02", "strong", "Overlap depends on the sampled corpus."),
@@ -670,6 +750,7 @@ def render_status_report() -> str:
             "Result interpretation checklist.",
             "Claim-to-evidence matrix with docs, artifacts, tests, limitations, and next work.",
             "Witness-problem cards for all six current 1D witnesses.",
+            "Epic 2 framing that separates full-ladder evaluation from selective promotion.",
             "Repo layer diagram and artifact dependency graph.",
             "Consolidated artifact manifest and artifact index.",
             "Claim-oriented showcase and team packet front doors.",
@@ -769,6 +850,15 @@ def render_repo_story_index() -> str:
             "`pln024_status_report.md`: status, validation evidence, and next methodology follow-up.",
         ]
     )
+    report.heading("Epic 2 Follow-Through", level=2)
+    report.bullet_list(
+        [
+            "All applicable rungs should be evaluated on common benchmark surfaces.",
+            "Promotion should remain tied to rung sufficiency, failure-mode fit, calibration, and prior robustness.",
+            "Simple 1D witnesses prove the evidence contract; advanced IMM/PF/RBPF witnesses prove the escalation path toward the 3D lift.",
+            "Planned high-signal additions include full-ladder comparison, method-status, method-win-by-regime, and simple-to-advanced bridge outputs.",
+        ]
+    )
     report.heading("Canonical Docs", level=2)
     report.bullet_list(
         [
@@ -838,6 +928,9 @@ def render_result_interpretation_checklist() -> str:
     )
     report.paragraph(
         "Do not promote a leaderboard claim until corpus adequacy, class validity, feature excitation, prior sensitivity, and oracle gap are understood."
+    )
+    report.paragraph(
+        "For Epic 2 specifically: evaluate all applicable rungs on the same study surface, keep the simplest sufficient rung decision honest, and maintain positive IMM/PF/RBPF showcase witnesses that prove the escalation path toward 3D state inference."
     )
     return report.text()
 

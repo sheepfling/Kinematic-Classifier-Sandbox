@@ -58,6 +58,9 @@ decision"]
 |`artifacts/class_validity/class_validity_scores.csv`|`artifacts/class_validity/class_definition_schema.json`|
 |`artifacts/static_feature_class_prior_audit_v1/static_decision_card.md`|`artifacts/feature_analysis_v1/feature_matrix.csv`|
 |`artifacts/static_feature_class_prior_audit_v1/prior_pathology_report.csv`|`artifacts/feature_analysis_v1/feature_matrix.csv`|
+|`artifacts/packets/static_admissibility_mvp/decision_card.md`|`experiments/static_admissibility/common_1d_static_audit.yaml`|
+|`artifacts/packets/static_admissibility_mvp/prior_pathology_report.csv`|`experiments/static_admissibility/common_1d_static_audit.yaml`|
+|`artifacts/packets/static_admissibility_mvp/feature_synergy_candidates.csv`|`experiments/static_admissibility/common_1d_static_audit.yaml`|
 |`artifacts/feature_analysis_v1/feature_separation_scores.csv`|`artifacts/feature_analysis_v1/feature_matrix.csv`|
 |`artifacts/feature_analysis_v1/pairwise_auc_matrix.csv`|`artifacts/feature_analysis_v1/feature_matrix.csv`|
 |`artifacts/feature_analysis_v1/pairwise_overlap_heatmap.png`|`artifacts/feature_analysis_v1/pairwise_overlap_matrix.csv`|
@@ -99,11 +102,14 @@ decision"]
 | :---: | :---: |
 |C01 Corpus quality is evaluated before classifier claims.|`plots/corpus_adequacy_scorecard.png`|
 |C02 Feature/class separability can be inspected statically.|`plots/static_audit_decision_card.png`|
+|C09 Study candidates are screened by static feature/class/prior admissibility before corpus search.|`02b_static_audit_decision_card.png`|
+|C10 Prior regimes can make a feature/class setup pathological before classifier work.|`02g_prior_pathology_surface.png`|
+|C11 Feature redundancy and candidate synergy can be identified before algorithm selection.|`02e_feature_redundancy_graph.png`|
 |C03 Priors are explicitly tested for fragility.|`plots/prior_sensitivity.png`|
-|C04 Classifiers share a posterior/evidence contract.|`plots/pointwise_vs_accumulator_posterior_timelines.png`|
+|C04 Classifier and filter rungs share a posterior/evidence contract.|`plots/pointwise_vs_accumulator_posterior_timelines.png`|
 |C05 1D witness problems prove ladder layers.|`plots/pointwise_vs_accumulator_posterior_timelines.png`|
 |C06 Corpus Explorer can generate and score candidate data.|`plots/candidate_corpus_comparison.png`|
-|C07 Advanced filters are promoted by demonstrated failure evidence.|`plots/advanced_filter_decision_matrix.png`|
+|C07 Advanced filters are gated by demonstrated failure evidence and positive showcase witnesses.|`plots/advanced_filter_decision_matrix.png`|
 |C08 3D transition is a controlled lift, not a full rewrite.|`plots/dimension_lift_audit_chart.png`|
 
 

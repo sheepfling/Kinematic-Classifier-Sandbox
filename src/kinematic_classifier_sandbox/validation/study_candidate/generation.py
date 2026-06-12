@@ -7,31 +7,39 @@ from statistics import mean
 
 from kinematic_classifier_sandbox.utils.io import write_csv
 
-from .analysis.feature_analysis import (
+from ...analysis.feature_analysis import (
     load_feature_registry,
     load_feature_set_manifest,
     resolve_feature_names,
 )
-from .common_experiment.runner import analyze_common_experiment
-from .common_experiment.contracts import CommonExperimentResult
-from .corpus.adequacy_audit_utils import PAIR_TIER_REQUIREMENTS, load_class_pair_manifest
-from .corpus.autodevelopment import analyze_corpus_autodevelopment
-from .corpus.autodevelopment_types import CorpusAutodevelopmentResult
-from .corpus.coverage_report import load_classifier_manifest
-from .corpus.policy import (
+from ...common_experiment.contracts import CommonExperimentResult
+from ...common_experiment.runner import analyze_common_experiment
+from ...corpus.adequacy_audit_utils import PAIR_TIER_REQUIREMENTS, load_class_pair_manifest
+from ...corpus.autodevelopment import analyze_corpus_autodevelopment
+from ...corpus.autodevelopment_types import CorpusAutodevelopmentResult
+from ...corpus.coverage_report import load_classifier_manifest
+from ...corpus.policy import (
     CorpusPolicySpec,
     load_corpus_policy_spec,
     score_study_candidate_monte_carlo,
     score_study_candidate_static,
 )
-from .runtime_paths import prepare_matplotlib
-from .study_candidate_generation_rendering import (
+from ...utils.math import _clamp
+from ...utils.plotting import _figure_to_png
+from .protocol import StudyCandidateProtocolResult, analyze_study_candidate_protocol
+from .rendering import (
     _render_candidate_promotion_matrix,
     _render_classifier_feature_class_heatmap,
     _render_static_vs_statistical_score,
 )
-from .study_candidate_generation_utils import (
-    _alias_matches,
+from .types import (
+    StudyCandidateFeatureEvidenceRow,
+    StudyCandidateMonteCarloScoreRow,
+    StudyCandidatePriorSensitivityExplanationRow,
+    StudyCandidateRow,
+    StudyCandidateStaticScoreRow,
+)
+from .utils import (
     _classifier_assumption_fit,
     _feature_class_compatibility_score,
     _feature_set_for_classifier,
@@ -39,17 +47,6 @@ from .study_candidate_generation_utils import (
     _normalize_pair_id,
     _pair_id_from_pair,
 )
-from .study_candidate_generation_types import (
-    StudyCandidateFeatureEvidenceRow,
-    StudyCandidateMonteCarloScoreRow,
-    StudyCandidatePriorSensitivityExplanationRow,
-    StudyCandidateRow,
-    StudyCandidateStaticScoreRow,
-)
-from .study_candidate_protocol import analyze_study_candidate_protocol
-from .study_candidate_protocol import StudyCandidateProtocolResult
-from .utils.math import _clamp
-from .utils.plotting import _figure_to_png
 
 
 @dataclass(frozen=True, slots=True)

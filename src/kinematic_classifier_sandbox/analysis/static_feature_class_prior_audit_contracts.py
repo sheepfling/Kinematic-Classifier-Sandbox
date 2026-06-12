@@ -42,10 +42,23 @@ class StaticFeatureClassPriorAuditArtifacts:
     report_path: Path
     decision_card_path: Path
     decision_card_png_path: Path
+    class_confusability_png_path: Path
+    feature_relevance_png_path: Path
+    feature_redundancy_png_path: Path
+    feature_synergy_png_path: Path
+    prior_pathology_surface_png_path: Path
+    prior_flip_thresholds_png_path: Path
+    coverage_feasibility_png_path: Path
+    leakage_provenance_png_path: Path
+    action_router_png_path: Path
     class_confusability_matrix_path: Path
     feature_relevance_table_path: Path
     feature_redundancy_matrix_path: Path
     feature_synergy_candidates_path: Path
+    prior_regime_path: Path
     prior_pathology_report_path: Path
+    prior_flip_thresholds_path: Path
     coverage_static_report_path: Path
+    coverage_feasibility_path: Path
     leakage_static_report_path: Path
+    leakage_provenance_audit_path: Path

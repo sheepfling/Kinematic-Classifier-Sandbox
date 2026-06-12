@@ -5,7 +5,7 @@ from itertools import combinations
 from math import log, sqrt
 from statistics import mean
 
-import numpy as np
+import numpy
 
 from kinematic_classifier_sandbox.utils.math import _normalize_log_scores
 from kinematic_classifier_sandbox.utils.stats import histogram_overlap, js_divergence
@@ -122,54 +122,54 @@ def _class_matrix(
     samples: tuple[StaticAuditSample, ...],
     feature_names: tuple[str, ...],
     class_name: str,
-) -> np.ndarray:
+) -> numpy.ndarray:
     rows = [
         [float(sample.feature_values.get(feature_name, 0.0)) for feature_name in feature_names]
         for sample in samples
         if sample.true_class == class_name
     ]
-    return np.asarray(rows, dtype=float)
+    return numpy.asarray(rows, dtype=float)
 
 
-def _gaussian_stats(matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _gaussian_stats(matrix: numpy.ndarray) -> tuple[numpy.ndarray, numpy.ndarray]:
     if matrix.size == 0:
-        return np.zeros((0,), dtype=float), np.zeros((0, 0), dtype=float)
+        return numpy.zeros((0,), dtype=float), numpy.zeros((0, 0), dtype=float)
     mean_vector = matrix.mean(axis=0)
     if matrix.shape[0] < 2:
-        covariance = np.eye(matrix.shape[1], dtype=float) * 1e-6
+        covariance = numpy.eye(matrix.shape[1], dtype=float) * 1e-6
     else:
-        covariance = np.cov(matrix, rowvar=False)
+        covariance = numpy.cov(matrix, rowvar=False)
         if covariance.ndim == 0:
-            covariance = np.asarray([[float(covariance)]], dtype=float)
-    covariance = np.asarray(covariance, dtype=float)
+            covariance = numpy.asarray([[float(covariance)]], dtype=float)
+    covariance = numpy.asarray(covariance, dtype=float)
     covariance = 0.5 * (covariance + covariance.T)
-    covariance += np.eye(covariance.shape[0], dtype=float) * 1e-6
+    covariance += numpy.eye(covariance.shape[0], dtype=float) * 1e-6
     return mean_vector, covariance
 
 
-def _mahalanobis_distance(matrix_a: np.ndarray, matrix_b: np.ndarray) -> float:
+def _mahalanobis_distance(matrix_a: numpy.ndarray, matrix_b: numpy.ndarray) -> float:
     if matrix_a.size == 0 or matrix_b.size == 0:
         return 0.0
     mean_a, cov_a = _gaussian_stats(matrix_a)
     mean_b, cov_b = _gaussian_stats(matrix_b)
     pooled = 0.5 * (cov_a + cov_b)
     diff = mean_a - mean_b
-    inv_cov = np.linalg.pinv(pooled)
+    inv_cov = numpy.linalg.pinv(pooled)
     value = float(diff.T @ inv_cov @ diff)
     return sqrt(max(value, 0.0))
 
 
-def _log_gaussian_pdf(vector: np.ndarray, mean_vector: np.ndarray, covariance: np.ndarray) -> float:
+def _log_gaussian_pdf(vector: numpy.ndarray, mean_vector: numpy.ndarray, covariance: numpy.ndarray) -> float:
     if covariance.size == 0:
         return 0.0
     dimension = covariance.shape[0]
-    covariance = covariance + np.eye(dimension, dtype=float) * 1e-6
-    sign, log_det = np.linalg.slogdet(covariance)
+    covariance = covariance + numpy.eye(dimension, dtype=float) * 1e-6
+    sign, log_det = numpy.linalg.slogdet(covariance)
     if sign <= 0:
-        log_det = float(np.log(np.linalg.det(covariance + np.eye(dimension) * 1e-3)))
+        log_det = float(numpy.log(numpy.linalg.det(covariance + numpy.eye(dimension) * 1e-3)))
     diff = vector - mean_vector
-    quad = float(diff.T @ np.linalg.pinv(covariance) @ diff)
-    return -0.5 * (dimension * log(2.0 * np.pi) + log_det + quad)
+    quad = float(diff.T @ numpy.linalg.pinv(covariance) @ diff)
+    return -0.5 * (dimension * log(2.0 * numpy.pi) + log_det + quad)
 
 
 def _feature_values(samples: tuple[StaticAuditSample, ...], feature_name: str) -> list[float]:
@@ -232,7 +232,7 @@ def analyze_static_feature_class_prior_audit(
         mean_a = matrix_a.mean(axis=0)
         mean_b = matrix_b.mean(axis=0)
         diff = mean_a - mean_b
-        projection = diff if float(np.linalg.norm(diff)) > 1e-12 else np.ones(len(feature_names))
+        projection = diff if float(numpy.linalg.norm(diff)) > 1e-12 else numpy.ones(len(feature_names))
         scores_a = [float(row @ projection) for row in matrix_a]
         scores_b = [float(row @ projection) for row in matrix_b]
         auc = _pairwise_auc(scores_a, scores_b)
@@ -250,8 +250,8 @@ def analyze_static_feature_class_prior_audit(
             )
             for index, _feature_name in enumerate(feature_names)
         )
-        variance_sum = float(np.var(matrix_a, axis=0).sum() + np.var(matrix_b, axis=0).sum())
-        fisher_ratio = float(np.square(diff).sum() / max(variance_sum, 1e-12))
+        variance_sum = float(numpy.var(matrix_a, axis=0).sum() + numpy.var(matrix_b, axis=0).sum())
+        fisher_ratio = float(numpy.square(diff).sum() / max(variance_sum, 1e-12))
         mahalanobis = _mahalanobis_distance(matrix_a, matrix_b)
         status = _status_from_pair(auc, overlap, mahalanobis)
         class_pair_rows.append(
@@ -351,7 +351,7 @@ def analyze_static_feature_class_prior_audit(
         mean_a, cov_a = class_stats[class_a]
         mean_b, cov_b = class_stats[class_b]
         vectors = [
-            np.asarray([float(sample.feature_values.get(feature, 0.0)) for feature in feature_names])
+            numpy.asarray([float(sample.feature_values.get(feature, 0.0)) for feature in feature_names])
             for sample in sample_tuple
             if sample.true_class in {class_a, class_b}
         ]

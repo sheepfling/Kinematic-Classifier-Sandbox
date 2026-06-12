@@ -56,12 +56,27 @@ Read next:
 
 ## Useful targeted runs
 
-- Fast environment and artifact-facing checks:
-  - `python3 -m pytest tests/test_artifacts.py tests/test_showcase_builder.py`
-- Feature and inspection stack:
-  - `python3 -m pytest tests/test_feature_analysis.py tests/test_pca_analysis.py tests/test_inspection_bundle.py`
-- Core ladder methods:
-  - `python3 -m pytest tests/test_pointwise_baseline.py tests/test_windowed_baseline.py tests/test_sequential_bayes_accumulator.py tests/test_kalman_filter_bank.py`
+- Fast package-shape and methodology smoke checks:
+  - `PYTHONPATH=src python3 scripts/test.py`
+- Import/package/front-door checks:
+  - `PYTHONPATH=src python3 scripts/test.py --lane shape`
+- Static admissibility lane:
+  - `PYTHONPATH=src python3 scripts/test.py --lane static`
+- Study-candidate/common-experiment lane:
+  - `PYTHONPATH=src python3 scripts/test.py --lane study`
+- Corpus policy and adequacy lane:
+  - `PYTHONPATH=src python3 scripts/test.py --lane corpus-policy`
+- Advanced-filter lane:
+  - `PYTHONPATH=src python3 scripts/test.py --lane filters`
+- Core inference ladder:
+  - `PYTHONPATH=src python3 scripts/test.py --lane inference`
+- Broad light run without PDF/doc-build smoke tests:
+  - `PYTHONPATH=src python3 scripts/test.py --lane all-light`
+- Heavy methodology documentation and LaTeX tests:
+  - `PYTHONPATH=src python3 scripts/test.py --lane docs-heavy`
+
+Avoid `python3 -m unittest discover tests`; the suite is pytest-first and that
+command can report `0 tests` despite a healthy pytest suite.
 
 ## Rule of thumb
 

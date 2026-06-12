@@ -279,6 +279,7 @@ class CommonExperimentArtifacts:
     predictions_path: Path
     posterior_history_path: Path
     likelihood_history_path: Path
+    method_evaluation_summary_path: Path
     feature_matrix_path: Path
     metrics_by_classifier_path: Path
     metrics_by_sensor_regime_path: Path

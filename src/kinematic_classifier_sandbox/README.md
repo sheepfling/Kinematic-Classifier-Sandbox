@@ -55,6 +55,9 @@ splitting:
   - feature analysis, PCA, identifiability, dimensional audit, and inspection bundles
 - `validation/`
   - cross-method evaluation, class validity, and decision/report helpers
+  - `validation/study_candidate/` contains study-candidate generation, protocol schemas, and promotion inputs
+- `reports/`
+  - shared Markdown and lightweight diagram-building helpers used by report renderers
 - `advanced_filters/`
   - IMM, particle-filter, and RBPF contracts, runners, and witness implementations
 - `methodology/`

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .utils.runtime import repo_root
+from ...utils.runtime import repo_root
 
 
 def _protocol_source_path() -> Path:

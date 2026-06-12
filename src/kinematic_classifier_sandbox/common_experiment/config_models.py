@@ -44,6 +44,7 @@ class OutputsSectionModel(BaseModel):
     predictions_path: str = "unified_predictions.csv"
     posterior_history_path: str = "unified_posterior_history.csv"
     likelihood_history_path: str = "unified_likelihood_history.csv"
+    method_evaluation_summary_path: str = "method_evaluation_summary.csv"
     feature_matrix_path: str = "unified_feature_matrix.csv"
     metrics_by_classifier_path: str = "metrics_by_classifier.csv"
     metrics_by_sensor_regime_path: str = "metrics_by_sensor_regime.csv"

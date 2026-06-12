@@ -23,7 +23,8 @@ class RepoStoryTests(unittest.TestCase):
     def test_static_repo_story_references_exist(self) -> None:
         validation = validate_repo_story_references()
         self.assertEqual(validation["status"], "pass", validation["missing"])
-        self.assertEqual(validation["claim_count"], 8)
+        self.assertEqual(validation["claim_count"], len(CLAIMS))
+        self.assertGreaterEqual(validation["claim_count"], 8)
         self.assertEqual(validation["witness_count"], 6)
         self.assertGreaterEqual(validation["artifact_manifest_count"], 20)
 
@@ -76,7 +77,7 @@ class RepoStoryTests(unittest.TestCase):
     def test_proof_gallery_uses_pln024_claim_story(self) -> None:
         text = render_proof_gallery()
         self.assertIn("## Claim 1: Corpus quality is evaluated before classifier claims.", text)
-        self.assertIn("## Claim 8: 3D transition is a controlled lift, not a full rewrite.", text)
+        self.assertIn("3D transition is a controlled lift, not a full rewrite.", text)
         self.assertIn("plots/corpus_adequacy_scorecard.png", text)
         self.assertIn("tables/advanced_filter_method_comparison.csv", text)
 

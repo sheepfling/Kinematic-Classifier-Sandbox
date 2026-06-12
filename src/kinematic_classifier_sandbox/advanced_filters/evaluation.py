@@ -23,12 +23,18 @@ from numpy import (
     zeros,
 )
 
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import plt
 
 from ..tracing.filter_trace import FilterStepTrace, posterior_entropy, write_filter_step_trace_csv
 from ..tracing.trace_validation import validate_filter_step_trace_set
+from ..utils.method_evaluation_summary import (
+    METHOD_EVALUATION_SUMMARY_FIELDS,
+    PosteriorMetricSample,
+    build_method_evaluation_summary_row,
+    compute_multiclass_posterior_metrics,
+)
 from .linear_gaussian import KalmanModeState, kalman_predict, kalman_update
 from .models_1d import (
     constant_velocity_transition,
@@ -53,6 +59,7 @@ class AdvancedFilterWitnessArtifacts:
     posterior_history_path: Path
     state_estimate_history_path: Path
     metrics_path: Path
+    method_evaluation_summary_path: Path
     plot_paths: tuple[Path, ...]
 
 
@@ -159,10 +166,16 @@ def write_particle_filter_witness_artifacts(output_dir: str | Path, *, seed: int
     posterior_path = run_dir / "posterior_history.csv"
     state_path = run_dir / "state_estimate_history.csv"
     metrics_path = run_dir / "pf_method_comparison.csv"
+    method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     report_path = run_dir / "pf_report.md"
     write_csv(posterior_path, [asdict(posterior_row) for posterior_row in posterior_rows], ["trajectory_id", "time", "label", "posterior", "predicted_label", "confidence", "log_evidence"])
     write_csv(state_path, [asdict(state_row) for state_row in state_rows], ["trajectory_id", "time", "truth_position", "observation", "pf_position", "pf_velocity", "kalman_position", "kalman_velocity", "predicted_label", "ess", "ess_fraction", "resampled", "unique_ancestor_count", "unique_ancestor_fraction"])
     write_csv(metrics_path, metrics, list(metrics[0]))
+    write_csv(
+        method_evaluation_summary_path,
+        [_build_pf_method_evaluation_summary_row(result)],
+        list(METHOD_EVALUATION_SUMMARY_FIELDS),
+    )
     traces = _build_pf_filter_step_traces(posterior_rows, state_rows)
     validate_filter_step_trace_set(traces)
     write_filter_step_trace_csv(trace_dir / "filter_step_trace.csv", traces)
@@ -192,7 +205,15 @@ def write_particle_filter_witness_artifacts(output_dir: str | Path, *, seed: int
     observations = array([row.observation for row in state_rows], dtype=float64)
     _plot_series(state_plot, times, [(truth, "truth"), (observations, "observation"), (array([row.kalman_position for row in state_rows]), "Kalman baseline"), (array([row.pf_position for row in state_rows]), "PF estimate")], "PF state vs truth")
     _plot_series(ess_plot, times, [(array([row.ess_fraction for row in state_rows], dtype=float64), "ESS/N")], "PF ESS timeline")
-    return AdvancedFilterWitnessArtifacts(run_dir, report_path, posterior_path, state_path, metrics_path, (state_plot, ess_plot))
+    return AdvancedFilterWitnessArtifacts(
+        run_dir,
+        report_path,
+        posterior_path,
+        state_path,
+        metrics_path,
+        method_evaluation_summary_path,
+        (state_plot, ess_plot),
+    )
 
 
 def analyze_particle_filter_witness(*, seed: int = 23, particle_count: int = 384) -> ParticleFilterWitnessResult:
@@ -407,14 +428,20 @@ def write_rbpf_witness_artifacts(output_dir: str | Path, *, seed: int = 31) -> A
     resampling_count = sum(1 for row in state_rows if row.resampled)
     decision = "promote" if post_onset_mode_accuracy >= 0.50 else "revise"
 
-    posterior_path = run_dir / "latent_mode_posterior.csv"
-    state_path = run_dir / "conditional_filter_history.csv"
+    posterior_path = run_dir / "posterior_history.csv"
+    state_path = run_dir / "state_estimate_history.csv"
     metrics_path = run_dir / "rbpf_method_comparison.csv"
+    method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     report_path = run_dir / "rbpf_report.md"
     write_csv(posterior_path, [asdict(posterior_row) for posterior_row in posterior_rows], ["trajectory_id", "time", "label", "posterior", "predicted_label", "confidence", "log_evidence"])
     write_csv(state_path, [asdict(state_row) for state_row in state_rows], ["trajectory_id", "time", "truth_position", "observation", "state_position", "state_velocity", "state_acceleration", "predicted_mode", "ess", "ess_fraction", "resampled", "unique_ancestor_count", "unique_ancestor_fraction"])
     metrics = [{"method_id": "rbpf_v1", "witness": "latent_maneuver_onset_1d", "state_position_rmse": rmse, "post_onset_mode_accuracy": post_onset_mode_accuracy, "resampling_count": resampling_count, "runtime_seconds": runtime_seconds, "promotion_decision": decision}]
     write_csv(metrics_path, metrics, list(metrics[0]))
+    write_csv(
+        method_evaluation_summary_path,
+        [_build_rbpf_method_evaluation_summary_row(tuple(posterior_rows), metrics[0])],
+        list(METHOD_EVALUATION_SUMMARY_FIELDS),
+    )
     traces = _build_rbpf_filter_step_traces(tuple(posterior_rows), tuple(state_rows))
     validate_filter_step_trace_set(traces)
     write_filter_step_trace_csv(trace_dir / "filter_step_trace.csv", traces)
@@ -443,7 +470,15 @@ def write_rbpf_witness_artifacts(output_dir: str | Path, *, seed: int = 31) -> A
         series.append((array([row.posterior for row in posterior_rows if row.label == label], dtype=float64), label))
     _plot_series(mode_plot, times, series, "RBPF mode posterior")
     _plot_series(ess_plot, times, [(array([row.ess for row in state_rows], dtype=float64), "ESS")], "RBPF ESS timeline")
-    return AdvancedFilterWitnessArtifacts(run_dir, report_path, posterior_path, state_path, metrics_path, (mode_plot, ess_plot))
+    return AdvancedFilterWitnessArtifacts(
+        run_dir,
+        report_path,
+        posterior_path,
+        state_path,
+        metrics_path,
+        method_evaluation_summary_path,
+        (mode_plot, ess_plot),
+    )
 
 
 def rbpf_witness_surface() -> AdvancedFilterSurface[None, AdvancedFilterWitnessArtifacts]:
@@ -461,6 +496,78 @@ def rbpf_witness_surface() -> AdvancedFilterSurface[None, AdvancedFilterWitnessA
             "problem_family": "rbpf_1d",
         },
     )
+
+
+def _build_pf_method_evaluation_summary_row(
+    result: ParticleFilterWitnessResult,
+) -> dict[str, object]:
+    samples = [
+        PosteriorMetricSample(
+            true_label="nonlinear_drag",
+            predicted_label=row.predicted_label,
+            confidence=float(row.confidence),
+            posterior_by_label={sample.label: float(sample.posterior) for sample in rows_at_time},
+        )
+        for rows_at_time in _group_posterior_rows_by_time(result.posterior_rows)
+        for row in rows_at_time[:1]
+    ]
+    metrics = compute_multiclass_posterior_metrics(samples)
+    return build_method_evaluation_summary_row(
+        method_id="particle_filter_bank_v1",
+        study_surface="particle_filter_v1",
+        evaluation_surface="nonlinear_nongaussian",
+        metrics=metrics,
+        runtime_seconds=float(result.metrics["runtime_seconds"]),
+        promotion_decision=str(result.metrics["promotion_decision"]),
+    )
+
+
+def _build_rbpf_method_evaluation_summary_row(
+    posterior_rows: tuple[RBPFFilterPosteriorRow, ...],
+    metrics_row: dict[str, float | int | str],
+) -> dict[str, object]:
+    samples = []
+    for rows_at_time in _group_posterior_rows_by_time(posterior_rows):
+        time_value = float(rows_at_time[0].time)
+        posterior_by_label = {row.label: float(row.posterior) for row in rows_at_time}
+        samples.append(
+            PosteriorMetricSample(
+                true_label="accelerate" if time_value >= 3.0 else "coast",
+                predicted_label=rows_at_time[0].predicted_label,
+                confidence=float(rows_at_time[0].confidence),
+                posterior_by_label=posterior_by_label,
+            )
+        )
+    metrics = compute_multiclass_posterior_metrics(samples)
+    return build_method_evaluation_summary_row(
+        method_id="rbpf_v1",
+        study_surface="rbpf_v1",
+        evaluation_surface="latent_event_timing",
+        metrics=metrics,
+        post_switch_accuracy=float(metrics_row["post_onset_mode_accuracy"]),
+        runtime_seconds=float(metrics_row["runtime_seconds"]),
+        promotion_decision=str(metrics_row["promotion_decision"]),
+    )
+
+
+def _group_posterior_rows_by_time(
+    posterior_rows: tuple[ParticleFilterPosteriorRow, ...] | tuple[RBPFFilterPosteriorRow, ...],
+) -> list[list[ParticleFilterPosteriorRow | RBPFFilterPosteriorRow]]:
+    groups: list[list[ParticleFilterPosteriorRow | RBPFFilterPosteriorRow]] = []
+    current_time: float | None = None
+    current_rows: list[ParticleFilterPosteriorRow | RBPFFilterPosteriorRow] = []
+    for row in posterior_rows:
+        row_time = float(row.time)
+        if current_time is None or row_time == current_time:
+            current_rows.append(row)
+            current_time = row_time
+            continue
+        groups.append(current_rows)
+        current_rows = [row]
+        current_time = row_time
+    if current_rows:
+        groups.append(current_rows)
+    return groups
 
 
 def _build_pf_filter_step_traces(

@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from .study_candidate_protocol_utils import (
+from .protocol_utils import (
     _load_protocol_markdown,
     _study_candidate_schema,
     _validation_ladder_schema,

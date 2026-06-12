@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kinematic_classifier_sandbox.markdown_builder import MarkdownDocument
+from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
 from kinematic_classifier_sandbox.utils.text import markdown_table_preview
 
 from .contracts import (
@@ -120,7 +120,7 @@ def _render_algorithm_ladder_report(data: ShowcaseAlgorithmReportData) -> str:
     )
     report = MarkdownDocument("Algorithm Ladder")
     report.paragraph(
-        "The algorithm ladder now spans direct pointwise methods through advanced particle-family witnesses, but the shared-corpus tables are capability-aware rather than naive one-table-for-all leaderboards."
+        "The classifier/filter ladder is a capability-aware evidence ladder: each rung consumes the same tracklet surface, emits comparable posterior histories, and adds complexity only when a diagnosed failure mode requires a richer evidence model. Epic 2 proves both discipline and ambition: simple rungs establish the shared posterior-evidence contract, while advanced IMM/PF/RBPF witnesses demonstrate the escalation path toward nonlinear, switching, and latent-state problems expected in a 3D tracking lift."
     )
     report.heading("Common Study Metrics", level=2)
     report.paragraph(ladder_preview)
@@ -129,12 +129,35 @@ def _render_algorithm_ladder_report(data: ShowcaseAlgorithmReportData) -> str:
     report.heading("Reading Notes", level=2)
     report.bullet_list(
         [
-            "`pointwise` is the weak lower bound and uses only instantaneous evidence.",
-            "`windowed_*` methods add history-derived features without a state-space model.",
-            "`bayes_accumulator` adds sequential evidence accumulation.",
-            "`kalman_bank` is the first explicitly model-based evidence provider.",
+            "`pointwise` is the sanity-check lower bound and uses only instantaneous evidence.",
+            "`windowed_*` methods add short-horizon shape without a state-space model.",
+            "`bayes_accumulator` adds explicit sequential evidence accumulation.",
+            "`kalman_bank` is the first explicitly model-based evidence provider and turns residuals into class evidence.",
+            "`transition_matrix` is the first explicit switching-logic rung and should beat simpler static accumulators before IMM is promoted.",
             "`kalman_bank_velocity_aided` is a stronger sensor regime and should not be treated as a fair same-sensor upgrade over position-only methods.",
             "`particle_filter_bank`, `rbpf`, and `ornstein_uhlenbeck_pf_v1` remain visible in shared tables with `witness_only` applicability when the shared binary corpus is not their valid scoring family.",
+        ]
+    )
+    report.heading("Advanced Algorithm Showcase", level=2)
+    report.bullet_list(
+        [
+            "Simple 1D witnesses prove the evidence contract; advanced witnesses prove the lift path.",
+            "IMM witness: `mode_switching_state_mixing` for switching dynamics with mode mixing.",
+            "PF witness: `nonlinear_nongaussian_posterior` for nonlinear or heavy-tailed posterior shape.",
+            "RBPF witness: `latent_event_timing` for sampled event/mode paths with conditional continuous state.",
+            "The claim is targeted applicability, not global superiority.",
+        ]
+    )
+    report.heading("Epic 2 Outputs", level=2)
+    report.bullet_list(
+        [
+            "`../plots/07b_full_ladder_comparison_dashboard.png`: all applicable rungs are evaluated side by side.",
+            "`../plots/10e_advanced_filter_sweet_spot_matrix.png`: the intended IMM/PF/RBPF shine regimes.",
+            "`../plots/10f_simple_to_advanced_witness_bridge.png`: readable 1D witnesses, advanced witnesses, and 3D lift pressures in one view.",
+            "`../tables/full_ladder_metrics.csv`: common metric surface plus decision/status fields.",
+            "`../tables/method_status_table.csv`: separates evaluated, applicable, simplest-sufficient, and witness-supported states.",
+            "`../tables/method_win_by_regime.csv` and `../plots/10f_method_win_by_regime_map.png`: where each rung shines, competes, fails, or does not apply.",
+            "`../tables/imm_mode_switching_state_mixing.md`, `../tables/pf_nonlinear_nongaussian_posterior.md`, and `../tables/rbpf_latent_event_timing.md`: witness cards for the advanced showcase.",
         ]
     )
     return report.text()

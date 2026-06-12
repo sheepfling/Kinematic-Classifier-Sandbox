@@ -77,7 +77,14 @@ class CommonExperimentHarnessTests(unittest.TestCase):
                 "maneuver_vs_bounded_acceleration",
             ),
         )
-        self.assertEqual(len(result.comparison.rows), 9)
+        self.assertEqual(len(result.comparison.rows), 11)
+        self.assertTrue(
+            any(
+                row.method_name == "ornstein_uhlenbeck_pf_v1"
+                and row.applicability_status == "witness_only"
+                for row in result.comparison.rows
+            )
+        )
         self.assertTrue(result.pair_prediction_rows)
         self.assertTrue(result.feature_rows)
         self.assertTrue(result.covariate_rows)
@@ -101,6 +108,7 @@ class CommonExperimentHarnessTests(unittest.TestCase):
             self.assertTrue(artifacts.predictions_path.exists())
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.likelihood_history_path.exists())
+            self.assertTrue(artifacts.method_evaluation_summary_path.exists())
             self.assertTrue(artifacts.feature_matrix_path.exists())
             self.assertTrue(artifacts.metrics_by_classifier_path.exists())
             self.assertTrue(artifacts.metrics_by_sensor_regime_path.exists())
@@ -133,6 +141,11 @@ class CommonExperimentHarnessTests(unittest.TestCase):
             self.assertIn("score_type", likelihood_header)
             self.assertIn("class_a", likelihood_header)
             self.assertIn("log_likelihood_class_a", likelihood_header)
+
+            method_summary_header = artifacts.method_evaluation_summary_path.read_text(encoding="utf-8").splitlines()[0]
+            self.assertIn("negative_log_likelihood", method_summary_header)
+            self.assertIn("brier_score", method_summary_header)
+            self.assertIn("posterior_margin", method_summary_header)
 
             feature_header = artifacts.feature_matrix_path.read_text(encoding="utf-8").splitlines()[0]
             self.assertIn("feature_set_id", feature_header)

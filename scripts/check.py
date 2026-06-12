@@ -35,6 +35,7 @@ def main() -> int:
         [sys.executable, "scripts/audit/audit_repo_shape.py"],
         [sys.executable, "scripts/audit/audit_import_simplicity.py", "--write-artifacts", "--strict"],
         [sys.executable, "scripts/audit/audit_human_operability.py"],
+        [sys.executable, "scripts/test.py", "--lane", "shape"],
         [sys.executable, "-m", "ruff", "check", *(["--fix"] if args.fix else []), "."],
         [sys.executable, "-m", "ruff", "format", *( [] if args.fix else ["--check"] ), "."],
         [sys.executable, "-m", "pyright"],

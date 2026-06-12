@@ -73,15 +73,32 @@ class StaticFeatureClassPriorAuditTests(unittest.TestCase):
             self.assertTrue(artifacts.report_path.exists())
             self.assertTrue(artifacts.decision_card_path.exists())
             self.assertTrue(artifacts.decision_card_png_path.exists())
+            self.assertTrue(artifacts.class_confusability_png_path.exists())
+            self.assertTrue(artifacts.feature_relevance_png_path.exists())
+            self.assertTrue(artifacts.feature_redundancy_png_path.exists())
+            self.assertTrue(artifacts.feature_synergy_png_path.exists())
+            self.assertTrue(artifacts.prior_pathology_surface_png_path.exists())
+            self.assertTrue(artifacts.prior_flip_thresholds_png_path.exists())
+            self.assertTrue(artifacts.coverage_feasibility_png_path.exists())
+            self.assertTrue(artifacts.leakage_provenance_png_path.exists())
+            self.assertTrue(artifacts.action_router_png_path.exists())
             self.assertTrue(artifacts.class_confusability_matrix_path.exists())
             self.assertTrue(artifacts.feature_relevance_table_path.exists())
             self.assertTrue(artifacts.feature_redundancy_matrix_path.exists())
             self.assertTrue(artifacts.feature_synergy_candidates_path.exists())
+            self.assertTrue(artifacts.prior_regime_path.exists())
             self.assertTrue(artifacts.prior_pathology_report_path.exists())
+            self.assertTrue(artifacts.prior_flip_thresholds_path.exists())
             self.assertTrue(artifacts.coverage_static_report_path.exists())
+            self.assertTrue(artifacts.coverage_feasibility_path.exists())
             self.assertTrue(artifacts.leakage_static_report_path.exists())
+            self.assertTrue(artifacts.leakage_provenance_audit_path.exists())
             decision_text = artifacts.decision_card_path.read_text(encoding="utf-8")
             self.assertIn("decisionability", decision_text)
+            class_matrix_header = artifacts.class_confusability_matrix_path.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+            self.assertEqual(set(class_matrix_header.split(",")), {"class", *result.class_names})
 
     def test_static_audit_exposes_prior_domination_in_pair_table(self) -> None:
         samples = [
