@@ -25,7 +25,9 @@ Group lower-level helpers by function:
   `render_methodology_latex.py` for the narrow methodology LaTeX rebuild and
   `render_methodology_section_symbol_audit.py` for the section-symbol audit.
   Use `render_classifier_capability_ladder_mvp.py` for the Epic 2 capability
-  packet and `render_corpus_explorer_mvp.py` for the V5C Corpus Explorer packet.
+  packet, `render_advanced_algorithm_showcase.py` for the advanced-algorithm
+  shine-witness packet, and `render_corpus_explorer_mvp.py` for the V5C Corpus
+  Explorer packet.
 - `scripts/run/`: benchmark and advanced-filter witness runners
 - `scripts/workflows/`: multi-step study workflows and orchestration helpers
 
@@ -55,6 +57,7 @@ Common LaTeX rerun commands:
 - Front-door artifact bundle without PDF-heavy steps: `python3 scripts/export_artifacts.py --scope front-door --fast`
 - Full artifact bundle: `python3 scripts/export_artifacts.py`
 - Epic 2 capability packet: `PYTHONPATH=src python3 scripts/render/render_classifier_capability_ladder_mvp.py`
+- Advanced Algorithm Showcase packet: `PYTHONPATH=src python3 scripts/render/render_advanced_algorithm_showcase.py`
 - V5C Corpus Explorer packet: `PYTHONPATH=src python3 scripts/render/render_corpus_explorer_mvp.py`
 
 Common audit and rerun commands:
