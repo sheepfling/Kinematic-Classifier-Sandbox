@@ -17,6 +17,7 @@ class SequentialOffPolicyControlFrontierTests(unittest.TestCase):
         result = analyze_sequential_offpolicy_control_frontier(seed=1409, budget_sweep_timesteps=(32, 64), eval_episodes=1)
 
         self.assertEqual(result.metrics["study_id"], "sequential_offpolicy_control_frontier_v1")
+        self.assertEqual(result.metrics["status"], "implemented")
         self.assertGreaterEqual(int(result.metrics["objective_count"]), 3)
         self.assertGreaterEqual(int(result.metrics["budget_count"]), 2)
         self.assertGreaterEqual(int(result.metrics["seed_count"]), 2)

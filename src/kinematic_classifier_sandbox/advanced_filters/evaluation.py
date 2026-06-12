@@ -24,6 +24,7 @@ from numpy import (
 )
 
 from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import write_comparison_summary_csv
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import plt
 
@@ -59,6 +60,7 @@ class AdvancedFilterWitnessArtifacts:
     posterior_history_path: Path
     state_estimate_history_path: Path
     metrics_path: Path
+    summary_path: Path
     method_evaluation_summary_path: Path
     plot_paths: tuple[Path, ...]
 
@@ -166,11 +168,13 @@ def write_particle_filter_witness_artifacts(output_dir: str | Path, *, seed: int
     posterior_path = run_dir / "posterior_history.csv"
     state_path = run_dir / "state_estimate_history.csv"
     metrics_path = run_dir / "pf_method_comparison.csv"
+    summary_path = run_dir / "summary.csv"
     method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     report_path = run_dir / "pf_report.md"
     write_csv(posterior_path, [asdict(posterior_row) for posterior_row in posterior_rows], ["trajectory_id", "time", "label", "posterior", "predicted_label", "confidence", "log_evidence"])
     write_csv(state_path, [asdict(state_row) for state_row in state_rows], ["trajectory_id", "time", "truth_position", "observation", "pf_position", "pf_velocity", "kalman_position", "kalman_velocity", "predicted_label", "ess", "ess_fraction", "resampled", "unique_ancestor_count", "unique_ancestor_fraction"])
     write_csv(metrics_path, metrics, list(metrics[0]))
+    write_comparison_summary_csv(summary_path, metrics, filename="summary.csv")
     write_csv(
         method_evaluation_summary_path,
         [_build_pf_method_evaluation_summary_row(result)],
@@ -211,6 +215,7 @@ def write_particle_filter_witness_artifacts(output_dir: str | Path, *, seed: int
         posterior_path,
         state_path,
         metrics_path,
+        summary_path,
         method_evaluation_summary_path,
         (state_plot, ess_plot),
     )
@@ -431,12 +436,14 @@ def write_rbpf_witness_artifacts(output_dir: str | Path, *, seed: int = 31) -> A
     posterior_path = run_dir / "posterior_history.csv"
     state_path = run_dir / "state_estimate_history.csv"
     metrics_path = run_dir / "rbpf_method_comparison.csv"
+    summary_path = run_dir / "summary.csv"
     method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     report_path = run_dir / "rbpf_report.md"
     write_csv(posterior_path, [asdict(posterior_row) for posterior_row in posterior_rows], ["trajectory_id", "time", "label", "posterior", "predicted_label", "confidence", "log_evidence"])
     write_csv(state_path, [asdict(state_row) for state_row in state_rows], ["trajectory_id", "time", "truth_position", "observation", "state_position", "state_velocity", "state_acceleration", "predicted_mode", "ess", "ess_fraction", "resampled", "unique_ancestor_count", "unique_ancestor_fraction"])
     metrics = [{"method_id": "rbpf_v1", "witness": "latent_maneuver_onset_1d", "state_position_rmse": rmse, "post_onset_mode_accuracy": post_onset_mode_accuracy, "resampling_count": resampling_count, "runtime_seconds": runtime_seconds, "promotion_decision": decision}]
     write_csv(metrics_path, metrics, list(metrics[0]))
+    write_comparison_summary_csv(summary_path, metrics, filename="summary.csv")
     write_csv(
         method_evaluation_summary_path,
         [_build_rbpf_method_evaluation_summary_row(tuple(posterior_rows), metrics[0])],
@@ -476,6 +483,7 @@ def write_rbpf_witness_artifacts(output_dir: str | Path, *, seed: int = 31) -> A
         posterior_path,
         state_path,
         metrics_path,
+        summary_path,
         method_evaluation_summary_path,
         (mode_plot, ess_plot),
     )
@@ -1027,10 +1035,12 @@ def _shared_pf_vs_rbpf_metrics(
             positions.append(float(state_mean[0]))
             ess_series.append(float(step.diagnostics["ess_fraction_accelerate"]))
             ancestor_series.append(float(step.diagnostics["unique_ancestor_fraction_accelerate"]))
+        post_times = [time_value for time_value in times if post_truth(time_value)]
         accuracy = sum(
-            (label == "accelerate") if post_truth(time_value) else (label == "coast")
+            (label == "accelerate")
             for label, time_value in zip(predicted_labels, times, strict=True)
-        ) / max(len(times), 1)
+            if post_truth(time_value)
+        ) / max(len(post_times), 1)
     else:
         rbpf = RaoBlackwellizedParticleFilter(
             RBPFConfig(particle_count=particle_count, seed=seed + 201),
@@ -1061,10 +1071,12 @@ def _shared_pf_vs_rbpf_metrics(
             positions.append(float(state_mean[0]))
             ess_series.append(float(step.diagnostics["ess_fraction"]))
             ancestor_series.append(float(step.diagnostics["unique_ancestor_fraction"]))
+        post_times = [time_value for time_value in times if post_truth(time_value)]
         accuracy = sum(
-            (label in {"accelerate", "maneuver"}) if post_truth(time_value) else (label == "coast")
+            (label in {"accelerate", "maneuver"})
             for label, time_value in zip(predicted_labels, times, strict=True)
-        ) / max(len(times), 1)
+            if post_truth(time_value)
+        ) / max(len(post_times), 1)
     return {
         "mean_position_rmse": float(sqrt(mean((array(positions) - truth) ** 2))),
         "mean_post_onset_accuracy": float(accuracy),
@@ -1076,7 +1088,7 @@ def _shared_pf_vs_rbpf_metrics(
 
 def _pf_vs_rbpf_frontier_rows(
     *,
-    particle_counts: tuple[int, ...] = (64, 128, 256),
+    particle_counts: tuple[int, ...] = (24, 64, 128, 256),
     seeds: tuple[int, ...] = (31, 43, 59),
 ) -> tuple[dict[str, object], ...]:
     rows: list[dict[str, object]] = []
@@ -1386,18 +1398,12 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
     run_dir = output_root / "advanced_filter_comparison_v1"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    imm_metrics = _read_first_csv_row(output_root / "imm_filter_v1" / "switching_detection_metrics.csv")
+    imm_metrics = _read_first_csv_row(output_root / "imm_filter_v1" / "summary.csv")
     pf_metrics = _read_first_csv_row(output_root / "particle_filter_v1" / "pf_method_comparison.csv")
-    pf_oracle_metrics = _read_first_csv_row_candidates(
-        output_root / "pf_abs_range_multimodal_oracle_v1" / "summary.csv",
-        output_root / "pf_abs_range_multimodal_oracle_v1" / "metrics_against_oracle.csv",
-    )
-    gsf_oracle_metrics = _read_first_csv_row_candidates(
-        output_root / "gsf_abs_range_multimodal_oracle_v1" / "summary.csv",
-        output_root / "gsf_abs_range_multimodal_oracle_v1" / "metrics_against_oracle.csv",
-    )
-    rbpf_metrics = _read_first_csv_row(output_root / "rbpf_v1" / "rbpf_method_comparison.csv")
-    ou_metrics = _read_first_csv_row(output_root / "ornstein_uhlenbeck_witness_v1" / "ou_method_comparison.csv")
+    pf_oracle_metrics = _read_first_csv_row(output_root / "pf_abs_range_multimodal_oracle_v1" / "summary.csv")
+    gsf_oracle_metrics = _read_first_csv_row(output_root / "gsf_abs_range_multimodal_oracle_v1" / "summary.csv")
+    rbpf_metrics = _read_first_csv_row(output_root / "rbpf_v1" / "summary.csv")
+    ou_metrics = _read_first_csv_row(output_root / "ornstein_uhlenbeck_witness_v1" / "summary.csv")
     pf_promotion_metrics = pf_oracle_metrics or pf_metrics
     particle_count_rows = _particle_count_pareto_rows()
     particle_filter_robustness_rows = _particle_filter_robustness_summary_rows(particle_count_rows)
@@ -1431,7 +1437,7 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
             "primary_metric_value": imm_metrics.get("post_switch_accuracy", ""),
             "runtime_seconds": imm_metrics.get("runtime_seconds", ""),
             "promotion_decision": imm_metrics.get("promotion_decision", "defer"),
-            "artifact_path": "artifacts/imm_filter_v1/switching_detection_metrics.csv",
+            "artifact_path": "artifacts/imm_filter_v1/summary.csv",
         },
         {
             "method_id": "particle_filter_bank_v1",
@@ -1492,7 +1498,7 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
             "artifact_path": (
                 "artifacts/advanced_filter_comparison_v1/pf_vs_rbpf_frontier_summary.csv"
                 if pf_vs_rbpf_summary_rows
-                else "artifacts/rbpf_v1/rbpf_method_comparison.csv"
+                else "artifacts/rbpf_v1/summary.csv"
             ),
         },
         {
@@ -1506,7 +1512,7 @@ def write_advanced_filter_comparison_artifacts(output_dir: str | Path) -> Advanc
             "primary_metric_value": ou_metrics.get("final_mean_reverting_posterior", ""),
             "runtime_seconds": ou_metrics.get("runtime_seconds", ""),
             "promotion_decision": ou_metrics.get("promotion_decision", "defer"),
-            "artifact_path": "artifacts/ornstein_uhlenbeck_witness_v1/ou_method_comparison.csv",
+            "artifact_path": "artifacts/ornstein_uhlenbeck_witness_v1/summary.csv",
         },
     ]
 
@@ -1705,14 +1711,6 @@ def _read_first_csv_row(path: Path) -> dict[str, str]:
     with path.open("r", encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
     return rows[0] if rows else {}
-
-
-def _read_first_csv_row_candidates(*paths: Path) -> dict[str, str]:
-    for path in paths:
-        row = _read_first_csv_row(path)
-        if row:
-            return row
-    return {}
 
 
 def _as_float(value: object) -> float:

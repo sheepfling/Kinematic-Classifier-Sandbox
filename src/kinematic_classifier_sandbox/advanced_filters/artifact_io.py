@@ -3,6 +3,7 @@ from __future__ import annotations
 from math import exp, log
 from pathlib import Path
 
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import write_comparison_summary_csv
 from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import plt
 
@@ -44,6 +45,7 @@ def write_imm_artifacts(output_dir: str | Path, *, result: IMMBenchmarkResult | 
     posterior_history_path = run_dir / "posterior_history.csv"
     switching_detection_metrics_path = run_dir / "switching_detection_metrics.csv"
     method_comparison_path = run_dir / "advanced_filter_method_comparison.csv"
+    summary_path = run_dir / "summary.csv"
     method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     decision_matrix_path = run_dir / "advanced_filter_decision_matrix.csv"
     config_path = run_dir / "imm_config.yaml"
@@ -174,6 +176,7 @@ def write_imm_artifacts(output_dir: str | Path, *, result: IMMBenchmarkResult | 
     metric_rows = [result.metrics]
     write_csv(switching_detection_metrics_path, metric_rows, list(metric_rows[0]))
     write_csv(method_comparison_path, list(result.method_comparison), list(result.method_comparison[0]))
+    write_comparison_summary_csv(summary_path, list(result.method_comparison), filename="summary.csv")
     write_csv(
         method_evaluation_summary_path,
         _build_imm_method_evaluation_rows(result),
@@ -246,6 +249,7 @@ def write_imm_artifacts(output_dir: str | Path, *, result: IMMBenchmarkResult | 
         posterior_history_path,
         switching_detection_metrics_path,
         method_comparison_path,
+        summary_path,
         method_evaluation_summary_path,
         decision_matrix_path,
         plot_dir,

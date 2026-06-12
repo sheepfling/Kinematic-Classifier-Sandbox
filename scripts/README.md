@@ -59,6 +59,7 @@ Common LaTeX rerun commands:
 - Epic 2 capability packet: `PYTHONPATH=src python3 scripts/render/render_classifier_capability_ladder_mvp.py`
 - Advanced Algorithm Showcase packet: `PYTHONPATH=src python3 scripts/render/render_advanced_algorithm_showcase.py`
 - V5C Corpus Explorer packet: `PYTHONPATH=src python3 scripts/render/render_corpus_explorer_mvp.py`
+- V5C Corpus Explorer packet validator: `PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet artifacts/packets/corpus_explorer_mvp --profile corpus_explorer_mvp`
 
 Common audit and rerun commands:
 

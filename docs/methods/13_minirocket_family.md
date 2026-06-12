@@ -6,11 +6,10 @@ classifier lane.
 ## Current Scope
 
 This is not yet a claim that exact MiniRocket, MultiRocket, or HYDRA has been
-faithfully implemented. The current lane is an honest proxy:
+executed in the current environment. The lane now has two surfaces:
 
-- a deterministic random-convolution style transform
-- shared-corpus classification on the existing 1D dynamics benchmark
-- output through the existing common-dataset comparison surface
+- a deterministic local `rocket_proxy` benchmark in the shared comparison
+- an optional external archive-wrapper path in the archive frontier
 
 ## Contract Hook
 
@@ -18,6 +17,7 @@ The current scaffold is visible through:
 
 - `artifacts/common_dataset_comparison_v1/method_summary.csv`
 - `artifacts/common_dataset_comparison_v1/common_dataset_comparison_report.md`
+- `artifacts/tsc_archive_baseline_frontier_v1/metric_summary.csv`
 
 The method name in that surface is:
 
@@ -25,12 +25,28 @@ The method name in that surface is:
 
 ## Claim Boundary
 
-This moves the `minirocket_family` lane from pure research tracking to
-`implemented`, because the repo now has a non-physics TSC benchmark scaffold in
-the right artifact surface.
+This moves the `minirocket_family` lane to `implemented`, because the repo now
+has an explicit execution surface and backend-provenance packet for this
+family.
 
-It is still not `witness_supported` because:
+The current external path is now a real `aeon` `MiniRocketClassifier` run when
+the optional backend environment is healthy. The repo sets a local
+`NUMBA_CACHE_DIR` before importing `aeon`, which avoids the cache-locator
+failure that previously made the MiniRocket-family path look unavailable.
 
-- the current `tsc_archive_baseline_frontier` packet is only a proxy frontier,
-- there is no exact MiniRocket / MultiRocket / HYDRA fidelity claim yet,
+The lane is now also covered by:
+
+- `archive_vs_physics_witness_v1`, which still shows the archive family losing
+  to `windowed_robust` and `kalman_bank`
+- `archive_feature_headroom_witness_v1`, which still shows the archive family
+  losing decisively to the engineered timing-order baseline
+- `archive_backend_diagnosis_v1`, which tests bounded panel/resampling variants
+  and still keeps the gate closed
+
+It is still not promoted as finished because:
+
+- the current family result can still rely on fallback behavior,
+- there is no exact MiniRocket / MultiRocket / HYDRA parity claim yet,
+- generic `RocketClassifier` execution does not count as MiniRocket-family parity,
+- the broader archive family still has timeout-heavy `DrCIF` and `HIVE-COTE` rows,
 - the lane has not passed seed robustness or calibration checks.

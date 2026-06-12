@@ -30,7 +30,7 @@ class RlBackendDecisionTests(unittest.TestCase):
         report = render_rl_backend_decision_report(result)
         self.assertIn("RL Backend Decision Report", report)
         self.assertIn("RL justified now: `False`", report)
-        self.assertIn("Keep RL as a no-go for now.", report)
+        self.assertIn("Keep RL out of fielded-deployment recommendations for now.", report)
         self.assertIn("Off-policy smoke frontier", report)
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts = write_rl_backend_decision_artifacts(temp_dir, result=result)

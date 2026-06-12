@@ -22,7 +22,7 @@ The witness emits:
 - `artifacts/bocpd_unknown_maneuver_onset_v1/posterior_history.csv`
 - `artifacts/bocpd_unknown_maneuver_onset_v1/onset_posterior.csv`
 - `artifacts/bocpd_unknown_maneuver_onset_v1/state_estimate_history.csv`
-- `artifacts/bocpd_unknown_maneuver_onset_v1/metrics.csv`
+- `artifacts/bocpd_unknown_maneuver_onset_v1/summary.csv`
 - `artifacts/bocpd_unknown_maneuver_onset_v1/decision_card.md`
 
 ## Current Read

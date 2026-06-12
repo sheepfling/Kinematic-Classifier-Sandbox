@@ -11,6 +11,9 @@ from _bootstrap import bootstrap_repo
 
 
 ROOT = bootstrap_repo(configure_runtime=True)
+from kinematic_classifier_sandbox.corpus.validation import validate_corpus_explorer_packet
+from kinematic_classifier_sandbox.registry.method_validation_os import analyze_method_validation_os
+
 PACKET_DIR = ROOT / "artifacts" / "packets" / "corpus_explorer_mvp"
 FIGURE_DIR = PACKET_DIR / "figures"
 CARD_DIR = PACKET_DIR / "hard_case_cards"
@@ -409,6 +412,7 @@ def write_backend_tables() -> None:
 def write_advanced_algorithm_route_matrix(candidates: list[PacketCandidate]) -> None:
     gate_rows = {row["method_id"]: row for row in read_csv(ADVANCED_FILTER_COMPARISON / "advanced_method_gate_matrix.csv")}
     trace_rows = {row["method_id"]: row for row in read_csv(FILTER_TRACE_VALIDATION / "method_trace_matrix.csv")}
+    validation_rows = {row.method_id: row for row in analyze_method_validation_os().method_rows}
     selected = [candidate for candidate in candidates if candidate.selected]
     routes = [
         {
@@ -451,13 +455,28 @@ def write_advanced_algorithm_route_matrix(candidates: list[PacketCandidate]) -> 
                 "to 3D process models and maneuver priors."
             ),
         },
+        {
+            "route_id": "representation_learning_route",
+            "failure_mode": "handcrafted_feature_underfit",
+            "advanced_algorithm": "TS2Vec-style embedding frontier",
+            "method_id": "ts2vec",
+            "why_it_matters_for_3d_lift": (
+                "When labels are sparse, a 3D lift still needs a representation lane that can "
+                "score reusable trajectory structure from the corpus and expose confidence over "
+                "prefix-based online scoring."
+            ),
+        },
     ]
     output_rows: list[dict[str, object]] = []
     for route in routes:
         method_id = route["method_id"]
         gate = gate_rows.get(method_id, {})
         trace = trace_rows.get(method_id, {})
+        validation = validation_rows.get(method_id)
         case_count = sum(1 for candidate in selected if candidate.target_failure_mode == route["failure_mode"])
+        validation_status = (
+            validation.current_status if validation is not None else gate.get("status_level", "unknown")
+        )
         output_rows.append(
             {
                 "route_id": route["route_id"],
@@ -466,13 +485,26 @@ def write_advanced_algorithm_route_matrix(candidates: list[PacketCandidate]) -> 
                 "advanced_algorithm": route["advanced_algorithm"],
                 "method_id": method_id,
                 "route_status": "active_route_proof" if case_count else "available_witness_route",
-                "method_validation_status": trace.get("method_validation_status", gate.get("status_level", "unknown")),
-                "trace_status": trace.get("trace_status", "not_in_trace_matrix"),
-                "decision_card_status": gate.get("decision_card_status", "unknown"),
-                "supporting_artifact": gate.get("supporting_artifact", ""),
+                "method_validation_status": validation_status,
+                "trace_status": trace.get(
+                    "trace_status",
+                    validation_status if validation is not None else "not_in_trace_matrix",
+                ),
+                "decision_card_status": gate.get(
+                    "decision_card_status",
+                    validation_status if validation is not None else "unknown",
+                ),
+                "supporting_artifact": gate.get(
+                    "supporting_artifact",
+                    "artifacts/embedding_baseline_frontier_v1/embedding_baseline_frontier_report.md"
+                    if method_id == "ts2vec"
+                    else "",
+                ),
                 "claim_boundary": gate.get(
                     "claim_boundary",
-                    "route proof only; not a universal default",
+                    "proxy witness only; external-library fidelity and broader unlabeled corpora remain open"
+                    if method_id == "ts2vec"
+                    else "route proof only; not a universal default",
                 ),
                 "why_it_matters_for_3d_lift": route["why_it_matters_for_3d_lift"],
             }
@@ -522,13 +554,16 @@ def write_advanced_algorithm_route_matrix(candidates: list[PacketCandidate]) -> 
             f"- `{ADVANCED_FILTER_COMPARISON.relative_to(ROOT)}`",
             f"- `{ADVANCED_FILTER_DECISION.relative_to(ROOT)}`",
             f"- `{FILTER_TRACE_VALIDATION.relative_to(ROOT)}`",
+            f"- `artifacts/embedding_baseline_frontier_v1/embedding_baseline_frontier_report.md`",
+            f"- `artifacts/embedding_baseline_frontier_v1/online_route_summary.csv`",
             "",
             "## Presentation Message",
             "",
             "The claim is not that every advanced method should be promoted as a default.",
             "The claim is stronger architecturally: the study now has a repeatable route",
-            "from discovered hard cases into IMM, PF/GSF, RBPF, and stochastic-dynamics",
-            "witnesses with traceable evidence. That route survives the future lift into 3D.",
+            "from discovered hard cases into IMM, PF/GSF, RBPF, stochastic-dynamics, and",
+            "TS2Vec-style representation witnesses with traceable evidence. That route",
+            "survives the future lift into 3D.",
         ]
     )
     write_text(PACKET_DIR / "advanced_algorithm_route_proof.md", "\n".join(lines))
@@ -717,6 +752,9 @@ def write_decision_card(candidates: list[PacketCandidate]) -> None:
 
 def write_cards(candidates: list[PacketCandidate]) -> None:
     for candidate in candidates:
+        decision_line = candidate.routed_action
+        if candidate.rejection_reason:
+            decision_line = f"{candidate.routed_action}\n\nRejection reason: {candidate.rejection_reason}"
         write_text(
             CARD_DIR / f"{candidate.candidate_id}_{candidate.target_failure_mode}.md",
             f"""
@@ -748,7 +786,7 @@ def write_cards(candidates: list[PacketCandidate]) -> None:
 
             ## Decision
 
-            {candidate.routed_action}
+            {decision_line}
             """,
         )
 
@@ -783,7 +821,7 @@ def write_readme(candidates: list[PacketCandidate]) -> None:
         - `feature_excitation_report.csv` records feature-stress evidence.
         - `search_backend_comparison.csv` compares random/baseline, QD-style, CEM, and PPO search roles.
         - `downstream_diagnostic_yield.csv` maps valid discoveries to ladder/filter actions.
-        - `advanced_algorithm_route_matrix.csv` shows how hard cases escalate into IMM, PF/GSF, RBPF, and stochastic-dynamics witnesses.
+        - `advanced_algorithm_route_matrix.csv` shows how hard cases escalate into IMM, PF/GSF, RBPF, stochastic-dynamics, and TS2Vec-style witnesses.
         - `advanced_algorithm_route_proof.md` frames those routes as 3D-lift study architecture.
         - `hard_case_cards/` contains one card per selected or rejected hard case.
         - `figures/` contains the five Epic 3 hero charts.
@@ -856,12 +894,26 @@ def validate_packet(candidates: list[PacketCandidate]) -> None:
             raise RuntimeError("CEM/PPO cannot be promoted without required comparison gates")
 
     route_rows = read_csv(PACKET_DIR / "advanced_algorithm_route_matrix.csv")
-    required_methods = {"imm_v1", "particle_filter_bank_v1", "rbpf_v1", "ornstein_uhlenbeck_pf_v1"}
+    required_methods = {"imm_v1", "particle_filter_bank_v1", "rbpf_v1", "ornstein_uhlenbeck_pf_v1", "ts2vec"}
     routed_methods = {row["method_id"] for row in route_rows}
     if not required_methods.issubset(routed_methods):
         raise RuntimeError("advanced algorithm route matrix is missing a required witness route")
-    if any(row["trace_status"] != "trace_validated" for row in route_rows):
-        raise RuntimeError("advanced algorithm routes must point at trace-validated witnesses")
+    required_status = {
+        "imm_v1": "trace_validated",
+        "particle_filter_bank_v1": "trace_validated",
+        "rbpf_v1": "trace_validated",
+        "ornstein_uhlenbeck_pf_v1": "trace_validated",
+        "ts2vec": "witness_supported",
+    }
+    for row in route_rows:
+        method_id = row["method_id"]
+        expected = required_status.get(method_id)
+        if expected is not None and row["trace_status"] != expected:
+            raise RuntimeError(f"{method_id} must be {expected}")
+
+    packet_issues = validate_corpus_explorer_packet(PACKET_DIR)
+    if packet_issues:
+        raise RuntimeError(f"corpus_explorer_mvp validation failed: {packet_issues}")
 
 
 def write_manifest() -> None:
@@ -869,9 +921,18 @@ def write_manifest() -> None:
         "packet_id": "corpus_explorer_mvp",
         "milestone": "V5C",
         "status": "complete",
+        "plan_path": "docs/plans/PLN-036_corpus_explorer_execution_brief.md",
+        "short_goal_blurb": (
+            "Implement V5C Corpus Explorer MVP as a corpus decision system, not a "
+            "data-generator demo."
+        ),
         "required_figures": HERO_CHARTS,
         "decision_card": "corpus_explorer_decision_card.md",
         "advanced_algorithm_route_proof": "advanced_algorithm_route_proof.md",
+        "validator": (
+            "PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet "
+            "artifacts/packets/corpus_explorer_mvp --profile corpus_explorer_mvp"
+        ),
     }
     write_text(PACKET_DIR / "packet_manifest.json", json.dumps(manifest, indent=2))
 

@@ -8,6 +8,8 @@ __all__ = [
     "method_families",
     "analyze_algorithm_coverage_matrix",
     "write_algorithm_coverage_matrix_artifacts",
+    "analyze_classifier_family_scorecard",
+    "write_classifier_family_scorecard_artifacts",
     "analyze_corpus_evaluation_gap_matrix",
     "render_corpus_evaluation_gap_matrix_report",
     "write_corpus_evaluation_gap_matrix_artifacts",
@@ -23,6 +25,20 @@ __all__ = [
     "write_functional_surface_catalog_artifacts",
     "analyze_embedding_baseline_frontier",
     "write_embedding_baseline_frontier_artifacts",
+    "analyze_neural_sequence_robustness_frontier",
+    "write_neural_sequence_robustness_frontier_artifacts",
+    "analyze_physics_family_promotion_audit",
+    "write_physics_family_promotion_audit_artifacts",
+    "analyze_drcif_interval_promotion_audit",
+    "write_drcif_interval_promotion_audit_artifacts",
+    "analyze_gsf_multimodal_promotion_audit",
+    "write_gsf_multimodal_promotion_audit_artifacts",
+    "analyze_ukf_nonlinear_promotion_audit",
+    "write_ukf_nonlinear_promotion_audit_artifacts",
+    "analyze_imm_switching_promotion_audit",
+    "write_imm_switching_promotion_audit_artifacts",
+    "analyze_ts2vec_backend_parity",
+    "write_ts2vec_backend_parity_artifacts",
     "analyze_method_validation_os",
     "write_method_validation_os_artifacts",
     "analyze_strict_equation_audit",
@@ -33,6 +49,22 @@ __all__ = [
 
 def analyze_algorithm_coverage_matrix(*args, **kwargs):
     from .algorithm_coverage_matrix import analyze_algorithm_coverage_matrix as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_classifier_family_scorecard(*args, **kwargs):
+    from ..analysis.classifier_family_scorecard import (
+        analyze_classifier_family_scorecard as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_classifier_family_scorecard_artifacts(*args, **kwargs):
+    from ..analysis.classifier_family_scorecard import (
+        write_classifier_family_scorecard_artifacts as _impl,
+    )
 
     return _impl(*args, **kwargs)
 
@@ -138,6 +170,116 @@ def analyze_embedding_baseline_frontier(*args, **kwargs):
 def write_embedding_baseline_frontier_artifacts(*args, **kwargs):
     from ..analysis.embedding_baseline_frontier import (
         write_embedding_baseline_frontier_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_neural_sequence_robustness_frontier(*args, **kwargs):
+    from ..analysis.neural_sequence_robustness import (
+        analyze_neural_sequence_robustness_frontier as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_neural_sequence_robustness_frontier_artifacts(*args, **kwargs):
+    from ..analysis.neural_sequence_robustness import (
+        write_neural_sequence_robustness_frontier_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_physics_family_promotion_audit(*args, **kwargs):
+    from ..analysis.physics_family_promotion_audit import (
+        analyze_physics_family_promotion_audit as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_physics_family_promotion_audit_artifacts(*args, **kwargs):
+    from ..analysis.physics_family_promotion_audit import (
+        write_physics_family_promotion_audit_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_drcif_interval_promotion_audit(*args, **kwargs):
+    from ..analysis.drcif_interval_promotion_audit import (
+        analyze_drcif_interval_promotion_audit as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_drcif_interval_promotion_audit_artifacts(*args, **kwargs):
+    from ..analysis.drcif_interval_promotion_audit import (
+        write_drcif_interval_promotion_audit_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_gsf_multimodal_promotion_audit(*args, **kwargs):
+    from ..analysis.gsf_multimodal_promotion_audit import (
+        analyze_gsf_multimodal_promotion_audit as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_gsf_multimodal_promotion_audit_artifacts(*args, **kwargs):
+    from ..analysis.gsf_multimodal_promotion_audit import (
+        write_gsf_multimodal_promotion_audit_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_ukf_nonlinear_promotion_audit(*args, **kwargs):
+    from ..analysis.ukf_nonlinear_promotion_audit import (
+        analyze_ukf_nonlinear_promotion_audit as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_ukf_nonlinear_promotion_audit_artifacts(*args, **kwargs):
+    from ..analysis.ukf_nonlinear_promotion_audit import (
+        write_ukf_nonlinear_promotion_audit_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_imm_switching_promotion_audit(*args, **kwargs):
+    from ..analysis.imm_switching_promotion_audit import (
+        analyze_imm_switching_promotion_audit as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def write_imm_switching_promotion_audit_artifacts(*args, **kwargs):
+    from ..analysis.imm_switching_promotion_audit import (
+        write_imm_switching_promotion_audit_artifacts as _impl,
+    )
+
+    return _impl(*args, **kwargs)
+
+
+def analyze_ts2vec_backend_parity(*args, **kwargs):
+    from ..analysis.ts2vec_backend_parity import analyze_ts2vec_backend_parity as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def write_ts2vec_backend_parity_artifacts(*args, **kwargs):
+    from ..analysis.ts2vec_backend_parity import (
+        write_ts2vec_backend_parity_artifacts as _impl,
     )
 
     return _impl(*args, **kwargs)

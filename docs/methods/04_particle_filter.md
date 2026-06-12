@@ -26,7 +26,7 @@ The canonical PF promotion witness emits:
 - `artifacts/pf_abs_range_multimodal_oracle_v1/gaussian_baseline_posterior_history.csv`
 - `artifacts/pf_abs_range_multimodal_oracle_v1/state_estimate_history.csv`
 - `artifacts/pf_abs_range_multimodal_oracle_v1/particle_diagnostics.csv`
-- `artifacts/pf_abs_range_multimodal_oracle_v1/metrics_against_oracle.csv`
+- `artifacts/pf_abs_range_multimodal_oracle_v1/summary.csv`
 - `artifacts/pf_abs_range_multimodal_oracle_v1/decision_card.md`
 - `artifacts/pf_abs_range_multimodal_oracle_v1/plots/final_posterior_overlay.png`
 

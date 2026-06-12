@@ -22,7 +22,7 @@ The concrete RBPF witness packet emits:
 
 - `artifacts/rbpf_v1/latent_mode_posterior.csv`
 - `artifacts/rbpf_v1/conditional_filter_history.csv`
-- `artifacts/rbpf_v1/rbpf_method_comparison.csv`
+- `artifacts/rbpf_v1/summary.csv`
 - `artifacts/rbpf_v1/traces/filter_step_trace.csv`
 - `artifacts/rbpf_v1/plots/rbpf_mode_posterior.png`
 
@@ -36,5 +36,9 @@ optimal filter. In this repo, particles carry latent mode hypotheses while
 continuous PVA state is conditionally Kalman-filtered.
 
 The current claim boundary remains conservative. The frontier comparison against
-PF is still compute-normalized `metric_split`, so RBPF remains
-`witness_supported` rather than `justified_for_study`.
+PF now shows a bounded RBPF-preferred regime on the latent witness after the
+shared frontier is scored by true post-onset recovery and includes lower
+particle-count comparisons. The smooth witness remains `metric_split`, which is
+the intended negative control. On that basis RBPF is now `study_justified` on
+the current latent-structure witness family rather than only
+`witness_supported`.

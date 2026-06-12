@@ -17,12 +17,14 @@ compares it against the current sequential-control baselines:
 - `doe_schedule_bank`
 - `guided_schedule_mutation`
 
-The current packet keeps the sequential-control lane explicit without pretending
-that SAC or TD3 has already been trained in the repo.
+The current packet keeps the sequential-control lane explicit and is now
+paired with the off-policy smoke frontier, so SAC and TD3 are represented by
+real runs rather than roadmap notes alone.
 
 The current packet is enough to keep the lane tracked and to justify:
 
-- `sac_td3` remaining on the roadmap rather than disappearing from the registry
+- `sac_td3` as a first-class implemented comparison surface, while the claim
+  remains limited to witness-specific smoke frontier evidence
 
 ## Claim Boundary
 
@@ -32,7 +34,6 @@ What remains open:
 
 - the companion off-policy smoke packet now exists, but it still needs broader
   seed and budget sweeps
-- explicit SAC and TD3 training runs
 - broader objective-family sweeps beyond the current proxy frontier
 - stronger sample-efficiency comparisons against the PPO proxy on matched
   sequential-control budgets

@@ -9,6 +9,7 @@ from numpy import arange, array, asarray, average, exp, float64, sqrt
 from numpy import mean as nmean
 
 from kinematic_classifier_sandbox.reports.markdown import MarkdownDocument
+from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import write_comparison_summary_csv
 
 from ..tracing.filter_trace import FilterStepTrace, posterior_entropy, write_filter_step_trace_csv
 from ..tracing.trace_validation import validate_filter_step_trace_set
@@ -73,6 +74,7 @@ class OrnsteinUhlenbeckWitnessArtifacts:
     posterior_history_path: Path
     state_estimate_history_path: Path
     metrics_path: Path
+    summary_path: Path
     method_evaluation_summary_path: Path
     plot_paths: tuple[Path, ...]
 
@@ -216,6 +218,7 @@ def write_ornstein_uhlenbeck_witness_artifacts(
     posterior_path = run_dir / "posterior_history.csv"
     state_path = run_dir / "state_estimate_history.csv"
     metrics_path = run_dir / "ou_method_comparison.csv"
+    summary_path = run_dir / "summary.csv"
     method_evaluation_summary_path = run_dir / "method_evaluation_summary.csv"
     report_path = run_dir / "ou_report.md"
     write_csv(
@@ -229,6 +232,7 @@ def write_ornstein_uhlenbeck_witness_artifacts(
         ["trajectory_id", "time", "truth_position", "truth_velocity", "observation", "pf_position", "pf_velocity", "predicted_label", "ess", "ess_fraction", "resampled", "unique_ancestor_count", "unique_ancestor_fraction"],
     )
     write_csv(metrics_path, [witness.metrics], list(witness.metrics.keys()))
+    write_comparison_summary_csv(summary_path, [witness.metrics], filename="summary.csv")
     write_csv(
         method_evaluation_summary_path,
         [_build_ou_method_evaluation_summary_row(witness)],
@@ -287,6 +291,7 @@ def write_ornstein_uhlenbeck_witness_artifacts(
         posterior_history_path=posterior_path,
         state_estimate_history_path=state_path,
         metrics_path=metrics_path,
+        summary_path=summary_path,
         method_evaluation_summary_path=method_evaluation_summary_path,
         plot_paths=(state_plot, posterior_plot),
     )

@@ -475,7 +475,7 @@ def analyze_sequential_offpolicy_control_frontier(
             if mean_best_policy_delta > 0.0 and max(mean_sac, mean_td3) >= mean_ppo and seed_promotion_rate >= 0.5
             else "revise_sequential_offpolicy_frontier"
         ),
-        "status": "experimental",
+        "status": "implemented",
     }
     return SequentialOffPolicyFrontierResult(
         frontier_rows=tuple(frontier_rows),

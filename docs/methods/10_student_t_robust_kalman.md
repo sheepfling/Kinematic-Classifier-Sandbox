@@ -23,7 +23,7 @@ The witness emits:
 - `artifacts/student_t_heavy_tail_oracle_v1/robust_posterior_history.csv`
 - `artifacts/student_t_heavy_tail_oracle_v1/gaussian_baseline_posterior_history.csv`
 - `artifacts/student_t_heavy_tail_oracle_v1/state_estimate_history.csv`
-- `artifacts/student_t_heavy_tail_oracle_v1/metrics_against_oracle.csv`
+- `artifacts/student_t_heavy_tail_oracle_v1/summary.csv`
 - `artifacts/student_t_heavy_tail_oracle_v1/decision_card.md`
 
 ## Current Read

@@ -31,8 +31,8 @@ just a one-off artifact of a single random seed.
 
 The current packet is enough to keep the lane explicit and to justify:
 
-- `sac_td3` moving from roadmap-only status to an implemented sequential-control
-  comparison surface
+- `sac_td3` as a first-class implemented sequential-control comparison surface
+  with a narrow claim boundary
 
 ## Claim Boundary
 

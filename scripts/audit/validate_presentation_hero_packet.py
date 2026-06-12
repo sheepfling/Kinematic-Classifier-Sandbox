@@ -310,12 +310,25 @@ def validate_packet(packet_dir: Path) -> list[str]:
     route_path = root / "artifacts/packets/corpus_explorer_mvp/advanced_algorithm_route_matrix.csv"
     if route_path.exists():
         route_rows = _read_csv(route_path)
-        required_routes = {"imm_v1", "particle_filter_bank_v1", "rbpf_v1", "ornstein_uhlenbeck_pf_v1"}
+        required_routes = {"imm_v1", "particle_filter_bank_v1", "rbpf_v1", "ornstein_uhlenbeck_pf_v1", "ts2vec"}
         route_methods = {row.get("method_id", "") for row in route_rows}
         if not required_routes.issubset(route_methods):
             issues.append("corpus_explorer_mvp advanced route matrix missing required advanced route")
-        if any(row.get("trace_status") != "trace_validated" for row in route_rows):
-            issues.append("corpus_explorer_mvp advanced routes must be trace_validated")
+        expected_status = {
+            "imm_v1": "trace_validated",
+            "particle_filter_bank_v1": "trace_validated",
+            "rbpf_v1": "trace_validated",
+            "ornstein_uhlenbeck_pf_v1": "trace_validated",
+            "ts2vec": "witness_supported",
+        }
+        for row in route_rows:
+            method_id = row.get("method_id", "")
+            if method_id in expected_status and row.get("trace_status") != expected_status[method_id]:
+                issues.append(f"corpus_explorer_mvp route {method_id} must be {expected_status[method_id]}")
+        ts2vec_rows = [row for row in route_rows if row.get("method_id") == "ts2vec"]
+        for row in ts2vec_rows:
+            if "embedding_baseline_frontier" not in row.get("supporting_artifact", ""):
+                issues.append("corpus_explorer_mvp ts2vec route must cite the embedding frontier artifact")
 
     showcase_decision_path = root / "artifacts/packets/advanced_algorithm_showcase/advanced_algorithm_decision_card.md"
     if showcase_decision_path.exists():

@@ -188,12 +188,12 @@ def analyze_ukf_nonlinear_unimodal_witness(
     *,
     seed: int = 307,
     grid: UKFOracleGridConfig = UKFOracleGridConfig(),
+    measurement_offset: float = 0.75,
 ) -> UKFOracleWitnessResult:
     rng = random.default_rng(seed)
     times = tuple(float(time_value) for time_value in arange(0.0, 6.0, 0.25, dtype=float64))
     process_std = 0.06
     measurement_std = 0.08
-    measurement_offset = 0.75
     prior_mean = 1.05
     prior_variance = 0.22**2
     grid_points = [

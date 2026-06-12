@@ -113,6 +113,18 @@ The witness problems currently prove:
 - transition switching: transition logic is justified before IMM
 - generated corpus stress: the Corpus Explorer can discover hard or fragile examples
 
+Current Epic 2 family maturity is intentionally more conservative than simple
+surface coverage:
+
+- interpretable kinematic: implemented, integrated, and proven on the current
+  1D witness set
+- physics-aware inference: partially closed, with a bounded family-level audit
+  still keeping the lane open
+- generic time-series benchmark: real external execution exists and MiniRocket
+  now has a bounded promotion path, but the broader family is still partial
+- learned sequence and embedding: witness-backed on the current 1D surface,
+  though still bounded rather than broadly generalized
+
 Epic 2 follows seven beats:
 
 1. Static audit says the study is meaningful.
@@ -147,7 +159,10 @@ The repo does not claim to be dynamically complete for 3D deployment. It does cl
 - Priors and posterior fragility are measurable.
 - Feature and class separability are inspected before blaming algorithms.
 - 1D witness problems prove the ladder layers.
-- Advanced filters are gated, but positive showcase witnesses prove the escalation path beyond simple 1D separability.
+- Advanced filters are gated, but positive showcase witnesses prove the
+  escalation path beyond simple 1D separability.
+- Epic 2 already has an honest family-level maturity surface rather than only
+  method-level coverage claims.
 
 ## What Is Not Yet Proven
 
@@ -157,5 +172,9 @@ The repo does not claim to be dynamically complete for 3D deployment. It does cl
 - That IMM/PF/RBPF are generally best outside their promoted witness failures.
 - 3D dynamics and geometry are complete.
 - Every generated corpus passes every adequacy and leakage gate.
+- Epic 2 is fully complete across all four classifier families.
+- The generic-TSC family has earned promotion against the current 1D baselines.
+- The learned sequence and embedding family has broad robustness and benchmark
+  closure beyond bounded witness packets.
 
 The strongest current claim is architectural: the repo has the machinery to define, generate, evaluate, and decide kinematic classification studies under explicit evidence contracts, keep simple-rung sufficiency honest, and demonstrate an escalation path toward nonlinear, switching, and latent-state inference for the 3D lift.

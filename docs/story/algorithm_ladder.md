@@ -1,17 +1,24 @@
 # Algorithm Ladder
 
-Epic 2 is the classifier/filter evidence story.
+Epic 2 is the classifier-family evidence story.
 
-The classifier/filter ladder is an evidence ladder. Each rung consumes the same
-tracklet surface and emits comparable posterior histories. Complexity is added
-only when a diagnosed failure mode requires a richer evidence model.
+The classifier ladder is an evidence ladder inside a broader family evaluation
+framework. Each method consumes the same tracklet surface and emits comparable
+posterior histories or evidence rows. Complexity is added only when a
+diagnosed failure mode requires a richer evidence model.
 
-The ladder is not a ranking. It is a sequence of evidence capabilities.
+The ladder is not a ranking. It is one mechanism inside Epic 2 for expressing
+evidence capabilities, mostly inside the physics-aware inference family.
 
-Epic 2 proves both discipline and ambition: simple rungs establish the shared
-posterior-evidence contract, while advanced IMM/PF/RBPF witnesses demonstrate
-that the same architecture can escalate toward the nonlinear, switching, and
-latent-state problems expected in a 3D tracking lift.
+Epic 2 evaluates four classifier families under a shared proof framework:
+
+- interpretable kinematic classifiers
+- physics-aware inference classifiers
+- generic time-series benchmark classifiers
+- learned sequence and embedding classifiers
+
+The ladder exists to make the physics-aware inference family explicit, while
+the other families pressure-test it from different angles.
 
 Epic 1 screened the proposed feature/class/prior setup. Now the study is
 meaningful enough to run, so the next question is not which method is fanciest.
@@ -26,8 +33,25 @@ Return to one question across every rung:
 > What evidence is available up to time `t`, and how should it update belief
 > over classes?
 
-That is what lets pointwise classifiers, sequential Bayes, Kalman residuals,
-transition logic, IMM, PF, and RBPF live under one evaluation vocabulary.
+That is what lets pointwise classifiers, shapelets, MiniRocket-family models,
+Kalman residuals, IMM, PF, RBPF, TCN, and TS2Vec live under one evaluation
+vocabulary without pretending they are the same kind of algorithm.
+
+## Family Framing
+
+Epic 2 should be read at two levels:
+
+1. Family level: which kind of evidence is useful?
+2. Method level: which concrete algorithm earns promotion inside that family?
+
+The family-level structure is:
+
+| Family | Main question |
+| --- | --- |
+| Interpretable kinematic classifiers | Are transparent engineered features, windows, and motifs enough? |
+| Physics-aware inference classifiers | Do dynamics, uncertainty, and posterior evolution improve the decision? |
+| Generic time-series benchmark classifiers | Are we leaving raw classification performance on the table? |
+| Learned sequence and embedding classifiers | Do learned filters or learned representations justify their complexity? |
 
 ## Shared Contract
 
@@ -109,6 +133,17 @@ Primary outputs:
 
 Interpretation: these algorithms are not decorative. Each has a deliberately
 constructed witness where its assumptions are relevant.
+
+Classifier companions adjacent to the ladder:
+
+- Shapelet / motif witness for localized maneuver signatures
+- Modern TSC archive frontier for MiniRocket, DrCIF, dictionary methods, and HIVE-COTE
+- Neural sequence frontier for trained TCN and InceptionTime models
+- TS2Vec embedding frontier with an online prefix route proof and a bounded
+  proxy-versus-external parity witness
+
+Interpretation: these are first-class comparison surfaces, but they remain
+witness-backed rather than universal defaults.
 
 ### Layer C: 3D Lift Bridge
 

@@ -65,6 +65,7 @@ class IMMArtifacts:
     posterior_history_path: Path
     switching_detection_metrics_path: Path
     method_comparison_path: Path
+    summary_path: Path
     method_evaluation_summary_path: Path
     decision_matrix_path: Path
     plot_dir: Path

@@ -52,10 +52,10 @@ def render_rl_backend_decision_report(result: RlBackendDecisionResult) -> str:
     doc.heading("Recommendation", level=2)
     doc.bullet_list(
         [
-            "Keep RL as a no-go for now.",
+            "Keep RL out of fielded-deployment recommendations for now.",
             "The current repo already gets measurable gains from non-RL methods across M26, M27, and M28.",
-            "The SAC/TD3 smoke frontier is now real, but it still trails the baselines on aggregate.",
-            "Revisit RL only after adding a genuinely sequential CorpusGym environment, or after a future corpus objective remains unresolved under matched-budget search, quality-diversity baselines, and the current off-policy smoke frontier.",
+            "The SAC/TD3 smoke frontier is now real and first-class in the methodology ladder, but it still trails the baselines on aggregate.",
+            "Revisit RL deployment only after adding a genuinely sequential CorpusGym environment, or after a future corpus objective remains unresolved under matched-budget search, quality-diversity baselines, and the current off-policy smoke frontier.",
         ]
     )
 

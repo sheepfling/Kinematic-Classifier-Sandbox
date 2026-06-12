@@ -291,7 +291,7 @@ CLAIMS: tuple[ClaimEvidence, ...] = (
         test_paths=("tests/methodology/test_generic_inference_contract.py", "tests/methodology/test_generic_classification_evidence_proof.py"),
         current_status="trace_validated + witness_supported by case",
         limitations="Trace validation, broad full-ladder evaluation, positive showcase witnesses, and broader study justification are separate layers; current promotions do not imply universal dominance over simpler methods.",
-        next_work="Keep all applicable rungs visible on common study surfaces, preserve positive IMM/PF/RBPF showcase witnesses, then lift the witness and trace packets to vector PVA and 3D backend adapters.",
+        next_work="Keep all applicable rungs visible on common study surfaces, preserve positive IMM/PF/RBPF showcase witnesses, and keep shapelet, archive, neural, and TS2Vec classifier companions first-class while lifting the witness and trace packets to vector PVA and 3D backend adapters.",
         showcase_plot="plots/advanced_filter_decision_matrix.png",
         showcase_table="tables/advanced_filter_method_comparison.csv",
         supporting_equation="Advanced filters emit the shared posterior evidence contract.",
@@ -376,6 +376,8 @@ ARTIFACT_MANIFEST: tuple[ArtifactManifestEntry, ...] = (
     ArtifactManifestEntry("artifacts/advanced_filter_decision_v1/advanced_filter_decision_summary.json", "src/kinematic_classifier_sandbox/advanced_filters/evaluation.py", ("artifacts/advanced_filter_decision_v1/advanced_filter_decision_evidence.json",), "What does the conservative go/no-go gate say before broader witness promotion claims?", "C07", "implemented", "This remains the conservative gate, not the full witness and trace story."),
     ArtifactManifestEntry("artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv", "src/kinematic_classifier_sandbox/advanced_filters/evaluation.py", ("artifacts/advanced_filter_comparison_v1/method_comparison.csv", "artifacts/advanced_filter_comparison_v1/advanced_filter_comparison_report.md"), "Which advanced methods are only witness-supported versus justified for broader study use?", "C07", "implemented", "Witness support and study justification remain witness-family specific."),
     ArtifactManifestEntry("artifacts/filter_trace_validation_v1/filter_trace_validation_report.md", "src/kinematic_classifier_sandbox/tracing/filter_trace_validation_packet.py", ("artifacts/filter_trace_validation_v1/method_trace_matrix.csv", "artifacts/filter_trace_validation_v1/filter_step_trace_schema.json"), "Which methods expose auditable prior, prediction, likelihood, posterior, and diagnostic trace packets?", "C07", "implemented", "Trace validation proves mechanical auditability, not promotion by itself."),
+    ArtifactManifestEntry("artifacts/method_validation_os_v1/epic2_family_maturity_matrix.csv", "src/kinematic_classifier_sandbox/registry/method_validation_os.py", ("artifacts/method_validation_os_v1/algorithm_promotion_status_matrix.csv", "artifacts/method_validation_os_v1/method_validation_os_report.md"), "What is the family-level Implemented / Integrated / Proven read across the four Epic 2 classifier families?", "C07", "implemented", "This family summary is intentionally conservative and does not replace method-level status, witness, or complexity evidence."),
+    ArtifactManifestEntry("artifacts/tsc_archive_backend_smoke_v1/backend_smoke_rows.csv", "src/kinematic_classifier_sandbox/analysis/tsc_archive_backend_smoke.py", ("artifacts/tsc_archive_backend_smoke_v1/metrics.csv", "artifacts/tsc_archive_backend_smoke_v1/tsc_archive_backend_smoke_report.md"), "Which generic TSC archive families are unavailable, timing out, failing, or succeeding on a tiny external-wrapper smoke surface in the current environment?", "C07", "implemented", "This is only a backend capability probe; it does not replace the shared archive frontier or justify method promotion."),
     ArtifactManifestEntry("artifacts/dimensional_lift_audit/module_dimension_status.csv", "src/kinematic_classifier_sandbox/analysis/dimensional_lift_audit.py", ("src/kinematic_classifier_sandbox",), "What must change for 3D transition?", "C08", "architectural", "3D adapters and dynamics are incomplete."),
     ArtifactManifestEntry("artifacts/validation_ladder/validation_ladder_decisions.csv", "src/kinematic_classifier_sandbox/validation/validation_ladder.py", ("artifacts/validation_ladder/validation_ladder_scores.csv",), "Which studies promote, revise, reject, or defer?", "C01;C02;C03;C04", "implemented", "Promotion quality depends on upstream corpus, feature, prior, and evidence checks."),
 )
@@ -386,6 +388,16 @@ TRACKED_METHOD_SURFACES: tuple[tuple[str, str, str], ...] = (
         "Algorithm coverage matrix",
         "artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md",
         "Broader algorithm map covering physics, benchmark TSC, neural sequence, representation, uncertainty, optimizer, and roadmap lanes.",
+    ),
+    (
+        "Epic 2 family maturity matrix",
+        "artifacts/method_validation_os_v1/epic2_family_maturity_matrix.csv",
+        "Family-level Implemented / Integrated / Proven view across the four Epic 2 classifier families without hiding method-level gaps.",
+    ),
+    (
+        "Generic TSC backend smoke",
+        "artifacts/tsc_archive_backend_smoke_v1/tsc_archive_backend_smoke_report.md",
+        "Current-environment capability probe showing which archive-family external wrappers are unavailable, timing out, failing, or succeeding before the full frontier is trusted.",
     ),
     (
         "Method validation operating system",
@@ -726,7 +738,9 @@ def render_team_packet_index() -> str:
             "`artifacts/repo_story/artifact_index.md`",
             "`artifacts/repo_story/witness_problem_matrix.csv`",
             "`artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md`",
+            "`artifacts/method_validation_os_v1/epic2_family_maturity_matrix.csv`",
             "`artifacts/method_validation_os_v1/method_validation_os_report.md`",
+            "`artifacts/tsc_archive_backend_smoke_v1/tsc_archive_backend_smoke_report.md`",
             "`artifacts/trajectory_exploration_backend_registry_v1/report.md`",
         ]
     )
@@ -776,6 +790,7 @@ def render_status_report() -> str:
             "`artifacts/repo_story/artifact_dependency_graph.png`",
             "`artifacts/repo_story/pln024_status_report.md`",
             "`artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md`",
+            "`artifacts/method_validation_os_v1/epic2_family_maturity_matrix.csv`",
             "`artifacts/method_validation_os_v1/method_validation_os_report.md`",
             "`artifacts/trajectory_exploration_backend_registry_v1/report.md`",
         ]
@@ -856,6 +871,9 @@ def render_repo_story_index() -> str:
             "All applicable rungs should be evaluated on common benchmark surfaces.",
             "Promotion should remain tied to rung sufficiency, failure-mode fit, calibration, and prior robustness.",
             "Simple 1D witnesses prove the evidence contract; advanced IMM/PF/RBPF witnesses prove the escalation path toward the 3D lift.",
+            "Classifier companion surfaces like shapelet, archive-style modern TSC, neural sequence, and TS2Vec are first-class when they keep the ladder honest about representation capacity.",
+            "The Epic 2 family maturity matrix is the family-level status read; the method-validation operating system remains the method-level source of truth.",
+            "The sequential-control frontier is the generator-side companion: the PPO proxy packet and the SAC/TD3 smoke frontier exercise the same witness-generation pipeline that feeds Epic 2 studies.",
             "Planned high-signal additions include full-ladder comparison, method-status, method-win-by-regime, and simple-to-advanced bridge outputs.",
         ]
     )
@@ -896,6 +914,7 @@ def render_top_20_artifacts() -> str:
         "artifacts/repo_story/artifact_manifest.json",
         "artifacts/repo_story/witness_problem_matrix.csv",
         "artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md",
+        "artifacts/method_validation_os_v1/epic2_family_maturity_matrix.csv",
         "artifacts/method_validation_os_v1/method_validation_os_report.md",
         "artifacts/trajectory_exploration_backend_registry_v1/report.md",
         "artifacts/corpus_adequacy_audit_v1/corpus_adequacy_scorecard.csv",

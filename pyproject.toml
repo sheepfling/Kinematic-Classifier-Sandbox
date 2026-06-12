@@ -14,6 +14,13 @@ dependencies = ["matplotlib>=3.10", "numpy>=2.0", "mdutils>=1.8.1", "pydantic>=2
 [project.optional-dependencies]
 dev = ["pyright>=1.1", "pytest>=8.0", "ruff>=0.8"]
 rl = ["gymnasium>=1.0", "stable-baselines3>=2.3"]
+classifiers = [
+    "aeon>=1.4",
+    "scikit-learn>=1.7",
+    "sktime>=1.0",
+    "torch>=2.12",
+    "ts2vec>=0.1",
+]
 
 [tool.ruff]
 target-version = "py312"

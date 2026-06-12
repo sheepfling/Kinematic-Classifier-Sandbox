@@ -18,16 +18,18 @@ The emitted artifacts include:
 - `artifacts/imm_filter_v1/posterior_history.csv`
 - `artifacts/imm_filter_v1/state_estimate_history.csv`
 - `artifacts/imm_filter_v1/mixing_probability_history.csv`
-- `artifacts/imm_filter_v1/switching_detection_metrics.csv`
+- `artifacts/imm_filter_v1/summary.csv`
 - `artifacts/imm_filter_v1/advanced_filter_method_comparison.csv`
 - `artifacts/imm_filter_v1/plots/intermediate/mixing_probability_heatmap.png`
 - `artifacts/imm_filter_v1/plots/intermediate/mode_conditioned_state_traces.png`
 - `artifacts/imm_filter_v1/plots/intermediate/switch_recovery_panel.png`
 
 The current IMM witness is intentionally conservative in status semantics: it
-can support `witness_supported` when the switching witness and trace packet are
-clean, but it is not `justified_for_study` until robustness sweeps over seeds,
-noise, and priors exist.
+now supports `study_justified` on the current switching family because the
+switching witness, trace packet, and bounded promotion audit are all present.
+The narrow packet
+`artifacts/imm_switching_promotion_audit_v1/imm_switching_promotion_audit_report.md`
+shows the switch-recovery gain survives a small seed-and-witness-size sweep.
 
 ## Research Note
 

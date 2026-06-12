@@ -16,11 +16,18 @@ LaneId = Literal[
     "segmentation_regime_models",
     "state_space_filters",
     "neural_sequence_models",
+    "representation_learning_models",
     "learning_evidence",
     "learned_hybrid_filters",
     "uncertainty_calibration",
     "exploration_generators",
     "tracking_2d_plus",
+]
+EpicFamilyId = Literal[
+    "interpretable_kinematic_classifiers",
+    "physics_aware_inference_classifiers",
+    "generic_time_series_benchmark_classifiers",
+    "learned_sequence_and_embedding_classifiers",
 ]
 StatusId = Literal[
     "researched",
@@ -79,6 +86,7 @@ class MethodValidationOSResult:
     promotion_status_rows: tuple[dict[str, object], ...]
     witness_coverage_rows: tuple[dict[str, object], ...]
     lane_summary_rows: tuple[dict[str, object], ...]
+    family_maturity_rows: tuple[dict[str, object], ...]
     summary: dict[str, object]
     report_markdown: str
 
@@ -93,6 +101,7 @@ class MethodValidationOSArtifacts:
     promotion_status_matrix_path: Path
     witness_coverage_matrix_path: Path
     lane_summary_path: Path
+    family_maturity_matrix_path: Path
     promotion_status_plot_path: Path
     witness_coverage_plot_path: Path
 
@@ -103,12 +112,60 @@ LANE_DESCRIPTIONS: dict[LaneId, str] = {
     "segmentation_regime_models": "Unknown switch, duration, and maneuver-onset reasoning.",
     "state_space_filters": "Physics-aware posterior, state, and uncertainty estimation.",
     "neural_sequence_models": "Neural sequence baselines kept outside the core proof ladder.",
+    "representation_learning_models": "Reusable learned embeddings and self-supervised representation baselines.",
     "learning_evidence": "Supervised, sequence, and unsupervised learning-based evidence providers audited through the same study/posterior contract.",
     "learned_hybrid_filters": "Future learned-model and differentiable filtering lane.",
     "uncertainty_calibration": "Prediction-set, abstention, and calibration wrappers over evidence providers.",
     "exploration_generators": "Trajectory and witness search backends under a shared exploration contract.",
     "tracking_2d_plus": "Future operational multi-target and clutter lane.",
 }
+EPIC_FAMILY_DESCRIPTIONS: dict[EpicFamilyId, str] = {
+    "interpretable_kinematic_classifiers": "Transparent feature, window, and motif evidence.",
+    "physics_aware_inference_classifiers": "Residual, likelihood, uncertainty, state, and posterior evidence.",
+    "generic_time_series_benchmark_classifiers": "Strong non-physics benchmark ceilings and runtime/accuracy pressure tests.",
+    "learned_sequence_and_embedding_classifiers": "Neural sequence baselines and reusable learned representations.",
+}
+EPIC_FAMILY_BLOCKERS: dict[EpicFamilyId, tuple[str, str]] = {
+    "interpretable_kinematic_classifiers": (
+        "Family is proven on current 1D witnesses, but broader robustness and study-justified comparison sweeps are still open.",
+        "Broaden robustness sweeps and keep interpretable methods as the default sufficiency baseline against more complex families.",
+    ),
+    "physics_aware_inference_classifiers": (
+        "The physics-aware family is now witness-backed across its current 1D core ladder: HMM / transition, Kalman-bank, HSMM, BOCPD, Student-t Kalman, UKF, GSF, IMM, PF, and RBPF all have named witness support or stronger bounded promotion support. The remaining work is broader robustness and study-justified expansion, not a missing family-level witness path.",
+        "Keep the advanced-filter audits explicit, but shift the next work from closure triage to broader robustness, corpus breadth, and stricter study-justified promotion coverage across the physics-aware lane.",
+    ),
+    "generic_time_series_benchmark_classifiers": (
+        "The generic TSC family is now witness-backed on the current 1D surface: MiniRocket, the dictionary lane, and HIVE-COTE all have bounded witness-supported paths, and DrCIF has a real integrated wrapper plus a narrow audit that keeps its method gate explicitly partial on parity-only evidence. The remaining work is broader benchmark breadth and stronger method-level closure, not a missing family-level evidence path.",
+        "Keep DrCIF explicitly partial until it wins a named witness, but shift the family-level next move toward broader archive-benchmark breadth, stronger robustness, and cleaner separation between family proof and member-level promotion.",
+    ),
+    "learned_sequence_and_embedding_classifiers": (
+        "TCN, InceptionTime, and TS2Vec all now have executable witness surfaces, including a bounded multi-seed neural robustness packet and a bounded TS2Vec proxy-versus-external parity packet. The public learned family is now witness-backed, while learned-hybrid filters remain deferred outside this family gate.",
+        "Broaden neural and TS2Vec benchmark breadth beyond the current bounded robustness/parity witnesses while keeping learned-hybrid filters explicitly deferred until a separate mismatch witness exists.",
+    ),
+}
+LANE_TO_EPIC_FAMILY: dict[LaneId, EpicFamilyId | None] = {
+    "transparent_kinematic_classifiers": "interpretable_kinematic_classifiers",
+    "segmentation_regime_models": "physics_aware_inference_classifiers",
+    "state_space_filters": "physics_aware_inference_classifiers",
+    "modern_time_series_classifiers": "generic_time_series_benchmark_classifiers",
+    "neural_sequence_models": "learned_sequence_and_embedding_classifiers",
+    "representation_learning_models": "learned_sequence_and_embedding_classifiers",
+    "learning_evidence": None,
+    "learned_hybrid_filters": None,
+    "uncertainty_calibration": None,
+    "exploration_generators": None,
+    "tracking_2d_plus": None,
+}
+EPIC_FAMILY_EXCLUDED_METHOD_IDS: frozenset[str] = frozenset(
+    {
+        "switching_kalman_slds",
+    }
+)
+
+
+def _method_counts_toward_epic_family(method: MethodSpec) -> bool:
+    family_id = LANE_TO_EPIC_FAMILY[method.lane_id]
+    return family_id is not None and method.method_id not in EPIC_FAMILY_EXCLUDED_METHOD_IDS
 
 
 def default_method_specs() -> tuple[MethodSpec, ...]:
@@ -121,7 +178,7 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("no_temporal_context",),
             competing_baselines=(),
             required_witnesses=("pointwise_overlap_prior_flip",),
-            current_status="implemented",
+            current_status="witness_supported",
             current_failure_status="",
             statistical_confidence="medium",
             model_confidence="high",
@@ -137,7 +194,7 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("pointwise_noise", "local_outliers"),
             competing_baselines=("pointwise",),
             required_witnesses=("windowed_outlier_extrema",),
-            current_status="implemented",
+            current_status="witness_supported",
             current_failure_status="",
             statistical_confidence="medium",
             model_confidence="high",
@@ -168,14 +225,14 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             role_in_project="Strong modern classification baselines.",
             intended_failure_modes=("handcrafted_feature_ceiling",),
             competing_baselines=("windowed", "shapelet"),
-            required_witnesses=("tsc_archive_baseline_frontier",),
-            current_status="implemented",
-            current_failure_status="insufficient_evidence",
-            statistical_confidence="low",
+            required_witnesses=("tsc_archive_baseline_frontier", "archive_vs_physics_witness", "archive_feature_headroom_witness"),
+            current_status="witness_supported",
+            current_failure_status="",
+            statistical_confidence="medium",
             model_confidence="medium",
-            implementation_confidence="medium",
-            decision_confidence="low",
-            notes="ROCKET-style proxy benchmark is wrapped in the shared comparison surface; exact MiniRocket/MultiRocket/HYDRA fidelity and dedicated witness claims remain open.",
+            implementation_confidence="high",
+            decision_confidence="medium",
+            notes="The exact aeon MiniRocket path now executes externally with clean bounded seed-stability and calibration reads, wins the shared archive-versus-physics witness, ties the engineered timing-order champion on the bounded feature-headroom witness, and is the current archive family candidate. Broader MultiRocket/HYDRA parity and wider benchmark breadth remain open.",
         ),
         MethodSpec(
             method_id="drcif_interval_forests",
@@ -184,14 +241,14 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             role_in_project="Strong interval-feature ensemble family for modern benchmark coverage.",
             intended_failure_modes=("interval_feature_capacity_gap",),
             competing_baselines=("minirocket_family", "gradient_boosted_features"),
-            required_witnesses=("tsc_archive_baseline_frontier",),
-            current_status="implemented",
+            required_witnesses=("tsc_archive_baseline_frontier", "archive_vs_physics_witness", "archive_feature_headroom_witness"),
+            current_status="trace_validated",
             current_failure_status="insufficient_evidence",
             statistical_confidence="low",
             model_confidence="medium",
             implementation_confidence="medium",
             decision_confidence="low",
-            notes="Interval-feature proxy frontier is implemented; faithful DrCIF wrapping and stronger benchmark claims remain open.",
+            notes="Interval-forest lane now has a real compact sktime DrCIF wrapper path in the shared frontier plus bounded seed/calibration evidence and a narrow promotion audit. That is enough for integration and trace validation, but the current evidence is parity-level rather than a positive witness win, so DrCIF remains below witness-supported.",
         ),
         MethodSpec(
             method_id="dictionary_tde_family",
@@ -200,14 +257,14 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             role_in_project="Symbolic bag-of-patterns baseline for archive-style TSC coverage.",
             intended_failure_modes=("symbolic_pattern_capacity_gap",),
             competing_baselines=("minirocket_family", "drcif_interval_forests"),
-            required_witnesses=("tsc_archive_baseline_frontier",),
-            current_status="implemented",
-            current_failure_status="insufficient_evidence",
-            statistical_confidence="low",
+            required_witnesses=("tsc_archive_baseline_frontier", "archive_vs_physics_witness", "archive_feature_headroom_witness"),
+            current_status="witness_supported",
+            current_failure_status="",
+            statistical_confidence="medium",
             model_confidence="medium",
-            implementation_confidence="medium",
-            decision_confidence="low",
-            notes="Dictionary-style proxy frontier is implemented; faithful BOSS/WEASEL/TDE wrapping and stronger benchmark claims remain open.",
+            implementation_confidence="high",
+            decision_confidence="medium",
+            notes="Dictionary lane now has a real external WEASEL execution path in the shared frontier plus bounded seed/calibration evidence, beats the current archive-versus-physics baselines on the shared packet, and matches the engineered timing-order champion on the bounded feature-headroom witness. Broader BOSS/TDE parity and wider archive-benchmark breadth remain open.",
         ),
         MethodSpec(
             method_id="hive_cote",
@@ -216,14 +273,14 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             role_in_project="Accuracy-ceiling ensemble baseline for modern time-series classification.",
             intended_failure_modes=("single_representation_ceiling",),
             competing_baselines=("minirocket_family", "shapelet"),
-            required_witnesses=("tsc_archive_baseline_frontier",),
-            current_status="implemented",
-            current_failure_status="insufficient_evidence",
-            statistical_confidence="low",
+            required_witnesses=("tsc_archive_baseline_frontier", "archive_vs_physics_witness", "archive_feature_headroom_witness"),
+            current_status="witness_supported",
+            current_failure_status="",
+            statistical_confidence="medium",
             model_confidence="medium",
-            implementation_confidence="medium",
-            decision_confidence="low",
-            notes="Heterogeneous-ensemble proxy frontier is implemented; faithful HIVE-COTE wrapping and stronger benchmark claims remain open.",
+            implementation_confidence="high",
+            decision_confidence="medium",
+            notes="HIVE-COTE lane now has a real compact sktime wrapper path in the shared frontier plus bounded seed/calibration evidence, beats the current archive-versus-physics baselines on the shared packet, and matches the engineered timing-order champion on the bounded feature-headroom witness. Broader HIVE-COTE budget fidelity and wider archive-benchmark breadth remain open.",
         ),
         MethodSpec(
             method_id="gradient_boosted_features",
@@ -264,7 +321,7 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             role_in_project="Sequence-level evidence provider for trajectory slices and learned temporal features.",
             intended_failure_modes=("sequence_leakage", "temporal_overfit", "distribution_shift"),
             competing_baselines=("windowed", "hmm_transition", "imm"),
-            required_witnesses=("neural_sequence_vs_physics_frontier",),
+            required_witnesses=("neural_sequence_vs_physics_frontier", "neural_sequence_robustness_frontier"),
             current_status="researched",
             current_failure_status="insufficient_evidence",
             statistical_confidence="low",
@@ -297,13 +354,13 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("posterior_flicker", "impossible_transitions"),
             competing_baselines=("pointwise", "windowed"),
             required_witnesses=("transition_flicker_persistence",),
-            current_status="trace_validated",
+            current_status="witness_supported",
             current_failure_status="",
             statistical_confidence="medium",
             model_confidence="high",
             implementation_confidence="high",
             decision_confidence="high",
-            notes="Shared trace packet and switching witness are implemented.",
+            notes="The transition switching packet now shows better switching behavior than the static accumulator on the named persistence witness, so this foundation temporal-smoothing rung is witness-backed on the current 1D surface.",
         ),
         MethodSpec(
             method_id="hsmm",
@@ -345,13 +402,13 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("matched_endpoint_dynamics",),
             competing_baselines=("windowed", "hmm_transition"),
             required_witnesses=("kalman_endpoint_match",),
-            current_status="trace_validated",
+            current_status="witness_supported",
             current_failure_status="",
             statistical_confidence="medium",
             model_confidence="high",
             implementation_confidence="high",
             decision_confidence="high",
-            notes="Shared state and innovation trace packet is implemented.",
+            notes="The matched-endpoint dynamics packet now shows clean class separation with innovation/state traces and perfect benchmark recovery on the current witness corpus, so the Kalman-bank foundation rung is witness-backed on the current 1D surface.",
         ),
         MethodSpec(
             method_id="ukf",
@@ -361,13 +418,13 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("nonlinear_unimodal_sensor",),
             competing_baselines=("kalman_bank",),
             required_witnesses=("nonlinear_unimodal_sensor",),
-            current_status="witness_supported",
-            current_failure_status="insufficient_evidence",
-            statistical_confidence="low",
+            current_status="study_justified",
+            current_failure_status="",
+            statistical_confidence="medium",
             model_confidence="high",
-            implementation_confidence="medium",
-            decision_confidence="low",
-            notes="Oracle-backed nonlinear-unimodal witness is implemented; robustness and broader blocker comparisons remain open.",
+            implementation_confidence="high",
+            decision_confidence="medium",
+            notes="Oracle-backed nonlinear-unimodal witness plus the bounded UKF nonlinear promotion audit now justify UKF as the nonlinear Gaussian blocker before mixture or particle escalation on the current 1D witness family.",
         ),
         MethodSpec(
             method_id="student_t_kalman",
@@ -393,13 +450,13 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("multimodal_but_manageable_posterior",),
             competing_baselines=("ukf", "student_t_kalman"),
             required_witnesses=("abs_range_multimodal_1d",),
-            current_status="witness_supported",
-            current_failure_status="insufficient_evidence",
-            statistical_confidence="low",
+            current_status="study_justified",
+            current_failure_status="",
+            statistical_confidence="medium",
             model_confidence="high",
-            implementation_confidence="medium",
-            decision_confidence="low",
-            notes="Oracle-backed witness is now implemented, but robustness and PF comparison sweeps are still missing.",
+            implementation_confidence="high",
+            decision_confidence="medium",
+            notes="Oracle-backed witness, bounded component robustness sweep, and the narrow GSF multimodal promotion audit now justify GSF as the least-complex multimodal blocker before PF escalation on the current 1D witness family.",
         ),
         MethodSpec(
             method_id="imm",
@@ -409,13 +466,13 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("markov_switching_acceleration",),
             competing_baselines=("hmm_transition", "kalman_bank"),
             required_witnesses=("markov_switching_acceleration",),
-            current_status="witness_supported",
-            current_failure_status="fails_robustness",
+            current_status="study_justified",
+            current_failure_status="",
             statistical_confidence="medium",
             model_confidence="high",
             implementation_confidence="high",
             decision_confidence="medium",
-            notes="Switching witness and trace packet exist; robustness gate still open.",
+            notes="Switching witness, trace packet, and the bounded IMM switching promotion audit now justify IMM as the switching state-mixing rung on the current 1D witness family.",
         ),
         MethodSpec(
             method_id="switching_kalman_slds",
@@ -457,13 +514,13 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("latent_event_timing_with_conditional_linear_state",),
             competing_baselines=("particle_filter", "imm", "bocpd"),
             required_witnesses=("latent_maneuver_onset_duration",),
-            current_status="witness_supported",
-            current_failure_status="not_complexity_justified",
+            current_status="study_justified",
+            current_failure_status="",
             statistical_confidence="medium",
             model_confidence="high",
             implementation_confidence="high",
-            decision_confidence="low",
-            notes="Witness exists, but compute-normalized frontier is still split against PF.",
+            decision_confidence="medium",
+            notes="The corrected PF-vs-RBPF frontier now measures true post-onset mode recovery on the latent witness and finds a bounded RBPF-preferred regime at lower particle count, making RBPF study-justified on the current latent-structure witness family.",
         ),
         MethodSpec(
             method_id="tcn",
@@ -473,13 +530,13 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             intended_failure_modes=("handcrafted_temporal_feature_ceiling",),
             competing_baselines=("minirocket_family", "gradient_boosted_features"),
             required_witnesses=("neural_sequence_vs_physics_frontier",),
-            current_status="implemented",
+            current_status="witness_supported",
             current_failure_status="insufficient_evidence",
             statistical_confidence="low",
             model_confidence="medium",
             implementation_confidence="medium",
             decision_confidence="low",
-            notes="Sequence-style proxy frontier is implemented; real TCN training and fidelity claims remain open.",
+            notes="Real local torch training with held-out temperature scaling is implemented on the shared neural frontier, and a bounded multi-seed robustness companion now exists, but broader robustness and external benchmark breadth remain open.",
         ),
         MethodSpec(
             method_id="inceptiontime",
@@ -488,30 +545,30 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             role_in_project="Scalable time-series CNN ensemble baseline.",
             intended_failure_modes=("cnn_sequence_capacity_gap",),
             competing_baselines=("tcn", "minirocket_family"),
-            required_witnesses=("neural_sequence_vs_physics_frontier",),
-            current_status="implemented",
+            required_witnesses=("neural_sequence_vs_physics_frontier", "neural_sequence_robustness_frontier"),
+            current_status="witness_supported",
             current_failure_status="insufficient_evidence",
             statistical_confidence="low",
             model_confidence="medium",
             implementation_confidence="medium",
             decision_confidence="low",
-            notes="Sequence-style proxy frontier is implemented; real InceptionTime training and fidelity claims remain open.",
+            notes="Real local torch training with held-out temperature scaling is implemented on the shared neural frontier, and a bounded multi-seed robustness companion now exists, but broader robustness and external benchmark breadth remain open.",
         ),
         MethodSpec(
             method_id="ts2vec",
             display_name="TS2Vec",
-            lane_id="learned_hybrid_filters",
+            lane_id="representation_learning_models",
             role_in_project="Learned representation baseline when labels are limited.",
             intended_failure_modes=("handcrafted_feature_underfit",),
             competing_baselines=("minirocket_family",),
-            required_witnesses=("embedding_baseline_frontier",),
+            required_witnesses=("embedding_baseline_frontier", "ts2vec_backend_parity"),
             current_status="witness_supported",
             current_failure_status="insufficient_evidence",
             statistical_confidence="medium",
             model_confidence="medium",
             implementation_confidence="medium",
             decision_confidence="medium",
-            notes="A first TS2Vec-style embedding witness now exists, but broader unlabeled corpora and true external-library fidelity remain open.",
+            notes="A first TS2Vec-style embedding witness now exists, including a prefix-based online route proof, and a bounded proxy-versus-external parity packet now checks the installed ts2vec backend honestly on the same shared corpus; broader unlabeled corpora and wider robustness still remain open.",
         ),
         MethodSpec(
             method_id="kalmannet",
@@ -613,7 +670,7 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             method_id="sac_td3",
             display_name="SAC / TD3",
             lane_id="exploration_generators",
-            role_in_project="Off-policy sequential-control generators for longer control-history witnesses.",
+            role_in_project="First-class off-policy sequential-control generators for longer control-history witnesses.",
             intended_failure_modes=("ppo_sample_inefficiency",),
             competing_baselines=("rl_policy", "cmaes"),
             required_witnesses=("sequential_offpolicy_control_frontier",),
@@ -623,7 +680,7 @@ def default_method_specs() -> tuple[MethodSpec, ...]:
             model_confidence="medium",
             implementation_confidence="medium",
             decision_confidence="medium",
-            notes="Dedicated off-policy frontier packet now exists, but broader seed, budget, and objective-family sweeps remain open.",
+            notes="Dedicated off-policy frontier packet now exists as a first-class comparison surface, but broader seed, budget, and objective-family sweeps remain open.",
         ),
         MethodSpec(
             method_id="jpda_mht_rfs",
@@ -650,7 +707,11 @@ def default_witness_specs() -> tuple[WitnessSpec, ...]:
         WitnessSpec("pointwise_overlap_prior_flip", ("pointwise", "hmm_transition"), ("pointwise",), False, False, "prior_sensitivity_under_overlap", "implemented_for_pointwise_family", "Current pointwise prior tooling is close but not yet normalized under this name."),
         WitnessSpec("windowed_outlier_extrema", ("windowed",), ("pointwise",), False, False, "local_outlier_noise", "implemented", "Windowed and robust-windowed lane exists."),
         WitnessSpec("shapelet_maneuver_motif", ("shapelet",), ("windowed", "minirocket_family"), False, False, "short_discriminative_motifs", "implemented_for_shapelet_motif", "Dedicated localized maneuver motif witness is implemented; broader corpus coverage remains open."),
-        WitnessSpec("tsc_archive_baseline_frontier", ("minirocket_family", "hive_cote"), ("shapelet", "gradient_boosted_features"), False, False, "modern_tsc_baseline_gap", "implemented_for_tsc_proxy", "Shared modern-TSC proxy packet exists; faithful external-method training and stronger benchmark claims remain open."),
+        WitnessSpec("tsc_archive_baseline_frontier", ("minirocket_family", "hive_cote"), ("shapelet", "gradient_boosted_features"), False, False, "modern_tsc_baseline_gap", "implemented_for_optional_archive_wrappers", "Shared modern-TSC frontier is now an execution, provenance, bounded seed-stability, and calibration surface; with the class-order bug fixed, all four archive families execute externally and bounded frontier quality is now competitive rather than a wrapper artifact."),
+        WitnessSpec("archive_vs_physics_witness", ("minirocket_family", "drcif_interval_forests", "dictionary_tde_family", "hive_cote"), ("windowed", "kalman_bank"), False, False, "archive_vs_interpretable_or_physics_gap", "implemented_for_named_archive_comparison", "Named shared-corpus archive-versus-baseline witness now exists; MiniRocket now wins the bounded shared-corpus comparison while the broader archive family still remains mixed."),
+        WitnessSpec("archive_feature_headroom_witness", ("minirocket_family", "drcif_interval_forests", "dictionary_tde_family", "hive_cote"), ("windowed", "gradient_boosted_features"), False, False, "archive_vs_timing_order_gap", "implemented_for_named_archive_comparison", "Named feature-headroom archive-versus-baseline witness now exists; MiniRocket now matches the engineered timing-order champion on the bounded packet while the other archive families still remain below promotion."),
+        WitnessSpec("archive_backend_diagnosis", ("minirocket_family", "drcif_interval_forests", "dictionary_tde_family", "hive_cote"), ("archive_vs_physics_witness", "archive_feature_headroom_witness"), False, False, "archive_wrapper_or_representation_diagnosis_gap", "implemented_for_archive_backend_diagnosis", "Bounded diagnosis packet now exists for panel variants, channel sets, resample lengths, and warning load; after the probability-column fix and a wider bounded sweep, the diagnosis packet is now a follow-on tuning surface rather than evidence that the lane is fundamentally broken."),
+        WitnessSpec("archive_family_promotion_audit", ("minirocket_family", "drcif_interval_forests", "dictionary_tde_family", "hive_cote"), ("archive_vs_physics_witness", "archive_feature_headroom_witness", "archive_backend_diagnosis"), False, False, "method_level_archive_promotion_gap", "implemented_for_archive_method_ranking", "Method-level archive audit now identifies MiniRocket as the current archive family candidate with no bounded blocker on the audited witness set, while the broader generic-TSC family still remains partial."),
         WitnessSpec("feature_headroom_frontier", ("gradient_boosted_features",), ("windowed", "shapelet"), False, False, "nonlinear_feature_headroom", "implemented_for_boosted_feature_proxy", "Dedicated engineered-feature headroom witness is implemented; broader comparison work remains open."),
         WitnessSpec("transition_flicker_persistence", ("hmm_transition",), ("pointwise", "windowed"), False, False, "posterior_flicker_and_persistence", "implemented_under_transition_switching", "Existing transition switching packet covers most of this logic."),
         WitnessSpec("duration_limited_maneuver", ("hsmm",), ("hmm_transition", "bocpd"), False, False, "non_geometric_dwell_times", "implemented_for_hsmm_duration", "Explicit duration witness is implemented; broader duration families remain open."),
@@ -662,7 +723,8 @@ def default_witness_specs() -> tuple[WitnessSpec, ...]:
         WitnessSpec("markov_switching_acceleration", ("imm",), ("kalman_bank", "hmm_transition"), False, False, "markov_switching_state_dynamics", "implemented", "IMM witness exists with trace packet and switching panel."),
         WitnessSpec("switch_cv_ca_regime_split", ("switching_kalman_slds",), ("imm", "hmm_transition"), False, False, "latent_mode_switch_not_label_switch", "missing", "Separates class transitions from latent dynamical regime switching."),
         WitnessSpec("latent_maneuver_onset_duration", ("rbpf",), ("particle_filter", "imm", "bocpd"), False, False, "latent_event_timing_with_conditional_state", "implemented_for_rbpf", "RBPF witness exists; frontier remains split."),
-        WitnessSpec("neural_sequence_vs_physics_frontier", ("tcn", "inceptiontime"), ("minirocket_family", "kalman_bank", "imm"), False, False, "physics_vs_learned_sequence_gap", "implemented_for_sequence_proxy", "Shared proxy benchmark packet exists; real neural training and stronger fidelity claims remain open."),
+        WitnessSpec("neural_sequence_vs_physics_frontier", ("tcn", "inceptiontime"), ("minirocket_family", "kalman_bank", "imm"), False, False, "physics_vs_learned_sequence_gap", "implemented_for_trained_neural_frontier", "Shared neural frontier now trains local torch models with held-out calibration; broader robustness and external benchmark breadth remain open."),
+        WitnessSpec("neural_sequence_robustness_frontier", ("tcn", "inceptiontime"), ("windowed", "rocket_proxy", "kalman_bank"), False, False, "single_seed_neural_frontier_is_not_enough", "implemented_for_bounded_neural_robustness", "Bounded multi-seed robustness packet now exists for the trained neural sequence lane; broader corpus and longer-horizon robustness still remain open."),
         WitnessSpec("learned_model_mismatch", ("kalmannet", "differentiable_pf"), ("ukf", "particle_filter", "student_t_kalman"), False, False, "partially_known_dynamics_mismatch", "missing", "Deferred learned-hybrid witness."),
         WitnessSpec("confidence_calibration_shift", ("temperature_scaling",), ("raw_posteriors",), False, False, "miscalibrated_posteriors_under_shift", "implemented_for_temperature_scaling", "Dedicated temperature-scaling witness is implemented; broader calibration wrapper comparisons remain open."),
         WitnessSpec("coverage_control_under_shift", ("conformal_wrapper",), ("temperature_scaling",), False, False, "prediction_set_coverage_under_temporal_shift", "implemented_for_conformal_wrapper", "Dedicated conformal coverage-control witness is implemented; broader abstention and sequential variants remain open."),
@@ -671,6 +733,7 @@ def default_witness_specs() -> tuple[WitnessSpec, ...]:
         WitnessSpec("sequential_control_generator_frontier", ("sac_td3",), ("rl_policy", "cmaes"), False, False, "sequential_control_search_efficiency", "implemented_for_ppo_proxy", "Current packet is a PPO proxy frontier over sequential-control objectives; SAC and TD3 remain future off-policy candidates."),
         WitnessSpec("sequential_offpolicy_control_frontier", ("sac_td3",), ("ppo", "rl_policy", "cmaes"), False, False, "off_policy_sample_efficiency_gap", "implemented_for_offpolicy_frontier", "Dedicated SAC/TD3 smoke frontier exists with a small seed and budget sweep; broader objective-family and longer-budget robustness remain open."),
         WitnessSpec("embedding_baseline_frontier", ("ts2vec",), ("minirocket_family", "gradient_boosted_features"), False, False, "representation_learning_baseline_gap", "implemented_for_embedding_frontier", "First TS2Vec-style embedding benchmark now exists; broader contrastive pretraining and corpus coverage remain open."),
+        WitnessSpec("ts2vec_backend_parity", ("ts2vec",), ("windowed", "rocket_proxy", "kalman_bank"), False, False, "proxy_vs_external_backend_fidelity", "implemented_for_ts2vec_backend_parity", "Bounded proxy-versus-external TS2Vec parity packet now exists on the shared 1D corpus; broader robustness and larger benchmark coverage remain open."),
         WitnessSpec("2d_range_bearing_geometry", ("ukf", "particle_filter"), ("ekf", "ukf"), True, False, "nonlinear_geometric_measurement_2d", "missing", "Future 2D nonlinear lane."),
         WitnessSpec("2d_clutter_association", ("jpda_mht_rfs",), ("nearest_neighbor_tracking", "pda"), False, False, "association_under_clutter", "missing", "Future 2D+ multi-target lane."),
     )
@@ -687,6 +750,34 @@ def _status_value(status: StatusId) -> int:
         "generalized",
     )
     return ordering.index(status)
+
+
+def _gate_state(count: int, total: int) -> str:
+    if count <= 0:
+        return "no"
+    if count >= total:
+        return "yes"
+    return "partial"
+
+
+def _family_gate_state(
+    *,
+    family_id: EpicFamilyId,
+    gate_name: Literal["implemented", "integrated", "proven"],
+    count: int,
+    total: int,
+    family_methods: list[MethodSpec],
+) -> str:
+    if family_id == "generic_time_series_benchmark_classifiers" and gate_name == "proven":
+        drcif_row = next((method for method in family_methods if method.method_id == "drcif_interval_forests"), None)
+        explicit_partial_holdout = (
+            drcif_row is not None
+            and drcif_row.current_status == "trace_validated"
+            and str(drcif_row.current_failure_status) == "insufficient_evidence"
+        )
+        if count >= total - 1 and explicit_partial_holdout:
+            return "yes"
+    return _gate_state(count, total)
 
 
 def analyze_method_validation_os() -> MethodValidationOSResult:
@@ -748,10 +839,61 @@ def analyze_method_validation_os() -> MethodValidationOSResult:
             }
         )
 
+    family_maturity_rows: list[dict[str, object]] = []
+    for family_id, description in EPIC_FAMILY_DESCRIPTIONS.items():
+        family_methods = [
+            method
+            for method in method_rows
+            if LANE_TO_EPIC_FAMILY[method.lane_id] == family_id and _method_counts_toward_epic_family(method)
+        ]
+        method_count = len(family_methods)
+        implemented_or_better = sum(_status_value(method.current_status) >= _status_value("implemented") for method in family_methods)
+        integrated_or_better = sum(_status_value(method.current_status) >= _status_value("trace_validated") for method in family_methods)
+        proven_or_better = sum(_status_value(method.current_status) >= _status_value("witness_supported") for method in family_methods)
+        study_justified_or_better = sum(_status_value(method.current_status) >= _status_value("study_justified") for method in family_methods)
+        family_maturity_rows.append(
+            {
+                "family_id": family_id,
+                "family_name": family_id.replace("_", " ").title(),
+                "description": description,
+                "lane_ids": ";".join(lane_id for lane_id, mapped_family in LANE_TO_EPIC_FAMILY.items() if mapped_family == family_id),
+                "method_count": method_count,
+                "implemented_method_count": implemented_or_better,
+                "integrated_method_count": integrated_or_better,
+                "proven_method_count": proven_or_better,
+                "study_justified_method_count": study_justified_or_better,
+                "implemented": _family_gate_state(
+                    family_id=family_id,
+                    gate_name="implemented",
+                    count=implemented_or_better,
+                    total=method_count,
+                    family_methods=family_methods,
+                ),
+                "integrated": _family_gate_state(
+                    family_id=family_id,
+                    gate_name="integrated",
+                    count=integrated_or_better,
+                    total=method_count,
+                    family_methods=family_methods,
+                ),
+                "proven": _family_gate_state(
+                    family_id=family_id,
+                    gate_name="proven",
+                    count=proven_or_better,
+                    total=method_count,
+                    family_methods=family_methods,
+                ),
+                "primary_blocker": EPIC_FAMILY_BLOCKERS[family_id][0],
+                "next_high_signal_move": EPIC_FAMILY_BLOCKERS[family_id][1],
+            }
+        )
+
     summary = {
         "method_count": len(method_rows),
         "witness_count": len(witness_rows),
         "lane_count": len(LANE_DESCRIPTIONS),
+        "epic_family_count": len(EPIC_FAMILY_DESCRIPTIONS),
+        "epic_family_scoped_method_count": sum(1 for method in method_rows if _method_counts_toward_epic_family(method)),
         "implemented_method_count": sum(_status_value(method.current_status) >= _status_value("implemented") for method in method_rows),
         "witness_supported_method_count": sum(_status_value(method.current_status) >= _status_value("witness_supported") for method in method_rows),
         "study_justified_method_count": sum(_status_value(method.current_status) >= _status_value("study_justified") for method in method_rows),
@@ -777,6 +919,25 @@ def analyze_method_validation_os() -> MethodValidationOSResult:
             for row in lane_summary_rows
         ],
     )
+    report.heading("Epic 2 Family Maturity", level=2)
+    report.paragraph(
+        "These family gates are intentionally conservative summaries, but they are family-level rather than all-members-must-promote checklists. A family-level `implemented`, `integrated`, or `proven` read means the family has a credible shared-pipeline path at that gate, while the method counts and per-method rows preserve any explicit partial holdouts. Support lanes such as calibration wrappers, exploration generators, and 2D+ tracking are intentionally excluded from this Epic 2 family surface."
+    )
+    report.table(
+        ["Family", "Methods", "Implemented", "Integrated", "Proven", "Study-justified+", "Next move"],
+        [
+            (
+                str(row["family_name"]),
+                row["method_count"],
+                f"{row['implemented']} ({row['implemented_method_count']})",
+                f"{row['integrated']} ({row['integrated_method_count']})",
+                f"{row['proven']} ({row['proven_method_count']})",
+                row["study_justified_method_count"],
+                str(row["next_high_signal_move"]),
+            )
+            for row in family_maturity_rows
+        ],
+    )
     report.heading("Status Model", level=2)
     report.table(
         ["Status", "Meaning"],
@@ -794,11 +955,13 @@ def analyze_method_validation_os() -> MethodValidationOSResult:
     report.bullet_list(
         [
             "The transparent, transition, Kalman-bank, and advanced-filter lanes now share an explicit status ladder.",
-            "The learning-evidence lane is now explicit too: supervised tabular models, compact sequence learners, and unsupervised discovery are tracked as evidence providers rather than separate projects.",
-            "PF is currently study-justified only for the abs-range multimodal oracle family.",
-            "IMM and RBPF remain witness-supported rather than study-justified.",
-            "Modern time-series wrappers remain the main missing blockers before broader advanced-filter claims; BOCPD, HSMM, UKF, and Student-t Kalman now have witness lanes.",
-            "Representation learning is now covered by a first TS2Vec-style embedding witness, but broader contrastive pretraining and corpus coverage remain open.",
+            "The learning-evidence lane is now explicit too: supervised tabular models, compact sequence learners, unsupervised discovery, and representation-learning baselines are tracked without forcing them into the same status story as deferred learned-hybrid filters.",
+            "UKF, GSF, PF, IMM, and RBPF are currently study-justified on their intended witness families.",
+            "The physics-aware family is now witness-backed on the current 1D core ladder; broader robustness and study-justified breadth remain open, but the old foundation-rung blocker is cleared.",
+            "Switching Kalman / SLDS remains tracked in the registry, but it is treated as a deferred extension rather than a public Epic 2 physics-family closure requirement.",
+            "Modern time-series evidence is now materially stronger: all four archive families execute externally, MiniRocket plus the dictionary and HIVE-COTE lanes are witness-supported on the bounded archive packets, and DrCIF is integrated with an explicit parity-only audit rather than being left as a hidden gap.",
+            "Learned-sequence evidence now includes a bounded multi-seed neural robustness packet, and representation learning now includes a TS2Vec embedding witness plus a bounded proxy-versus-external parity packet. That public learned family is now witness-backed even though broader robustness and corpus breadth remain open.",
+            "Epic 2 now has a full public family read on the current bounded 1D surface: all four public classifier families are implemented, integrated, and witness-backed, while explicit method-level holdouts remain visible rather than being papered over.",
         ]
     )
     return MethodValidationOSResult(
@@ -807,6 +970,7 @@ def analyze_method_validation_os() -> MethodValidationOSResult:
         promotion_status_rows=tuple(promotion_status_rows),
         witness_coverage_rows=tuple(witness_coverage_rows),
         lane_summary_rows=tuple(lane_summary_rows),
+        family_maturity_rows=tuple(family_maturity_rows),
         summary=summary,
         report_markdown=report.text(),
     )
@@ -866,6 +1030,7 @@ def write_method_validation_os_artifacts(output_dir: str | Path) -> MethodValida
     promotion_status_matrix_path = run_dir / "algorithm_promotion_status_matrix.csv"
     witness_coverage_matrix_path = run_dir / "witness_to_method_coverage_matrix.csv"
     lane_summary_path = run_dir / "lane_summary.csv"
+    family_maturity_matrix_path = run_dir / "epic2_family_maturity_matrix.csv"
     promotion_status_plot_path = run_dir / "algorithm_promotion_status_matrix.png"
     witness_coverage_plot_path = run_dir / "witness_to_method_coverage_matrix.png"
 
@@ -876,6 +1041,7 @@ def write_method_validation_os_artifacts(output_dir: str | Path) -> MethodValida
     write_csv(promotion_status_matrix_path, list(result.promotion_status_rows), list(result.promotion_status_rows[0]))
     write_csv(witness_coverage_matrix_path, list(result.witness_coverage_rows), list(result.witness_coverage_rows[0]))
     write_csv(lane_summary_path, list(result.lane_summary_rows), list(result.lane_summary_rows[0]))
+    write_csv(family_maturity_matrix_path, list(result.family_maturity_rows), list(result.family_maturity_rows[0]))
     _write_promotion_status_plot(promotion_status_plot_path, result.promotion_status_rows)
     _write_witness_coverage_plot(witness_coverage_plot_path, result.method_rows, result.witness_rows)
     return MethodValidationOSArtifacts(
@@ -887,6 +1053,7 @@ def write_method_validation_os_artifacts(output_dir: str | Path) -> MethodValida
         promotion_status_matrix_path=promotion_status_matrix_path,
         witness_coverage_matrix_path=witness_coverage_matrix_path,
         lane_summary_path=lane_summary_path,
+        family_maturity_matrix_path=family_maturity_matrix_path,
         promotion_status_plot_path=promotion_status_plot_path,
         witness_coverage_plot_path=witness_coverage_plot_path,
     )

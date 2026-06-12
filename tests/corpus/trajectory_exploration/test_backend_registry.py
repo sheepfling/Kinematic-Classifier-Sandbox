@@ -26,6 +26,15 @@ class ExplorationBackendRegistryTests(unittest.TestCase):
         self.assertIn("td3", backend_ids)
         self.assertIn("mpc_adversarial", backend_ids)
 
+        cmaes_spec = next(spec for spec in specs if spec.backend_id == "cmaes")
+        ppo_spec = next(spec for spec in specs if spec.backend_id == "ppo")
+        sac_spec = next(spec for spec in specs if spec.backend_id == "sac")
+        td3_spec = next(spec for spec in specs if spec.backend_id == "td3")
+        self.assertEqual(cmaes_spec.implementation_status, "implemented")
+        self.assertEqual(ppo_spec.implementation_status, "implemented")
+        self.assertEqual(sac_spec.implementation_status, "implemented")
+        self.assertEqual(td3_spec.implementation_status, "implemented")
+
     def test_family_summary_reports_multiple_search_families(self) -> None:
         rows = exploration_backend_family_summary()
         families = {row["family"] for row in rows}

@@ -56,6 +56,7 @@ class IMMFilterTests(unittest.TestCase):
             self.assertTrue(artifacts.posterior_history_path.exists())
             self.assertTrue(artifacts.switching_detection_metrics_path.exists())
             self.assertTrue(artifacts.method_comparison_path.exists())
+            self.assertTrue(artifacts.summary_path.exists())
             self.assertTrue(artifacts.method_evaluation_summary_path.exists())
             self.assertTrue(artifacts.decision_matrix_path.exists())
             self.assertTrue(artifacts.mode_probability_plot_path.exists())

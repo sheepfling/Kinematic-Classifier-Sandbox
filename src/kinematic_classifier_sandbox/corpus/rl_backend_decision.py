@@ -136,7 +136,7 @@ def analyze_rl_backend_decision() -> RlBackendDecisionResult:
             criterion="sequential_offpolicy_frontier_shows_promotion_signal",
             status="failed" if offpolicy_already_effective else "met",
             value=f"{offpolicy_seed_promotion_rate:.2f}",
-            note="The SAC/TD3 smoke frontier is now real, but it still trails the baselines on aggregate and does not justify promotion yet.",
+            note="The SAC/TD3 smoke frontier is now real and first-class, but it still trails the baselines on aggregate and does not justify promotion yet.",
         ),
     )
 

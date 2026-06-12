@@ -52,6 +52,12 @@ class RepoStoryTests(unittest.TestCase):
             self.assertTrue(entry.claim_supported)
             self.assertTrue(entry.status)
             self.assertTrue(entry.known_limitation)
+        self.assertTrue(
+            any(entry.path == "artifacts/method_validation_os_v1/epic2_family_maturity_matrix.csv" for entry in ARTIFACT_MANIFEST)
+        )
+        self.assertTrue(
+            any(entry.path == "artifacts/tsc_archive_backend_smoke_v1/backend_smoke_rows.csv" for entry in ARTIFACT_MANIFEST)
+        )
 
     def test_write_repo_story_artifacts_generates_valid_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -86,11 +92,17 @@ class RepoStoryTests(unittest.TestCase):
         showcase_index = render_story_index()
         team_packet = render_team_packet_index()
         self.assertIn("artifacts/algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md", repo_index)
+        self.assertIn("artifacts/method_validation_os_v1/epic2_family_maturity_matrix.csv", repo_index)
         self.assertIn("artifacts/method_validation_os_v1/method_validation_os_report.md", repo_index)
+        self.assertIn("artifacts/tsc_archive_backend_smoke_v1/tsc_archive_backend_smoke_report.md", repo_index)
         self.assertIn("artifacts/trajectory_exploration_backend_registry_v1/report.md", repo_index)
         self.assertIn("Tracked Method Surfaces", showcase_index)
+        self.assertIn("epic2_family_maturity_matrix.csv", showcase_index)
+        self.assertIn("tsc_archive_backend_smoke_report.md", showcase_index)
         self.assertIn("trajectory_exploration_backend_registry_v1/report.md", showcase_index)
         self.assertIn("algorithm_coverage_matrix_v1/algorithm_coverage_matrix_report.md", team_packet)
+        self.assertIn("epic2_family_maturity_matrix.csv", team_packet)
+        self.assertIn("tsc_archive_backend_smoke_report.md", team_packet)
 
 
 if __name__ == "__main__":

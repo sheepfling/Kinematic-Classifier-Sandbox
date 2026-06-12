@@ -25,17 +25,20 @@ The witness emits:
 - `artifacts/ukf_nonlinear_unimodal_oracle_v1/method_posterior_history.csv`
 - `artifacts/ukf_nonlinear_unimodal_oracle_v1/kalman_baseline_posterior_history.csv`
 - `artifacts/ukf_nonlinear_unimodal_oracle_v1/state_estimate_history.csv`
-- `artifacts/ukf_nonlinear_unimodal_oracle_v1/metrics_against_oracle.csv`
+- `artifacts/ukf_nonlinear_unimodal_oracle_v1/summary.csv`
 - `artifacts/ukf_nonlinear_unimodal_oracle_v1/decision_card.md`
 
 ## Current Read
 
-The current witness is strong enough to mark UKF as `witness_supported` on the
-`nonlinear_unimodal_sensor` family. The result says:
+The current witness and follow-on audit are now strong enough to mark UKF as
+`study_justified` on the `nonlinear_unimodal_sensor` family. The result says:
 
 - UKF stays much closer to the oracle posterior than the linear Kalman proxy.
 - The witness is still unimodal, so the gain does not by itself justify GSF or PF.
-- The repo still lacks robustness sweeps, EKF comparison, and 2D nonlinear geometry.
+- The bounded promotion packet
+  `artifacts/ukf_nonlinear_promotion_audit_v1/ukf_nonlinear_promotion_audit_report.md`
+  shows the gain survives a small seed-and-geometry sweep.
+- The repo still lacks EKF comparison and 2D nonlinear geometry.
 
 That is the intended claim boundary: UKF now occupies the nonlinear Gaussian
 blocker rung, but it is not yet generalized beyond the named witness family.

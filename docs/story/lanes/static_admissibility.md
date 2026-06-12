@@ -20,6 +20,7 @@ feature set + class set + prior regime
 - Prior probabilities.
 - Feature provenance and online/offline availability.
 - Controlled feature rows from the current witness corpus.
+- Or a file-backed study bundle: `static_audit_bundle.yaml` + `class_schema.csv` + `feature_schema.csv` + `samples.csv`.
 
 ## Outputs
 
@@ -49,10 +50,17 @@ The lane is an early admissibility screen. It does not prove final classifier pe
 - `tests/analysis/test_static_feature_class_prior_audit.py`
 - `python -m kinematic_classifier_sandbox validate-packet artifacts/packets/static_admissibility_mvp`
 
+## Reusable Bundle Path
+
+- template: `templates/static_audit_bundle.yaml`
+- repeatable demo: `experiments/static_admissibility/repeatable_lane_demo/repeatable_lane_demo.yaml`
+- usage guide: `docs/workflows/static_audit_bundle_user_guide.md`
+- Epic 1 validation packet: `artifacts/validation_packets/01_static_admissibility/`
+- Epic 1 suite command: `python -m kinematic_classifier_sandbox run-static-audit-suite`
+
 ## Next Work
 
 - Route hard class pairs into Corpus Explorer boundary objectives.
 - Route prior pathology into explicit prior sweeps.
 - Validate synergy candidates by downstream ablation.
 - Add a 3D PVA static admissibility dry run after vector feature schemas land.
-

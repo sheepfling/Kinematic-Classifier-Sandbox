@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Literal
 
 import numpy
 
@@ -14,6 +15,10 @@ from kinematic_classifier_sandbox.analysis.common_dataset_comparison import (
 from kinematic_classifier_sandbox.analysis.common_dataset_comparison_contracts import (
     SharedDynamicsTrajectory,
 )
+from kinematic_classifier_sandbox.analysis.optional_external_backends import (
+    Ts2VecExternalAdapter,
+    fit_ts2vec_if_available,
+)
 from kinematic_classifier_sandbox.corpus.trajectory_exploration.comparison_surface import (
     write_comparison_summary_csv,
 )
@@ -22,6 +27,10 @@ from kinematic_classifier_sandbox.utils.plotting import _figure_to_png, plt
 
 CLASS_NAMES = ("constant_velocity", "constant_acceleration")
 EMBEDDING_DIMENSION = 3
+
+
+def _mean(values: list[float]) -> float:
+    return sum(values) / max(len(values), 1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,10 +81,30 @@ class EmbeddingFrontierMetricRow:
 
 
 @dataclass(frozen=True, slots=True)
+class OnlineRouteRow:
+    trajectory_id: str
+    scenario_name: str
+    split: str
+    prefix_fraction: float
+    prefix_stop: int
+    true_class: str
+    ts2vec_predicted_class: str
+    ts2vec_confidence: float
+    windowed_predicted_class: str
+    windowed_confidence: float
+    rocket_predicted_class: str
+    rocket_confidence: float
+    kalman_predicted_class: str
+    kalman_confidence: float
+    route_status: str
+
+
+@dataclass(frozen=True, slots=True)
 class EmbeddingBaselineFrontierResult:
     view_rows: tuple[EmbeddingViewRow, ...]
     embedding_rows: tuple[EmbeddingRow, ...]
     prediction_rows: tuple[EmbeddingFrontierPredictionRow, ...]
+    online_route_rows: tuple[OnlineRouteRow, ...]
     metric_rows: tuple[EmbeddingFrontierMetricRow, ...]
     metrics: dict[str, float | int | str]
 
@@ -87,6 +116,7 @@ class EmbeddingBaselineFrontierArtifacts:
     embedding_summary_path: Path
     prediction_summary_path: Path
     metric_summary_path: Path
+    online_route_summary_path: Path
     summary_path: Path
     metrics_path: Path
     report_path: Path
@@ -100,10 +130,32 @@ class Ts2VecProxyClassifier:
     train_embeddings: tuple[tuple[str, numpy.ndarray], ...]
     centroids: dict[str, numpy.ndarray]
     embedding_dimension: int
+    backend_name: str = "local_proxy"
+    external_adapter: Ts2VecExternalAdapter | None = None
+
+
+Ts2VecBackendMode = Literal["auto", "proxy_only", "external_only"]
 
 
 def _trajectory_split(trajectory: SharedDynamicsTrajectory) -> str:
     return "train" if int(trajectory.trajectory_id.rsplit("_", 1)[-1]) < 4 else "test"
+
+
+def _prefix_trajectory(trajectory: SharedDynamicsTrajectory, prefix_stop: int) -> SharedDynamicsTrajectory:
+    stop = max(2, min(prefix_stop, len(trajectory.times)))
+    return SharedDynamicsTrajectory(
+        trajectory_id=f"{trajectory.trajectory_id}__prefix_{stop}",
+        true_class=trajectory.true_class,
+        scenario_name=trajectory.scenario_name,
+        seed=trajectory.seed,
+        times=trajectory.times[:stop],
+        measurements=trajectory.measurements[:stop],
+        true_position=trajectory.true_position[:stop],
+        true_velocity=trajectory.true_velocity[:stop],
+        true_acceleration=trajectory.true_acceleration[:stop],
+        measurement_dim=trajectory.measurement_dim,
+        coordinate_frame=trajectory.coordinate_frame,
+    )
 
 
 def _crop_bounds(length: int, *, view_name: str) -> tuple[int, int]:
@@ -330,7 +382,22 @@ def fit_ts2vec_proxy_classifier(
     trajectories: tuple[SharedDynamicsTrajectory, ...],
     *,
     embedding_dimension: int = EMBEDDING_DIMENSION,
+    backend_mode: Ts2VecBackendMode = "auto",
 ) -> Ts2VecProxyClassifier:
+    external_adapter = None
+    if backend_mode != "proxy_only":
+        external_adapter = fit_ts2vec_if_available(trajectories, class_names=CLASS_NAMES)
+        if backend_mode == "external_only" and external_adapter is None:
+            raise ValueError("external_only backend_mode requested but optional ts2vec backend is unavailable")
+    if external_adapter is not None:
+        return Ts2VecProxyClassifier(
+            fit={},
+            train_embeddings=external_adapter.train_embeddings,
+            centroids=external_adapter.centroids,
+            embedding_dimension=int(next(iter(external_adapter.centroids.values())).shape[0]),
+            backend_name=external_adapter.backend_name,
+            external_adapter=external_adapter,
+        )
     train_trajectories = [trajectory for trajectory in trajectories if _trajectory_split(trajectory) == "train"]
     left_rows: list[numpy.ndarray] = []
     right_rows: list[numpy.ndarray] = []
@@ -360,6 +427,7 @@ def fit_ts2vec_proxy_classifier(
         train_embeddings=tuple(train_embeddings),
         centroids=centroids,
         embedding_dimension=embedding_dimension,
+        backend_name="local_proxy",
     )
 
 
@@ -369,11 +437,14 @@ def predict_ts2vec_proxy(
     classifier: Ts2VecProxyClassifier,
     strategy: str = "nn",
 ) -> tuple[str, float, dict[str, float]]:
-    embedding, _ = _embedding_from_views(
-        trajectory,
-        fit=classifier.fit,
-        embedding_method="ts2vec_style_cca",
-    )
+    if classifier.external_adapter is not None:
+        embedding = classifier.external_adapter.encode(trajectory)
+    else:
+        embedding, _ = _embedding_from_views(
+            trajectory,
+            fit=classifier.fit,
+            embedding_method="ts2vec_style_cca",
+        )
     if strategy == "centroid":
         predicted_class, confidence = _nearest_centroid_predict(embedding, centroids=classifier.centroids)
     else:
@@ -407,15 +478,20 @@ def analyze_embedding_baseline_frontier(
 
     view_rows: list[EmbeddingViewRow] = []
     embedding_rows: list[EmbeddingRow] = []
+    online_route_rows: list[OnlineRouteRow] = []
     embedding_lookup: dict[str, numpy.ndarray] = {}
 
     for trajectory in trajectories:
-        embedding, trajectory_view_rows = _embedding_from_views(
-            trajectory,
-            fit=fit,
-            embedding_method="ts2vec_style_cca",
-        )
-        view_rows.extend(trajectory_view_rows)
+        if classifier.external_adapter is not None:
+            embedding = classifier.external_adapter.encode(trajectory)
+            trajectory_view_rows = []
+        else:
+            embedding, trajectory_view_rows = _embedding_from_views(
+                trajectory,
+                fit=fit,
+                embedding_method="ts2vec_style_cca",
+            )
+            view_rows.extend(trajectory_view_rows)
         embedding_lookup[trajectory.trajectory_id] = embedding
         embedding_rows.append(
             EmbeddingRow(
@@ -423,7 +499,7 @@ def analyze_embedding_baseline_frontier(
                 scenario_name=trajectory.scenario_name,
                 split=_trajectory_split(trajectory),
                 true_class=trajectory.true_class,
-                embedding_method="ts2vec_style_cca",
+                embedding_method="ts2vec_external" if classifier.external_adapter is not None else "ts2vec_style_cca",
                 embedding_0=float(embedding[0]) if len(embedding) > 0 else 0.0,
                 embedding_1=float(embedding[1]) if len(embedding) > 1 else 0.0,
                 embedding_2=float(embedding[2]) if len(embedding) > 2 else 0.0,
@@ -463,6 +539,46 @@ def analyze_embedding_baseline_frontier(
                     method_name=method_name,
                     predicted_class=predicted_class,
                     confidence=float(confidence),
+            )
+        )
+
+    online_checkpoints = (0.25, 0.5, 0.75, 1.0)
+    for trajectory in trajectories:
+        split = _trajectory_split(trajectory)
+        for prefix_fraction in online_checkpoints:
+            prefix_stop = max(2, min(len(trajectory.times), int(round(len(trajectory.times) * prefix_fraction))))
+            prefix_trajectory = _prefix_trajectory(trajectory, prefix_stop)
+            ts2vec_predicted, ts2vec_confidence, _ = predict_ts2vec_proxy(
+                prefix_trajectory,
+                classifier=classifier,
+                strategy="nn",
+            )
+            windowed_run = _windowed_predict(prefix_trajectory, robust=True)
+            rocket_run = _rocket_proxy_predict(prefix_trajectory)
+            kalman_run = _kalman_predict(prefix_trajectory)
+            route_status = (
+                "ts2vec_route_preferred"
+                if ts2vec_predicted == trajectory.true_class
+                and ts2vec_confidence >= max(windowed_run.final_confidence, rocket_run.final_confidence, kalman_run.final_confidence)
+                else "baseline_preferred"
+            )
+            online_route_rows.append(
+                OnlineRouteRow(
+                    trajectory_id=trajectory.trajectory_id,
+                    scenario_name=trajectory.scenario_name,
+                    split=split,
+                    prefix_fraction=prefix_fraction,
+                    prefix_stop=prefix_stop,
+                    true_class=trajectory.true_class,
+                    ts2vec_predicted_class=ts2vec_predicted,
+                    ts2vec_confidence=ts2vec_confidence,
+                    windowed_predicted_class=windowed_run.final_predicted_class,
+                    windowed_confidence=windowed_run.final_confidence,
+                    rocket_predicted_class=rocket_run.final_predicted_class,
+                    rocket_confidence=rocket_run.final_confidence,
+                    kalman_predicted_class=kalman_run.final_predicted_class,
+                    kalman_confidence=kalman_run.final_confidence,
+                    route_status=route_status,
                 )
             )
 
@@ -489,7 +605,7 @@ def analyze_embedding_baseline_frontier(
         )
 
     row_map = {row.method_name: row for row in metric_rows}
-    canonical_correlations = fit["canonical_correlations"]
+    canonical_correlations = fit.get("canonical_correlations", numpy.asarray((1.0,), dtype=float))
     embedding_centroid_distance = float(numpy.linalg.norm(classifier.centroids[CLASS_NAMES[0]] - classifier.centroids[CLASS_NAMES[1]]))
     embedding_test_accuracy = row_map["ts2vec_centroid"].test_accuracy
     embedding_nn_test_accuracy = row_map["ts2vec_nn"].test_accuracy
@@ -499,10 +615,23 @@ def analyze_embedding_baseline_frontier(
         row_map["rocket_proxy"].test_accuracy,
         row_map["kalman_bank"].test_accuracy,
     )
+    online_test_rows = [row for row in online_route_rows if row.split == "test"]
+    online_final_rows = [row for row in online_test_rows if row.prefix_fraction == 1.0]
+    online_route_final_accuracy = _mean([1.0 if row.ts2vec_predicted_class == row.true_class else 0.0 for row in online_final_rows])
+    online_route_final_confidence = _mean([row.ts2vec_confidence for row in online_final_rows])
+    online_route_win_rate = _mean(
+        [
+            1.0
+            if row.ts2vec_confidence >= max(row.windowed_confidence, row.rocket_confidence, row.kalman_confidence)
+            else 0.0
+            for row in online_test_rows
+        ]
+    )
     promotion_decision = (
         "promote_embedding_baseline_frontier"
         if best_embedding_test_accuracy >= best_baseline_test_accuracy
         and float(numpy.mean(canonical_correlations)) >= 0.70
+        and online_route_final_accuracy >= row_map["windowed_robust"].test_accuracy
         else "revise_embedding_baseline_frontier"
     )
 
@@ -513,6 +642,7 @@ def analyze_embedding_baseline_frontier(
         "train_count": len(train_trajectories),
         "test_count": len(test_trajectories),
         "embedding_dimension": embedding_dimension,
+        "ts2vec_backend": classifier.backend_name,
         "mean_canonical_correlation": float(numpy.mean(canonical_correlations)) if len(canonical_correlations) else 0.0,
         "first_canonical_correlation": float(canonical_correlations[0]) if len(canonical_correlations) else 0.0,
         "embedding_centroid_distance": embedding_centroid_distance,
@@ -521,12 +651,16 @@ def analyze_embedding_baseline_frontier(
         "windowed_test_accuracy": row_map["windowed_robust"].test_accuracy,
         "rocket_test_accuracy": row_map["rocket_proxy"].test_accuracy,
         "kalman_test_accuracy": row_map["kalman_bank"].test_accuracy,
+        "online_ts2vec_test_accuracy": online_route_final_accuracy,
+        "online_ts2vec_mean_confidence": online_route_final_confidence,
+        "online_route_win_rate": online_route_win_rate,
         "promotion_decision": promotion_decision,
     }
     return EmbeddingBaselineFrontierResult(
         view_rows=tuple(view_rows),
         embedding_rows=tuple(embedding_rows),
         prediction_rows=tuple(prediction_rows),
+        online_route_rows=tuple(online_route_rows),
         metric_rows=tuple(metric_rows),
         metrics=metrics,
     )
@@ -592,6 +726,40 @@ def _render_scenario_panel(result: EmbeddingBaselineFrontierResult):
     return fig
 
 
+def _render_online_route_curve(result: EmbeddingBaselineFrontierResult):
+    fig, ax = plt.subplots(figsize=(8.8, 4.8))
+    grouped: dict[str, list[OnlineRouteRow]] = {}
+    for row in result.online_route_rows:
+        if row.split != "test":
+            continue
+        grouped.setdefault(row.scenario_name, []).append(row)
+    fractions = sorted({row.prefix_fraction for row in result.online_route_rows if row.split == "test"})
+    if not fractions:
+        fractions = [0.25, 0.5, 0.75, 1.0]
+    ts2vec_means = []
+    windowed_means = []
+    rocket_means = []
+    kalman_means = []
+    for fraction in fractions:
+        fraction_rows = [row for row in result.online_route_rows if row.split == "test" and row.prefix_fraction == fraction]
+        ts2vec_means.append(_mean([1.0 if row.ts2vec_predicted_class == row.true_class else 0.0 for row in fraction_rows]))
+        windowed_means.append(_mean([1.0 if row.windowed_predicted_class == row.true_class else 0.0 for row in fraction_rows]))
+        rocket_means.append(_mean([1.0 if row.rocket_predicted_class == row.true_class else 0.0 for row in fraction_rows]))
+        kalman_means.append(_mean([1.0 if row.kalman_predicted_class == row.true_class else 0.0 for row in fraction_rows]))
+    ax.plot(fractions, ts2vec_means, marker="o", linewidth=2.0, label="ts2vec_online", color="#7c3aed")
+    ax.plot(fractions, windowed_means, marker="o", linewidth=1.6, label="windowed_robust", color="#2563eb")
+    ax.plot(fractions, rocket_means, marker="o", linewidth=1.6, label="rocket_proxy", color="#0f766e")
+    ax.plot(fractions, kalman_means, marker="o", linewidth=1.6, label="kalman_bank", color="#dc2626")
+    ax.set_ylim(0.0, 1.05)
+    ax.set_xlabel("prefix fraction")
+    ax.set_ylabel("mean online accuracy")
+    ax.set_title("Online TS2Vec Route", loc="left", fontweight="bold")
+    ax.grid(True, axis="y", alpha=0.25)
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    return fig
+
+
 def write_embedding_baseline_frontier_artifacts(
     output_dir: str | Path,
     *,
@@ -611,6 +779,7 @@ def write_embedding_baseline_frontier_artifacts(
     embedding_summary_path = run_dir / "embedding_summary.csv"
     prediction_summary_path = run_dir / "prediction_summary.csv"
     metric_summary_path = run_dir / "metric_summary.csv"
+    online_route_summary_path = run_dir / "online_route_summary.csv"
     summary_path = run_dir / "summary.csv"
     metrics_path = run_dir / "metrics.csv"
     report_path = run_dir / "embedding_baseline_frontier_report.md"
@@ -620,11 +789,13 @@ def write_embedding_baseline_frontier_artifacts(
     accuracy_plot_path = plots_dir / "accuracy_bars.png"
     projection_plot_path = plots_dir / "embedding_projection.png"
     scenario_plot_path = plots_dir / "scenario_slice.png"
+    online_route_plot_path = plots_dir / "online_route_curve.png"
 
     write_csv(view_summary_path, [asdict(row) for row in payload.view_rows], list(EmbeddingViewRow.__dataclass_fields__.keys()))
     write_csv(embedding_summary_path, [asdict(row) for row in payload.embedding_rows], list(EmbeddingRow.__dataclass_fields__.keys()))
     write_csv(prediction_summary_path, [asdict(row) for row in payload.prediction_rows], list(EmbeddingFrontierPredictionRow.__dataclass_fields__.keys()))
     write_csv(metric_summary_path, [asdict(row) for row in payload.metric_rows], list(EmbeddingFrontierMetricRow.__dataclass_fields__.keys()))
+    write_csv(online_route_summary_path, [asdict(row) for row in payload.online_route_rows], list(OnlineRouteRow.__dataclass_fields__.keys()))
     write_comparison_summary_csv(run_dir, [payload.metrics], filename="summary.csv")
     write_csv(metrics_path, [payload.metrics], list(payload.metrics.keys()))
 
@@ -632,25 +803,39 @@ def write_embedding_baseline_frontier_artifacts(
         "# TS2Vec",
         "",
         "- Study: `embedding_baseline_frontier_v1`",
-        "- Encoder: `ts2vec_style_cca`",
+        f"- Encoder backend: `{payload.metrics['ts2vec_backend']}`",
         "- Downstream heads: `ts2vec_centroid`, `ts2vec_nn`",
+        "- Online route: `prefix-based ts2vec_nn` compared against `windowed_robust`, `rocket_proxy`, and `kalman_bank`",
         "- Baselines: `windowed_robust`, `rocket_proxy`, `kalman_bank`",
         "",
         "## What It Proves",
         "",
         "This packet builds a first representation-learning witness on the shared 1D dynamics corpus.",
-        "It uses paired trajectory views, a small CCA-style encoder, and downstream embedding classifiers so the lane is executable instead of only being a registry note.",
+        "It uses paired trajectory views, a small CCA-style encoder, downstream embedding classifiers, and a prefix-based online route so the lane is executable instead of only being a registry note.",
         "",
         "## Claim Boundary",
         "",
-        "This is a TS2Vec-style proxy frontier, not a claim that the external TS2Vec library has been installed or benchmarked.",
-        "It is enough to keep the embedding lane explicit and to test whether reusable trajectory embeddings buy anything over the current 1D baselines.",
         "",
         f"- mean canonical correlation: `{float(payload.metrics['mean_canonical_correlation']):.3f}`",
         f"- embedding centroid test accuracy: `{float(payload.metrics['ts2vec_centroid_test_accuracy']):.3f}`",
         f"- embedding NN test accuracy: `{float(payload.metrics['ts2vec_nn_test_accuracy']):.3f}`",
+        f"- online TS2Vec test accuracy: `{float(payload.metrics['online_ts2vec_test_accuracy']):.3f}`",
+        f"- online route confidence: `{float(payload.metrics['online_ts2vec_mean_confidence']):.3f}`",
+        f"- online route win rate: `{float(payload.metrics['online_route_win_rate']):.3f}`",
         f"- decision: `{payload.metrics['promotion_decision']}`",
     ]
+    claim_boundary_lines = (
+        [
+            "This run used the optional external TS2Vec backend that is installed in the active environment.",
+            "The claim stays bounded to this compact shared-corpus witness; it is not a broad parity or full-promotion claim for TS2Vec across Epic 2.",
+        ]
+        if payload.metrics["ts2vec_backend"] == "ts2vec_external"
+        else [
+            "This is a TS2Vec-style proxy frontier, not a claim that the external TS2Vec library has been installed or benchmarked.",
+            "It is enough to keep the embedding lane explicit, prove an online prefix route, and test whether reusable trajectory embeddings buy anything over the current 1D baselines.",
+        ]
+    )
+    report_lines[15:15] = claim_boundary_lines
     report_path.write_text("\n".join(report_lines) + "\n", encoding="utf-8")
 
     decision_lines = [
@@ -660,6 +845,7 @@ def write_embedding_baseline_frontier_artifacts(
         "- Candidate method: `ts2vec`",
         "- Failure mode: handcrafted or single-pass baselines underfit reusable trajectory structure",
         f"- Improvement: NN test accuracy `{float(payload.metrics['windowed_test_accuracy']):.3f}` -> `{float(payload.metrics['ts2vec_nn_test_accuracy']):.3f}`",
+        f"- Online route: prefix test accuracy `{float(payload.metrics['online_ts2vec_test_accuracy']):.3f}`",
         "- Complexity: `CCA + centroid/NN head` over paired trajectory views",
         f"- Decision: `{payload.metrics['promotion_decision']}`",
     ]
@@ -668,6 +854,7 @@ def write_embedding_baseline_frontier_artifacts(
     accuracy_plot_path.write_bytes(_figure_to_png(_render_accuracy_bars(payload)))
     projection_plot_path.write_bytes(_figure_to_png(_render_embedding_projection(payload)))
     scenario_plot_path.write_bytes(_figure_to_png(_render_scenario_panel(payload)))
+    online_route_plot_path.write_bytes(_figure_to_png(_render_online_route_curve(payload)))
 
     return EmbeddingBaselineFrontierArtifacts(
         run_dir=run_dir,
@@ -675,11 +862,12 @@ def write_embedding_baseline_frontier_artifacts(
         embedding_summary_path=embedding_summary_path,
         prediction_summary_path=prediction_summary_path,
         metric_summary_path=metric_summary_path,
+        online_route_summary_path=online_route_summary_path,
         summary_path=summary_path,
         metrics_path=metrics_path,
         report_path=report_path,
         decision_card_path=decision_card_path,
-        plot_paths=(accuracy_plot_path, projection_plot_path, scenario_plot_path),
+        plot_paths=(accuracy_plot_path, projection_plot_path, scenario_plot_path, online_route_plot_path),
     )
 
 
@@ -690,6 +878,7 @@ __all__ = [
     "EmbeddingFrontierPredictionRow",
     "EmbeddingRow",
     "EmbeddingViewRow",
+    "OnlineRouteRow",
     "Ts2VecProxyClassifier",
     "analyze_embedding_baseline_frontier",
     "fit_ts2vec_proxy_classifier",

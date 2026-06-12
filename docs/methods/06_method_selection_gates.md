@@ -2,6 +2,9 @@
 
 Advanced methods are selected by evidence gates, not by aspiration.
 
+These gates govern ladder promotion inside the repo's methodology story.
+They are not a fielding or deployment approval process.
+
 | Gate | Required evidence |
 | --- | --- |
 | Previous rung failure | A simpler rung fails on a named witness and metric. |
@@ -42,3 +45,8 @@ multimodal ladder that blocker is GSF, and the generated
 whether the older ladder needed IMM or PF before the dedicated witnesses
 existed. `advanced_filter_comparison_v1` is the current witness-specific
 promotion surface for implemented IMM, PF, RBPF, and OU-style PF studies.
+
+For the sequential-control lane, the same rule applies: PPO, SAC, and TD3 are
+first-class methodological surfaces once they have real frontier packets, even
+if the repo later decides that a fielded system should still prefer a simpler
+control stack.

@@ -29,16 +29,23 @@ The GSF witness emits:
 
 ## Current Read
 
-The current GSF witness is strong enough to mark the method
-`witness_supported` on the abs-range multimodal family. The repo now also
-emits a direct GSF-vs-PF frontier under
-`artifacts/advanced_filter_comparison_v1/gsf_vs_pf_frontier_summary.csv`.
+The current GSF witness and follow-on audit are now strong enough to mark the
+method `study_justified` on the abs-range multimodal family. The repo emits a
+direct GSF-vs-PF frontier under
+`artifacts/gsf_abs_range_multimodal_oracle_v1/summary.csv` and
+`artifacts/advanced_filter_comparison_v1/gsf_vs_pf_frontier_summary.csv`, and
+the narrow method packet
+`artifacts/gsf_multimodal_promotion_audit_v1/gsf_multimodal_promotion_audit_report.md`.
 The current crossover is `metric_split`: GSF is dramatically cheaper and has
-lower oracle KL, while PF still holds the better sign-mass error.
+lower oracle KL, while PF still holds the better sign-mass error. That is
+enough to justify GSF as the least-complex multimodal blocker before PF
+escalation on this witness family.
 
-GSF is still not `study_justified` because the repo lacks:
+What this does not claim:
 
-- comparison against future UKF and robust-Kalman blockers.
+- GSF is not generalized beyond the current abs-range multimodal family.
+- PF may still be preferable when sign-mass recovery matters more than runtime
+  or when the posterior structure outgrows a small mixture.
 
 ## Research Note
 
