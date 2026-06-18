@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 from pathlib import Path
 
@@ -64,6 +65,30 @@ from .validation.correctness import run_correctness_plan
 from .validation_packets import (
     validate_v7_anduril_c2_blend_packet,
     write_v7_anduril_c2_blend_packet,
+)
+from .workbench.mvp import (
+    analyze_workbench_run,
+    build_epic1_showcase,
+    compare_rungs,
+    export_presentation_packet,
+    export_workbench_packet,
+    inspect_run,
+    list_runs,
+    run_workbench_study,
+    search_corpus,
+    validate_study_spec,
+    validate_workbench_run,
+)
+from .workbench.revision_replay import (
+    change_measurement_association,
+    correct_measurement,
+    diff_revisions,
+    ensure_revision_history,
+    inspect_measurement,
+    replay_revision,
+    restore_measurement,
+    revoke_measurement,
+    validate_replay,
 )
 
 
@@ -466,6 +491,167 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Correctness level to run.",
     )
 
+    validate_study = subparsers.add_parser(
+        "validate-study",
+        help="Validate a workbench study YAML before running it.",
+    )
+    validate_study.add_argument("study_spec", help="Path to a study YAML.")
+
+    run_study = subparsers.add_parser(
+        "run-study",
+        help="Run a declared workbench study and emit the standard run directory.",
+    )
+    run_study.add_argument("study_spec", help="Path to a study YAML.")
+    run_study.add_argument("--output-dir", required=True, help="Destination run directory.")
+    run_study.add_argument("--seed", type=int, default=None, help="Optional seed override.")
+    run_study.add_argument(
+        "--trajectories-per-case",
+        type=int,
+        default=8,
+        help="Executable shared scenario count per class.",
+    )
+
+    search_corpus_parser = subparsers.add_parser(
+        "search-corpus",
+        help="Write a governed corpus-search backend packet for CEM/PPO/baseline comparison.",
+    )
+    search_corpus_parser.add_argument("config", help="Path to a corpus-search config YAML.")
+    search_corpus_parser.add_argument("--output-dir", required=True, help="Destination search run directory.")
+
+    analyze_run = subparsers.add_parser(
+        "analyze-run",
+        help="Refresh a workbench run's decision card and report.",
+    )
+    analyze_run.add_argument("--run-dir", required=True, help="Workbench run directory.")
+
+    compare_rungs_parser = subparsers.add_parser(
+        "compare-rungs",
+        help="Refresh the advanced-filter decision surface for a workbench run.",
+    )
+    compare_rungs_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+
+    epic1_showcase = subparsers.add_parser(
+        "build-epic1-showcase",
+        help="Regenerate the Epic 1 evidence set, workbench packet, governed search lane, and presentation showcase.",
+    )
+    epic1_showcase.add_argument(
+        "--output-dir",
+        default="artifacts/epic1_showcase",
+        help="Directory where the regenerated Epic 1 evidence set should be written.",
+    )
+    epic1_showcase.add_argument(
+        "--study-spec",
+        default="experiments/common_1d_classifier_study/common_experiment_config.yaml",
+        help="Study YAML used for the workbench run.",
+    )
+    epic1_showcase.add_argument(
+        "--corpus-search-config",
+        default="experiments/templates/corpus_search_study.yaml",
+        help="Config used for the governed CEM/PPO corpus-search lane.",
+    )
+    epic1_showcase.add_argument(
+        "--presentation-output-dir",
+        default=None,
+        help="Optional presentation packet destination, for example artifacts/presentation_hero_charts_v4.",
+    )
+    epic1_showcase.add_argument("--seed", type=int, default=7, help="Workbench run seed.")
+    epic1_showcase.add_argument(
+        "--trajectories-per-case",
+        type=int,
+        default=4,
+        help="Executable shared scenario count per class for the sample workbench run.",
+    )
+    epic1_showcase.add_argument(
+        "--skip-static",
+        action="store_true",
+        help="Skip static-admissibility packet regeneration for a faster smoke run.",
+    )
+    epic1_showcase.add_argument(
+        "--skip-presentation",
+        action="store_true",
+        help="Skip presentation packet regeneration for a faster smoke run.",
+    )
+
+    inspect_run_parser = subparsers.add_parser(
+        "inspect-run",
+        help="Print a concise status summary for a workbench run.",
+    )
+    inspect_run_parser.add_argument("run_dir", help="Workbench run directory.")
+
+    inspect_measurement_parser = subparsers.add_parser(
+        "inspect-measurement",
+        help="Inspect one measurement inside a revision-aware workbench run.",
+    )
+    inspect_measurement_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+    inspect_measurement_parser.add_argument("--measurement-id", required=True, help="Measurement identifier.")
+    inspect_measurement_parser.add_argument("--revision-id", default=None, help="Optional revision id.")
+
+    revoke_measurement_parser = subparsers.add_parser(
+        "revoke-measurement",
+        help="Append a measurement revocation event to a workbench run.",
+    )
+    revoke_measurement_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+    revoke_measurement_parser.add_argument("--measurement-id", required=True, help="Measurement identifier.")
+    revoke_measurement_parser.add_argument("--reason", required=True, help="Reason code for the revocation.")
+    revoke_measurement_parser.add_argument("--note", default=None, help="Optional operator note.")
+
+    restore_measurement_parser = subparsers.add_parser(
+        "restore-measurement",
+        help="Append a measurement restore event to a workbench run.",
+    )
+    restore_measurement_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+    restore_measurement_parser.add_argument("--measurement-id", required=True, help="Measurement identifier.")
+    restore_measurement_parser.add_argument("--reason", required=True, help="Reason code for the restore.")
+    restore_measurement_parser.add_argument("--note", default=None, help="Optional operator note.")
+
+    correct_measurement_parser = subparsers.add_parser(
+        "correct-measurement",
+        help="Append a measurement correction event to a workbench run.",
+    )
+    correct_measurement_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+    correct_measurement_parser.add_argument("--measurement-id", required=True, help="Measurement identifier.")
+    correct_measurement_parser.add_argument("--value", required=True, type=float, help="Corrected measurement value.")
+    correct_measurement_parser.add_argument("--reason", required=True, help="Reason code for the correction.")
+    correct_measurement_parser.add_argument("--note", default=None, help="Optional operator note.")
+
+    change_association_parser = subparsers.add_parser(
+        "change-association",
+        help="Append a measurement association-change event to a workbench run.",
+    )
+    change_association_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+    change_association_parser.add_argument("--source-measurement-id", required=True, help="Source measurement identifier.")
+    change_association_parser.add_argument("--target-measurement-id", required=True, help="Target measurement identifier.")
+    change_association_parser.add_argument("--reason", required=True, help="Reason code for the reassociation.")
+    change_association_parser.add_argument("--note", default=None, help="Optional operator note.")
+
+    replay_revision_parser = subparsers.add_parser(
+        "replay-revision",
+        help="Replay a workbench run from one revision to another.",
+    )
+    replay_revision_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+    replay_revision_parser.add_argument("--from-revision", required=True, help="Source revision id.")
+    replay_revision_parser.add_argument("--to-revision", required=True, help="Destination revision id.")
+
+    diff_revisions_parser = subparsers.add_parser(
+        "diff-revisions",
+        help="Diff two workbench revisions and emit a revision-delta summary.",
+    )
+    diff_revisions_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+    diff_revisions_parser.add_argument("--left", required=True, help="Left revision id.")
+    diff_revisions_parser.add_argument("--right", required=True, help="Right revision id.")
+
+    validate_replay_parser = subparsers.add_parser(
+        "validate-replay",
+        help="Validate replay determinism for one materialized revision.",
+    )
+    validate_replay_parser.add_argument("--run-dir", required=True, help="Workbench run directory.")
+    validate_replay_parser.add_argument("--revision", required=True, help="Revision id to validate.")
+
+    subparsers.add_parser(
+        "list-runs",
+        help="List runs recorded in the local workbench run registry.",
+    )
+
     export_packet = subparsers.add_parser(
         "export-packet",
         help="Export a generated run into a presentation/review packet profile.",
@@ -473,7 +659,7 @@ def _build_parser() -> argparse.ArgumentParser:
     export_packet.add_argument(
         "--profile",
         required=True,
-        choices=("static_admissibility_mvp",),
+        choices=("static_admissibility_mvp", "workbench", "presentation"),
         help="Packet profile to export.",
     )
     export_packet.add_argument(
@@ -491,11 +677,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "validate-packet",
         help="Validate a generated packet.",
     )
-    validate_packet.add_argument("packet_dir", help="Packet directory to validate.")
+    validate_packet.add_argument("packet_dir", nargs="?", default=None, help="Packet directory to validate.")
+    validate_packet.add_argument("--packet-dir", dest="packet_dir_option", default=None, help="Packet directory to validate.")
     validate_packet.add_argument(
         "--profile",
         default="static_admissibility_mvp",
-        choices=("static_admissibility_mvp", "corpus_explorer_mvp", "v7_anduril_c2_blend"),
+        choices=("static_admissibility_mvp", "corpus_explorer_mvp", "v7_anduril_c2_blend", "workbench", "presentation"),
         help="Packet validation profile.",
     )
 
@@ -856,8 +1043,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "analysis-cache":
-        import json
-
         if args.action == "clear":
             if not args.yes:
                 raise SystemExit("refusing to clear analysis cache without --yes")
@@ -955,6 +1140,147 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "validate-correctness":
         return run_correctness_plan(args.level)
 
+    if args.command == "validate-study":
+        validation = validate_study_spec(args.study_spec)
+        if validation.issues:
+            for issue in validation.issues:
+                print(f"FAIL: {issue}")
+            return 1
+        print(f"PASS: {validation.path}")
+        return 0
+
+    if args.command == "run-study":
+        run = run_workbench_study(
+            args.study_spec,
+            args.output_dir,
+            seed=args.seed,
+            trajectories_per_case=args.trajectories_per_case,
+        )
+        print(run.run_dir)
+        print(run.manifest_path)
+        print(run.decision_card_path)
+        print(run.report_path)
+        return 0
+
+    if args.command == "search-corpus":
+        run_dir = search_corpus(args.config, args.output_dir)
+        print(run_dir)
+        print(run_dir / "corpus_search_manifest.json")
+        print(run_dir / "backend_comparison.csv")
+        return 0
+
+    if args.command == "analyze-run":
+        run = analyze_workbench_run(args.run_dir)
+        print(run.run_dir)
+        print(run.decision_card_path)
+        print(run.report_path)
+        return 0
+
+    if args.command == "compare-rungs":
+        decision_path = compare_rungs(args.run_dir)
+        print(decision_path)
+        return 0
+
+    if args.command == "build-epic1-showcase":
+        packet = build_epic1_showcase(
+            args.output_dir,
+            study_spec=args.study_spec,
+            corpus_search_config=args.corpus_search_config,
+            presentation_output_dir=args.presentation_output_dir,
+            seed=args.seed,
+            trajectories_per_case=args.trajectories_per_case,
+            include_static=not args.skip_static,
+            include_presentation=not args.skip_presentation,
+        )
+        print(packet.packet_dir)
+        print(packet.summary_path)
+        print(packet.manifest_path)
+        return 0
+
+    if args.command == "inspect-run":
+        print(inspect_run(args.run_dir))
+        return 0
+
+    if args.command == "inspect-measurement":
+        ensure_revision_history(args.run_dir)
+        payload = inspect_measurement(args.run_dir, args.measurement_id, revision_id=args.revision_id)
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.command == "revoke-measurement":
+        ensure_revision_history(args.run_dir)
+        revision_id = revoke_measurement(
+            args.run_dir,
+            args.measurement_id,
+            reason=args.reason,
+            note=args.note,
+        )
+        print(revision_id)
+        return 0
+
+    if args.command == "restore-measurement":
+        ensure_revision_history(args.run_dir)
+        revision_id = restore_measurement(
+            args.run_dir,
+            args.measurement_id,
+            reason=args.reason,
+            note=args.note,
+        )
+        print(revision_id)
+        return 0
+
+    if args.command == "correct-measurement":
+        ensure_revision_history(args.run_dir)
+        revision_id = correct_measurement(
+            args.run_dir,
+            args.measurement_id,
+            corrected_value=args.value,
+            reason=args.reason,
+            note=args.note,
+        )
+        print(revision_id)
+        return 0
+
+    if args.command == "change-association":
+        ensure_revision_history(args.run_dir)
+        revision_id = change_measurement_association(
+            args.run_dir,
+            args.source_measurement_id,
+            args.target_measurement_id,
+            reason=args.reason,
+            note=args.note,
+        )
+        print(revision_id)
+        return 0
+
+    if args.command == "replay-revision":
+        ensure_revision_history(args.run_dir)
+        revision_dir = replay_revision(args.run_dir, args.from_revision, args.to_revision)
+        print(revision_dir)
+        print(Path(revision_dir) / "revision_delta.md")
+        return 0
+
+    if args.command == "diff-revisions":
+        ensure_revision_history(args.run_dir)
+        payload = diff_revisions(args.run_dir, args.left, args.right)
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.command == "validate-replay":
+        ensure_revision_history(args.run_dir)
+        payload = validate_replay(args.run_dir, args.revision)
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.command == "list-runs":
+        rows = list_runs()
+        for row in rows:
+            print(
+                f"{row['run_id']}\t{row['study_id']}\t{row['status']}\t"
+                f"{row['decision']}\t{row['run_dir']}"
+            )
+        return 0
+
     if args.command == "export-packet":
         if args.profile == "static_admissibility_mvp":
             packet = export_static_admissibility_packet(args.run_dir, args.output_dir)
@@ -962,32 +1288,69 @@ def main(argv: list[str] | None = None) -> int:
             print(packet.decision_card_path)
             print(packet.figure_manifest_path)
             return 0
+        if args.profile == "workbench":
+            packet_dir = export_workbench_packet(args.run_dir, args.output_dir)
+            print(packet_dir)
+            print(packet_dir / "decision_card.md")
+            print(packet_dir / "workbench_report.md")
+            return 0
+        if args.profile == "presentation":
+            packet_dir = export_presentation_packet(args.output_dir, run_dir=args.run_dir)
+            print(packet_dir)
+            print(packet_dir / "decision_card.md")
+            print(packet_dir / "hero_chart_manifest.csv")
+            return 0
 
     if args.command == "validate-packet":
+        packet_dir = args.packet_dir_option if args.packet_dir_option is not None else args.packet_dir
+        if packet_dir is None:
+            raise SystemExit("validate-packet requires a packet directory")
         if args.profile == "static_admissibility_mvp":
-            issues = validate_static_admissibility_packet(args.packet_dir, repo_root=repo_root())
+            issues = validate_static_admissibility_packet(packet_dir, repo_root=repo_root())
             if issues:
                 for issue in issues:
                     print(f"FAIL: {issue}")
                 return 1
-            print(f"PASS: {args.packet_dir}")
+            print(f"PASS: {packet_dir}")
             return 0
         if args.profile == "corpus_explorer_mvp":
-            issues = validate_corpus_explorer_packet(args.packet_dir)
+            issues = validate_corpus_explorer_packet(packet_dir)
             if issues:
                 for issue in issues:
                     print(f"FAIL: {issue}")
                 return 1
-            print(f"PASS: {args.packet_dir}")
+            print(f"PASS: {packet_dir}")
             return 0
         if args.profile == "v7_anduril_c2_blend":
-            issues = validate_v7_anduril_c2_blend_packet(args.packet_dir)
+            issues = validate_v7_anduril_c2_blend_packet(packet_dir)
             if issues:
                 for issue in issues:
                     print(f"FAIL: {issue}")
                 return 1
-            print(f"PASS: {args.packet_dir}")
+            print(f"PASS: {packet_dir}")
             return 0
+        if args.profile == "workbench":
+            validation = validate_workbench_run(packet_dir)
+            if validation.issues:
+                for issue in validation.issues:
+                    print(f"FAIL: {issue}")
+                return 1
+            print(f"PASS: {packet_dir}")
+            return 0
+        if args.profile == "presentation":
+            import subprocess
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    str(repo_root() / "scripts" / "audit" / "validate_presentation_hero_packet.py"),
+                    "--packet-dir",
+                    packet_dir,
+                ],
+                cwd=repo_root(),
+                text=True,
+            )
+            return result.returncode
 
     if args.command == "trajectory-exploration":
         artifacts = write_trajectory_exploration_artifacts(

@@ -30,14 +30,20 @@ without needing custom one-off wiring in notebooks or ad hoc shell sessions.
 
 ## Typical entrypoints
 
+- Regenerate the full Epic 1 evidence set and presentation showcase:
+  - `PYTHONPATH=src python3 -m kinematic_classifier_sandbox build-epic1-showcase --output-dir artifacts/epic1_showcase --presentation-output-dir artifacts/presentation_hero_charts_v4`
 - Run a full study:
   - `python3 scripts/run_study.py experiments/common_1d_classifier_study/common_experiment_config.yaml --output-dir artifacts`
+- Run the workbench CLI path directly:
+  - `PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-study experiments/common_1d_classifier_study/common_experiment_config.yaml --output-dir artifacts/runs/interview_demo`
 - Run the abstract inspection bundle:
   - `python3 scripts/run_abstract_inspection.py`
 - Render corpus exploration sweep:
   - `python3 scripts/render/render_generic_corpus_exploration_weight_sweep.py --output-dir artifacts --config experiments/generic_corpus_exploration_weight_sweep/generic_corpus_exploration_weight_sweep.yaml`
 - Render the ladder witness suite:
   - `python3 scripts/render/render_ladder_witness_suite.py --output-dir artifacts --config experiments/ladder_witness_suite/ladder_witness_suite.yaml`
+
+See [../docs/workflows/epic1_showcase_regeneration.md](../docs/workflows/epic1_showcase_regeneration.md) for the full reusable workflow and the smoke variant.
 
 ## Design rule
 

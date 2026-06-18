@@ -1,0 +1,119 @@
+registry_id: epic1_claim_registry_v1
+purpose: >
+  Govern public and workbench claims for the Evidence-Tiered Kinematic
+  Classification Workbench MVP.
+evidence_tiers:
+  RUN_BACKED: generated from a run artifact or executable packet.
+  ARTIFACT_BACKED: backed by a documented artifact, registry, or report.
+  EXPERIMENTAL_WITNESS: executable witness exists, but promotion needs broader evidence.
+  CANDIDATE_DIAGNOSTIC: diagnostic signal only; downstream confirmation required.
+  ROADMAP: architectural direction or planned lift.
+method_status_words:
+  allowed:
+    - implemented
+    - contract_integrated
+    - witness_supported
+    - study_justified
+    - deferred
+    - missing
+  forbidden_without_registry_permission:
+    - generally proven
+    - best
+    - promoted
+    - solved
+    - production-ready
+claims:
+  - claim_id: epic1_workbench_mvp
+    claim_text: >
+      Epic 1 delivers a repeatable kinematic-classification workbench workflow
+      with presentation export as one profile.
+    evidence_tier: ARTIFACT_BACKED
+    source_artifacts:
+      - docs/story/epics/01_epic1_exit_criteria.md
+      - src/kinematic_classifier_sandbox/workbench/mvp.py
+    validation_checks:
+      - validate-study accepts the common YAML study spec
+      - run-study emits standard run artifacts
+      - validate-packet --profile workbench passes on the run directory
+    allowed_language:
+      - usable methodology workbench
+      - repeatable study workflow
+      - presentation export profile
+    forbidden_language:
+      - presentation generator only
+      - production operational tracker
+    limitations:
+      - current MVP run surface uses the manifest-driven 1D common experiment adapter
+    next_work:
+      - add private adapter examples without public-packet leakage
+    decision_card_field: overall_status
+  - claim_id: corpus_search_cem_ppo_governed
+    claim_text: >
+      CEM and PPO are governed corpus-search backends with baseline and
+      downstream-yield gates.
+    evidence_tier: EXPERIMENTAL_WITNESS
+    source_artifacts:
+      - artifacts/trajectory_exploration_rl/ppo_vs_cem_boundary_control/aggregate_metrics_by_backend.csv
+      - artifacts/rl_corpus_agent/rl_backend_decision_summary.json
+    validation_checks:
+      - public packets cannot label CEM/PPO promoted without baseline and yield evidence
+      - 24_ppo_boundary_shaping_trace remains EXPERIMENTAL-WITNESS
+    allowed_language:
+      - search backend candidate
+      - experimental sequential-control witness
+      - requires baseline and downstream diagnostic yield
+    forbidden_language:
+      - CEM/PPO are generally promoted
+      - PPO is the best corpus generator
+    limitations:
+      - seed stability and objective breadth remain next work
+    next_work:
+      - expand matched-budget backend comparison across generated objectives
+    decision_card_field: novelty_search_claim_status
+  - claim_id: advanced_filters_witness_specific
+    claim_text: >
+      IMM, PF, and RBPF are governed by trace validation and witness-specific
+      failure-mode evidence.
+    evidence_tier: ARTIFACT_BACKED
+    source_artifacts:
+      - artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv
+      - artifacts/filter_trace_validation_v1/method_trace_matrix.csv
+    validation_checks:
+      - advanced-filter charts cite simpler-rung baseline comparisons
+      - decision card preserves witness-specific scope
+    allowed_language:
+      - witness-supported
+      - study-justified on a named witness
+      - not a global default
+    forbidden_language:
+      - PF/RBPF are generally best
+      - advanced filters are promoted by default
+    limitations:
+      - broader promotion requires richer scenarios and robustness sweeps
+    next_work:
+      - run Epic 2 advanced-filter promotion campaign
+    decision_card_field: advanced_filter_decisions
+  - claim_id: static_admissibility_gate
+    claim_text: >
+      Feature/class/prior bundles can be screened for admissibility before corpus
+      search or classifier escalation.
+    evidence_tier: RUN_BACKED
+    source_artifacts:
+      - artifacts/validation_packets/01_static_admissibility/decision_card.md
+      - artifacts/validation_packets/01_static_admissibility_multi_domain_3d/decision_card.md
+    validation_checks:
+      - prior regimes sum to one
+      - leakage blockers cannot promote
+      - below-uncertainty threshold retention is candidate-level
+    allowed_language:
+      - static admissibility diagnostic
+      - candidate synergy
+      - claim-bounded prior evidence budget
+    forbidden_language:
+      - operational classifier performance guarantee
+      - full 3D tracking implementation
+    limitations:
+      - static bounds are conditional on declared samples, schemas, and assumptions
+    next_work:
+      - route warnings into Corpus Explorer and classifier-filter gates
+    decision_card_field: static_audit_decision

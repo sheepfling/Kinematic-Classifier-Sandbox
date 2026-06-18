@@ -6,6 +6,12 @@ This repo is a methodology workbench for kinematic classification studies. Start
 
 Use the canonical reading order in [docs/story/02_reading_order.md](story/02_reading_order.md). This page stays as the brief front door and term glossary.
 
+## Operational Workflows
+
+- [Epic 1 showcase regeneration](workflows/epic1_showcase_regeneration.md): one command to rebuild the workbench evidence set, governed corpus-search lane, static-admissibility packets, and presentation export.
+- [New study user guide](workflows/new_study_user_guide.md): how to create and run study configs.
+- [Static audit bundle user guide](workflows/static_audit_bundle_user_guide.md): how to ingest feature/class/prior bundles.
+
 ## Core Terms
 
 - Study Candidate Evaluator: evaluates `s = (D, f, C, m, pi, b)`.

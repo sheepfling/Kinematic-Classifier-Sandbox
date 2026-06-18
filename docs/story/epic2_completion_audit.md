@@ -41,6 +41,8 @@ What is still open:
 
 - broader robustness and study-justified expansion beyond the bounded Epic 2
   surface
+- bounded workbench replay MVP exists, but checkpoint-local replay and
+  deterministic stochastic replay are not yet part of the completion claim
 
 ### 2. Interpretable kinematic family
 
@@ -182,6 +184,29 @@ What the scorecard currently says:
 This is the key honest read: the missing centerpiece now exists, but it does
 not yet support a strong “Epic 2 is done” claim.
 
+### 7. Revision-aware replay
+
+Current read: bounded MVP present, not yet a completed replay architecture.
+
+What is present:
+
+- append-only measurement event log under workbench run revisions
+- baseline revision materialization with active measurement view
+- measurement revocation, restore, and correction command paths
+- full-recompute replay from revised active measurement history
+- revision delta artifacts and replay validation surface
+- method replay compatibility matrix with explicit PF/RBPF limitations
+
+What remains open:
+
+- checkpoint-local replay rather than conservative full recompute
+- explicit correction / restore / association-change mutation semantics
+- deterministic stochastic replay with saved RNG / particle ancestry state
+- broader chart and packet integration for revision-delta reporting
+
+This means revision-aware replay is now a real Epic 2 workstream, but not yet
+something that broadens the completion claim.
+
 ## Honest Epic 2 Finish Criteria
 
 Epic 2 should only be treated as complete when current evidence supports all of
@@ -207,6 +232,9 @@ the following:
 8. The remaining physics-aware methods either broaden their promotion support
    beyond the current bounded witnesses or stay explicitly bounded without
    inflating the public family claim.
+9. Revision-aware replay must remain explicitly bounded until checkpoint-local
+   replay, richer mutation semantics, and deterministic stochastic-filter
+   replay are proved rather than implied.
 
 Current read against these criteria: not yet satisfied.
 
@@ -222,5 +250,8 @@ Current read against these criteria: not yet satisfied.
 4. Keep the physics-aware family honest by broadening robustness and
    study-justified coverage without reopening already-cleared foundation-rung
    promotion questions.
+5. Keep revision-aware replay honest by treating current support as
+   full-recompute MVP rather than as a completed local-checkpoint replay
+   system.
 
 Those moves are still blockers for a strong Epic 2 completion claim.

@@ -6,10 +6,11 @@ import json
 import re
 from pathlib import Path
 
+import yaml
 from _bootstrap import bootstrap_repo
 
 REQUIRED_TIERS = {"RUN-BACKED", "ARTIFACT-BACKED", "EXPERIMENTAL-WITNESS", "CANDIDATE-DIAGNOSTIC", "ROADMAP"}
-PRIVATE_PATH_RE = re.compile(r"/Users/[^\\s)]+")
+PRIVATE_PATH_RE = re.compile(r"(/Users/[^\\s)]+|/private/tmp/[^\\s)]+)")
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
@@ -26,9 +27,8 @@ def _public_text_files(packet_dir: Path) -> list[Path]:
         path
         for path in packet_dir.rglob("*")
         if path.is_file()
-        and "deck_workspaces" not in path.parts
         and path.name != "artifact-build-manifest.json"
-        and path.suffix.lower() in {".md", ".csv", ".json", ".yaml", ".yml", ".txt"}
+        and path.suffix.lower() in {".md", ".csv", ".json", ".yaml", ".yml", ".txt", ".mjs"}
     )
 
 
@@ -47,8 +47,45 @@ def validate_packet(packet_dir: Path) -> list[str]:
     if issues:
         return issues
 
+    claim_registry_path = root / "docs/story/claim_registry.yaml"
+    visualization_registry_path = root / "docs/story/visualization_registry.yaml"
+    if not claim_registry_path.exists():
+        issues.append("missing claim registry: docs/story/claim_registry.yaml")
+    if not visualization_registry_path.exists():
+        issues.append("missing visualization registry: docs/story/visualization_registry.yaml")
+    if claim_registry_path.exists():
+        claim_registry = yaml.safe_load(claim_registry_path.read_text(encoding="utf-8")) or {}
+        claim_ids = {row.get("claim_id") for row in claim_registry.get("claims", [])}
+        for required_claim in {
+            "epic1_workbench_mvp",
+            "corpus_search_cem_ppo_governed",
+            "advanced_filters_witness_specific",
+            "static_admissibility_gate",
+        }:
+            if required_claim not in claim_ids:
+                issues.append(f"claim_registry.yaml missing required claim: {required_claim}")
+    if visualization_registry_path.exists():
+        visualization_registry = yaml.safe_load(visualization_registry_path.read_text(encoding="utf-8")) or {}
+        chart_ids = {row.get("chart_id") for row in visualization_registry.get("charts", [])}
+        for required_chart in {
+            "02b_static_audit_decision_card",
+            "21_search_backend_comparison_frontier",
+            "24_ppo_boundary_shaping_trace",
+            "10e_advanced_filter_sweet_spot_matrix",
+        }:
+            if required_chart not in chart_ids:
+                issues.append(f"visualization_registry.yaml missing required chart: {required_chart}")
+
     manifest_rows = _read_csv(manifest_path)
-    required_manifest_columns = {"chart_id", "role", "path", "evidence_tier", "source_artifact", "claim_boundary"}
+    required_manifest_columns = {
+        "chart_id",
+        "role",
+        "path",
+        "evidence_tier",
+        "source_artifact",
+        "claim_boundary",
+        "decision_card_field",
+    }
     if not manifest_rows:
         issues.append("hero_chart_manifest.csv is empty")
     else:
@@ -82,6 +119,8 @@ def validate_packet(packet_dir: Path) -> list[str]:
                 issues.append(f"{chart_id}: missing cited source artifact {source}")
         if not row.get("claim_boundary"):
             issues.append(f"{chart_id}: claim_boundary is empty")
+        if not row.get("decision_card_field"):
+            issues.append(f"{chart_id}: decision_card_field is empty")
 
     lane_rows = _read_csv(lane_matrix_path)
     required_lane_columns = {
@@ -371,6 +410,8 @@ def validate_packet(packet_dir: Path) -> list[str]:
         lower = text.lower()
         if "ppo promoted" in lower or "cem promoted" in lower:
             issues.append(f"public packet overclaims CEM/PPO promotion: {text_path}")
+        if "production-ready" in lower or "generally proven" in lower:
+            issues.append(f"public packet uses forbidden claim language: {text_path}")
         if "pf and rbpf are not promoted" in lower:
             issues.append(f"public packet is stale; PF/RBPF now need witness-specific wording instead: {text_path}")
 

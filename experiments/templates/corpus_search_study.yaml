@@ -1,0 +1,17 @@
+search:
+  search_id: corpus_search_template
+  objective_id: hard_but_valid_boundary_cases
+  search_space: normalized_1d_control_surface
+  validity_constraints:
+    - non_leaky_features_only
+    - minimum_class_coverage
+    - finite_posterior_evidence
+  backends:
+    - random_baseline
+    - qd_archive_baseline
+    - cem_boundary_search
+    - ppo_boundary_shaping
+  claim_boundary: >
+    CEM/PPO are search-backend candidates. Promotion requires baseline
+    comparison, adequacy/leakage checks, seed stability, and downstream
+    diagnostic yield.

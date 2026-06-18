@@ -38,6 +38,52 @@ PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-static-audit experime
 PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet artifacts/packets/static_admissibility_mvp
 ```
 
+## Workbench Quickstart
+
+Regenerate the Epic 1 evidence set and presentation showcase from declared inputs:
+
+```bash
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox build-epic1-showcase \
+  --output-dir artifacts/epic1_showcase \
+  --presentation-output-dir artifacts/presentation_hero_charts_v4
+```
+
+The command emits a regenerated workbench run, workbench packet, governed CEM/PPO corpus-search lane, static-admissibility packets, V4 presentation packet, manifest, validation summary, and artifact index. See [docs/workflows/epic1_showcase_regeneration.md](docs/workflows/epic1_showcase_regeneration.md) for the full workflow and a fast smoke command.
+
+Run a declared study into the standard workbench artifact shape:
+
+```bash
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-study \
+  experiments/common_1d_classifier_study/common_experiment_config.yaml
+
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-study \
+  experiments/common_1d_classifier_study/common_experiment_config.yaml \
+  --output-dir artifacts/runs/interview_demo
+
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox analyze-run \
+  --run-dir artifacts/runs/interview_demo
+
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet \
+  --profile workbench \
+  --packet-dir artifacts/runs/interview_demo
+```
+
+Export profiles are separate from the run itself:
+
+```bash
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox export-packet \
+  --profile workbench \
+  --run-dir artifacts/runs/interview_demo \
+  --output-dir artifacts/workbench_reports/interview_demo
+
+PYTHONPATH=src python3 -m kinematic_classifier_sandbox export-packet \
+  --profile presentation \
+  --run-dir artifacts/runs/interview_demo \
+  --output-dir artifacts/presentation_hero_charts_v4
+```
+
+The workbench run is the product. The presentation packet is a public-safe export profile over governed artifacts and evidence tiers.
+
 ## Static Admissibility Quickstart
 
 Run the built-in multi-domain 3D static audit demo:

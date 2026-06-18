@@ -56,6 +56,10 @@ Read next:
 
 ## Useful targeted runs
 
+- Epic 1 showcase smoke regeneration:
+  - `PYTHONPATH=src python3 -m pytest tests/workbench/test_workbench_mvp.py`
+- Full Epic 1 showcase command without the heavy presentation/static branches:
+  - `PYTHONPATH=src python3 -m kinematic_classifier_sandbox build-epic1-showcase --output-dir /private/tmp/kcs_epic1_showcase_smoke --skip-static --skip-presentation --trajectories-per-case 2`
 - Fast package-shape and methodology smoke checks:
   - `PYTHONPATH=src python3 scripts/test.py`
 - Import/package/front-door checks:

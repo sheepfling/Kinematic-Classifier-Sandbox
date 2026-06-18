@@ -1,0 +1,15 @@
+presentation_export:
+  profile: presentation
+  public_safe: true
+  output_dir: artifacts/presentation_hero_charts_v4
+  required_files:
+    - main_deck.pptx
+    - appendix_deck.pptx
+    - decision_card.md
+    - presentation_readme.md
+    - slide_speaker_script.csv
+    - hero_chart_manifest.csv
+    - lane_proof_matrix.md
+  claim_boundary: >
+    The deck is an export profile over workbench artifacts. Candidate and
+    experimental evidence remains labeled as such.

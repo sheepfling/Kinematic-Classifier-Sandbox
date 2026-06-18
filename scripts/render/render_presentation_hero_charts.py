@@ -1765,7 +1765,9 @@ def chart_novelty_to_filter_escalation_bridge(output: Path) -> dict[str, str]:
 
 
 def append_classifier_capability_packet_charts(root: Path, output: Path) -> list[dict[str, str]]:
-    from render_classifier_capability_ladder_mvp import main as render_classifier_capability_ladder_packet
+    from render_classifier_capability_ladder_mvp import (
+        main as render_classifier_capability_ladder_packet,
+    )
 
     render_classifier_capability_ladder_packet()
     source_dir = root / "artifacts" / "packets" / "classifier_ladder_mvp" / "figures"
@@ -2384,7 +2386,9 @@ def write_epic_packets(
         encoding="utf-8",
     )
 
-    from render_classifier_capability_ladder_mvp import main as render_classifier_capability_ladder_packet
+    from render_classifier_capability_ladder_mvp import (
+        main as render_classifier_capability_ladder_packet,
+    )
     from render_corpus_explorer_mvp import main as render_corpus_explorer_packet
 
     render_classifier_capability_ladder_packet()
@@ -2396,10 +2400,16 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
     write_deck_modules(root, artifact_dir, absolute_rows)
     deck_manifest = json.loads((artifact_dir / "deck_manifest.json").read_text(encoding="utf-8"))
     main_slide_count = int(deck_manifest["main_slide_count"])
+    lane_rows = _lane_proof_rows()
+    decision_field_by_chart: dict[str, str] = {}
+    for lane_row in lane_rows:
+        for chart_id in [chart.strip() for chart in lane_row["hero_chart"].split(";") if chart.strip()]:
+            decision_field_by_chart.setdefault(chart_id, lane_row["decision_card_field"])
     rows = [
         {
             **row,
             "path": str(Path(row["path"]).resolve().relative_to(root)),
+            "decision_card_field": decision_field_by_chart.get(row["chart_id"], "decision_card"),
         }
         for row in absolute_rows
     ]
@@ -2413,11 +2423,18 @@ def write_report(root: Path, artifact_dir: Path, rows: list[dict[str, str]]) -> 
     with manifest.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(
             handle,
-            fieldnames=["chart_id", "role", "path", "evidence_tier", "source_artifact", "claim_boundary"],
+            fieldnames=[
+                "chart_id",
+                "role",
+                "path",
+                "evidence_tier",
+                "source_artifact",
+                "claim_boundary",
+                "decision_card_field",
+            ],
         )
         writer.writeheader()
         writer.writerows(rows)
-    lane_rows = _lane_proof_rows()
     with lane_csv.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(lane_rows[0]))
         writer.writeheader()

@@ -1,0 +1,27 @@
+experiment:
+  name: private_work_study
+  study_adapter_id: common_1d_classifier_study
+  seed: 123
+  output_dir: artifacts/runs/private_work_study
+
+dataset:
+  generator: private_or_imported_corpus
+  tiers:
+    - private
+  classes: []
+  class_pairs: []
+  trajectories_per_class: 0
+
+feature_sets:
+  manifest_path: experiments/common_1d_classifier_study/feature_sets.json
+
+class_pairs:
+  manifest_path: experiments/common_1d_classifier_study/class_pair_manifest.json
+
+classifiers:
+  manifest_path: experiments/common_1d_classifier_study/classifier_manifest.json
+
+public_export:
+  allow_private_paths: false
+  allow_private_data: false
+  claim_boundary: Private adapters must not leak into presentation packets.

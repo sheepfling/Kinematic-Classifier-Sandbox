@@ -2,7 +2,8 @@
 
 Goal: build and prove a reusable 1D time-series classification pipeline that
 evaluates multiple classifier families under the same data, metrics, stress
-tests, artifact contracts, and reporting surfaces.
+tests, artifact contracts, reporting surfaces, and revision-aware replay
+surfaces.
 
 Core question: for a 1D trajectory classification problem, which classifier
 families provide useful, reliable, and explainable evidence, and when?
@@ -18,6 +19,12 @@ The architectural claim is:
 > four classifier families - interpretable kinematic, physics-aware
 > inference, generic time-series benchmark, and learned sequence / embedding
 > methods - under common metrics, robustness tests, and failure-mode analysis.
+
+Epic 2 also now includes one workbench capability lane that cuts across those
+families rather than adding a fifth family:
+
+- revision-aware track replay for revoked measurements, corrected
+  measurements, and association changes
 
 ## The Four Top-Level Lanes
 
@@ -170,6 +177,28 @@ The repo now has the first honest version of that surface in
 expected win conditions explicit, but it also shows that ceiling-relative
 alignment is still incomplete for several families.
 
+## Revision-Aware Replay
+
+Epic 2 is not only about choosing the right evidence builder. Real studies are
+revision-prone: a measurement can be revoked, restored, corrected, or
+reassociated after the original run. Epic 2 now treats that as a named
+workbench capability:
+
+- append-only measurement event log rather than destructive row edits
+- active measurement view for a named revision
+- replay plan from the earliest affected time
+- revised posterior and decision-card materialization
+- explicit revision delta rather than a silent rerun
+
+Current honest read:
+
+- bounded MVP support now exists for append-only measurement events,
+  revocation, restore, correction, active-measurement views, full-recompute
+  replay, revision deltas, and replay validation
+- current replay mode is deliberately conservative: `full_recompute_only`
+- checkpoint-local replay and deterministic stochastic-filter replay remain
+  future work, not implied completion
+
 ## Required Deliverables
 
 Epic 2 should produce three top-level deliverables:
@@ -216,6 +245,9 @@ For archive-style and other external methods:
 - `artifacts/classifier_family_scorecard_v1/classifier_family_scorecard_report.md`
 - `artifacts/rung_sufficiency/rung_promotion_matrix.csv`
 - `artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv`
+- `artifacts/runs/<run_id>/revisions/rev_000/active_measurements.csv`
+- `artifacts/runs/<run_id>/revisions/<rev_id>/revision_delta.md`
+- `artifacts/runs/<run_id>/revisions/<rev_id>/method_replay_compatibility_matrix.csv`
 
 ## Main Charts
 
@@ -231,6 +263,13 @@ For archive-style and other external methods:
 - `20_particle_count_pareto`
 - `21_pf_rbpf_compute_frontier`
 - `22_learned_baseline_comparison`
+- `28_revision_replay_spine`
+- `29_revoked_measurement_timeline`
+- `30_posterior_revision_delta`
+- `31_decision_delta_card`
+- `32_replay_equivalence_check`
+- `33_replay_cost_vs_checkpoint_interval`
+- `34_method_replay_compatibility_matrix`
 
 ## Decision Language
 

@@ -1,0 +1,21 @@
+filter_witness:
+  witness_id: advanced_filter_witness_template
+  failure_mode: switching_or_nonlinear_or_latent_event
+  simpler_rungs:
+    - pointwise
+    - windowed
+    - sequential_bayes
+    - kalman_bank
+    - transition_matrix
+  candidate_filters:
+    - imm
+    - particle_filter
+    - rbpf
+  required_evidence:
+    - simpler_rung_failure_is_demonstrated
+    - failure_is_not_corpus_prior_feature_or_sensor_limited
+    - candidate_improves_predeclared_metric
+    - posterior_evidence_contract_is_preserved
+  claim_boundary: >
+    Advanced filters are witness-specific unless a named run-backed study
+    clears the relevant failure-mode gate.

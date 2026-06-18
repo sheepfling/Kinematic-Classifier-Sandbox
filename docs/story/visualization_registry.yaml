@@ -1,0 +1,64 @@
+registry_id: epic1_visualization_registry_v1
+purpose: >
+  Declare the public visualization surfaces used by the Epic 1 workbench and
+  presentation export profile.
+charts:
+  - chart_id: 02b_static_audit_decision_card
+    title: Static Audit Decision Card
+    question: Can the proposed feature/class/prior bundle support the study?
+    source_artifacts:
+      - artifacts/static_feature_class_prior_audit_v1/static_decision_card.md
+      - artifacts/static_feature_class_prior_audit_v1/class_confusability_matrix.csv
+    evidence_tier: RUN_BACKED
+    profile:
+      - presentation
+      - workbench
+    decision_card_field: static_audit_decision
+    renderer: scripts/render/render_presentation_hero_charts.py
+    output_path: artifacts/presentation_hero_charts_v4/figures/02b_static_audit_decision_card.png
+  - chart_id: 21_search_backend_comparison_frontier
+    title: Search Backend Comparison Frontier
+    question: Do CEM/PPO search backends beat or complement simpler baselines?
+    source_artifacts:
+      - artifacts/trajectory_exploration_rl/ppo_vs_cem_boundary_control/aggregate_metrics_by_backend.csv
+    evidence_tier: RUN_BACKED
+    profile:
+      - presentation
+    decision_card_field: corpus_search_backend_decision
+    renderer: scripts/render/render_presentation_hero_charts.py
+    output_path: artifacts/presentation_hero_charts_v4/figures/21_search_backend_comparison_frontier.png
+  - chart_id: 24_ppo_boundary_shaping_trace
+    title: PPO Boundary Shaping Trace
+    question: What is PPO learning on the sequential-control witness?
+    source_artifacts:
+      - artifacts/trajectory_exploration_rl/generated_objective_sweep/feature_row__accel_high_row/training_trace_rows.csv
+    evidence_tier: EXPERIMENTAL_WITNESS
+    profile:
+      - appendix
+    decision_card_field: novelty_search_claim_status
+    renderer: scripts/render/render_presentation_hero_charts.py
+    output_path: artifacts/presentation_hero_charts_v4/figures/24_ppo_boundary_shaping_trace.png
+  - chart_id: 10e_advanced_filter_sweet_spot_matrix
+    title: Advanced Filter Sweet-Spot Matrix
+    question: Which failure mode justifies each advanced filter family?
+    source_artifacts:
+      - artifacts/advanced_filter_comparison_v1/advanced_method_gate_matrix.csv
+      - artifacts/advanced_filter_comparison_v1/method_comparison.csv
+    evidence_tier: ARTIFACT_BACKED
+    profile:
+      - presentation
+    decision_card_field: advanced_filter_decisions
+    renderer: scripts/render/render_presentation_hero_charts.py
+    output_path: artifacts/presentation_hero_charts_v4/figures/10e_advanced_filter_sweet_spot_matrix.png
+  - chart_id: MD3D_19_threshold_subsumption_map
+    title: Threshold Subsumption Map
+    question: Are near-threshold features aliased or pair-specific candidates?
+    source_artifacts:
+      - artifacts/validation_packets/01_static_admissibility_multi_domain_3d/source_artifacts/feature_threshold_subsumption.csv
+    evidence_tier: CANDIDATE_DIAGNOSTIC
+    profile:
+      - workbench
+      - appendix
+    decision_card_field: alias_threshold_decision_redundancy
+    renderer: kinematic_classifier_sandbox.static_admissibility.multi_domain_3d
+    output_path: artifacts/validation_packets/01_static_admissibility_multi_domain_3d/figures/MD3D_19_threshold_subsumption_map.png
