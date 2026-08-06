@@ -65,7 +65,7 @@ feature columns rather than assuming a coordinate count.
 - feature schema, class schema, prior regime, and controlled samples
 - static decision card and validation report
 - confusability, relevance, redundancy, synergy, prior-pathology, coverage,
-  and leakage tables
+  prior-selection-balance, resolution-plan, and leakage tables
 - reusable bundle workflow in
   [Static Audit Bundle User Guide](../workflows/static_audit_bundle_user_guide.md)
 

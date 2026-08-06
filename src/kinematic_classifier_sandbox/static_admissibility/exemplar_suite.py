@@ -108,6 +108,10 @@ def write_static_admissibility_exemplar_suite_packet(
                 "validator_status": validator_status,
                 "primary_diagnostic": primary_diagnostic,
                 "secondary_diagnostic": secondary_diagnostic,
+                "resolution_codes": "|".join(
+                    str(code) for code in result.static_decision.get("resolution_codes", ())
+                ),
+                "recommended_resolution": _first_next_action(result),
             }
         )
         route_rows.append(
@@ -118,6 +122,7 @@ def write_static_admissibility_exemplar_suite_packet(
                 "redundancy_status": _lane_status(result, "feature redundancy"),
                 "synergy_status": _lane_status(result, "feature synergy"),
                 "prior_pathology_status": _lane_status(result, "prior pathology"),
+                "prior_selection_balance_status": _lane_status(result, "prior selection balance"),
                 "coverage_status": _lane_status(result, "coverage feasibility"),
                 "leakage_status": _lane_status(result, "leakage risk"),
                 "expected_route": expected_route,
@@ -134,6 +139,7 @@ def write_static_admissibility_exemplar_suite_packet(
                 "synergy_candidate_score": _synergy_score(result),
                 "coverage_thinness_score": _coverage_score(result),
                 "leakage_risk_score": _leakage_score(result),
+                "prior_selection_skew_score": _prior_selection_score(result),
                 "decisionability_score": _decisionability_score(actual_route),
             }
         )
@@ -158,6 +164,9 @@ def write_static_admissibility_exemplar_suite_packet(
                 "claim": "Epic 1 routes this study family before corpus search or classifier escalation.",
                 "limitation": "Static admissibility is an early gate; it does not prove downstream dynamic performance.",
                 "next_action": _first_next_action(result),
+                "resolution_codes": "|".join(
+                    str(code) for code in result.static_decision.get("resolution_codes", ())
+                ),
             }
         )
         validation_lines.append(
@@ -282,6 +291,17 @@ def _coverage_score(result) -> float:
     return flagged / max(len(rows), 1)
 
 
+def _prior_selection_score(result) -> float:
+    rows = tuple(result.prior_selection_rows)
+    flagged = sum(
+        1
+        for row in rows
+        if row["status"]
+        in {"never_selected_on_observed_surface", "rarely_selected", "underselected_for_own_samples"}
+    )
+    return flagged / max(len(rows), 1)
+
+
 def _leakage_score(result) -> float:
     rows = tuple(result.leakage_rows)
     flagged = sum(1 for row in rows if row["status"] == "blocker")
@@ -301,6 +321,7 @@ def _diagnostic_labels(exemplar_id: str) -> tuple[str, str]:
         "promote_separable_family": ("class separability", "feature relevance"),
         "class_overlap_boundary_family": ("class overlap boundary", "confusability"),
         "prior_domination_family": ("prior pathology", "flip thresholds"),
+        "future_class_surface_family": ("future class pruning", "expected signature collision"),
         "redundancy_synergy_family": ("feature redundancy", "candidate synergy"),
         "coverage_thin_cells_family": ("coverage feasibility", "decisionability"),
         "leakage_blocker_family": ("leakage provenance", "hard gate"),
@@ -322,17 +343,28 @@ def _copy_bundle_sources(destination: Path, config_path: Path, config) -> None:
         _copy_file(config.input_bundle.feature_schema_path, destination / "feature_schema.csv")
     if config.input_bundle.class_schema_path is not None:
         _copy_file(config.input_bundle.class_schema_path, destination / "class_schema.csv")
+    if config.input_bundle.class_feature_signature_path is not None:
+        _copy_file(
+            config.input_bundle.class_feature_signature_path,
+            destination / "class_feature_signature.csv",
+        )
 
 
 def _copy_exemplar_source_artifacts(destination: Path, source_packet_dir: Path) -> None:
     destination.mkdir(parents=True, exist_ok=True)
     for name in (
         "class_confusability_matrix.csv",
+        "class_pair_diagnostics.csv",
+        "class_feature_signature.csv",
+        "class_observability.csv",
         "feature_relevance_table.csv",
         "feature_redundancy_matrix.csv",
+        "feature_alias_candidates.csv",
         "feature_synergy_candidates.csv",
         "prior_pathology_report.csv",
+        "prior_selection_balance.csv",
         "prior_flip_thresholds.csv",
+        "static_resolution_plan.csv",
         "static_coverage_feasibility.csv",
         "static_leakage_provenance_audit.csv",
         "02c_class_pair_confusability_matrix.png",
@@ -379,17 +411,18 @@ def _render_routing_matrix(path: Path, route_rows: list[dict[str, object]]) -> N
         "redundancy_status",
         "synergy_status",
         "prior_pathology_status",
+        "prior_selection_balance_status",
         "coverage_status",
         "leakage_status",
     ]
     status_map = {"not_applicable": 0, "pass": 1, "warn": 2, "candidate": 3, "block": 4}
     matrix = array([[status_map[str(row[column])] for column in columns] for row in route_rows], dtype=float)
     cmap = ListedColormap(["#E5E7EB", "#B8E0D2", "#F6D186", "#9CC2FF", "#F28482"])
-    fig, ax = plt.subplots(figsize=(16, 6))
+    fig, ax = plt.subplots(figsize=(18, 6))
     ax.imshow(matrix, aspect="auto", cmap=cmap, vmin=0, vmax=4)
     ax.set_xticks(range(len(columns)))
     ax.set_xticklabels(
-        ["class sep", "feature rel", "redundancy", "synergy", "prior", "coverage", "leakage"],
+        ["class sep", "feature rel", "redundancy", "synergy", "prior", "selection", "coverage", "leakage"],
         rotation=20,
         ha="right",
     )
@@ -454,6 +487,7 @@ def _render_fingerprint_strip(path: Path, fingerprint_rows: list[dict[str, objec
         "synergy_candidate_score",
         "coverage_thinness_score",
         "leakage_risk_score",
+        "prior_selection_skew_score",
         "decisionability_score",
     ]
     matrix = array([[float(row[column]) for column in columns] for row in fingerprint_rows], dtype=float)
@@ -461,7 +495,7 @@ def _render_fingerprint_strip(path: Path, fingerprint_rows: list[dict[str, objec
     heat = ax.imshow(matrix, aspect="auto", cmap="YlOrRd", vmin=0.0, vmax=1.0)
     ax.set_xticks(range(len(columns)))
     ax.set_xticklabels(
-        ["confusability", "prior", "redundancy", "synergy", "coverage", "leakage", "decision"],
+        ["confusability", "prior", "redundancy", "synergy", "coverage", "leakage", "selection", "decision"],
         rotation=20,
         ha="right",
     )
@@ -521,6 +555,7 @@ def _render_exemplar_card_markdown(exemplar: dict[str, object], result, validato
             f"expected route: `{exemplar['expected_status']}`",
             f"actual route: `{result.static_decision['status']}`",
             f"validator result: `{validator_status}`",
+            f"resolution codes: `{', '.join(str(code) for code in result.static_decision.get('resolution_codes', ()))}`",
             "limitation: static screen only; not a downstream classifier benchmark",
             f"next action: {_first_next_action(result)}",
         ]
@@ -577,12 +612,19 @@ def _render_exemplar_card_figure(path: Path, *, exemplar: dict[str, object], res
         va="top",
     )
     fig.suptitle("Epic 1 exemplar card", fontsize=16, fontweight="bold", x=0.05, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.subplots_adjust(left=0.03, right=0.98, top=0.90, bottom=0.06, wspace=0.18)
     fig.savefig(path, dpi=150)
     plt.close(fig)
 
 
 def _first_next_action(result) -> str:
+    recommendations = tuple(
+        str(row["recommended_action"])
+        for row in result.resolution_rows
+        if row["severity"] != "info"
+    )
+    if recommendations:
+        return recommendations[0]
     next_work = tuple(result.static_decision.get("next_work", ()))
     return str(next_work[0]) if next_work else "promote"
 
@@ -592,7 +634,7 @@ def _render_suite_readme() -> str:
         [
             "# Epic 1 Static Admissibility Validation Packet",
             "",
-            "This packet is the exemplar atlas for Epic 1. It uses six file-backed study bundles to exercise the static-admissibility routing surface.",
+            "This packet is the exemplar atlas for Epic 1. It uses seven file-backed study bundles to exercise the static-admissibility routing surface.",
             "",
             "## Main deck figures",
             "",
@@ -605,6 +647,10 @@ def _render_suite_readme() -> str:
             "",
             "- `figures/E1_card_*.png`",
             "- `figures/02k_static_audit_to_action_router.png`",
+            "",
+            "## Programmatic recommendations",
+            "",
+            "Each source run includes `static_resolution_plan.csv` and `prior_selection_balance.csv`; exemplar cards and manifests quote their generated issue codes and first recommended action.",
             "",
         ]
     ) + "\n"
@@ -679,7 +725,7 @@ def _render_suite_automated_brief(
     )
     lines.extend(["", "## Route coverage", ""])
     lines.extend(
-        f"- `{row['exemplar_id']}`: class `{row['class_separability_status']}`, prior `{row['prior_pathology_status']}`, leakage `{row['leakage_status']}`"
+        f"- `{row['exemplar_id']}`: class `{row['class_separability_status']}`, prior `{row['prior_pathology_status']}`, selection `{row['prior_selection_balance_status']}`, leakage `{row['leakage_status']}`"
         for row in route_rows
     )
     lines.extend(
@@ -690,6 +736,7 @@ def _render_suite_automated_brief(
             "- This is a static admissibility validation atlas.",
             "- It does not prove downstream classifier or filter performance.",
             "- Candidate synergy remains candidate until ablation-backed.",
+            "- Resolution recommendations are generated from the diagnostic tables; exemplar metadata does not prescribe the fix.",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -718,6 +765,7 @@ def _render_suite_lane_proof_matrix() -> str:
             "| Bundle ingestion | Epic 1 accepts portable study bundles. | `02a_static_bundle_ingestion_spine.png` | `source_bundles/*` | source bundle copy checks | bundle format does not itself guarantee a good study |",
             "| Routing coverage | The exemplar suite covers the routing surface. | `02a_static_exemplar_suite_routing_matrix.png` | `source_artifacts/exemplar_route_matrix.csv` | expected route equals actual route | finite curated families only |",
             "| Diagnostic fingerprinting | Each exemplar lights up a distinct admissibility signature. | `02m_static_exemplar_fingerprint_strip.png` | `source_artifacts/exemplar_fingerprint_scores.csv` | figure/source manifest checks | scores are simple teaching proxies |",
+            "| Programmatic resolution | Each finding maps to an issue code, recommendation, and verification follow-up. | `E1_card_*.png` | `source_artifacts/*/static_resolution_plan.csv` | resolution table checks | recommendations are static routing guidance, not a guarantee |",
             "| Per-family proof cards | Each family explains why its route is correct. | `E1_card_*.png` | `exemplar_cards/*.md` | card presence checks | cards are summaries over the underlying run tables |",
         ]
     ) + "\n"
@@ -765,7 +813,7 @@ def _hero_chart_manifest_rows() -> list[dict[str, str]]:
             "path": "figures/02a_static_exemplar_suite_routing_matrix.png",
             "evidence_tier": "run-backed",
             "source_artifact": "source_artifacts/exemplar_route_matrix.csv",
-            "claim": "Six file-backed exemplars exercise the Epic 1 decision routes.",
+            "claim": "Seven file-backed exemplars exercise the Epic 1 decision routes.",
             "claim_boundary": "curated exemplar routing matrix, not an exhaustive study universe",
         },
         {

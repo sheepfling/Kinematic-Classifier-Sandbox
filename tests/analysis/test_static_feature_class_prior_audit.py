@@ -89,7 +89,9 @@ class StaticFeatureClassPriorAuditTests(unittest.TestCase):
             self.assertTrue(artifacts.feature_synergy_candidates_path.exists())
             self.assertTrue(artifacts.prior_regime_path.exists())
             self.assertTrue(artifacts.prior_pathology_report_path.exists())
+            self.assertTrue(artifacts.prior_selection_balance_path.exists())
             self.assertTrue(artifacts.prior_flip_thresholds_path.exists())
+            self.assertTrue(artifacts.resolution_plan_path.exists())
             self.assertTrue(artifacts.coverage_static_report_path.exists())
             self.assertTrue(artifacts.coverage_feasibility_path.exists())
             self.assertTrue(artifacts.leakage_static_report_path.exists())
@@ -120,6 +122,11 @@ class StaticFeatureClassPriorAuditTests(unittest.TestCase):
         self.assertTrue(
             any(row["pathology_flag"] == "prior_domination" for row in result.prior_pathology_rows)
         )
+        rare_selection = next(row for row in result.prior_selection_rows if row["class_name"] == "rare")
+        self.assertEqual(rare_selection["status"], "never_selected_on_observed_surface")
+        self.assertIn("PRIOR_DOMINATION", result.static_decision["resolution_codes"])
+        self.assertIn("PRIOR_SELECTION_SKEW", result.static_decision["resolution_codes"])
+        self.assertTrue(any(row["route"] == "revise_prior" for row in result.resolution_rows))
         self.assertIn(result.static_decision["status"], {"revise_class_set", "revise_prior"})
 
     def test_static_audit_rejects_label_rule_leakage(self) -> None:

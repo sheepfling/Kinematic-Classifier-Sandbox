@@ -33,6 +33,8 @@ class StaticAdmissibilityPacketTests(unittest.TestCase):
             self.assertTrue((packet.packet_dir / "class_feature_signature.csv").exists())
             self.assertTrue((packet.packet_dir / "class_observability.csv").exists())
             self.assertTrue((packet.packet_dir / "feature_alias_candidates.csv").exists())
+            self.assertTrue((packet.packet_dir / "prior_selection_balance.csv").exists())
+            self.assertTrue((packet.packet_dir / "static_resolution_plan.csv").exists())
             self.assertEqual(validate_static_admissibility_packet(packet.packet_dir), [])
 
     def test_static_validator_rejects_zero_mass_declared_prior(self) -> None:

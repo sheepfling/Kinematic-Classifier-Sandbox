@@ -113,3 +113,5 @@ The generated packet also includes generic collision and alias tables:
 - `class_feature_signature.csv`
 - `class_observability.csv`
 - `feature_alias_candidates.csv`
+- `prior_selection_balance.csv`
+- `static_resolution_plan.csv`

@@ -42,7 +42,7 @@ def render_static_decision_card_figure(result: StaticFeatureClassPriorAuditResul
         "revise_prior": "#ffe8cc",
         "reject": "#ffc9c9",
     }
-    fig, ax = plt.subplots(figsize=(12.5, 5.8))
+    fig, ax = plt.subplots(figsize=(12.5, max(5.8, 0.52 * len(rows) + 1.0)))
     ax.axis("off")
     columns = ("lane", "score", "hardest_pair_or_feature", "status", "next_action")
     cell_text = [[_format_float(row.get(column, "")) for column in columns] for row in rows]
@@ -451,6 +451,20 @@ def render_static_feature_class_prior_audit_report(
                 ),
             ),
             "",
+            "## Prior Selection Balance",
+            "",
+            _markdown_table(
+                tuple(result.prior_selection_rows),
+                (
+                    "class_name",
+                    "prior_probability",
+                    "proxy_selection_rate",
+                    "true_class_selection_rate",
+                    "selection_to_prior_ratio",
+                    "status",
+                ),
+            ),
+            "",
             "## Feature Alias Candidates",
             "",
             _markdown_table(
@@ -463,6 +477,20 @@ def render_static_feature_class_prior_audit_report(
                     "spearman_corr",
                     "normalized_rmse",
                     "recommended_action",
+                ),
+            ),
+            "",
+            "## Programmatic Resolution Plan",
+            "",
+            _markdown_table(
+                tuple(result.resolution_rows),
+                (
+                    "issue_code",
+                    "severity",
+                    "affected_scope",
+                    "recommended_action",
+                    "verification",
+                    "route",
                 ),
             ),
             "",

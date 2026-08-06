@@ -1,0 +1,3 @@
+class_name,feature_name,expected_mean,expected_std,source
+future_constant_velocity,speed_mean,1.05,0.05,design_prior
+future_constant_velocity,acceleration_variance,0.10,0.02,design_prior

@@ -94,7 +94,9 @@ def write_static_feature_class_prior_audit_artifacts(
     feature_synergy_candidates_path = run_dir / "feature_synergy_candidates.csv"
     prior_regime_path = run_dir / "prior_regime.csv"
     prior_pathology_report_path = run_dir / "prior_pathology_report.csv"
+    prior_selection_balance_path = run_dir / "prior_selection_balance.csv"
     prior_flip_thresholds_path = run_dir / "prior_flip_thresholds.csv"
+    resolution_plan_path = run_dir / "static_resolution_plan.csv"
     coverage_static_report_path = run_dir / "coverage_static_report.csv"
     coverage_feasibility_path = run_dir / "static_coverage_feasibility.csv"
     leakage_static_report_path = run_dir / "leakage_static_report.csv"
@@ -251,6 +253,23 @@ def write_static_feature_class_prior_audit_artifacts(
         ],
     )
     write_csv(
+        prior_selection_balance_path,
+        [dict(row) for row in result.prior_selection_rows],
+        [
+            "class_name",
+            "prior_probability",
+            "sample_count",
+            "proxy_selection_count",
+            "proxy_selection_rate",
+            "true_class_selection_rate",
+            "mean_proxy_posterior",
+            "selection_gap_to_prior",
+            "selection_to_prior_ratio",
+            "proxy_model",
+            "status",
+        ],
+    )
+    write_csv(
         prior_flip_thresholds_path,
         [
             {
@@ -328,6 +347,19 @@ def write_static_feature_class_prior_audit_artifacts(
             "status",
         ],
     )
+    write_csv(
+        resolution_plan_path,
+        [dict(row) for row in result.resolution_rows],
+        [
+            "issue_code",
+            "severity",
+            "affected_scope",
+            "evidence",
+            "recommended_action",
+            "verification",
+            "route",
+        ],
+    )
 
     return StaticFeatureClassPriorAuditArtifacts(
         run_dir=run_dir,
@@ -353,7 +385,9 @@ def write_static_feature_class_prior_audit_artifacts(
         feature_synergy_candidates_path=feature_synergy_candidates_path,
         prior_regime_path=prior_regime_path,
         prior_pathology_report_path=prior_pathology_report_path,
+        prior_selection_balance_path=prior_selection_balance_path,
         prior_flip_thresholds_path=prior_flip_thresholds_path,
+        resolution_plan_path=resolution_plan_path,
         coverage_static_report_path=coverage_static_report_path,
         coverage_feasibility_path=coverage_feasibility_path,
         leakage_static_report_path=leakage_static_report_path,

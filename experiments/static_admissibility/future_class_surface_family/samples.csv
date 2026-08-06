@@ -1,0 +1,9 @@
+sample_id,true_class,speed_mean,acceleration_variance
+stationary_0,stationary,0.00,0.00
+stationary_1,stationary,0.02,0.01
+stationary_2,stationary,0.03,0.00
+stationary_3,stationary,0.01,0.01
+constant_velocity_0,constant_velocity,1.00,0.10
+constant_velocity_1,constant_velocity,1.10,0.10
+constant_velocity_2,constant_velocity,0.95,0.10
+constant_velocity_3,constant_velocity,1.15,0.10

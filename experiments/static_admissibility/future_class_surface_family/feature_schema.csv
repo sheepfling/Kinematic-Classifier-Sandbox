@@ -1,0 +1,3 @@
+feature_name,provenance_tags,online_available,label_rule_overlap,semantic_group,units,aggregation,dimension,measurement_resolution,threshold_operator,threshold_value
+speed_mean,"online,kinematic",true,false,speed,m/s,mean,scalar,0.01,,
+acceleration_variance,"online,kinematic",true,false,acceleration,m/s2,variance,scalar,0.01,,

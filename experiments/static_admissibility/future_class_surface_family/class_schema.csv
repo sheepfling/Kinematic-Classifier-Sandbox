@@ -1,0 +1,4 @@
+class_name,notes
+stationary,observed baseline
+constant_velocity,observed moving class
+future_constant_velocity,planned future class with a colliding expected signature

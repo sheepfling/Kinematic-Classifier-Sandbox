@@ -1,0 +1,16 @@
+static_admissibility:
+  study_id: future_class_surface_family
+  priors:
+    stationary: 0.45
+    constant_velocity: 0.45
+    future_constant_velocity: 0.10
+  input_bundle:
+    dimension: generic_feature_vector
+    allow_unobserved_classes: true
+    sample_table: samples.csv
+    feature_schema: feature_schema.csv
+    class_schema: class_schema.csv
+    class_feature_signature: class_feature_signature.csv
+    feature_names:
+      - speed_mean
+      - acceleration_variance

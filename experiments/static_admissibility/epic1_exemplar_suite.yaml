@@ -20,6 +20,13 @@ epic1_static_admissibility_exemplars:
     salient_deliverables: prior pathology, flip thresholds, decisionability
     input_signature: weak likelihood separation plus extreme rare-class prior skew
     matrix_constitutes: a study where the prior overwhelms plausible evidence before any classifier is run
+  - exemplar_id: future_class_surface_family
+    config: future_class_surface_family/future_class_surface_family.yaml
+    expected_status: revise_class_set
+    expected_adequacy_label: insufficient_due_to_expected_signature_collision
+    salient_deliverables: future-class observability, expected signature collision, class pruning
+    input_signature: declared future class with a complete expected signature that collides with an observed class
+    matrix_constitutes: a future class that should be pruned or redefined before corpus exploration
   - exemplar_id: redundancy_synergy_family
     config: redundancy_synergy_family/redundancy_synergy_family.yaml
     expected_status: promote_to_corpus_explorer

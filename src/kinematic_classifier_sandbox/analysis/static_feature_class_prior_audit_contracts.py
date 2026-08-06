@@ -49,8 +49,10 @@ class StaticFeatureClassPriorAuditResult:
     feature_alias_rows: tuple[dict[str, object], ...]
     feature_synergy_rows: tuple[dict[str, object], ...]
     prior_pathology_rows: tuple[dict[str, object], ...]
+    prior_selection_rows: tuple[dict[str, object], ...]
     coverage_rows: tuple[dict[str, object], ...]
     leakage_rows: tuple[dict[str, object], ...]
+    resolution_rows: tuple[dict[str, object], ...]
     decision_card_rows: tuple[dict[str, object], ...]
     static_decision: dict[str, object]
     declared_dimension: str = ""
@@ -81,7 +83,9 @@ class StaticFeatureClassPriorAuditArtifacts:
     feature_synergy_candidates_path: Path
     prior_regime_path: Path
     prior_pathology_report_path: Path
+    prior_selection_balance_path: Path
     prior_flip_thresholds_path: Path
+    resolution_plan_path: Path
     coverage_static_report_path: Path
     coverage_feasibility_path: Path
     leakage_static_report_path: Path

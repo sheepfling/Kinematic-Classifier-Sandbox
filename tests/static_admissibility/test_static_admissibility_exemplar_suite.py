@@ -7,6 +7,9 @@ from pathlib import Path
 import yaml
 
 from kinematic_classifier_sandbox.static_admissibility.audit import run_static_admissibility_audit
+from kinematic_classifier_sandbox.static_admissibility.exemplar_suite import (
+    write_static_admissibility_exemplar_suite_packet,
+)
 from kinematic_classifier_sandbox.static_admissibility.validation import (
     validate_static_admissibility_packet,
 )
@@ -32,6 +35,28 @@ class StaticAdmissibilityExemplarSuiteTests(unittest.TestCase):
                 decision_text = packet.decision_card_path.read_text(encoding="utf-8")
                 self.assertIn(str(exemplar["expected_status"]), decision_text)
                 self.assertIn(str(exemplar["expected_adequacy_label"]), decision_text)
+
+    def test_epic1_exemplar_suite_emits_programmatic_resolution_artifacts(self) -> None:
+        root = repo_root()
+        manifest_path = root / "experiments" / "static_admissibility" / "epic1_exemplar_suite.yaml"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            packet = write_static_admissibility_exemplar_suite_packet(
+                Path(temp_dir) / "epic1_suite",
+                suite_manifest_path=manifest_path,
+            )
+            self.assertEqual(validate_static_admissibility_packet(packet.packet_dir, repo_root=root), [])
+            suite_manifest = packet.source_manifest_path.read_text(encoding="utf-8")
+            self.assertIn("PRIOR_SELECTION_SKEW", suite_manifest)
+            self.assertIn("EXPECTED_SIGNATURE_COLLISION", suite_manifest)
+            self.assertTrue(
+                (
+                    packet.packet_dir
+                    / "source_artifacts"
+                    / "prior_domination_family"
+                    / "static_resolution_plan.csv"
+                ).exists()
+            )
 
 
 if __name__ == "__main__":

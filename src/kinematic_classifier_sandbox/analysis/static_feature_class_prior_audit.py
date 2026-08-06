@@ -389,6 +389,300 @@ def _normalize_priors(class_names: tuple[str, ...], priors: dict[str, float] | N
     return {class_name: value / total for class_name, value in cleaned.items()}
 
 
+def _prior_selection_balance_rows(
+    samples: tuple[StaticAuditSample, ...],
+    class_names: tuple[str, ...],
+    feature_names: tuple[str, ...],
+    class_matrices: dict[str, numpy.ndarray],
+    class_stats: dict[str, tuple[numpy.ndarray, numpy.ndarray]],
+    priors: dict[str, float],
+) -> list[dict[str, object]]:
+    selection_counts = Counter()
+    true_selection_counts = Counter()
+    posterior_sums = Counter()
+    class_counts = Counter(sample.true_class for sample in samples)
+    for sample in samples:
+        vector = numpy.asarray(
+            [float(sample.feature_values.get(feature_name, 0.0)) for feature_name in feature_names],
+            dtype=float,
+        )
+        log_scores: dict[str, float] = {}
+        for class_name in class_names:
+            mean_vector, covariance = class_stats[class_name]
+            if not class_matrices[class_name].size:
+                continue
+            log_scores[class_name] = _log_gaussian_pdf(vector, mean_vector, covariance) + _safe_log(
+                priors[class_name]
+            )
+        if not log_scores:
+            continue
+        posterior = _normalize_log_scores(log_scores)
+        selected_class = max(posterior, key=posterior.get)
+        selection_counts[selected_class] += 1
+        if selected_class == sample.true_class:
+            true_selection_counts[sample.true_class] += 1
+        for class_name in class_names:
+            posterior_sums[class_name] += posterior.get(class_name, 0.0)
+
+    total_samples = len(samples)
+    rows: list[dict[str, object]] = []
+    for class_name in class_names:
+        sample_count = class_counts[class_name]
+        selection_count = selection_counts[class_name]
+        selection_rate = selection_count / max(total_samples, 1)
+        true_selection_rate = (
+            true_selection_counts[class_name] / sample_count if sample_count else 0.0
+        )
+        prior_probability = priors[class_name]
+        selection_to_prior_ratio = selection_rate / prior_probability if prior_probability > 0.0 else 0.0
+        if sample_count == 0:
+            status = "unobserved_class"
+        elif selection_count == 0:
+            status = "never_selected_on_observed_surface"
+        elif selection_rate < 0.05 or selection_to_prior_ratio < 0.25:
+            status = "rarely_selected"
+        elif true_selection_rate < 0.50:
+            status = "underselected_for_own_samples"
+        elif selection_to_prior_ratio < 0.50:
+            status = "prior_selection_skew"
+        else:
+            status = "selected"
+        rows.append(
+            {
+                "class_name": class_name,
+                "prior_probability": prior_probability,
+                "sample_count": sample_count,
+                "proxy_selection_count": selection_count,
+                "proxy_selection_rate": selection_rate,
+                "true_class_selection_rate": true_selection_rate,
+                "mean_proxy_posterior": posterior_sums[class_name] / max(total_samples, 1),
+                "selection_gap_to_prior": selection_rate - prior_probability,
+                "selection_to_prior_ratio": selection_to_prior_ratio,
+                "proxy_model": "gaussian_feature_prior",
+                "status": status,
+            }
+        )
+    return rows
+
+
+def _resolution_plan_rows(
+    *,
+    class_pair_rows: list[dict[str, object]],
+    class_observability_rows: list[dict[str, object]],
+    feature_relevance_rows: list[dict[str, object]],
+    feature_redundancy_rows: list[dict[str, object]],
+    feature_synergy_rows: list[dict[str, object]],
+    prior_pathology_rows: list[dict[str, object]],
+    prior_selection_rows: list[dict[str, object]],
+    coverage_rows: list[dict[str, object]],
+    leakage_rows: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+
+    def add(
+        issue_code: str,
+        severity: str,
+        affected_scope: str,
+        evidence: str,
+        recommended_action: str,
+        verification: str,
+        route: str,
+    ) -> None:
+        rows.append(
+            {
+                "issue_code": issue_code,
+                "severity": severity,
+                "affected_scope": affected_scope,
+                "evidence": evidence,
+                "recommended_action": recommended_action,
+                "verification": verification,
+                "route": route,
+            }
+        )
+
+    leakage_blockers = [row for row in leakage_rows if row["status"] == "blocker"]
+    if leakage_blockers:
+        features = "|".join(str(row["feature"]) for row in leakage_blockers)
+        add(
+            "LEAKAGE_BLOCKER",
+            "blocker",
+            features,
+            f"{len(leakage_blockers)} feature provenance blocker(s)",
+            "remove or recompute label-rule, future-dependent, or metadata-leaky features",
+            "rerun the static audit and require all leakage rows to be pass or explicitly warning",
+            "reject",
+        )
+
+    expected_collisions = [
+        row
+        for row in class_pair_rows
+        if row["expected_signature_collision_status"] == "expected_exact_signature_collision"
+    ]
+    if expected_collisions:
+        pairs = "|".join(f"{row['class_a']} vs {row['class_b']}" for row in expected_collisions)
+        add(
+            "EXPECTED_SIGNATURE_COLLISION",
+            "blocker",
+            pairs,
+            f"{len(expected_collisions)} expected exact signature collision(s)",
+            "add a separating feature or revise the future class boundary before collecting more data",
+            "rerun with the revised expected signatures and inspect class_pair_diagnostics.csv",
+            "revise_class_set",
+        )
+
+    unobserved = [row for row in class_observability_rows if row["status"] == "unobserved_class"]
+    if unobserved:
+        classes = "|".join(str(row["class_name"]) for row in unobserved)
+        add(
+            "UNOBSERVED_CLASS",
+            "blocker",
+            classes,
+            f"{len(unobserved)} declared class(es) have zero labeled samples",
+            "add controlled witness samples or remove the unobserved future class from the active set",
+            "rerun after every declared class has labeled coverage or is intentionally removed",
+            "revise_class_set",
+        )
+
+    exact_collisions = [
+        row for row in class_pair_rows if row["collision_status"] == "exact_feature_collision"
+    ]
+    if exact_collisions:
+        pairs = "|".join(f"{row['class_a']} vs {row['class_b']}" for row in exact_collisions)
+        add(
+            "EXACT_FEATURE_COLLISION",
+            "blocker",
+            pairs,
+            f"{sum(int(row['exact_shared_vector_count']) for row in exact_collisions)} shared vector(s)",
+            "inspect collided samples and add a separating feature or revise the class boundary",
+            "rerun and require the exact collision count to be zero or explicitly accepted",
+            "revise_class_set",
+        )
+
+    hard_pairs = [row for row in class_pair_rows if row["status"] == "hard"]
+    if hard_pairs:
+        pairs = "|".join(f"{row['class_a']} vs {row['class_b']}" for row in hard_pairs[:12])
+        add(
+            "CLASS_OVERLAP",
+            "blocker",
+            pairs,
+            f"{len(hard_pairs)} hard class pair(s); minimum AUC {min(float(row['pairwise_auc']) for row in hard_pairs):.3f}",
+            "tighten class boundaries, merge/split classes, or add targeted separating features",
+            "rerun and verify the affected pairs move out of hard status",
+            "revise_class_set",
+        )
+
+    weak_features = [row for row in feature_relevance_rows if row["recommended_status"] == "weak"]
+    if weak_features:
+        features = "|".join(str(row["feature"]) for row in weak_features)
+        add(
+            "FEATURE_BLINDNESS",
+            "blocker" if len(weak_features) == len(feature_relevance_rows) else "warning",
+            features,
+            f"{len(weak_features)} feature(s) have weak class relevance",
+            "add or replace class-relevant, online-available features",
+            "rerun feature relevance and require at least one non-weak separating feature",
+            "revise_feature_set",
+        )
+
+    prior_domination = [row for row in prior_pathology_rows if row["pathology_flag"] == "prior_domination"]
+    selection_skew = [
+        row
+        for row in prior_selection_rows
+        if row["status"] in {"never_selected_on_observed_surface", "rarely_selected", "underselected_for_own_samples"}
+    ]
+    if prior_domination:
+        pairs = "|".join(f"{row['class_a']} vs {row['class_b']}" for row in prior_domination)
+        add(
+            "PRIOR_DOMINATION",
+            "blocker",
+            pairs,
+            f"{len(prior_domination)} pair(s) have prior odds outside the observed likelihood range",
+            "rebalance the prior regime or require stronger pairwise evidence before promotion",
+            "rerun a prior sweep and inspect prior_flip_thresholds.csv and prior_selection_balance.csv",
+            "revise_prior",
+        )
+    if selection_skew:
+        classes = "|".join(str(row["class_name"]) for row in selection_skew)
+        add(
+            "PRIOR_SELECTION_SKEW",
+            "warning" if not prior_domination else "blocker",
+            classes,
+            "; ".join(
+                f"{row['class_name']} selection rate={float(row['proxy_selection_rate']):.3f}"
+                for row in selection_skew
+            ),
+            "rebalance priors, add evidence for underselected classes, or remove classes that are not decisionable",
+            "rerun the prior sweep and require every retained class to be selected on its own witness surface",
+            "revise_prior",
+        )
+
+    redundant = [row for row in feature_redundancy_rows if row["status"] == "high_redundancy"]
+    if redundant:
+        pairs = "|".join(f"{row['feature_a']} vs {row['feature_b']}" for row in redundant[:12])
+        add(
+            "FEATURE_REDUNDANCY",
+            "warning",
+            pairs,
+            f"{len(redundant)} high-redundancy feature pair(s)",
+            "cluster, canonicalize, drop, or regularize redundant features before escalation",
+            "rerun and confirm the retained feature set has a deliberate redundancy rationale",
+            "revise_feature_set",
+        )
+
+    synergy = [row for row in feature_synergy_rows if row["status"] == "synergy_candidate"]
+    if synergy:
+        pairs = "|".join(f"{row['feature_a']} vs {row['feature_b']}" for row in synergy[:12])
+        add(
+            "FEATURE_SYNERGY_CANDIDATE",
+            "candidate",
+            pairs,
+            f"{len(synergy)} pair(s) show joint information beyond the best single feature",
+            "preserve the pair as an ablation candidate rather than treating either feature as independently sufficient",
+            "run pairwise ablation and retain only confirmed incremental utility",
+            "classifier_ablation",
+        )
+
+    thin = [row for row in coverage_rows if row["status"] == "low_count"]
+    if thin:
+        cells = "|".join(f"{row['class_name']}:{row['feature']}" for row in thin[:16])
+        add(
+            "THIN_COVERAGE",
+            "warning",
+            cells,
+            f"{len(thin)} class-feature cell(s) have low count",
+            "expand controlled witness coverage or hand the thin cells to Corpus Explorer as search objectives",
+            "rerun and inspect coverage_static_report.csv before broad corpus search",
+            "corpus_explorer_objective",
+        )
+
+    near_collisions = [
+        row for row in class_pair_rows if row["collision_status"] == "near_feature_collision"
+    ]
+    if near_collisions:
+        pairs = "|".join(f"{row['class_a']} vs {row['class_b']}" for row in near_collisions[:12])
+        add(
+            "NEAR_FEATURE_COLLISION",
+            "warning",
+            pairs,
+            f"{len(near_collisions)} class pair(s) have near-colliding signatures",
+            "stress-test the near-collision region before classifier escalation",
+            "rerun with targeted boundary samples and inspect class_observability.csv",
+            "corpus_explorer_objective",
+        )
+
+    if not rows:
+        add(
+            "CLEAN_ADMISSIBLE_SURFACE",
+            "info",
+            "study",
+            "no static blocker or warning was detected",
+            "promote the audited study to Corpus Explorer with the declared feature, class, and prior regime",
+            "carry the static packet and its claim boundary into the next product",
+            "promote_to_corpus_explorer",
+        )
+    return rows
+
+
 def analyze_static_feature_class_prior_audit(
     samples: list[StaticAuditSample] | tuple[StaticAuditSample, ...],
     *,
@@ -791,6 +1085,15 @@ def analyze_static_feature_class_prior_audit(
             }
         )
 
+    prior_selection_rows = _prior_selection_balance_rows(
+        sample_tuple,
+        class_names,
+        feature_names,
+        class_matrices,
+        class_stats,
+        normalized_priors,
+    )
+
     coverage_rows: list[dict[str, object]] = []
     class_counts = Counter(labels)
     for class_name in class_names:
@@ -860,6 +1163,15 @@ def analyze_static_feature_class_prior_audit(
         for row in class_pair_rows
         if row["expected_signature_collision_status"] == "expected_exact_signature_collision"
     ]
+    selection_skew_rows = [
+        row
+        for row in prior_selection_rows
+        if row["status"]
+        in {"never_selected_on_observed_surface", "rarely_selected", "underselected_for_own_samples"}
+    ]
+    prior_selection_blockers = [
+        row for row in selection_skew_rows if float(row["true_class_selection_rate"]) < 0.50
+    ]
 
     blockers: list[str] = []
     warnings: list[str] = []
@@ -897,11 +1209,13 @@ def analyze_static_feature_class_prior_audit(
         adequacy_label = "insufficient_due_to_feature_blindness"
         blockers.append("all proposed features have weak class relevance")
         next_work.append("add class-relevant kinematic or residual features")
-    elif prior_blockers:
+    elif prior_blockers or prior_selection_blockers:
         status = "revise_prior"
         adequacy_label = "insufficient_due_to_prior_domination"
-        blockers.append("prior odds dominate at least one class-pair likelihood range")
-        next_work.append("sweep priors or require stronger pairwise evidence")
+        blockers.append(
+            "prior odds or prior-weighted selection skew suppress at least one class-pair likelihood range"
+        )
+        next_work.append("rebalance priors or require stronger evidence for underselected classes")
 
     if redundant_pairs:
         warnings.append("high feature redundancy cluster detected")
@@ -915,8 +1229,26 @@ def analyze_static_feature_class_prior_audit(
     if near_collision_pairs:
         warnings.append("one or more class pairs have near-colliding feature signatures")
         next_work.append("stress-test near-collision regions before classifier escalation")
+    if selection_skew_rows and not prior_selection_blockers:
+        warnings.append("one or more classes are selected less often than their prior-weighted proxy share")
+        next_work.append("run a prior sweep and inspect class selection balance before promotion")
     if not warnings and not blockers:
         next_work.append("promote to corpus explorer with the audited feature/class/prior regime")
+
+    resolution_rows = _resolution_plan_rows(
+        class_pair_rows=class_pair_rows,
+        class_observability_rows=class_observability_rows,
+        feature_relevance_rows=feature_relevance_rows,
+        feature_redundancy_rows=feature_redundancy_rows,
+        feature_synergy_rows=feature_synergy_rows,
+        prior_pathology_rows=prior_pathology_rows,
+        prior_selection_rows=prior_selection_rows,
+        coverage_rows=coverage_rows,
+        leakage_rows=leakage_rows,
+    )
+    next_work = list(
+        dict.fromkeys(str(row["recommended_action"]) for row in resolution_rows if row["severity"] != "info")
+    )
 
     hardest_pair = min(class_pair_rows, key=lambda row: float(row["pairwise_auc"]))
     weakest_feature = min(feature_relevance_rows, key=lambda row: float(row["mi_with_class"]))
@@ -960,8 +1292,21 @@ def analyze_static_feature_class_prior_audit(
             "lane": "prior pathology",
             "score": abs(float(worst_prior["prior_odds_log"])),
             "hardest_pair_or_feature": f"{worst_prior['class_a']} vs {worst_prior['class_b']}",
-            "status": "warning" if prior_blockers else "pass",
-            "next_action": "sweep prior" if prior_blockers else "promote",
+            "status": "warning" if (prior_blockers or selection_skew_rows) else "pass",
+            "next_action": "sweep prior" if (prior_blockers or selection_skew_rows) else "promote",
+        },
+        {
+            "lane": "prior selection balance",
+            "score": min(
+                float(row["true_class_selection_rate"])
+                for row in prior_selection_rows
+                if int(row["sample_count"]) > 0
+            ),
+            "hardest_pair_or_feature": (
+                str(selection_skew_rows[0]["class_name"]) if selection_skew_rows else "none"
+            ),
+            "status": "warning" if selection_skew_rows else "pass",
+            "next_action": "rebalance prior" if selection_skew_rows else "promote",
         },
         {
             "lane": "coverage feasibility",
@@ -999,8 +1344,10 @@ def analyze_static_feature_class_prior_audit(
         feature_alias_rows=tuple(feature_alias_rows),
         feature_synergy_rows=tuple(feature_synergy_rows),
         prior_pathology_rows=tuple(prior_pathology_rows),
+        prior_selection_rows=tuple(prior_selection_rows),
         coverage_rows=tuple(coverage_rows),
         leakage_rows=tuple(leakage_rows),
+        resolution_rows=tuple(resolution_rows),
         decision_card_rows=decision_card_rows,
         static_decision={
             "status": status,
@@ -1008,6 +1355,7 @@ def analyze_static_feature_class_prior_audit(
             "blockers": tuple(blockers),
             "warnings": tuple(warnings),
             "next_work": tuple(dict.fromkeys(next_work)),
+            "resolution_codes": tuple(str(row["issue_code"]) for row in resolution_rows),
         },
         declared_dimension=declared_dimension,
     )

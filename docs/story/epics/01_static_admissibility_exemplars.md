@@ -9,6 +9,7 @@ Epic 1 should be presented as a reusable study-screening tool, not only a single
 | promote separable family | `experiments/static_admissibility/repeatable_lane_demo/repeatable_lane_demo.yaml` | class separability, feature relevance, decisionability | balanced priors and well-separated feature rows with online-safe provenance | `promote_to_corpus_explorer` |
 | class overlap boundary family | `experiments/static_admissibility/class_overlap_boundary_family/class_overlap_boundary_family.yaml` | confusability matrix, boundary diagnosis, decisionability | stationary and slow-velocity rows occupy nearly the same feature region | `revise_class_set` |
 | prior domination family | `experiments/static_admissibility/prior_domination_family/prior_domination_family.yaml` | prior pathology surface, flip thresholds, decisionability | weak evidence range plus extreme rare-class prior skew | `revise_prior` |
+| future class surface family | `experiments/static_admissibility/future_class_surface_family/future_class_surface_family.yaml` | future-class observability, expected signature collision, class pruning | declared future class has a complete expected signature identical to an observed class | `revise_class_set` |
 | redundancy and synergy family | `experiments/static_admissibility/redundancy_synergy_family/redundancy_synergy_family.yaml` | feature redundancy graph, feature synergy map, feature relevance | one duplicated speed column and XOR-like companion features | `promote_to_corpus_explorer` with redundancy/synergy warnings |
 | coverage thin-cells family | `experiments/static_admissibility/coverage_thin_cells_family/coverage_thin_cells_family.yaml` | coverage feasibility, decisionability | separable class rows but only two samples per class-feature cell | `promote_to_corpus_explorer` with coverage warning |
 | leakage blocker family | `experiments/static_admissibility/leakage_blocker_family/leakage_blocker_family.yaml` | leakage provenance audit, hard gate, decisionability | one feature directly overlaps the label rule | `reject` |
@@ -66,6 +67,17 @@ The exemplar suite makes that concrete:
 - admissible and ready for corpus search
 - semantically overlapping and in need of class revision
 - prior-dominated and in need of prior revision
+- declared future classes that should be pruned or redefined before corpus search
 - redundant or interaction-heavy and in need of feature follow-up
 - thinly covered and in need of more witness rows
 - blocked outright because the features leak the answer
+
+Every exemplar source run also emits two machine-readable teaching artifacts:
+
+- `prior_selection_balance.csv` shows which classes are selected rarely or
+  never under the declared prior-weighted proxy.
+- `static_resolution_plan.csv` maps each detected issue to an issue code,
+  severity, affected scope, recommended action, verification step, and route.
+
+The suite builder derives these recommendations from the audit evidence; the
+YAML manifest describes the intended case but does not hand-author the fix.

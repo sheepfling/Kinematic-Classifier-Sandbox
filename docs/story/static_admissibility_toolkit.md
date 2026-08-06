@@ -62,9 +62,11 @@ User Guide](../workflows/static_audit_bundle_user_guide.md).
 | Are features redundant or dependent? | `feature_redundancy_matrix.csv`, `02e_feature_redundancy_graph.png` | Spearman correlation, feature mutual information, and `high_redundancy` status | This is a dependence/redundancy screen, not a formal proof of statistical independence |
 | Do weak features help jointly? | `feature_synergy_candidates.csv`, `02f_feature_synergy_map.png` | Joint mutual information, best single-feature mutual information, and pair gain | Synergy remains candidate-level until ablation confirms incremental value |
 | Can the prior overwhelm the evidence? | `prior_regime.csv`, `prior_pathology_report.csv`, `prior_flip_thresholds.csv`, `02g`/`02h` figures | Prior odds, observed likelihood-ratio range, flip threshold, posterior collapse rate, and pathology flag | The current likelihood check is a Gaussian proxy and an admissibility warning, not calibration proof |
+| Are some classes almost never selected under the declared prior? | `prior_selection_balance.csv`, `static_resolution_plan.csv` | Prior-weighted Gaussian proxy selection rate, own-class selection rate, selection-to-prior ratio, and `PRIOR_SELECTION_SKEW` recommendations | This is a static proxy for selection imbalance, not a deployed classifier confusion matrix |
 | Is the sample surface sufficiently covered? | `static_coverage_feasibility.csv`, `02i_static_coverage_feasibility.png` | Per-class/per-feature sample counts, occupied bins, empty-bin rate, and low-count status | Coverage of the supplied samples is not proof of operational corpus coverage |
 | Is any evidence invalid or leaky? | `static_leakage_provenance_audit.csv`, `02j_static_leakage_provenance_audit.png` | Online availability, label-rule overlap, future dependency, metadata leakage, and blocker status | Leakage blockers cannot promote |
 | What should happen next? | `decision_card.md`, `static_audit_decision_card.md`, `02k_static_audit_to_action_router.png` | Decision status, blockers, warnings, and next-work actions | Routing is a study decision, not a classifier result |
+| How should a detected issue be resolved? | `static_resolution_plan.csv` | Programmatic issue code, severity, affected scope, recommended action, verification step, and route | Recommendations are bounded follow-up guidance; they do not automatically change the study |
 
 ## Additional static-analysis categories
 
@@ -133,6 +135,7 @@ The packet’s decision field is the fast answer for a new study:
 - [Static audit runner and packet writer](../../src/kinematic_classifier_sandbox/static_admissibility/io.py)
 - [Static audit analysis engine](../../src/kinematic_classifier_sandbox/analysis/static_feature_class_prior_audit.py)
 - [Packet validator](../../src/kinematic_classifier_sandbox/static_admissibility/validation.py)
+- [Exemplar suite builder](../../src/kinematic_classifier_sandbox/static_admissibility/exemplar_suite.py)
 
 ### Use known-good examples
 

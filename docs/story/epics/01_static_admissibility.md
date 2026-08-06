@@ -33,8 +33,8 @@ Primary packet outputs:
 - `claim_boundary.md`
 - `hero_chart_manifest.csv`
 - `lane_proof_matrix.md`
-- class-pair collision, class-feature observability, alias, prior, redundancy,
-  leakage, and coverage source tables
+- class-pair collision, class-feature observability, alias, prior-selection,
+  prior-pathology, redundancy, leakage, coverage, and resolution-plan tables
 - run-backed hero charts
 
 Primary Epic 1 packets:
@@ -62,10 +62,12 @@ Wide uncertainty or thin cells can still route to Corpus Explorer rather than fo
 - redundancy, aliasing, threshold subsumption, and decision redundancy
 - candidate synergy
 - prior pathology and prior evidence budgets
+- prior-weighted class selection imbalance
 - leakage and provenance blockers
 - observability gaps and unsupported classes
 - exact shared-vector and near-signature collision candidates
 - declared future classes with unverified expected signatures
+- programmatic resolution plans for each detected systemic issue
 - estimator reliability and static bounds
 
 ## Exemplar Suite

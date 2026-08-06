@@ -19,7 +19,9 @@ REQUIRED_FILES: tuple[str, ...] = (
     "feature_alias_candidates.csv",
     "feature_synergy_candidates.csv",
     "prior_pathology_report.csv",
+    "prior_selection_balance.csv",
     "prior_flip_thresholds.csv",
+    "static_resolution_plan.csv",
     "static_leakage_provenance_audit.csv",
     "figure_manifest.csv",
     "lane_proof_matrix.md",
@@ -53,6 +55,8 @@ def validate_static_admissibility_packet(packet_dir: str | Path, *, repo_root: s
         issues.extend(_validate_class_feature_surface(base))
         issues.extend(_validate_feature_tables(base))
         issues.extend(_validate_feature_aliases(base / "feature_alias_candidates.csv"))
+        issues.extend(_validate_prior_selection_balance(base / "prior_selection_balance.csv"))
+        issues.extend(_validate_resolution_plan(base / "static_resolution_plan.csv"))
         issues.extend(_validate_leakage(base / "static_leakage_provenance_audit.csv"))
         issues.extend(_validate_synergy(base / "feature_synergy_candidates.csv"))
         issues.extend(_validate_decision_consistency(base))
@@ -172,6 +176,65 @@ def _validate_feature_aliases(path: Path) -> list[str]:
     return issues
 
 
+def _validate_prior_selection_balance(path: Path) -> list[str]:
+    rows = _rows(path)
+    required = {
+        "class_name",
+        "prior_probability",
+        "sample_count",
+        "proxy_selection_rate",
+        "true_class_selection_rate",
+        "status",
+    }
+    issues: list[str] = []
+    for row in rows:
+        missing = required - set(row)
+        if missing:
+            issues.append(f"prior selection row missing fields: {', '.join(sorted(missing))}")
+            break
+        for field in ("proxy_selection_rate", "true_class_selection_rate"):
+            value = float(row[field])
+            if not 0.0 <= value <= 1.0:
+                issues.append(f"prior selection `{field}` must be between 0 and 1")
+    return issues
+
+
+def _validate_resolution_plan(path: Path) -> list[str]:
+    rows = _rows(path)
+    required = {
+        "issue_code",
+        "severity",
+        "affected_scope",
+        "evidence",
+        "recommended_action",
+        "verification",
+        "route",
+    }
+    allowed_severity = {"blocker", "warning", "candidate", "info"}
+    allowed_routes = {
+        "reject",
+        "revise_class_set",
+        "revise_feature_set",
+        "revise_prior",
+        "classifier_ablation",
+        "corpus_explorer_objective",
+        "promote_to_corpus_explorer",
+    }
+    issues: list[str] = []
+    if not rows:
+        return ["static resolution plan must contain at least one recommendation"]
+    for row in rows:
+        missing = required - set(row)
+        if missing:
+            issues.append(f"resolution plan row missing fields: {', '.join(sorted(missing))}")
+            break
+        if row["severity"] not in allowed_severity:
+            issues.append(f"unknown resolution severity `{row['severity']}`")
+        if row["route"] not in allowed_routes:
+            issues.append(f"unknown resolution route `{row['route']}`")
+    return issues
+
+
 def _validate_feature_tables(base: Path) -> list[str]:
     relevance = _rows(base / "feature_relevance_table.csv")
     redundancy = _rows(base / "feature_redundancy_matrix.csv")
@@ -214,6 +277,9 @@ def _validate_decision_consistency(base: Path) -> list[str]:
     observability_rows = _rows(base / "class_observability.csv")
     if any(row.get("status") == "unobserved_class" for row in observability_rows) and "promote_to_corpus_explorer" in decision_text:
         return ["unobserved declared class cannot produce promote_to_corpus_explorer"]
+    resolution_rows = _rows(base / "static_resolution_plan.csv")
+    if any(row.get("severity") == "blocker" for row in resolution_rows) and "promote_to_corpus_explorer" in decision_text:
+        return ["resolution-plan blocker cannot produce promote_to_corpus_explorer"]
     return []
 
 
