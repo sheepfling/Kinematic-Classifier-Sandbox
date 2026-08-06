@@ -41,6 +41,7 @@ class StaticAdmissibilityExemplarSuitePacket:
     hero_chart_manifest_path: Path
     lane_proof_matrix_path: Path
     automated_brief_path: Path
+    executive_brief_path: Path
     source_manifest_path: Path
     route_matrix_path: Path
     fingerprint_scores_path: Path
@@ -80,6 +81,7 @@ def write_static_admissibility_exemplar_suite_packet(
     route_rows: list[dict[str, object]] = []
     fingerprint_rows: list[dict[str, object]] = []
     card_rows: list[dict[str, object]] = []
+    executive_rows: list[dict[str, object]] = []
     validation_lines = ["# Validation Report", ""]
 
     for exemplar in exemplars:
@@ -169,6 +171,13 @@ def write_static_admissibility_exemplar_suite_packet(
                 ),
             }
         )
+        executive_rows.append(
+            _executive_evidence_row(
+                exemplar_id=exemplar_id,
+                result=result,
+                validator_status=validator_status,
+            )
+        )
         validation_lines.append(
             f"- `{exemplar_id}`: expected `{expected_route}`, observed `{actual_route}`, validator `{validator_status}`"
         )
@@ -199,6 +208,7 @@ def write_static_admissibility_exemplar_suite_packet(
     hero_chart_manifest_path = packet_dir / "hero_chart_manifest.csv"
     lane_proof_matrix_path = packet_dir / "lane_proof_matrix.md"
     automated_brief_path = packet_dir / "automated_brief.md"
+    executive_brief_path = packet_dir / "executive_brief.md"
 
     _write_text(readme_path, _render_suite_readme())
     _write_text(quickstart_path, _render_suite_quickstart())
@@ -207,6 +217,10 @@ def write_static_admissibility_exemplar_suite_packet(
     _write_text(claim_boundary_path, _render_claim_boundary())
     _write_text(lane_proof_matrix_path, _render_suite_lane_proof_matrix())
     _write_text(automated_brief_path, _render_suite_automated_brief(suite_rows, route_rows))
+    _write_text(
+        executive_brief_path,
+        _render_suite_executive_brief(suite_rows, route_rows, executive_rows),
+    )
     _write_text(
         latex_dir / "static_admissibility_exemplar_suite.tex",
         _render_suite_latex(route_rows),
@@ -225,6 +239,7 @@ def write_static_admissibility_exemplar_suite_packet(
                     str(fingerprint_scores_path.relative_to(packet_dir)),
                     str(card_manifest_path.relative_to(packet_dir)),
                 ],
+                "executive_brief": str(executive_brief_path.relative_to(packet_dir)),
                 "figure_manifest": str(hero_chart_manifest_path.relative_to(packet_dir)),
             },
             sort_keys=False,
@@ -242,6 +257,7 @@ def write_static_admissibility_exemplar_suite_packet(
         hero_chart_manifest_path=hero_chart_manifest_path,
         lane_proof_matrix_path=lane_proof_matrix_path,
         automated_brief_path=automated_brief_path,
+        executive_brief_path=executive_brief_path,
         source_manifest_path=source_manifest_path,
         route_matrix_path=route_matrix_path,
         fingerprint_scores_path=fingerprint_scores_path,
@@ -629,6 +645,99 @@ def _first_next_action(result) -> str:
     return str(next_work[0]) if next_work else "promote"
 
 
+def _executive_evidence_row(
+    *,
+    exemplar_id: str,
+    result,
+    validator_status: str,
+) -> dict[str, object]:
+    resolution_codes = tuple(
+        str(code) for code in result.static_decision.get("resolution_codes", ())
+    )
+    hard_pairs = tuple(row for row in result.class_pair_rows if row["status"] == "hard")
+    expected_collisions = tuple(
+        row
+        for row in result.class_pair_rows
+        if row["expected_signature_collision_status"] == "expected_exact_signature_collision"
+    )
+    unobserved = tuple(
+        row for row in result.class_observability_rows if row["status"] == "unobserved_class"
+    )
+    rare_selection = tuple(
+        row
+        for row in result.prior_selection_rows
+        if row["status"] in {"never_selected_on_observed_surface", "rarely_selected"}
+    )
+    redundant = tuple(
+        row for row in result.feature_redundancy_rows if row["status"] == "high_redundancy"
+    )
+    synergy = tuple(
+        row
+        for row in result.feature_synergy_rows
+        if row["status"] == "synergy_candidate"
+    )
+    thin = tuple(row for row in result.coverage_rows if row["status"] == "low_count")
+    leakage = tuple(row for row in result.leakage_rows if row["status"] == "blocker")
+
+    if "LEAKAGE_BLOCKER" in resolution_codes:
+        affected = ", ".join(str(row["feature"]) for row in leakage)
+        finding = f"{len(leakage)} leakage blocker(s): {affected}"
+        prevents = "Invalid or future-dependent evidence from reaching classifier work"
+    elif expected_collisions or unobserved:
+        collision_pairs = ", ".join(
+            f"{row['class_a']} vs {row['class_b']}" for row in expected_collisions
+        )
+        unobserved_classes = ", ".join(str(row["class_name"]) for row in unobserved)
+        details = []
+        if collision_pairs:
+            details.append(f"expected collision: {collision_pairs}")
+        if unobserved_classes:
+            details.append(f"unobserved: {unobserved_classes}")
+        finding = "; ".join(details)
+        prevents = "Future classes that cannot be justified or selected from the current surface"
+    elif hard_pairs:
+        hardest = min(hard_pairs, key=lambda row: float(row["pairwise_auc"]))
+        finding = (
+            f"hard pair {hardest['class_a']} vs {hardest['class_b']} "
+            f"(pairwise AUC {float(hardest['pairwise_auc']):.3f})"
+        )
+        prevents = "Non-decisionable class boundaries from expanding the search and label space"
+    elif "PRIOR_DOMINATION" in resolution_codes or rare_selection:
+        rare_details = ", ".join(
+            f"{row['class_name']} own-selection {float(row['true_class_selection_rate']):.3f}"
+            for row in rare_selection
+        )
+        finding = f"prior/evidence imbalance; {rare_details or 'prior domination detected'}"
+        prevents = "Downstream work on prior regimes where retained classes are effectively never selected"
+    elif redundant:
+        redundant_pairs = ", ".join(
+            f"{row['feature_a']} vs {row['feature_b']}" for row in redundant
+        )
+        finding = (
+            f"{len(redundant)} redundant feature pair(s): {redundant_pairs}; "
+            f"{len(synergy)} joint-evidence candidate pair(s)"
+        )
+        prevents = "Duplicate dimensions and unconfirmed interactions from inflating the feature search"
+    elif thin:
+        finding = f"{len(thin)} class-feature cells have low witness counts"
+        prevents = "Broad corpus search over under-witnessed regions that should become targeted objectives"
+    else:
+        finding = "No hard blocker; the declared surface is admissible for the next lane"
+        prevents = "Premature rejection while preserving explicit warnings for follow-up"
+
+    primary_diagnostic, _ = _diagnostic_labels(exemplar_id)
+    return {
+        "exemplar_id": exemplar_id,
+        "diagnostic": primary_diagnostic,
+        "finding": finding,
+        "prevents": prevents,
+        "route": str(result.static_decision["status"]),
+        "resolution_codes": "|".join(resolution_codes) or "CLEAN_ADMISSIBLE_SURFACE",
+        "recommended_resolution": _first_next_action(result),
+        "validator_status": validator_status,
+    }
+
+
 def _render_suite_readme() -> str:
     return "\n".join(
         [
@@ -651,6 +760,10 @@ def _render_suite_readme() -> str:
             "## Programmatic recommendations",
             "",
             "Each source run includes `static_resolution_plan.csv` and `prior_selection_balance.csv`; exemplar cards and manifests quote their generated issue codes and first recommended action.",
+            "",
+            "## Executive showcase",
+            "",
+            "Start with `executive_brief.md` for a lead-facing explanation of what the tool eliminates from feature, class, prior, and corpus-search space before classifier work.",
             "",
         ]
     ) + "\n"
@@ -737,6 +850,105 @@ def _render_suite_automated_brief(
             "- It does not prove downstream classifier or filter performance.",
             "- Candidate synergy remains candidate until ablation-backed.",
             "- Resolution recommendations are generated from the diagnostic tables; exemplar metadata does not prescribe the fix.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def _render_suite_executive_brief(
+    suite_rows: list[dict[str, object]],
+    route_rows: list[dict[str, object]],
+    evidence_rows: list[dict[str, object]],
+) -> str:
+    route_counts: dict[str, int] = {}
+    issue_counts: dict[str, int] = {}
+    for row in suite_rows:
+        route = str(row["actual_route"])
+        route_counts[route] = route_counts.get(route, 0) + 1
+        for code in str(row["resolution_codes"]).split("|"):
+            if code:
+                issue_counts[code] = issue_counts.get(code, 0) + 1
+
+    lines = [
+        "# Static Admissibility — Executive Showcase",
+        "",
+        "## The pitch",
+        "",
+        "Static Admissibility is a quick-turn gate for a proposed feature/class/prior study. It runs the same declared bundle through evidence checks before we spend corpus-search, classifier-training, or reinforcement-learning effort.",
+        "",
+        "The practical question is: **what can we eliminate or repair before the expensive problem begins?**",
+        "",
+        "## What it screens upfront",
+        "",
+        "| surface | automatic questions | upfront value |",
+        "| --- | --- | --- |",
+        "| Feature space | Are features leaky, unavailable, weak, duplicated, dependent, or only jointly useful? | Remove invalid or redundant dimensions and turn synergy into an explicit ablation question. |",
+        "| Class space | Are class pairs confusable, exactly colliding, unobserved, or not selectable from the current surface? | Merge, split, redefine, or prune classes before broad corpus exploration. |",
+        "| Prior space | Can declared priors overwhelm the available evidence, or cause a class to be selected almost never? | Rebalance priors, add witness evidence, or remove classes that are not decisionable under the regime. |",
+        "| Corpus-search space | Are class-feature regions thinly covered? | Send targeted coverage objectives to Corpus Explorer instead of searching blindly. |",
+        "",
+        "## The generated evidence atlas",
+        "",
+        f"This suite contains `{len(suite_rows)}` file-backed examples: `{route_counts.get('promote_to_corpus_explorer', 0)}` promotion route(s), `{route_counts.get('revise_class_set', 0)}` class-set revision route(s), `{route_counts.get('revise_prior', 0)}` prior revision route(s), and `{route_counts.get('reject', 0)}` hard rejection route(s).",
+        "",
+        "| example | static finding | what it eliminates or changes | generated route |",
+        "| --- | --- | --- | --- |",
+    ]
+    for row in evidence_rows:
+        lines.append(
+            f"| `{row['exemplar_id']}` | {row['finding']} | {row['prevents']} | `{row['route']}` |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Why the prior is part of the same audit",
+            "",
+            "The prior is not a separate spreadsheet review. The declared prior regime is applied to the same feature/class surface, so the report can show when a class looks separable in principle but is still selected rarely or never under the proposed operating assumptions.",
+            "",
+            "The prior-selection table is a Gaussian feature/prior proxy—not a deployed classifier confusion matrix. Its purpose is to expose a bad regime early and make the next action explicit.",
+            "",
+            "## A five-minute demonstration",
+            "",
+            "1. Open `figures/02a_static_exemplar_suite_routing_matrix.png` to show that one bundle format produces a route across feature, class, prior, coverage, and leakage gates.",
+            "2. Open `exemplar_cards/class_overlap_boundary_family.md` to show a hard class pair routed to `revise_class_set` before classifier blame.",
+            "3. Open `exemplar_cards/prior_domination_family.md` to show the rare class at zero own-surface selection and the generated `PRIOR_DOMINATION` / `PRIOR_SELECTION_SKEW` actions.",
+            "4. Open `exemplar_cards/future_class_surface_family.md` to show an unobserved future class with an expected exact signature collision, which is a prune/redefine decision rather than a corpus-search task.",
+            "5. Open `figures/02b_static_audit_decision_card.png` to close with the route distribution and the claim boundary.",
+            "",
+            "## Evidence and automation links",
+            "",
+            "- `source_artifacts/exemplar_suite_manifest.csv` — one row per study family, generated route, issue codes, and first recommendation.",
+            "- `source_artifacts/exemplar_route_matrix.csv` — gate-by-gate pass/warn/block surface.",
+            "- `source_artifacts/*/prior_selection_balance.csv` — class-level prior-weighted selection balance.",
+            "- `source_artifacts/*/static_resolution_plan.csv` — issue code, severity, evidence, action, verification, and route.",
+            "- `figures/02m_static_exemplar_fingerprint_strip.png` — compact comparison of the seven static signatures.",
+            "",
+            "## Current issue coverage",
+            "",
+            "| issue code | affected exemplar families |",
+            "| --- | --- |",
+        ]
+    )
+    for code, count in sorted(issue_counts.items()):
+        lines.append(f"| `{code}` | `{count}` |")
+
+    lines.extend(
+        [
+            "",
+            "## Claim boundary",
+            "",
+            "This is an early admissibility and routing tool. It can expose holes, shrink candidate space, and prescribe follow-up checks; it does not prove deployed classifier performance, causal feature importance, or operational coverage.",
+            "",
+            "## Regenerate the showcase",
+            "",
+            "```bash",
+            "PYTHONPATH=src python3 -m kinematic_classifier_sandbox run-static-audit-suite \\",
+            "  experiments/static_admissibility/epic1_exemplar_suite.yaml \\",
+            "  --output-dir artifacts/validation_packets/01_static_admissibility",
+            "```",
+            "",
+            "The report is generated from the suite's source runs; the exemplar manifest describes the cases but does not hand-author the findings or fixes.",
         ]
     )
     return "\n".join(lines) + "\n"

@@ -81,3 +81,7 @@ Every exemplar source run also emits two machine-readable teaching artifacts:
 
 The suite builder derives these recommendations from the audit evidence; the
 YAML manifest describes the intended case but does not hand-author the fix.
+
+The generated suite packet also emits `executive_brief.md`, a lead-facing
+walkthrough that connects each finding to the feature, class, prior, or
+corpus-search space it can eliminate or target before classifier escalation.

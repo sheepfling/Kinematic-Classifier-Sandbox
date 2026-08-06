@@ -339,6 +339,7 @@ def _validate_exemplar_suite_packet(base: Path, *, repo_root: Path | None = None
         "validation_report.md",
         "claim_boundary.md",
         "automated_brief.md",
+        "executive_brief.md",
         "hero_chart_manifest.csv",
         "lane_proof_matrix.md",
         "figures/02a_static_bundle_ingestion_spine.png",
@@ -442,6 +443,7 @@ def _validate_exemplar_suite_packet(base: Path, *, repo_root: Path | None = None
                 "hero_chart_manifest.csv",
                 "lane_proof_matrix.md",
                 "automated_brief.md",
+                "executive_brief.md",
             ),
         )
     )

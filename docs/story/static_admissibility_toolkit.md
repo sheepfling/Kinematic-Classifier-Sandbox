@@ -127,6 +127,8 @@ The packet’s decision field is the fast answer for a new study:
 
 ## Tool links
 
+For a lead-facing walkthrough, start with the [Product 1 Pitch Brief](static_admissibility_pitch_brief.md).
+
 ### Run the product
 
 - [CLI entrypoint and commands](../../src/kinematic_classifier_sandbox/__main__.py)
@@ -136,6 +138,7 @@ The packet’s decision field is the fast answer for a new study:
 - [Static audit analysis engine](../../src/kinematic_classifier_sandbox/analysis/static_feature_class_prior_audit.py)
 - [Packet validator](../../src/kinematic_classifier_sandbox/static_admissibility/validation.py)
 - [Exemplar suite builder](../../src/kinematic_classifier_sandbox/static_admissibility/exemplar_suite.py)
+- Generated suite report: `executive_brief.md`
 
 ### Use known-good examples
 

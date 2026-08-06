@@ -27,6 +27,12 @@ The command writes:
 - `artifacts/epic1_showcase/artifact_index.csv`
 - `artifacts/presentation_hero_charts_v4/`
 
+For the Product 1 pitch, open
+`artifacts/epic1_showcase/static_admissibility/executive_brief.md` after the
+static suite has regenerated. It is generated from the seven source runs and
+summarizes feature-space, class-space, prior-space, and corpus-search-space
+findings with their recommended routes.
+
 ## Fast Smoke Regeneration
 
 Use this when you only need to check the CLI and workbench path:
