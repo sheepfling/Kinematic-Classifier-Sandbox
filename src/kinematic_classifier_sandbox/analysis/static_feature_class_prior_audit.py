@@ -14,6 +14,7 @@ from .static_feature_class_prior_audit_artifact_io import (
     write_static_feature_class_prior_audit_artifacts,
 )
 from .static_feature_class_prior_audit_contracts import (
+    StaticAuditClassFeatureExpectation,
     StaticAuditFeatureSchemaEntry,
     StaticAuditSample,
     StaticFeatureClassPriorAuditResult,
@@ -176,6 +177,198 @@ def _feature_values(samples: tuple[StaticAuditSample, ...], feature_name: str) -
     return [float(sample.feature_values.get(feature_name, 0.0)) for sample in samples]
 
 
+def _population_std(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    center = mean(values)
+    return sqrt(sum((value - center) ** 2 for value in values) / len(values))
+
+
+def _normalized_feature_rmse(left: list[float], right: list[float]) -> float:
+    if len(left) != len(right) or not left:
+        return 1.0
+    left_mean = mean(left)
+    right_mean = mean(right)
+    left_std = max(_population_std(left), 1e-12)
+    right_std = max(_population_std(right), 1e-12)
+    left_z = [(value - left_mean) / left_std for value in left]
+    right_z = [(value - right_mean) / right_std for value in right]
+    correlation = _pearson(left, right)
+    sign = -1.0 if correlation < 0.0 else 1.0
+    return sqrt(mean((value_a - sign * value_b) ** 2 for value_a, value_b in zip(left_z, right_z)))
+
+
+def _exact_shared_vector_count(matrix_a: numpy.ndarray, matrix_b: numpy.ndarray) -> int:
+    if matrix_a.size == 0 or matrix_b.size == 0:
+        return 0
+    vectors_a = {tuple(round(float(value), 12) for value in row) for row in matrix_a}
+    vectors_b = {tuple(round(float(value), 12) for value in row) for row in matrix_b}
+    return len(vectors_a & vectors_b)
+
+
+def _signature_distance(matrix_a: numpy.ndarray, matrix_b: numpy.ndarray) -> float:
+    if matrix_a.size == 0 or matrix_b.size == 0:
+        return float("inf")
+    mean_a = matrix_a.mean(axis=0)
+    mean_b = matrix_b.mean(axis=0)
+    variances = numpy.concatenate((matrix_a, matrix_b), axis=0).var(axis=0)
+    scale = numpy.sqrt(numpy.maximum(variances, 1e-12))
+    return float(numpy.sqrt(numpy.square((mean_a - mean_b) / scale).sum()))
+
+
+def _expected_signature_for_class(
+    class_name: str,
+    matrix: numpy.ndarray,
+    feature_names: tuple[str, ...],
+    expectations_by_key: dict[tuple[str, str], StaticAuditClassFeatureExpectation],
+) -> tuple[numpy.ndarray, numpy.ndarray] | None:
+    expected = [expectations_by_key.get((class_name, feature_name)) for feature_name in feature_names]
+    if all(item is not None and item.expected_mean is not None for item in expected):
+        vector = numpy.asarray([float(item.expected_mean) for item in expected if item is not None], dtype=float)
+        scales = numpy.asarray(
+            [
+                max(float(item.expected_std), 1e-12)
+                if item is not None and item.expected_std is not None
+                else 1.0
+                for item in expected
+            ],
+            dtype=float,
+        )
+        return vector, scales
+    if matrix.size:
+        return matrix.mean(axis=0), numpy.sqrt(numpy.maximum(matrix.var(axis=0), 1e-12))
+    return None
+
+
+def _expected_signature_distance(
+    signature_a: tuple[numpy.ndarray, numpy.ndarray] | None,
+    signature_b: tuple[numpy.ndarray, numpy.ndarray] | None,
+) -> float | None:
+    if signature_a is None or signature_b is None:
+        return None
+    vector_a, scale_a = signature_a
+    vector_b, scale_b = signature_b
+    scale = numpy.sqrt(numpy.maximum((numpy.square(scale_a) + numpy.square(scale_b)) / 2.0, 1e-12))
+    return float(numpy.sqrt(numpy.square((vector_a - vector_b) / scale).sum()))
+
+
+def _class_feature_signature_rows(
+    samples: tuple[StaticAuditSample, ...],
+    class_names: tuple[str, ...],
+    feature_names: tuple[str, ...],
+    expectations: tuple[StaticAuditClassFeatureExpectation, ...] = (),
+) -> list[dict[str, object]]:
+    expectation_by_key = {
+        (expectation.class_name, expectation.feature_name): expectation
+        for expectation in expectations
+    }
+    rows: list[dict[str, object]] = []
+    for class_name in class_names:
+        class_samples = tuple(sample for sample in samples if sample.true_class == class_name)
+        for feature_name in feature_names:
+            values = _feature_values(class_samples, feature_name)
+            expectation = expectation_by_key.get((class_name, feature_name))
+            occupied_bins = len(set(_discretize(values, bins=5)))
+            spread = _population_std(values)
+            if not class_samples:
+                status = "unobserved_class"
+            elif spread <= 1e-12:
+                status = "constant_within_class"
+            elif len(class_samples) < 3:
+                status = "low_count"
+            else:
+                status = "observed"
+            rows.append(
+                {
+                    "class_name": class_name,
+                    "feature": feature_name,
+                    "sample_count": len(class_samples),
+                    "mean": mean(values) if values else 0.0,
+                    "std": spread,
+                    "min_value": min(values) if values else 0.0,
+                    "max_value": max(values) if values else 0.0,
+                    "occupied_bins": occupied_bins,
+                    "expected_mean": expectation.expected_mean if expectation else "",
+                    "expected_std": expectation.expected_std if expectation else "",
+                    "expected_signature_source": expectation.source if expectation else "",
+                    "status": status,
+                }
+            )
+    return rows
+
+
+def _feature_alias_rows(
+    samples: tuple[StaticAuditSample, ...],
+    feature_names: tuple[str, ...],
+    feature_schema: tuple[StaticAuditFeatureSchemaEntry, ...],
+) -> list[dict[str, object]]:
+    schema_by_name = {entry.name: entry for entry in feature_schema}
+    rows: list[dict[str, object]] = []
+    for feature_a, feature_b in combinations(feature_names, 2):
+        values_a = _feature_values(samples, feature_a)
+        values_b = _feature_values(samples, feature_b)
+        entry_a = schema_by_name.get(feature_a, StaticAuditFeatureSchemaEntry(name=feature_a))
+        entry_b = schema_by_name.get(feature_b, StaticAuditFeatureSchemaEntry(name=feature_b))
+        correlation = _spearman(values_a, values_b)
+        normalized_rmse = _normalized_feature_rmse(values_a, values_b)
+        similarity = max(0.0, min(1.0, 1.0 - normalized_rmse))
+        same_semantic_group = bool(entry_a.semantic_group and entry_a.semantic_group == entry_b.semantic_group)
+        same_units = bool(entry_a.units and entry_a.units == entry_b.units)
+        same_aggregation = bool(entry_a.aggregation and entry_a.aggregation == entry_b.aggregation)
+        threshold_gap = (
+            abs(float(entry_a.threshold_value) - float(entry_b.threshold_value))
+            if entry_a.threshold_value is not None and entry_b.threshold_value is not None
+            else None
+        )
+        resolution = max(
+            value
+            for value in (entry_a.measurement_resolution, entry_b.measurement_resolution, 0.0)
+            if value is not None
+        )
+        threshold_alias = (
+            same_semantic_group
+            and bool(entry_a.threshold_operator)
+            and entry_a.threshold_operator == entry_b.threshold_operator
+            and threshold_gap is not None
+            and (resolution <= 0.0 or threshold_gap <= resolution)
+        )
+        exact_duplicate = all(abs(left - right) <= 1e-12 for left, right in zip(values_a, values_b))
+        if exact_duplicate:
+            alias_type = "duplicate"
+            action = "drop_duplicate"
+        elif threshold_alias:
+            alias_type = "threshold_alias"
+            action = "collapse_thresholds"
+        elif same_semantic_group and similarity >= 0.98:
+            alias_type = "semantic_alias"
+            action = "canonicalize_semantic_alias"
+        elif abs(correlation) >= 0.995 and normalized_rmse <= 0.05:
+            alias_type = "affine_alias"
+            action = "canonicalize_affine_alias"
+        elif abs(correlation) >= 0.98 and normalized_rmse <= 0.15:
+            alias_type = "near_duplicate"
+            action = "review_near_duplicate"
+        else:
+            alias_type = "distinct"
+            action = "keep"
+        rows.append(
+            {
+                "feature_a": feature_a,
+                "feature_b": feature_b,
+                "alias_type": alias_type,
+                "spearman_corr": correlation,
+                "normalized_rmse": normalized_rmse,
+                "sample_similarity_score": similarity,
+                "same_semantic_group": same_semantic_group,
+                "same_units": same_units,
+                "same_aggregation": same_aggregation,
+                "threshold_gap": threshold_gap if threshold_gap is not None else "",
+                "recommended_action": action,
+            }
+        )
+    return rows
+
+
 def _status_from_pair(pairwise_auc: float, overlap: float, mahalanobis: float) -> str:
     if pairwise_auc >= 0.90 and overlap <= 0.30 and mahalanobis >= 1.50:
         return "easy"
@@ -202,13 +395,26 @@ def analyze_static_feature_class_prior_audit(
     priors: dict[str, float] | None = None,
     feature_schema: list[StaticAuditFeatureSchemaEntry] | tuple[StaticAuditFeatureSchemaEntry, ...] = (),
     feature_names: tuple[str, ...] | None = None,
+    declared_class_names: tuple[str, ...] | None = None,
+    class_feature_expectations: tuple[StaticAuditClassFeatureExpectation, ...] = (),
+    declared_dimension: str = "",
     study_name: str = "static_feature_class_prior_audit",
 ) -> StaticFeatureClassPriorAuditResult:
     sample_tuple = tuple(samples)
     if not sample_tuple:
         raise ValueError("static audit requires at least one class-labeled feature sample")
 
-    class_names = tuple(sorted({sample.true_class for sample in sample_tuple}))
+    observed_class_names = {sample.true_class for sample in sample_tuple}
+    declared_names = set(declared_class_names or ())
+    if any(not class_name for class_name in declared_names):
+        raise ValueError("declared class names must be non-empty")
+    undeclared_observed = observed_class_names - declared_names if declared_names else set()
+    if undeclared_observed:
+        raise ValueError(
+            "samples contain classes missing from declared_class_names: "
+            f"{tuple(sorted(undeclared_observed))}"
+        )
+    class_names = tuple(sorted(observed_class_names | declared_names))
     if len(class_names) < 2:
         raise ValueError("static audit requires at least two classes")
 
@@ -217,8 +423,23 @@ def analyze_static_feature_class_prior_audit(
         feature_names = tuple(discovered)
     if not feature_names:
         raise ValueError("static audit requires at least one feature")
+    invalid_expectations = [
+        expectation
+        for expectation in class_feature_expectations
+        if expectation.class_name not in class_names or expectation.feature_name not in feature_names
+    ]
+    if invalid_expectations:
+        first = invalid_expectations[0]
+        raise ValueError(
+            "class feature expectations must reference declared classes and features: "
+            f"{first.class_name}/{first.feature_name}"
+        )
 
     normalized_priors = _normalize_priors(class_names, priors)
+    expectations_by_key = {
+        (expectation.class_name, expectation.feature_name): expectation
+        for expectation in class_feature_expectations
+    }
     labels = [sample.true_class for sample in sample_tuple]
     class_matrices = {
         class_name: _class_matrix(sample_tuple, feature_names, class_name) for class_name in class_names
@@ -229,6 +450,48 @@ def analyze_static_feature_class_prior_audit(
     for class_a, class_b in combinations(class_names, 2):
         matrix_a = class_matrices[class_a]
         matrix_b = class_matrices[class_b]
+        has_signature_context = (
+            not matrix_a.size
+            or not matrix_b.size
+            or any(expectation.class_name in {class_a, class_b} for expectation in class_feature_expectations)
+        )
+        expected_distance = (
+            _expected_signature_distance(
+                _expected_signature_for_class(class_a, matrix_a, feature_names, expectations_by_key),
+                _expected_signature_for_class(class_b, matrix_b, feature_names, expectations_by_key),
+            )
+            if has_signature_context
+            else None
+        )
+        if expected_distance is None:
+            expected_collision_status = "unavailable"
+        elif expected_distance <= 1e-12:
+            expected_collision_status = "expected_exact_signature_collision"
+        elif expected_distance <= 0.75:
+            expected_collision_status = "expected_near_signature_collision"
+        else:
+            expected_collision_status = "expected_distinct_signature"
+        if matrix_a.size == 0 or matrix_b.size == 0:
+            class_pair_rows.append(
+                {
+                    "class_a": class_a,
+                    "class_b": class_b,
+                    "pairwise_auc": 0.5,
+                    "mahalanobis_distance": 0.0,
+                    "jensen_shannon": 0.0,
+                    "overlap_coefficient": 1.0,
+                    "fisher_ratio": 0.0,
+                    "status": "unsupported_class",
+                    "exact_shared_vector_count": 0,
+                    "exact_shared_vector_rate": 0.0,
+                    "signature_distance": 0.0,
+                    "near_feature_collision": False,
+                    "collision_status": "unsupported_class",
+                    "expected_signature_distance": expected_distance if expected_distance is not None else "",
+                    "expected_signature_collision_status": expected_collision_status,
+                }
+            )
+            continue
         mean_a = matrix_a.mean(axis=0)
         mean_b = matrix_b.mean(axis=0)
         diff = mean_a - mean_b
@@ -254,6 +517,19 @@ def analyze_static_feature_class_prior_audit(
         fisher_ratio = float(numpy.square(diff).sum() / max(variance_sum, 1e-12))
         mahalanobis = _mahalanobis_distance(matrix_a, matrix_b)
         status = _status_from_pair(auc, overlap, mahalanobis)
+        exact_shared_vectors = _exact_shared_vector_count(matrix_a, matrix_b)
+        signature_distance = _signature_distance(matrix_a, matrix_b)
+        near_feature_collision = signature_distance <= 0.75 and overlap >= 0.70
+        exact_shared_vector_rate = exact_shared_vectors / max(
+            min(matrix_a.shape[0], matrix_b.shape[0]),
+            1,
+        )
+        if exact_shared_vectors:
+            collision_status = "exact_feature_collision"
+        elif near_feature_collision:
+            collision_status = "near_feature_collision"
+        else:
+            collision_status = "distinct_feature_signature"
         class_pair_rows.append(
             {
                 "class_a": class_a,
@@ -263,6 +539,99 @@ def analyze_static_feature_class_prior_audit(
                 "jensen_shannon": js,
                 "overlap_coefficient": overlap,
                 "fisher_ratio": fisher_ratio,
+                "status": status,
+                "exact_shared_vector_count": exact_shared_vectors,
+                "exact_shared_vector_rate": exact_shared_vector_rate,
+                "signature_distance": signature_distance,
+                "near_feature_collision": near_feature_collision,
+                "collision_status": collision_status,
+                "expected_signature_distance": expected_distance if expected_distance is not None else "",
+                "expected_signature_collision_status": expected_collision_status,
+            }
+        )
+
+    class_feature_signature_rows = _class_feature_signature_rows(
+        sample_tuple,
+        class_names,
+        feature_names,
+        class_feature_expectations,
+    )
+    expectations_by_class = Counter(expectation.class_name for expectation in class_feature_expectations)
+    expectation_sources_by_class: dict[str, tuple[str, ...]] = {}
+    for class_name in class_names:
+        expectation_sources_by_class[class_name] = tuple(
+            sorted(
+                {
+                    expectation.source
+                    for expectation in class_feature_expectations
+                    if expectation.class_name == class_name and expectation.source
+                }
+            )
+        )
+    class_observability_rows: list[dict[str, object]] = []
+    for class_name in class_names:
+        sample_count = sum(1 for sample in sample_tuple if sample.true_class == class_name)
+        related_pairs = [
+            row
+            for row in class_pair_rows
+            if class_name in {str(row["class_a"]), str(row["class_b"])}
+        ]
+        exact_pairs = [
+            f"{row['class_a']} vs {row['class_b']}"
+            for row in related_pairs
+            if row["collision_status"] == "exact_feature_collision"
+        ]
+        near_pairs = [
+            f"{row['class_a']} vs {row['class_b']}"
+            for row in related_pairs
+            if row["collision_status"] == "near_feature_collision"
+        ]
+        expected_exact_pairs = [
+            f"{row['class_a']} vs {row['class_b']}"
+            for row in related_pairs
+            if row["expected_signature_collision_status"] == "expected_exact_signature_collision"
+        ]
+        expected_near_pairs = [
+            f"{row['class_a']} vs {row['class_b']}"
+            for row in related_pairs
+            if row["expected_signature_collision_status"] == "expected_near_signature_collision"
+        ]
+        expected_feature_count = expectations_by_class[class_name]
+        expected_signature_coverage = expected_feature_count / max(len(feature_names), 1)
+        if sample_count == 0:
+            status = "unobserved_class"
+            selection_status = (
+                "unverified_expected_collision"
+                if expected_exact_pairs
+                else "unverified_expected_near_collision"
+                if expected_near_pairs
+                else "cannot_validate_from_current_surface"
+            )
+        elif exact_pairs:
+            status = "exact_collision_bound"
+            selection_status = "partially_indistinguishable"
+        elif near_pairs:
+            status = "near_collision_warning"
+            selection_status = "near_collision_risk"
+        else:
+            status = "observable_on_declared_surface"
+            selection_status = "observable_on_declared_surface"
+        class_observability_rows.append(
+            {
+                "class_name": class_name,
+                "sample_count": sample_count,
+                "exact_collision_pairs": "|".join(exact_pairs),
+                "near_collision_pairs": "|".join(near_pairs),
+                "exact_collision_count": len(exact_pairs),
+                "near_collision_count": len(near_pairs),
+                "expected_exact_signature_pairs": "|".join(expected_exact_pairs),
+                "expected_near_signature_pairs": "|".join(expected_near_pairs),
+                "expected_exact_signature_count": len(expected_exact_pairs),
+                "expected_near_signature_count": len(expected_near_pairs),
+                "expected_signature_feature_count": expected_feature_count,
+                "expected_signature_coverage": expected_signature_coverage,
+                "expected_signature_source": "|".join(expectation_sources_by_class[class_name]),
+                "selection_status": selection_status,
                 "status": status,
             }
         )
@@ -285,6 +654,11 @@ def analyze_static_feature_class_prior_audit(
                 for sample in sample_tuple
                 if sample.true_class == class_b
             ]
+            if not values_a or not values_b:
+                pair_aucs.append(0.5)
+                effects.append(0.0)
+                overlaps.append(1.0)
+                continue
             pair_aucs.append(_pairwise_auc(values_a, values_b))
             effects.append(_cohens_d(values_a, values_b))
             overlaps.append(histogram_overlap(values_a, values_b))
@@ -323,6 +697,8 @@ def analyze_static_feature_class_prior_audit(
             }
         )
 
+    feature_alias_rows = _feature_alias_rows(sample_tuple, feature_names, tuple(feature_schema))
+
     feature_mi = {
         str(row["feature"]): float(row["mi_with_class"]) for row in feature_relevance_rows
     }
@@ -350,6 +726,23 @@ def analyze_static_feature_class_prior_audit(
     for class_a, class_b in combinations(class_names, 2):
         mean_a, cov_a = class_stats[class_a]
         mean_b, cov_b = class_stats[class_b]
+        if not class_matrices[class_a].size or not class_matrices[class_b].size:
+            prior_odds_log = _safe_log(normalized_priors[class_a]) - _safe_log(normalized_priors[class_b])
+            prior_pathology_rows.append(
+                {
+                    "class_a": class_a,
+                    "class_b": class_b,
+                    "prior_odds_log": prior_odds_log,
+                    "observed_log_lr_min": 0.0,
+                    "observed_log_lr_max": 0.0,
+                    "flip_threshold_log_lr": -prior_odds_log,
+                    "flip_possible": False,
+                    "evidence_margin": 0.0,
+                    "posterior_collapse_rate": 0.0,
+                    "pathology_flag": "unsupported_class",
+                }
+            )
+            continue
         vectors = [
             numpy.asarray([float(sample.feature_values.get(feature, 0.0)) for feature in feature_names])
             for sample in sample_tuple
@@ -414,7 +807,13 @@ def analyze_static_feature_class_prior_audit(
                     "empty_bin_rate": 1.0 - occupied_bins / 5.0,
                     "min_value": min(values) if values else 0.0,
                     "max_value": max(values) if values else 0.0,
-                    "status": "low_count" if class_counts[class_name] < 3 else "pass",
+                    "status": (
+                        "unobserved_class"
+                        if class_counts[class_name] == 0
+                        else "low_count"
+                        if class_counts[class_name] < 3
+                        else "pass"
+                    ),
                 }
             )
 
@@ -449,6 +848,18 @@ def analyze_static_feature_class_prior_audit(
     prior_blockers = [row for row in prior_pathology_rows if row["pathology_flag"] == "prior_domination"]
     leakage_blockers = [row for row in leakage_rows if row["status"] == "blocker"]
     low_count_rows = [row for row in coverage_rows if row["status"] == "low_count"]
+    unobserved_classes = [row for row in class_observability_rows if row["status"] == "unobserved_class"]
+    exact_collision_pairs = [
+        row for row in class_pair_rows if row["collision_status"] == "exact_feature_collision"
+    ]
+    near_collision_pairs = [
+        row for row in class_pair_rows if row["collision_status"] == "near_feature_collision"
+    ]
+    expected_signature_collision_pairs = [
+        row
+        for row in class_pair_rows
+        if row["expected_signature_collision_status"] == "expected_exact_signature_collision"
+    ]
 
     blockers: list[str] = []
     warnings: list[str] = []
@@ -461,6 +872,21 @@ def analyze_static_feature_class_prior_audit(
         adequacy_label = "insufficient_due_to_leakage_risk"
         blockers.append("leakage blocker in static feature provenance")
         next_work.append("remove label-rule, future-dependent, or generator-metadata features")
+    elif expected_signature_collision_pairs:
+        status = "revise_class_set"
+        adequacy_label = "insufficient_due_to_expected_signature_collision"
+        blockers.append("one or more declared class signatures are expected to collide on the feature surface")
+        next_work.append("add a separating feature or revise the future class boundary before collecting more data")
+    elif unobserved_classes:
+        status = "revise_class_set"
+        adequacy_label = "insufficient_due_to_unobserved_class"
+        blockers.append("one or more declared classes have no labeled samples on the current feature surface")
+        next_work.append("add controlled witness samples or remove the unobserved future class")
+    elif exact_collision_pairs:
+        status = "revise_class_set"
+        adequacy_label = "insufficient_due_to_exact_feature_collision"
+        blockers.append("one or more class pairs share exact feature vectors")
+        next_work.append("inspect collided samples and add a feature or revise the class boundary")
     elif hard_pairs:
         status = "revise_class_set"
         adequacy_label = "insufficient_due_to_class_overlap"
@@ -486,6 +912,9 @@ def analyze_static_feature_class_prior_audit(
     if low_count_rows:
         warnings.append("one or more class-feature cells have low sample count")
         next_work.append("expand controlled witness coverage before broad corpus search")
+    if near_collision_pairs:
+        warnings.append("one or more class pairs have near-colliding feature signatures")
+        next_work.append("stress-test near-collision regions before classifier escalation")
     if not warnings and not blockers:
         next_work.append("promote to corpus explorer with the audited feature/class/prior regime")
 
@@ -497,8 +926,14 @@ def analyze_static_feature_class_prior_audit(
             "lane": "class separability",
             "score": min(float(row["pairwise_auc"]) for row in class_pair_rows),
             "hardest_pair_or_feature": f"{hardest_pair['class_a']} vs {hardest_pair['class_b']}",
-            "status": "warning" if hard_pairs else "pass",
-            "next_action": "revise boundary" if hard_pairs else "promote",
+            "status": "warning"
+            if (hard_pairs or unobserved_classes or exact_collision_pairs or expected_signature_collision_pairs)
+            else "pass",
+            "next_action": (
+                "revise boundary"
+                if (hard_pairs or unobserved_classes or exact_collision_pairs or expected_signature_collision_pairs)
+                else "promote"
+            ),
         },
         {
             "lane": "feature relevance",
@@ -530,10 +965,10 @@ def analyze_static_feature_class_prior_audit(
         },
         {
             "lane": "coverage feasibility",
-            "score": min(class_counts.values()),
+            "score": min(class_counts.get(class_name, 0) for class_name in class_names),
             "hardest_pair_or_feature": "minimum class count",
-            "status": "warning" if low_count_rows else "pass",
-            "next_action": "expand witness cells" if low_count_rows else "promote",
+            "status": "warning" if (low_count_rows or unobserved_classes) else "pass",
+            "next_action": "expand witness cells" if (low_count_rows or unobserved_classes) else "promote",
         },
         {
             "lane": "leakage risk",
@@ -557,8 +992,11 @@ def analyze_static_feature_class_prior_audit(
         class_names=class_names,
         priors=normalized_priors,
         class_pair_rows=tuple(class_pair_rows),
+        class_feature_signature_rows=tuple(class_feature_signature_rows),
+        class_observability_rows=tuple(class_observability_rows),
         feature_relevance_rows=tuple(feature_relevance_rows),
         feature_redundancy_rows=tuple(feature_redundancy_rows),
+        feature_alias_rows=tuple(feature_alias_rows),
         feature_synergy_rows=tuple(feature_synergy_rows),
         prior_pathology_rows=tuple(prior_pathology_rows),
         coverage_rows=tuple(coverage_rows),
@@ -571,6 +1009,7 @@ def analyze_static_feature_class_prior_audit(
             "warnings": tuple(warnings),
             "next_work": tuple(dict.fromkeys(next_work)),
         },
+        declared_dimension=declared_dimension,
     )
 
 

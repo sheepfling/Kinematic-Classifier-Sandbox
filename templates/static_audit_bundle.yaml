@@ -4,9 +4,14 @@ static_admissibility:
     class_a: 0.5
     class_b: 0.5
   input_bundle:
+    # Descriptive only: the audit accepts arbitrary feature-vector dimension.
+    dimension: generic_feature_vector
     sample_table: samples.csv
     feature_schema: feature_schema.csv
     class_schema: class_schema.csv
+    # Optional future-set support: set true to allow declared classes with no samples.
+    # allow_unobserved_classes: true
+    # class_feature_signature: class_feature_signature.csv
     feature_names:
       - feature_a
       - feature_b

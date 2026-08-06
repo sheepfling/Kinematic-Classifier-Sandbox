@@ -85,8 +85,12 @@ def write_static_feature_class_prior_audit_artifacts(
     leakage_provenance_png_path = run_dir / "02j_static_leakage_provenance_audit.png"
     action_router_png_path = run_dir / "02k_static_audit_to_action_router.png"
     class_confusability_matrix_path = run_dir / "class_confusability_matrix.csv"
+    class_pair_diagnostics_path = run_dir / "class_pair_diagnostics.csv"
+    class_feature_signature_path = run_dir / "class_feature_signature.csv"
+    class_observability_path = run_dir / "class_observability.csv"
     feature_relevance_table_path = run_dir / "feature_relevance_table.csv"
     feature_redundancy_matrix_path = run_dir / "feature_redundancy_matrix.csv"
+    feature_alias_candidates_path = run_dir / "feature_alias_candidates.csv"
     feature_synergy_candidates_path = run_dir / "feature_synergy_candidates.csv"
     prior_regime_path = run_dir / "prior_regime.csv"
     prior_pathology_report_path = run_dir / "prior_pathology_report.csv"
@@ -115,6 +119,66 @@ def write_static_feature_class_prior_audit_artifacts(
         ["class", *result.class_names],
     )
     write_csv(
+        class_pair_diagnostics_path,
+        [dict(row) for row in result.class_pair_rows],
+        [
+            "class_a",
+            "class_b",
+            "pairwise_auc",
+            "mahalanobis_distance",
+            "jensen_shannon",
+            "overlap_coefficient",
+            "fisher_ratio",
+            "status",
+            "exact_shared_vector_count",
+            "exact_shared_vector_rate",
+            "signature_distance",
+            "near_feature_collision",
+            "collision_status",
+            "expected_signature_distance",
+            "expected_signature_collision_status",
+        ],
+    )
+    write_csv(
+        class_feature_signature_path,
+        [dict(row) for row in result.class_feature_signature_rows],
+        [
+            "class_name",
+            "feature",
+            "sample_count",
+            "mean",
+            "std",
+            "min_value",
+            "max_value",
+            "occupied_bins",
+            "expected_mean",
+            "expected_std",
+            "expected_signature_source",
+            "status",
+        ],
+    )
+    write_csv(
+        class_observability_path,
+        [dict(row) for row in result.class_observability_rows],
+        [
+            "class_name",
+            "sample_count",
+            "exact_collision_pairs",
+            "near_collision_pairs",
+            "exact_collision_count",
+            "near_collision_count",
+            "expected_exact_signature_pairs",
+            "expected_near_signature_pairs",
+            "expected_exact_signature_count",
+            "expected_near_signature_count",
+            "expected_signature_feature_count",
+            "expected_signature_coverage",
+            "expected_signature_source",
+            "selection_status",
+            "status",
+        ],
+    )
+    write_csv(
         feature_relevance_table_path,
         [dict(row) for row in result.feature_relevance_rows],
         [
@@ -131,6 +195,23 @@ def write_static_feature_class_prior_audit_artifacts(
         feature_redundancy_matrix_path,
         [dict(row) for row in result.feature_redundancy_rows],
         ["feature_a", "feature_b", "spearman_corr", "mutual_information", "status"],
+    )
+    write_csv(
+        feature_alias_candidates_path,
+        [dict(row) for row in result.feature_alias_rows],
+        [
+            "feature_a",
+            "feature_b",
+            "alias_type",
+            "spearman_corr",
+            "normalized_rmse",
+            "sample_similarity_score",
+            "same_semantic_group",
+            "same_units",
+            "same_aggregation",
+            "threshold_gap",
+            "recommended_action",
+        ],
     )
     write_csv(
         feature_synergy_candidates_path,
@@ -263,8 +344,12 @@ def write_static_feature_class_prior_audit_artifacts(
         leakage_provenance_png_path=leakage_provenance_png_path,
         action_router_png_path=action_router_png_path,
         class_confusability_matrix_path=class_confusability_matrix_path,
+        class_pair_diagnostics_path=class_pair_diagnostics_path,
+        class_feature_signature_path=class_feature_signature_path,
+        class_observability_path=class_observability_path,
         feature_relevance_table_path=feature_relevance_table_path,
         feature_redundancy_matrix_path=feature_redundancy_matrix_path,
+        feature_alias_candidates_path=feature_alias_candidates_path,
         feature_synergy_candidates_path=feature_synergy_candidates_path,
         prior_regime_path=prior_regime_path,
         prior_pathology_report_path=prior_pathology_report_path,

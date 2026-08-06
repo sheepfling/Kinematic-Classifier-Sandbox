@@ -115,6 +115,8 @@ def _init_static_audit_bundle(output_dir: str | Path) -> Path:
         "- `samples.csv`: labeled feature rows",
         "- `feature_schema.csv`: feature provenance and online/leakage flags",
         "- `class_schema.csv`: declared class surface",
+        "- optional `class_feature_signature.csv`: expected signatures for future classes",
+        "  (copy `templates/static_audit_class_feature_signature.csv` and enable it in the YAML)",
         "",
         "Run it with:",
         "",

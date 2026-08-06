@@ -12,8 +12,17 @@ Epic 1 accepts a portable file-backed bundle:
 - `samples.csv`
 - `feature_schema.csv`
 - `class_schema.csv`
+- optional `class_feature_signature.csv` for planned classes without current samples
 
-For notional 3D-inspired studies, the bundle may declare `study_dimension` metadata with `source_type: normalized_feature_bundle` and `static_audit_only: true`. That is a claim boundary, not a workaround.
+The bundle may declare any feature-vector dimension through descriptive
+`dimension` metadata. Set `allow_unobserved_classes: true` when the declared
+future class set intentionally includes classes not present in the current
+sample table. Those classes remain unverified until labeled witness samples
+arrive.
+
+For notional 3D-inspired studies, the bundle may declare
+`study_dimension` metadata with `source_type: normalized_feature_bundle` and
+`static_audit_only: true`. That is a claim boundary, not a workaround.
 
 ## Outputs
 
@@ -24,7 +33,8 @@ Primary packet outputs:
 - `claim_boundary.md`
 - `hero_chart_manifest.csv`
 - `lane_proof_matrix.md`
-- class-pair, prior, redundancy, leakage, and coverage source tables
+- class-pair collision, class-feature observability, alias, prior, redundancy,
+  leakage, and coverage source tables
 - run-backed hero charts
 
 Primary Epic 1 packets:
@@ -54,6 +64,8 @@ Wide uncertainty or thin cells can still route to Corpus Explorer rather than fo
 - prior pathology and prior evidence budgets
 - leakage and provenance blockers
 - observability gaps and unsupported classes
+- exact shared-vector and near-signature collision candidates
+- declared future classes with unverified expected signatures
 - estimator reliability and static bounds
 
 ## Exemplar Suite

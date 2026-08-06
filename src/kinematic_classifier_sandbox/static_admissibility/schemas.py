@@ -12,7 +12,10 @@ class StaticAdmissibilityInputBundle:
     sample_table_path: Path
     feature_schema_path: Path | None = None
     class_schema_path: Path | None = None
+    class_feature_signature_path: Path | None = None
     feature_names: tuple[str, ...] = ()
+    declared_dimension: str = ""
+    allow_unobserved_classes: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +49,21 @@ def _resolve_config_relative_path(config_path: Path, raw_value: object) -> Path:
     return (config_path.parent / raw_path).resolve()
 
 
+def _parse_config_bool(value: object, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text == "":
+        return default
+    if text in {"1", "true", "yes", "y"}:
+        return True
+    if text in {"0", "false", "no", "n"}:
+        return False
+    raise ValueError(f"invalid boolean value `{value}` for allow_unobserved_classes")
+
+
 def load_static_admissibility_config(path: str | Path | None) -> StaticAdmissibilityConfig:
     if path is None:
         return StaticAdmissibilityConfig()
@@ -69,7 +87,17 @@ def load_static_admissibility_config(path: str | Path | None) -> StaticAdmissibi
             class_schema_path=None
             if raw_input_bundle.get("class_schema") in {None, ""}
             else _resolve_config_relative_path(config_path, raw_input_bundle.get("class_schema")),
+            class_feature_signature_path=None
+            if raw_input_bundle.get("class_feature_signature") in {None, ""}
+            else _resolve_config_relative_path(
+                config_path,
+                raw_input_bundle.get("class_feature_signature"),
+            ),
             feature_names=tuple(str(name) for name in raw_input_bundle.get("feature_names", ())),
+            declared_dimension=str(raw_input_bundle.get("dimension", "")),
+            allow_unobserved_classes=_parse_config_bool(
+                raw_input_bundle.get("allow_unobserved_classes"),
+            ),
         )
     return StaticAdmissibilityConfig(
         study_id=str(static.get("study_id", "common_1d_static_admissibility_mvp")),

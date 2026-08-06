@@ -17,7 +17,7 @@ from kinematic_classifier_sandbox.utils.io import write_csv
 from kinematic_classifier_sandbox.utils.plotting import plt
 
 from .schemas import StaticAdmissibilityConfig, StaticAdmissibilityPacket
-from .study_bundle import load_static_audit_bundle
+from .study_bundle import load_class_feature_expectations, load_static_audit_bundle
 
 MAIN_FIGURES: tuple[str, ...] = (
     "02b_static_audit_decision_card.png",
@@ -37,8 +37,12 @@ APPENDIX_FIGURES: tuple[str, ...] = (
 
 TABLE_NAMES: tuple[str, ...] = (
     "class_confusability_matrix.csv",
+    "class_pair_diagnostics.csv",
+    "class_feature_signature.csv",
+    "class_observability.csv",
     "feature_relevance_table.csv",
     "feature_redundancy_matrix.csv",
+    "feature_alias_candidates.csv",
     "feature_synergy_candidates.csv",
     "prior_pathology_report.csv",
     "prior_flip_thresholds.csv",
@@ -53,17 +57,26 @@ def build_static_admissibility_result(
     config: StaticAdmissibilityConfig,
 ) -> StaticFeatureClassPriorAuditResult:
     if config.input_bundle is not None:
-        samples, feature_schema, _class_names, feature_names = load_static_audit_bundle(
+        samples, feature_schema, class_names, feature_names = load_static_audit_bundle(
             sample_table_path=config.input_bundle.sample_table_path,
             feature_schema_path=config.input_bundle.feature_schema_path,
             class_schema_path=config.input_bundle.class_schema_path,
             feature_names=config.input_bundle.feature_names,
+            allow_unobserved_classes=config.input_bundle.allow_unobserved_classes,
+        )
+        class_feature_expectations = load_class_feature_expectations(
+            config.input_bundle.class_feature_signature_path,
+            class_names=class_names,
+            feature_names=feature_names,
         )
         return analyze_static_feature_class_prior_audit(
             samples,
             priors=config.priors,
             feature_schema=feature_schema,
             feature_names=feature_names,
+            declared_class_names=class_names,
+            class_feature_expectations=class_feature_expectations,
+            declared_dimension=config.input_bundle.declared_dimension,
             study_name=config.study_id,
         )
     return analyze_default_static_feature_class_prior_audit(
@@ -158,6 +171,7 @@ def _render_packet_decision_card(
         f"- study_id: `{config.study_id}`",
         f"- seed: `{config.seed}`",
         f"- trajectories_per_class: `{config.trajectories_per_class}`",
+        f"- declared_dimension: `{result.declared_dimension or 'generic_feature_vector'}`",
         f"- static_audit_decision: `{decision['status']}`",
         f"- adequacy_label: `{decision['adequacy_label']}`",
         f"- class_count: `{len(result.class_names)}`",
@@ -189,7 +203,9 @@ def _render_packet_readme(
             f"- `samples.csv`: `{config.input_bundle.sample_table_path}`",
             f"- `feature_schema.csv`: `{config.input_bundle.feature_schema_path}`",
             f"- `class_schema.csv`: `{config.input_bundle.class_schema_path}`",
-            "- copied packet inputs: `study_bundle_source.yaml`, `study_bundle_samples.csv`, `study_bundle_feature_schema.csv`, `study_bundle_class_schema.csv`",
+            f"- `class_feature_signature.csv`: `{config.input_bundle.class_feature_signature_path}`",
+            f"- allow unobserved classes: `{config.input_bundle.allow_unobserved_classes}`",
+            "- copied packet inputs: `study_bundle_source.yaml`, `study_bundle_samples.csv`, `study_bundle_feature_schema.csv`, `study_bundle_class_schema.csv`, `study_bundle_class_feature_signature.csv`",
             "",
         ]
     regen_config = (
@@ -204,6 +220,7 @@ def _render_packet_readme(
             "This packet answers whether a feature/class/prior setup is meaningful enough to send to Corpus Explorer or classifier/filter evaluation.",
             "",
             f"- study_id: `{config.study_id}`",
+            f"- declared_dimension: `{result.declared_dimension or 'generic_feature_vector'}`",
             f"- decision: `{result.static_decision['status']}`",
             "- claim boundary: static admissibility is an early gate, not a final classifier benchmark.",
             "",
@@ -297,4 +314,9 @@ def _copy_input_bundle_sources(packet_dir: Path, config: StaticAdmissibilityConf
         shutil.copyfile(
             config.input_bundle.class_schema_path,
             packet_dir / "study_bundle_class_schema.csv",
+        )
+    if config.input_bundle.class_feature_signature_path is not None:
+        shutil.copyfile(
+            config.input_bundle.class_feature_signature_path,
+            packet_dir / "study_bundle_class_feature_signature.csv",
         )

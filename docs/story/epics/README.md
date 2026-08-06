@@ -1,5 +1,9 @@
 # Three-Epic Story
 
+The user-facing version of this structure is documented in
+[Three Products](../three_products.md). This page keeps the epic-level
+implementation framing.
+
 The Anduril/C2 presentation profile is organized as three chapters of one methodology system:
 
 1. Static Admissibility: can the study be decided?

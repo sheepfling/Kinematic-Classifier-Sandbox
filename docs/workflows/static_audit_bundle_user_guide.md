@@ -2,6 +2,8 @@
 
 The static admissibility lane now supports a file-backed study bundle so new feature/class/prior sets can be ingested without writing Python.
 
+For the complete Product 1 command and diagnostic map, see the [Static Admissibility Toolkit](../story/static_admissibility_toolkit.md).
+
 ## Fast Start
 
 Create a starter bundle from the built-in templates:
@@ -19,6 +21,7 @@ Place these files together in one directory:
 - `class_schema.csv`
 - `feature_schema.csv`
 - `samples.csv`
+- optional `class_feature_signature.csv` for declared future classes
 
 The YAML file points at the CSV files and declares priors. Relative paths are resolved from the YAML location.
 
@@ -30,6 +33,7 @@ Start from:
 - `templates/static_audit_class_schema.csv`
 - `templates/static_audit_feature_schema.csv`
 - `templates/static_audit_samples.csv`
+- `templates/static_audit_class_feature_signature.csv`
 
 ## Example
 
@@ -65,6 +69,18 @@ PYTHONPATH=src python3 -m kinematic_classifier_sandbox validate-packet \
 - `sample_id` is optional but recommended.
 - `label_rule_overlap` and `online_available` accept `true/false`, `yes/no`, or `1/0`.
 - `provenance_tags` may be comma-separated or pipe-separated.
+- `dimension` in the YAML is descriptive metadata; the audit accepts arbitrary
+  feature-vector dimension rather than assuming 1D, 2D, or 3D.
+- Optional feature metadata includes `semantic_group`, `units`, `aggregation`,
+  `dimension`, `measurement_resolution`, `threshold_operator`, and
+  `threshold_value`. These enable generic alias and threshold checks.
+- To keep a future class in the declared set before samples exist, set
+  `input_bundle.allow_unobserved_classes: true`. You may then point
+  `input_bundle.class_feature_signature` at a CSV with `class_name`,
+  `feature_name`, optional `expected_mean`/`expected_std`, and `source`.
+- An unobserved class is reported as `unobserved_class` and blocks promotion;
+  an expected signature is recorded as unverified evidence, not treated as a
+  substitute for labeled samples.
 
 ## Path Resolution
 
@@ -89,3 +105,11 @@ When the lane runs from a study bundle, the output packet copies the source inpu
 - `study_bundle_samples.csv`
 - `study_bundle_feature_schema.csv`
 - `study_bundle_class_schema.csv`
+- `study_bundle_class_feature_signature.csv` when supplied
+
+The generated packet also includes generic collision and alias tables:
+
+- `class_pair_diagnostics.csv`
+- `class_feature_signature.csv`
+- `class_observability.csv`
+- `feature_alias_candidates.csv`

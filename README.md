@@ -4,7 +4,7 @@ This repository is a config-driven kinematic-classification workbench. It first 
 
 The current 1D problems are witness problems, not final deployment corpora. They prove methodology layers before the framework is lifted to 3D PVA architectures.
 
-For the longer narrative, start with [docs/story/00_repo_story.md](docs/story/00_repo_story.md).
+For the user-facing product map, start with [Three Products](docs/story/three_products.md). For the longer narrative, start with [docs/story/00_repo_story.md](docs/story/00_repo_story.md).
 
 Start here:
 

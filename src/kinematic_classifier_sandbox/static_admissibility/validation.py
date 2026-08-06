@@ -11,8 +11,12 @@ REQUIRED_FILES: tuple[str, ...] = (
     "static_audit_report.md",
     "static_audit_decision_card.md",
     "class_confusability_matrix.csv",
+    "class_pair_diagnostics.csv",
+    "class_feature_signature.csv",
+    "class_observability.csv",
     "feature_relevance_table.csv",
     "feature_redundancy_matrix.csv",
+    "feature_alias_candidates.csv",
     "feature_synergy_candidates.csv",
     "prior_pathology_report.csv",
     "prior_flip_thresholds.csv",
@@ -45,7 +49,10 @@ def validate_static_admissibility_packet(packet_dir: str | Path, *, repo_root: s
     if not issues:
         issues.extend(_validate_prior_regime(base / "prior_regime.csv"))
         issues.extend(_validate_class_matrix(base / "class_confusability_matrix.csv"))
+        issues.extend(_validate_class_pair_diagnostics(base / "class_pair_diagnostics.csv"))
+        issues.extend(_validate_class_feature_surface(base))
         issues.extend(_validate_feature_tables(base))
+        issues.extend(_validate_feature_aliases(base / "feature_alias_candidates.csv"))
         issues.extend(_validate_leakage(base / "static_leakage_provenance_audit.csv"))
         issues.extend(_validate_synergy(base / "feature_synergy_candidates.csv"))
         issues.extend(_validate_decision_consistency(base))
@@ -98,6 +105,73 @@ def _validate_class_matrix(path: Path) -> list[str]:
     return issues
 
 
+def _validate_class_pair_diagnostics(path: Path) -> list[str]:
+    rows = _rows(path)
+    required = {
+        "class_a",
+        "class_b",
+        "status",
+        "exact_shared_vector_count",
+        "exact_shared_vector_rate",
+        "signature_distance",
+        "collision_status",
+        "expected_signature_distance",
+        "expected_signature_collision_status",
+    }
+    issues: list[str] = []
+    for row in rows:
+        missing = required - set(row)
+        if missing:
+            issues.append(f"class pair diagnostic row missing fields: {', '.join(sorted(missing))}")
+            break
+        if row["class_a"] == row["class_b"]:
+            issues.append("class pair diagnostics must not contain self-pairs")
+        if row["collision_status"] == "exact_feature_collision" and int(float(row["exact_shared_vector_count"])) <= 0:
+            issues.append("exact feature collision rows must report at least one shared vector")
+    return issues
+
+
+def _validate_class_feature_surface(base: Path) -> list[str]:
+    signature_rows = _rows(base / "class_feature_signature.csv")
+    observability_rows = _rows(base / "class_observability.csv")
+    issues: list[str] = []
+    for row in signature_rows:
+        for column in ("class_name", "feature", "sample_count", "status"):
+            if row.get(column, "") == "":
+                issues.append(f"class feature signature row missing `{column}`")
+                break
+    allowed_statuses = {
+        "observable_on_declared_surface",
+        "near_collision_warning",
+        "exact_collision_bound",
+        "unobserved_class",
+    }
+    for row in observability_rows:
+        if row.get("class_name", "") == "":
+            issues.append("class observability row missing class_name")
+        if row.get("status") not in allowed_statuses:
+            issues.append(f"unknown class observability status `{row.get('status', '')}`")
+        if row.get("selection_status", "") == "" or row.get("expected_signature_coverage", "") == "":
+            issues.append(f"class observability row missing future-signature fields for `{row.get('class_name', '<unknown>')}`")
+    return issues
+
+
+def _validate_feature_aliases(path: Path) -> list[str]:
+    rows = _rows(path)
+    issues: list[str] = []
+    required = {"feature_a", "feature_b", "alias_type", "recommended_action"}
+    for row in rows:
+        missing = required - set(row)
+        if missing:
+            issues.append(f"feature alias row missing fields: {', '.join(sorted(missing))}")
+            break
+        if row["feature_a"] == row["feature_b"]:
+            issues.append("feature alias rows must not contain self-pairs")
+        if row["alias_type"] == "duplicate" and row["recommended_action"] != "drop_duplicate":
+            issues.append("duplicate feature aliases must recommend drop_duplicate")
+    return issues
+
+
 def _validate_feature_tables(base: Path) -> list[str]:
     relevance = _rows(base / "feature_relevance_table.csv")
     redundancy = _rows(base / "feature_redundancy_matrix.csv")
@@ -137,6 +211,9 @@ def _validate_decision_consistency(base: Path) -> list[str]:
     has_blocker = any(row["status"] == "blocker" for row in leakage_rows)
     if has_blocker and "promote_to_corpus_explorer" in decision_text:
         return ["static blocker cannot produce promote_to_corpus_explorer"]
+    observability_rows = _rows(base / "class_observability.csv")
+    if any(row.get("status") == "unobserved_class" for row in observability_rows) and "promote_to_corpus_explorer" in decision_text:
+        return ["unobserved declared class cannot produce promote_to_corpus_explorer"]
     return []
 
 

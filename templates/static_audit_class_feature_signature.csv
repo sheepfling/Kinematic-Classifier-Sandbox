@@ -1,0 +1,5 @@
+class_name,feature_name,expected_mean,expected_std,source
+class_a,feature_a,0.0,0.1,prior_study_or_model
+class_a,feature_b,0.0,0.1,prior_study_or_model
+class_b,feature_a,1.0,0.1,prior_study_or_model
+class_b,feature_b,1.0,0.1,prior_study_or_model
