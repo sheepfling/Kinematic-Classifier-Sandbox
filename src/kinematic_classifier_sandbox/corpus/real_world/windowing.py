@@ -145,8 +145,12 @@ def window_track(
         segment_end_exclusive_time = (
             float(timestamps[segment_end - 1]) + policy.nominal_sample_interval_s
         )
-        candidate_index = 0
+        available_duration_s = segment_end_exclusive_time - segment_start_time
+        if available_duration_s + 1e-9 < policy.window_duration_s:
+            rejected_short_segment_count += 1
+            continue
 
+        candidate_index = 0
         while True:
             requested_start_time = segment_start_time + candidate_index * policy.stride_s
             requested_end_time = requested_start_time + policy.window_duration_s

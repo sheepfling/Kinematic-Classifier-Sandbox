@@ -47,6 +47,23 @@ def test_windowing_breaks_at_real_time_gaps_and_is_stable() -> None:
 ####
 
 
+def test_windowing_reports_segments_shorter_than_requested_duration() -> None:
+    track = make_real_world_track(
+        split_group_id="car-short",
+        normalized_class="passenger_car",
+        duration_s=5.0,
+    )
+    result = window_track(
+        track,
+        policy=WindowingPolicy(window_duration_s=10.0, stride_s=5.0),
+    )
+
+    assert result.windows == ()
+    assert result.summary.candidate_window_count == 0
+    assert result.summary.rejected_short_segment_count == 1
+####
+
+
 def test_grouped_split_is_deterministic_balanced_and_window_safe() -> None:
     tracks = tuple(
         make_real_world_track(
