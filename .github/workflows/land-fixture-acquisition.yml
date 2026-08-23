@@ -1,0 +1,131 @@
+name: LAND real-artifact acquisition
+
+on:
+  push:
+    branches:
+      - data/land-fixture-acquisition
+
+permissions:
+  contents: read
+
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Acquire Amazon Precision GNSS source artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifact/precision_gnss
+          curl --location --fail --retry 3 \
+            --output artifact/precision_gnss/trajectories.zip \
+            https://github.com/amazon-science/precision-gnss/raw/refs/heads/main/trajectories.zip
+          sha256sum artifact/precision_gnss/trajectories.zip \
+            > artifact/precision_gnss/trajectories.zip.sha256
+          unzip -q artifact/precision_gnss/trajectories.zip \
+            -d artifact/precision_gnss/extracted
+
+      - name: Inspect GNSS artifacts and prepare bounded source-grounded fixture
+        shell: bash
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import csv
+          import hashlib
+          import json
+          from pathlib import Path
+          from typing import Any
+
+          root = Path("artifact/precision_gnss")
+          extracted = root / "extracted"
+          csv_paths = sorted(extracted.rglob("*.csv"))
+          if not csv_paths:
+              raise RuntimeError("precision GNSS archive contained no CSV files")
+
+          inventory: list[dict[str, Any]] = []
+          fixture_rows: dict[str, list[dict[str, str]]] = {}
+          for path in csv_paths:
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              with path.open("r", encoding="utf-8-sig", newline="") as handle:
+                  reader = csv.DictReader(handle)
+                  headers = list(reader.fieldnames or [])
+                  rows: list[dict[str, str]] = []
+                  row_count = 0
+                  first_row: dict[str, str] | None = None
+                  last_row: dict[str, str] | None = None
+                  for row in reader:
+                      normalized = {str(key): str(value) for key, value in row.items()}
+                      if first_row is None:
+                          first_row = normalized
+                      last_row = normalized
+                      if len(rows) < 200:
+                          rows.append(normalized)
+                      row_count += 1
+              rel = path.relative_to(extracted).as_posix()
+              inventory.append(
+                  {
+                      "path": rel,
+                      "sha256": digest,
+                      "size_bytes": path.stat().st_size,
+                      "headers": headers,
+                      "row_count": row_count,
+                      "first_row": first_row,
+                      "last_row": last_row,
+                  }
+              )
+              fixture_rows[rel] = rows
+
+          (root / "inspection.json").write_text(
+              json.dumps({"files": inventory}, indent=2),
+              encoding="utf-8",
+          )
+          (root / "bounded_fixture_source_rows.json").write_text(
+              json.dumps(
+                  {
+                      "fixture_kind": "source_grounded_contiguous_prefix",
+                      "rows_per_file_limit": 200,
+                      "source_files": fixture_rows,
+                  },
+                  indent=2,
+              ),
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Attempt bounded TGSIM metadata and row acquisition
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          mkdir -p artifact/tgsim
+          curl --location --fail --retry 2 \
+            --output artifact/tgsim/columns.json \
+            'https://data.transportation.gov/api/views/brzy-6zfh/columns.json'
+          curl --location --fail --retry 2 \
+            --output artifact/tgsim/rows_1000.json \
+            'https://data.transportation.gov/resource/brzy-6zfh.json?$limit=1000'
+          sha256sum artifact/tgsim/* > artifact/tgsim/SHA256SUMS.txt
+
+      - name: Record acquisition environment and artifact inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "runner_os=${RUNNER_OS}"
+            echo "runner_arch=${RUNNER_ARCH}"
+            echo "github_sha=${GITHUB_SHA}"
+            echo "github_ref=${GITHUB_REF}"
+            date --utc --iso-8601=seconds | sed 's/^/retrieved_at_utc=/'
+          } > artifact/acquisition_environment.txt
+          find artifact -type f -printf '%P\t%s bytes\n' | sort \
+            > artifact/artifact_inventory.txt
+
+      - name: Upload source evidence packet
+        uses: actions/upload-artifact@v4
+        with:
+          name: land-source-evidence
+          path: artifact
+          if-no-files-found: error
+          retention-days: 7
