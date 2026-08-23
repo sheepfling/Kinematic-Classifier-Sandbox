@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - data/land-fixture-acquisition
+  pull_request:
+    branches:
+      - feature/real-world-land-vehicle-corpus
 
 permissions:
   contents: read
