@@ -231,3 +231,58 @@ def test_parser_rejects_mixed_platform_identity(tmp_path: Path) -> None:
         parse_tracklets(tracklets)
     ####
 ####
+
+
+def test_classifier_projection_is_strict_after_out_of_order_source_time(tmp_path: Path) -> None:
+    header = ["idtracklet"]
+    for index in range(1, 6):
+        header.extend(
+            (
+                f"id{index}",
+                f"mmsi{index}",
+                f"speed{index}",
+                f"course{index}",
+                f"heading{index}",
+                f"lon{index}",
+                f"lat{index}",
+                f"ts{index}",
+            )
+        )
+    header.append("route")
+    tracklets = tmp_path / "tracklets_out_of_order.csv"
+    tracklets.write_text(
+        "|".join(header)
+        + "\n"
+        + _tracklet_row(
+            tracklet_id=3,
+            mmsi=333_333_333,
+            route="R_TEST_A",
+            timestamps=(100, 110, 105, 106, 120),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    nomenclature = tmp_path / "nomenclature_out_of_order.csv"
+    nomenclature.write_text(
+        "route|originport|destinationport|length\nR_TEST_A|PORT_A|PORT_B|1000\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "prepared_out_of_order"
+    result = build_fixture(
+        tracklets_path=tracklets,
+        nomenclature_path=nomenclature,
+        output_root=output,
+        source_artifact_id="out-of-order-contract-fixture",
+        corpus_snapshot_id="out-of-order-sea-surface-fixture",
+    )
+    manifest = result.manifests[0]
+    classifier = manifest.classifier_trajectory_view
+    assert classifier is not None
+    with np.load(output / classifier.asset.path, allow_pickle=False) as arrays:
+        assert np.all(np.diff(arrays["elapsed_s"]) > 0.0)
+        assert arrays["elapsed_s"].tolist() == [0.0, 10.0, 20.0]
+    ####
+    assert "out_of_order_timestamp" in {
+        finding.code for finding in manifest.quality_summary.findings
+    }
+####

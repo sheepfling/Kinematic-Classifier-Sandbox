@@ -286,11 +286,25 @@ def _analysis_arrays(source: Mapping[str, NDArray[Any]]) -> dict[str, NDArray[An
 ####
 
 
+def _strictly_increasing_mask(values: FloatArray) -> NDArray[np.bool_]:
+    keep = np.zeros(values.shape, dtype=np.bool_)
+    if values.size == 0:
+        return keep
+    keep[0] = True
+    last_kept = float(values[0])
+    for index in range(1, values.size):
+        candidate = float(values[index])
+        if candidate > last_kept:
+            keep[index] = True
+            last_kept = candidate
+        ####
+    return keep
+####
+
+
 def _classifier_arrays(analysis: Mapping[str, NDArray[Any]]) -> dict[str, NDArray[Any]]:
     elapsed = np.asarray(analysis["elapsed_s"], dtype=np.float64)
-    keep = np.ones(elapsed.shape, dtype=np.bool_)
-    if elapsed.size > 1:
-        keep[1:] = np.diff(elapsed) > 0.0
+    keep = _strictly_increasing_mask(elapsed)
     return {
         "elapsed_s": elapsed[keep],
         "position_xy_m": np.asarray(analysis["position_enu_m"], dtype=np.float64)[keep, :2],
@@ -337,6 +351,18 @@ def _quality(source: Mapping[str, NDArray[Any]]) -> QualitySummary:
                 value=duplicate_count,
             )
         )
+    if out_of_order_count:
+        findings.append(
+            QualityFinding(
+                code="out_of_order_timestamp",
+                severity=QualitySeverity.WARNING,
+                message=(
+                    "Source view preserves out-of-order timestamps; classifier projection "
+                    "keeps only the strictly increasing subsequence."
+                ),
+                value=out_of_order_count,
+            )
+        )
     invalid_heading = int(np.count_nonzero(~np.asarray(source["heading_valid"], dtype=np.bool_)))
     if invalid_heading:
         findings.append(
@@ -350,7 +376,7 @@ def _quality(source: Mapping[str, NDArray[Any]]) -> QualitySummary:
     return QualitySummary(
         disposition="accept_with_findings",
         sample_count=int(elapsed.size),
-        duration_s=float(elapsed[-1] if elapsed.size else 0.0),
+        duration_s=float(np.max(elapsed) - np.min(elapsed) if elapsed.size else 0.0),
         median_sample_interval_s=float(np.median(positive) if positive.size else 0.0),
         maximum_gap_s=float(np.max(positive) if positive.size else 0.0),
         duplicate_timestamp_count=duplicate_count,
@@ -391,8 +417,9 @@ def build_episode(
         namespace=GroupingNamespace.PHYSICAL_PLATFORM.value,
         raw_value=raw_mmsi,
     )
-    start_unix = tracklet.contacts[0].unix_time_s
-    end_unix = tracklet.contacts[-1].unix_time_s
+    source_times = tuple(contact.unix_time_s for contact in tracklet.contacts)
+    start_unix = min(source_times)
+    end_unix = max(source_times)
     duration_s = float(end_unix - start_unix)
     start_time = datetime.fromtimestamp(start_unix, tz=UTC).isoformat()
     end_time = datetime.fromtimestamp(end_unix, tz=UTC).isoformat()
