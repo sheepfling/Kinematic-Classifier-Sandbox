@@ -1,11 +1,11 @@
-registry_patch_version: trajectory-source-registry-patch-v0.1
+registry_patch_version: trajectory-source-registry-patch-v0.2
 contract_version: trajectory-corpus-v0.1
 program_domain: sea
 corpus_sublane: sea_subsurface
 updates:
 - source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
   role: anchor
-  evidence_state: access_verified
+  evidence_state: mapping_complete
   publisher: AOOS Glider Observatory / IOOS Glider DAC
   exact_artifact_or_query: acquisition/ioos_profile_query.txt
   rights_disposition: usable
@@ -13,10 +13,16 @@ updates:
   - wmo_id=4902987
   - trajectory=unit_191-20240309T1200
   - profile_id=1709942882
-  artifact_acquired: false
+  artifact: fixtures/ioos_uaf_unit_191_profile_1709942882.csv
+  artifact_sha256: 29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a
+  artifact_byte_size: 15465
+  inspection: acquisition/ioos_profile_1709942882_inspection.json
+  artifact_acquired: true
+  schema_inspected: true
+  mapping_complete: true
   fixture_validated: false
   lane_g2_satisfied: false
-  blocking_issue: Retain, hash, inspect, and validate the selected profile response.
+  blocking_issue: Construct and validate the canonical multi-state-view fixture.
 - source_dataset_id: mgds-whoi-sentry-at26-09-navigation
   role: independent_validation
   evidence_state: access_verified
