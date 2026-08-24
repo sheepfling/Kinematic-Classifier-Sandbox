@@ -1,0 +1,110 @@
+adapter_mapping_version: trajectory-adapter-mapping-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: fhwa_tgsim_foggy_bottom
+adapter_id: tgsim_foggy_bottom
+adapter_version: preartifact-v0.2
+program_domain: land
+corpus_sublane: land_surface
+source_artifact_contract:
+  accepted_media_types:
+  - text/csv
+  - application/json
+  accepted_source_schema_versions:
+  - catalog-modified-2026-01-20
+  artifact_grouping_rule: trajectory artifact plus frame/region support assets form
+    one source snapshot
+  checksum_policy: sha256
+native_episode_extraction:
+  native_identity_fields:
+  - ID
+  - run/recording context if present
+  episode_id_rule: hash(snapshot, recording/run, native ID)
+  parent_episode_rule: null
+  mission_id_rule: null
+  object_id_rule: opaque hash of scoped native ID
+  platform_group_id_rule: same scoped native ID
+  segmentation_rule: one complete track; gaps may create segments but not independent
+    split parents
+  ordering_rule: recording/run then ID then time then source row
+state_views:
+- state_view_id_pattern: '{episode_id}::source_native'
+  view_kind: source_native
+  state_role: estimate
+  frame_id: tgsim_foggy_bottom_reference_image_xy
+  time_axis_id: source_relative_run_seconds
+  sample_asset_layout: elapsed time plus source x/y position, velocity, acceleration
+    and context fields
+  normalization_assumptions:
+  - vertical unavailable
+  processing_steps:
+  - parse only
+  - construct validity masks
+- state_view_id_pattern: '{episode_id}::analysis_local_xy_si'
+  view_kind: analysis
+  state_role: estimate
+  frame_id: tgsim_foggy_bottom_reference_image_xy
+  time_axis_id: elapsed_seconds_from_episode_start
+  sample_asset_layout: SI x/y state with invalid vertical; source channels retained
+    separately
+  normalization_assumptions:
+  - no resampling in Wave 1
+  - invalid vertical never becomes zero truth
+  processing_steps:
+  - time origin normalization
+  - quality audit
+field_mappings:
+- source_field: ID
+  target_location: restricted_identity
+  target_field_or_channel_id: source_track_id
+- source_field: time
+  target_location: state_channel
+  target_field_or_channel_id: elapsed_s
+- source_field: xloc-kf, yloc-kf
+  target_location: state_channel
+  target_field_or_channel_id: position_xy
+- source_field: speed-kf-x, speed-kf-y
+  target_location: state_channel
+  target_field_or_channel_id: velocity_xy
+- source_field: acceleration-kf-x, acceleration-kf-y
+  target_location: state_channel
+  target_field_or_channel_id: acceleration_xy
+- source_field: lane-kf
+  target_location: domain_extension
+  target_field_or_channel_id: land_surface.lane_or_region_id
+- source_field: length-smoothed, width-smoothed
+  target_location: domain_extension
+  target_field_or_channel_id: land_surface.dimension_proxies
+- source_field: type-most-common
+  target_location: label_assertion
+  target_field_or_channel_id: land.road_user_type
+label_assertion_rules:
+- source type code -> versioned road-user assertion; never embedded as feature
+grouping_key_rules:
+- physical_platform
+- source_recording
+- temporal_collection
+- geography
+- source_dataset
+quality_finding_rules:
+- duplicate_timestamp
+- out_of_order_timestamp
+- sample_gap
+- position_jump
+- source_state_derivative_disagreement
+- label_inconsistency
+- track_fragmentation_suspected
+domain_extension_schema:
+  schema_id: land_surface_source_context_v0.1_proposed
+  schema_version: 0.1-proposed
+  fields:
+  - lane_or_region_id
+  - bounding_box_length_proxy_m
+  - bounding_box_width_proxy_m
+prohibited_exposures:
+- raw IDs, file/recording/source identity, lane/region, dimensions, and labels are
+  excluded from kinematics-only features
+unresolved_ambiguities:
+- actual run field
+- native ID scope
+- actual-row sentinel/duplicate behavior
+change_requests: []

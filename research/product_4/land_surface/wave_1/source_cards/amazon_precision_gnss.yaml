@@ -1,0 +1,151 @@
+source_card_version: trajectory-source-card-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: amazon_precision_gnss
+program_domain: land
+corpus_sublane: land_surface
+portfolio_role: expansion_state_quality_validation
+identity:
+  publisher: Amazon Science
+  dataset_title: Precision GNSS
+  source_version: archived GitHub main branch
+  publication_or_release_date: '2022'
+  citation: Musa et al., High-accuracy GNSS Localization with Low-cost, ACM SIGSPATIAL
+    2022
+  official_landing_page: https://github.com/amazon-science/precision-gnss
+  documentation_references:
+  - https://github.com/amazon-science/precision-gnss/blob/main/README.md
+access:
+  status: access_verified
+  retrieval_method: public GitHub trajectories.zip
+  authentication_required: false
+  terms_or_license_id: CC-BY-4.0
+  license_text_or_reference: Official README states CC BY 4.0.
+  redistribution_allowed: true
+  derived_data_redistribution_allowed: true
+  privacy_or_sensitive_data_notes: null
+  export_or_control_notes: null
+  access_evidence:
+  - Official repository exposes 14.6 MB trajectories.zip.
+  - Git blob identity bd3ac612e7eb8662578f3f9567758c56bc849e33.
+artifacts:
+  expected_artifact_kinds:
+  - trajectories.zip
+  - four precision_gnss.csv
+  - four reference_gnss.csv
+  acquired_artifacts: []
+  api_query_definition: null
+  expected_refresh_or_versioning: pin archived Git commit and archive blob
+native_trajectory:
+  native_unit: driving_trajectory
+  identity_fields:
+  - trajectory directory
+  - precision/reference stream
+  parent_child_structure: dataset -> four drives -> paired streams -> samples
+  segmentation_semantics: one drive is parent episode
+  sample_count_or_scale: four approximately two-hour drives; over 300,000 points
+  sampling_pattern: regular 10 Hz
+observation:
+  observation_modality: paired_gnss
+  state_roles_present:
+  - estimate
+  - reference_measurement
+  value_bases_present:
+  - measured
+  - postprocessed
+  observer_or_navigation_system: low-cost GNSS/IMU/RTK and reference GNSS
+  physical_truth_available: false
+  truth_or_reference_notes: Reference GNSS is a reference measurement, not simulation
+    truth.
+time:
+  source_time_system: pending artifact inspection
+  absolute_time_available: null
+  epoch_or_reference: null
+  units_or_encoding: pending
+  precision_or_resolution: nominal 0.1 s
+  rollover_or_leap_second_notes: null
+frames: []
+channels: []
+labels:
+  native_assertions: []
+  identity_linked_assertions: []
+  trajectory_derived_assertions: []
+  analyst_or_proxy_assertions: []
+  unavailable_or_unsafe_targets:
+  - vehicle class
+  label_dependency_channels: {}
+population:
+  represented_platforms_or_regimes:
+  - downtown
+  - tunnels
+  - suburbs
+  - highways
+  temporal_coverage: four approximately two-hour drives
+  geographic_or_operational_coverage: about 42 miles through Seattle and Bellevue
+  population_biases:
+  - same route
+  - localization study
+  known_exclusions:
+  - no class labels
+quality_and_segmentation:
+  known_sentinels: []
+  duplicate_or_rebroadcast_behavior: pending
+  gap_behavior: tunnels are GNSS stress regime
+  reset_or_discontinuity_behavior: pending
+  source_transition_behavior: paired streams remain separate views
+  physically_implausible_or_projection_risks:
+  - time alignment
+  - outage/multipath
+  - reference not absolute truth
+  proposed_episode_segmentation: one drive per episode
+  proposed_segment_annotations:
+  - tunnel
+  - downtown
+  - suburb
+  - highway
+leakage_and_grouping:
+  physical_platform_key_available: null
+  event_or_mission_key_available: true
+  source_recording_key_available: true
+  route_key_available: true
+  geography_key_available: true
+  temporal_collection_key_available: true
+  provider_or_source_key: true
+  raw_identity_restrictions:
+  - drive/source-stream identity grouping-only
+  recommended_disjoint_split_groups:
+  - source_recording
+  - route
+  - source_dataset
+common_contract_mapping:
+  direct_common_fields:
+  - paired state views
+  - artifact lineage
+  - recording grouping
+  - quality
+  domain_extension_fields:
+  - GNSS quality/correction metadata
+  separate_sensor_observation_fields: []
+  unresolved_schema_fit:
+  - CSV time/frame/schema
+  schema_change_request_needed: false
+pilot:
+  preferred_pilot_subset: one complete drive with paired streams
+  pilot_artifact_size_or_scope: bounded contiguous interval after inspection
+  first_within_source_experiment: low-cost versus reference GNSS error
+  first_independent_validation: null
+  refresh_strategy: pin archived commit/blob
+claim_boundary:
+  supports:
+  - paired estimate/reference state semantics
+  - GNSS quality validation
+  does_not_support:
+  - vehicle-class discrimination
+  summary: Open state-quality expansion source.
+research_evidence_state: access_verified
+open_questions:
+- CSV schema/time/frame not inspected
+- archive not retained locally
+next_actions:
+- retrieve archive
+- hash and inspect eight CSVs
+- build paired fixture

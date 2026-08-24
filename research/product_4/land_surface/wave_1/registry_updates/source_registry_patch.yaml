@@ -1,0 +1,53 @@
+registry_patch_version: trajectory-source-registry-patch-v0.1
+status_date: '2026-08-24'
+entries:
+- source_dataset_id: fhwa_tgsim_foggy_bottom
+  program_domain: land
+  corpus_sublane: land_surface
+  portfolio_role: anchor
+  evidence_state: access_verified
+  rights_disposition: usable_public_domain
+  promotion_blockers:
+  - bounded complete trajectory rows not retained
+  - actual-row schema/identity inspection pending
+  - real fixture validation pending
+- source_dataset_id: epfl_pneuma
+  program_domain: land
+  corpus_sublane: land_surface
+  portfolio_role: independent_validation
+  evidence_state: access_verified
+  rights_disposition: conditional_conflicting_official_license_text
+  promotion_blockers:
+  - trajectory CSV member not retained
+  - license discrepancy unresolved
+  - real fixture validation pending
+- source_dataset_id: rwth_highd
+  program_domain: land
+  corpus_sublane: land_surface
+  portfolio_role: secondary_validation
+  evidence_state: access_verified
+  rights_disposition: restricted_noncommercial_no_raw_modified_redistribution
+  promotion_blockers:
+  - provider approval
+  - restricted fixture strategy
+- source_dataset_id: thi_revsted
+  program_domain: land
+  corpus_sublane: land_surface
+  portfolio_role: auxiliary_contract_validation
+  evidence_state: schema_inspected
+  fixture_state: local_structural_validation_pass_rights_restricted
+  rights_disposition: conditional_license_unresolved
+  promotion_blockers:
+  - authoritative COMMON-FRONT validation
+  - concrete source redistribution license
+  - single platform unsuitable for class evidence
+  repository_fixture_bytes_committed: false
+- source_dataset_id: amazon_precision_gnss
+  program_domain: land
+  corpus_sublane: land_surface
+  portfolio_role: expansion_state_quality_validation
+  evidence_state: access_verified
+  rights_disposition: CC-BY-4.0
+  promotion_blockers:
+  - archive not retained
+  - CSV schema uninspected

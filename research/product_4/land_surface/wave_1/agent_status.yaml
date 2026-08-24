@@ -1,0 +1,51 @@
+contract_version: trajectory-corpus-v0.1
+program_domain: land
+corpus_sublane: land_surface
+wave: 1
+evidence_snapshot_date: '2026-08-23'
+repository_intake_date: '2026-08-24'
+current_evidence_state: access_verified
+anchor_candidate: fhwa_tgsim_foggy_bottom
+independent_validation_candidate: epfl_pneuma
+secondary_validation_candidate: rwth_highd
+auxiliary_sources:
+- source_dataset_id: thi_revsted
+  portfolio_role: auxiliary_contract_validation
+  evidence_state: schema_inspected
+  fixture_state: local_structural_validation_pass_rights_restricted
+  repository_fixture_bytes_committed: false
+- source_dataset_id: amazon_precision_gnss
+  portfolio_role: expansion_state_quality_validation
+  evidence_state: access_verified
+  fixture_state: null
+  repository_fixture_bytes_committed: false
+completed_artifacts:
+- five source cards
+- five provisional scorecards
+- TGSIM anchor adapter mapping
+- ReV-StED auxiliary mapping prototype
+- artifact inventory and acquisition plan
+- time/frame/vertical semantics findings
+- quality and segmentation findings
+- labels and claim-boundary findings
+- leakage and split-group findings
+- source registry patch
+- local ReV-StED validation record
+- repository-intake validator
+blockers:
+- TGSIM anchor lacks retained bounded complete-track rows.
+- Authoritative COMMON-FRONT validator is not available in this tranche.
+- pNEUMA official license statements conflict.
+- ReV-StED concrete redistribution license is unresolved.
+- Amazon Precision GNSS archive bytes are not retained.
+schema_change_requests: []
+next_actions:
+- complete bounded TGSIM acquisition
+- authoritative fixture validation
+- pNEUMA rights closure
+- ReV-StED rights closure or formal local-only disposition
+- Amazon archive inspection
+coordinator_decisions_needed:
+- Confirm TGSIM remains the class-labeled anchor.
+- Resolve pNEUMA governing license before any raw-row fixture is redistributed.
+- Decide whether a local-only ReV-StED contract witness is acceptable pending license closure.

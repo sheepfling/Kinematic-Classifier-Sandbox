@@ -1,0 +1,17 @@
+scorecard_version: source-candidate-scorecard-v0.1
+source_dataset_id: amazon_precision_gnss
+portfolio_role: expansion_state_quality_validation
+provisional: true
+hard_gate_status: not_all_passed
+total_score_0_to_100: 78
+strengths:
+- CC BY 4.0
+- small public archive
+- paired low-cost/reference GNSS
+- four drives
+- 10 Hz
+critical_blockers:
+- archive not retained
+- CSV schema/time/frame not inspected
+- no class labels
+recommended_role: state_quality_expansion_after_artifact_inspection
