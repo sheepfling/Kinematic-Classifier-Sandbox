@@ -10,6 +10,7 @@ from kinematic_classifier_sandbox.corpus.real_world.adapters.cmre_route_tracklet
     build_fixture,
     parse_tracklets,
     protected_identity_group_id,
+    sha256_file,
     write_fixture_index,
 )
 from kinematic_classifier_sandbox.corpus.real_world.episode_contracts import (
@@ -116,6 +117,7 @@ def _build(root: Path):
         nomenclature_path=nomenclature,
         output_root=output,
         source_artifact_id="synthetic-contract-fixture",
+        nomenclature_artifact_id="synthetic-route-nomenclature",
         corpus_snapshot_id="synthetic-sea-surface-fixture",
         identity_key=_TEST_IDENTITY_KEY,
     )
@@ -133,6 +135,10 @@ def test_adapter_builds_valid_manifests_and_repeated_platform_group(tmp_path: Pa
         reloaded = TrajectoryEpisodeManifest.model_validate_json(manifest_path.read_text())
         assert reloaded == manifest
         assert manifest.corpus_sublane == "sea_surface"
+        assert manifest.source_artifact_ids == (
+            "synthetic-contract-fixture",
+            "synthetic-route-nomenclature",
+        )
     ####
 ####
 
@@ -171,6 +177,53 @@ def test_source_duplicate_is_preserved_and_classifier_time_is_strict(tmp_path: P
     assert "duplicate_timestamp" in {
         finding.code for finding in manifest.quality_summary.findings
     }
+####
+
+
+def test_non_adjacent_duplicate_is_counted_and_removed_from_classifier(
+    tmp_path: Path,
+) -> None:
+    tracklets = tmp_path / "tracklets_non_adjacent_duplicate.csv"
+    tracklets.write_text(
+        "|".join(_header())
+        + "\n"
+        + _tracklet_row(
+            tracklet_id=5,
+            mmsi=555_555_555,
+            route="R_TEST_A",
+            timestamps=(100, 110, 100, 120, 130),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    nomenclature = tmp_path / "nomenclature_non_adjacent_duplicate.csv"
+    nomenclature.write_text(
+        "route|originport|destinationport|length\nR_TEST_A|PORT_A|PORT_B|1000\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "prepared_non_adjacent_duplicate"
+    result = build_fixture(
+        tracklets_path=tracklets,
+        nomenclature_path=nomenclature,
+        output_root=output,
+        source_artifact_id="non-adjacent-duplicate-contract-fixture",
+        corpus_snapshot_id="non-adjacent-duplicate-sea-surface-fixture",
+        identity_key=_TEST_IDENTITY_KEY,
+    )
+    manifest = result.manifests[0]
+    assert manifest.quality_summary.duplicate_timestamp_count == 1
+    duplicate_finding = next(
+        finding
+        for finding in manifest.quality_summary.findings
+        if finding.code == "duplicate_timestamp"
+    )
+    assert duplicate_finding.value == 1
+    classifier = manifest.classifier_trajectory_view
+    assert classifier is not None
+    assert classifier.sample_count == 4
+    with np.load(output / classifier.asset.path, allow_pickle=False) as arrays:
+        assert arrays["elapsed_s"].tolist() == [0.0, 10.0, 20.0, 30.0]
+    ####
 ####
 
 
@@ -292,6 +345,60 @@ def test_invalid_reported_motion_is_masked_in_classifier_asset(tmp_path: Path) -
     assert "invalid_reported_motion" in {
         finding.code for finding in manifest.quality_summary.findings
     }
+####
+
+
+def test_nomenclature_artifact_is_identified_and_hashed(tmp_path: Path) -> None:
+    tracklets, nomenclature = _write_sources(tmp_path)
+    source_sha = sha256_file(tracklets)
+    first_nomenclature_sha = sha256_file(nomenclature)
+    first_result = build_fixture(
+        tracklets_path=tracklets,
+        nomenclature_path=nomenclature,
+        output_root=tmp_path / "prepared_nomenclature_first",
+        source_artifact_id="source-tracklets",
+        nomenclature_artifact_id="route-nomenclature",
+        corpus_snapshot_id="nomenclature-provenance-first",
+        identity_key=_TEST_IDENTITY_KEY,
+    )
+    first_manifest = first_result.manifests[0]
+    assert first_manifest.source_artifact_ids == (
+        "source-tracklets",
+        "route-nomenclature",
+    )
+    assert first_manifest.domain_extension is not None
+    first_artifacts = first_manifest.domain_extension.payload["source_artifacts"]
+    assert first_artifacts == {
+        "tracklets": {
+            "artifact_id": "source-tracklets",
+            "sha256": source_sha,
+        },
+        "route_nomenclature": {
+            "artifact_id": "route-nomenclature",
+            "sha256": first_nomenclature_sha,
+        },
+    }
+
+    nomenclature.write_text(
+        nomenclature.read_text(encoding="utf-8").replace("|1000\n", "|1001\n"),
+        encoding="utf-8",
+    )
+    second_nomenclature_sha = sha256_file(nomenclature)
+    second_result = build_fixture(
+        tracklets_path=tracklets,
+        nomenclature_path=nomenclature,
+        output_root=tmp_path / "prepared_nomenclature_second",
+        source_artifact_id="source-tracklets",
+        nomenclature_artifact_id="route-nomenclature",
+        corpus_snapshot_id="nomenclature-provenance-second",
+        identity_key=_TEST_IDENTITY_KEY,
+    )
+    second_manifest = second_result.manifests[0]
+    assert second_manifest.domain_extension is not None
+    second_artifacts = second_manifest.domain_extension.payload["source_artifacts"]
+    assert second_artifacts["tracklets"]["sha256"] == source_sha
+    assert second_artifacts["route_nomenclature"]["sha256"] == second_nomenclature_sha
+    assert second_nomenclature_sha != first_nomenclature_sha
 ####
 
 
