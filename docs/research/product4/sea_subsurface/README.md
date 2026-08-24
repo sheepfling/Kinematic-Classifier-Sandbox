@@ -1,8 +1,9 @@
 # SEA-SUB source evidence and mixed-provenance fixtures
 
-This directory is the Wave 1 Product 4 contribution for `sea_subsurface`. It preserves the
-source portfolio, provenance mappings, two restricted real-data fixtures, leakage-safe grouping,
-and the vertical-semantics clarification exposed by underwater data.
+This directory is the Wave 1 Product 4 contribution for `sea_subsurface`. It preserves the source
+portfolio, a retained selected-anchor artifact, provenance mappings, two restricted contract
+fixtures, leakage-safe grouping, and the vertical-semantics clarification exposed by underwater
+data.
 
 It is not a completed production adapter or classifier study.
 
@@ -10,53 +11,79 @@ It is not a completed production adapter or classifier study.
 
 | Role | Source | Evidence state | Current use |
 | --- | --- | --- | --- |
-| Anchor | IOOS/UAF Slocum `unit_191-20240309T1200` | `access_verified` | Selected mixed GPS/dead-reckoning pilot |
+| Anchor | IOOS/UAF Slocum `unit_191-20240309T1200` | `mapping_complete` | Retained 99-row mixed-provenance profile; canonical fixture still open |
 | Independent validation | MGDS/WHOI Sentry AT26-09, DOI `10.60521/331959` | `access_verified` | Independent AUV navigation lineage |
 | Contract regression | Official IOOS Murphy profile artifact | `fixture_validated`, restricted | Pressure versus derived depth; conservative interpolated-position semantics |
-| Contract bridge | OOI/OOICI `unit_364` parser resource | `fixture_validated`, restricted | Separate surface GPS, dead-reckoned horizontal state, depth, and pressure |
+| Contract bridge | OOI/OOICI `unit_364` parser resource | `fixture_validated`, restricted | Separate GPS, dead-reckoned horizontal state, depth, and pressure |
 
-`G1_source_portfolio` is complete. `G2_selected_anchor_fixture` remains open because the selected
-IOOS/UAF response has not been retained and hashed. Independent validation remains open because no
-Sentry PPL file has been retained.
+`G1_source_portfolio` is complete. The selected anchor is now acquired, hashed, schema-inspected,
+and mapped. `G2_selected_anchor_fixture` remains open until COMMON-FRONT constructs and validates a
+canonical multi-state-view fixture. Independent validation remains open because no Sentry PPL file
+has been retained.
+
+## Selected-anchor evidence
+
+The bounded profile `1709942882` is retained byte-for-byte at
+`fixtures/ioos_uaf_unit_191_profile_1709942882.csv` with SHA-256
+`29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a`.
+
+Its 99 data rows demonstrate that the native table is a sparse asynchronous event stream rather
+than a rectangular joint-state trajectory:
+
+- one onboard GPS event and two dead-reckoned horizontal events, with no coincident GPS/DR row;
+- 63 measured-pressure events, 24 source-depth events, and 63 standardized-depth events;
+- five duplicate timestamps whose rows carry different populated channels;
+- provider GPS units metadata declaring degrees-minutes while the retained values fit decimal-degree
+  ranges and align with the profile neighborhood;
+- constant provider-standardized latitude/longitude acting as profile context rather than per-sample
+  observed trajectory.
+
+Therefore, same-time rows must not be dropped, DDMM conversion is prohibited for this pinned
+artifact, and GPS presence alone does not establish a surface-phase label.
 
 ## Contract findings
 
 The evidence requires the common front to preserve:
 
-- surface GPS and underwater dead reckoning as distinct state roles;
+- onboard GPS and underwater dead reckoning as distinct state roles;
 - measured pressure separately from calculated or otherwise derived depth;
+- sparse channel-event lineage and same-time rows until an explicit channel-aware coalescing policy;
 - missing components through explicit null/validity semantics rather than zero filling;
 - source-native frames and unresolved datums until a defensible transform exists;
 - platform, deployment, profile/dive, recording, provider, and source identity for split planning;
 - identity and provider fields outside ordinary kinematic classifier features;
 - explicit source, processing, and release restrictions for every fixture.
 
-Both retained fixtures intentionally block classifier-view construction. Their purpose is to prove
-representation and guardrails, not to supply a study-ready trajectory.
+The selected anchor and both restricted fixtures intentionally block classifier-view construction.
+Their purpose is to prove representation and guardrails, not to supply a study-ready trajectory.
 
 ## Layout
 
 - `source_cards/` and `scorecards/`: selected anchor and independent holdout.
 - `mappings/`: source-to-common state-role mappings.
 - `registry_updates/`: four-source Product 4 registry patch.
-- `acquisition/`: immutable query and Sentry event inventory.
+- `acquisition/`: immutable query, selected-anchor inspection, and Sentry event inventory.
 - `fixtures/`: retained lawful source bytes and compact common-contract manifests.
 - `change_requests/`: `SCR-SEA-SUB-001`, an acceptance clarification rather than a schema fork.
 - `agent_status.yaml` and `coordination_sync.yaml`: comparable six-lane status reports.
+- `MERGE_HANDOFF.md`: stack order, validation, and merge-agent claim boundary.
 
 ## Validation
 
 ```bash
-python -m pytest -q tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
+python -m pytest -q -p no:cacheprovider \
+  tests/corpus/real_world/test_sea_subsurface_research_fixtures.py \
+  tests/corpus/real_world/test_sea_subsurface_selected_anchor.py
 ```
 
-The repository tests validate source hashes, scorecard arithmetic, IOOS pressure/depth semantics,
-OOI raw-row parsing and DDMM conversion, separate GPS/dead-reckoned views, missing-state handling,
-identity-only grouping, registry status, classifier-view blocking, and the open G2 boundary.
+The repository checks validate source hashes and sizes, scorecard arithmetic, selected-anchor
+channel counts and lifecycle state, asynchronous duplicate handling, the GPS units/value mismatch,
+IOOS pressure/depth semantics, OOI DDMM conversion, separate GPS/dead-reckoned views, missing-state
+handling, identity-only grouping, classifier-view blocking, and the open G2 boundary.
 
 ## Claim boundary
 
-This tranche supports source selection, provenance mapping, restricted fixture validation, and a
-concrete common-contract clarification. It does not claim a completed `P4-010` adapter, selected
-anchor acceptance, Sentry artifact validation, a prepared pilot, classifier performance, or
-military-submarine truth.
+This tranche supports source selection, selected-anchor acquisition and mapping, restricted fixture
+validation, and a concrete common-contract clarification. It does not claim a completed `P4-010`
+adapter, canonical selected-anchor fixture acceptance, Sentry artifact validation, a prepared pilot,
+classifier performance, or military-submarine truth.
