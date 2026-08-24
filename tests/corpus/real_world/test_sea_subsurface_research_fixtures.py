@@ -11,7 +11,6 @@ from urllib.parse import parse_qs, urlparse
 
 import yaml
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 LANE_ROOT = REPO_ROOT / "docs/research/product4/sea_subsurface"
 
@@ -20,6 +19,8 @@ def _read_yaml(relative_path: str) -> dict[str, Any]:
     payload = yaml.safe_load((LANE_ROOT / relative_path).read_text(encoding="utf-8"))
     assert isinstance(payload, dict)
     return payload
+
+
 ####
 
 
@@ -27,11 +28,15 @@ def _read_json(relative_path: str) -> dict[str, Any]:
     payload = json.loads((LANE_ROOT / relative_path).read_text(encoding="utf-8"))
     assert isinstance(payload, dict)
     return payload
+
+
 ####
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 ####
 
 
@@ -41,6 +46,8 @@ def _extract_query_url(path: Path) -> str:
         if candidate.startswith("https://"):
             return candidate
     raise AssertionError(f"no HTTPS query found in {path}")
+
+
 ####
 
 
@@ -49,6 +56,8 @@ def _state_view(fixture: dict[str, Any], view_id: str) -> dict[str, Any]:
         if view["state_view_id"] == view_id:
             return view
     raise AssertionError(f"missing state view {view_id!r}")
+
+
 ####
 
 
@@ -80,6 +89,8 @@ def _parse_dbd_ascii(
             }
         )
     return metadata, columns, units, rows
+
+
 ####
 
 
@@ -89,6 +100,8 @@ def _ddmm_to_decimal(value: float) -> float:
     degrees = int(absolute // 100.0)
     minutes = absolute - degrees * 100.0
     return sign * (degrees + minutes / 60.0)
+
+
 ####
 
 
@@ -102,6 +115,8 @@ def test_all_committed_structured_files_parse() -> None:
         assert yaml.safe_load(path.read_text(encoding="utf-8")) is not None
     for path in json_paths:
         assert json.loads(path.read_text(encoding="utf-8")) is not None
+
+
 ####
 
 
@@ -117,6 +132,8 @@ def test_scorecards_have_valid_weighted_totals() -> None:
         assert sum(item["weight"] for item in weighted_scores.values()) == 100
         assert sum(item["score"] for item in weighted_scores.values()) == expected_total
         assert scorecard["total_score_0_to_100"] == expected_total
+
+
 ####
 
 
@@ -133,6 +150,8 @@ def test_portfolio_keeps_anchor_and_holdout_at_access_verified() -> None:
     assert holdout["access"]["artifact_acquired"] is False
     assert status["gates"]["G1_source_portfolio"] == "complete"
     assert status["gates"]["G2_selected_anchor_fixture"] == "open"
+
+
 ####
 
 
@@ -152,6 +171,8 @@ def test_retained_artifact_hashes_and_sizes_match_manifests() -> None:
     license_path = LANE_ROOT / ooi_fixture["source_artifact"]["license_path"]
     assert license_path.stat().st_size == ooi_fixture["source_artifact"]["license_byte_size"]
     assert _sha256(license_path) == ooi_fixture["source_artifact"]["license_sha256"]
+
+
 ####
 
 
@@ -166,12 +187,10 @@ def test_anchor_query_is_exact_and_bounded_to_one_profile() -> None:
     assert query["profile_id"] == ["1709942882"]
 
     requested_fields = set(parsed.query.split("&", maxsplit=1)[0].split(","))
-    assert {"precise_time", "m_gps_lat", "m_gps_lon", "m_lat", "m_lon"}.issubset(
-        requested_fields
-    )
-    assert {"m_depth", "pressure", "m_heading", "m_pitch", "m_roll"}.issubset(
-        requested_fields
-    )
+    assert {"precise_time", "m_gps_lat", "m_gps_lon", "m_lat", "m_lon"}.issubset(requested_fields)
+    assert {"m_depth", "pressure", "m_heading", "m_pitch", "m_roll"}.issubset(requested_fields)
+
+
 ####
 
 
@@ -209,6 +228,8 @@ def test_ioos_fixture_matches_retained_rows_and_preserves_roles() -> None:
     assert [sample["depth_m"] for sample in depth["samples"]] == [
         float(row["depth_m"]) for row in rows
     ]
+
+
 ####
 
 
@@ -219,9 +240,12 @@ def test_ioos_qc_zero_is_not_reinterpreted_as_good_data() -> None:
 
     assert {sample["source_qc"] for sample in pressure["samples"]} == {0}
     assert "SEA_SUB_QC_ZERO_MEANS_NO_QC_PERFORMED" in findings
-    assert "must not be promoted to good_data" in findings[
-        "SEA_SUB_QC_ZERO_MEANS_NO_QC_PERFORMED"
-    ]["message"]
+    assert (
+        "must not be promoted to good_data"
+        in findings["SEA_SUB_QC_ZERO_MEANS_NO_QC_PERFORMED"]["message"]
+    )
+
+
 ####
 
 
@@ -238,6 +262,8 @@ def test_ooi_raw_parser_finds_expected_identity_and_shape() -> None:
     assert rows[1]["m_depth"] == 25.227
     assert rows[1]["m_gps_lat"] == 3233.7903
     assert rows[1]["m_lat"] == 3233.84081482324
+
+
 ####
 
 
@@ -259,6 +285,8 @@ def test_ooi_fixture_separates_gps_and_dead_reckoning() -> None:
     assert gps_sample["position"][:2] != dr_sample["position"][:2]
     assert math.isclose(gps_sample["elapsed_s"], 0.3656001091003418)
     assert math.isclose(surface_gps["samples"][1]["elapsed_s"], 41.34756016731262)
+
+
 ####
 
 
@@ -278,6 +306,8 @@ def test_ooi_fixture_uses_null_and_validity_for_missing_components() -> None:
     assert depth_sample["position_valid"] == [False, False, True]
     assert depth["frame"]["vertical_reference"] == "unresolved"
     assert depth["frame"]["positive_direction"] == "unresolved"
+
+
 ####
 
 
@@ -290,9 +320,9 @@ def test_grouping_keys_are_identity_only() -> None:
     for fixture in fixtures:
         grouping_keys = fixture["episode"]["grouping_keys"]
         assert grouping_keys
-        assert {key["access_class"] for key in grouping_keys} == {
-            "identity_grouping_only"
-        }
+        assert {key["access_class"] for key in grouping_keys} == {"identity_grouping_only"}
+
+
 ####
 
 
@@ -308,6 +338,8 @@ def test_restricted_fixtures_block_classifier_view_and_do_not_satisfy_g2() -> No
         assert fixture["acceptance"]["restricted_fixture_validated"] is True
         assert fixture["acceptance"]["lane_g2_satisfied"] is False
         assert fixture["acceptance"]["independent_validation_satisfied"] is False
+
+
 ####
 
 
@@ -316,21 +348,21 @@ def test_registry_patch_preserves_honest_lifecycle_states() -> None:
     updates = {update["source_dataset_id"]: update for update in registry["updates"]}
 
     assert len(updates) == 4
-    assert updates["ioos-ngdac-uaf-unit_191-20240309T1200"]["evidence_state"] == (
-        "access_verified"
-    )
+    assert updates["ioos-ngdac-uaf-unit_191-20240309T1200"]["evidence_state"] == ("access_verified")
     assert updates["ioos-ngdac-uaf-unit_191-20240309T1200"]["fixture_validated"] is False
-    assert updates["mgds-whoi-sentry-at26-09-navigation"]["evidence_state"] == (
-        "access_verified"
-    )
+    assert updates["mgds-whoi-sentry-at26-09-navigation"]["evidence_state"] == ("access_verified")
     assert updates["mgds-whoi-sentry-at26-09-navigation"]["artifact_acquired"] is False
-    assert updates["ioos-glider-dac-murphy-official-regression-artifact"][
-        "evidence_state"
-    ] == "fixture_validated"
-    assert updates["ooici-marine-integrations-glider-parser-resource"][
-        "evidence_state"
-    ] == "fixture_validated"
+    assert (
+        updates["ioos-glider-dac-murphy-official-regression-artifact"]["evidence_state"]
+        == "fixture_validated"
+    )
+    assert (
+        updates["ooici-marine-integrations-glider-parser-resource"]["evidence_state"]
+        == "fixture_validated"
+    )
     assert all(update["lane_g2_satisfied"] is False for update in updates.values())
+
+
 ####
 
 
@@ -358,4 +390,6 @@ def test_depth_semantics_change_request_requires_no_schema_fork() -> None:
     assert depth_mapping["state_role"] == "estimate"
     assert depth_mapping["value_basis"] == "calculated_from_pressure"
     assert depth_mapping["dependency_channels"] == ["sea_water_pressure"]
+
+
 ####
