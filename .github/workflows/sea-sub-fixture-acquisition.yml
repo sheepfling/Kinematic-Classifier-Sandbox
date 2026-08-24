@@ -1,4 +1,4 @@
-name: SEA-SUB selected-anchor acquisition
+name: SEA-SUB selected-anchor retention
 
 on:
   pull_request:
@@ -10,179 +10,229 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  acquire-and-validate:
+  retain-and-validate:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feature/product-4-sea-subsurface-research
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Acquire and inspect bounded IOOS profile
+      - name: Acquire retained selected-anchor artifact
         shell: bash
         run: |
           set -euo pipefail
-          out="artifact/sea_sub_selected_anchor"
-          query="$(grep -m1 '^https://' docs/research/product4/sea_subsurface/acquisition/ioos_profile_query.txt)"
-          mkdir -p "${out}"
-          printf '%s\n' "${query}" > "${out}/query_url.txt"
+          lane="docs/research/product4/sea_subsurface"
+          artifact="${lane}/fixtures/ioos_uaf_unit_191_profile_1709942882.csv"
+          inspection="${lane}/acquisition/ioos_profile_1709942882_inspection.json"
+          query="$(grep -m1 '^https://' "${lane}/acquisition/ioos_profile_query.txt")"
+          mkdir -p "$(dirname "${artifact}")" "$(dirname "${inspection}")"
           curl --fail-with-body --location --retry 3 --retry-all-errors \
             --connect-timeout 30 --max-time 180 \
-            --dump-header "${out}/response_headers.txt" \
-            --output "${out}/unit_191_profile_1709942882.csv" "${query}"
-          sha256sum "${out}/unit_191_profile_1709942882.csv" \
-            > "${out}/unit_191_profile_1709942882.csv.sha256"
-          wc -c "${out}/unit_191_profile_1709942882.csv" \
-            > "${out}/unit_191_profile_1709942882.csv.bytes"
+            --output "${artifact}" "${query}"
+          test "$(sha256sum "${artifact}" | cut -d' ' -f1)" = \
+            "29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a"
+          test "$(wc -c < "${artifact}")" -eq 15465
           python - <<'PY'
           from __future__ import annotations
 
           import csv
+          import hashlib
           import json
+          from collections import Counter
           from datetime import datetime
           from itertools import pairwise
           from pathlib import Path
-          from typing import Any
 
 
-          OUT = Path("artifact/sea_sub_selected_anchor")
-          SOURCE = OUT / "unit_191_profile_1709942882.csv"
-          PROFILE_ID = "1709942882"
-          FIELDS = {
-              "trajectory", "wmo_id", "profile_id", "precise_time",
-              "m_gps_lat", "m_gps_lon", "m_lat", "m_lon", "m_depth",
-              "pressure", "m_heading", "m_pitch", "m_roll", "depth",
-              "latitude", "longitude",
-          }
+          LANE = Path("docs/research/product4/sea_subsurface")
+          SOURCE = LANE / "fixtures/ioos_uaf_unit_191_profile_1709942882.csv"
+          TARGET = LANE / "acquisition/ioos_profile_1709942882_inspection.json"
+          MISSING = {"", "NaN", "nan", "null", "-999", "-9999.9"}
 
 
-          def present(value: str | None) -> bool:
-              return value is not None and value.strip().lower() not in {
-                  "", "nan", "-9999.9", "-999", "null",
-              }
+          def present(value: str) -> bool:
+              return value.strip() not in MISSING
+          ####
+
+
+          def count_pair(rows: list[dict[str, str]], first: str, second: str) -> int:
+              return sum(present(row[first]) and present(row[second]) for row in rows)
+          ####
+
+
+          def count_field(rows: list[dict[str, str]], field: str) -> int:
+              return sum(present(row[field]) for row in rows)
           ####
 
 
           def numeric_range(rows: list[dict[str, str]], field: str) -> dict[str, float] | None:
-              values = [float(row[field]) for row in rows if present(row.get(field))]
+              values = [float(row[field]) for row in rows if present(row[field])]
               return None if not values else {"minimum": min(values), "maximum": max(values)}
           ####
 
 
-          with SOURCE.open(newline="", encoding="utf-8-sig") as stream:
-              reader = csv.DictReader(stream)
-              fieldnames = tuple(reader.fieldnames or ())
-              raw_rows = [
-                  {str(key): "" if value is None else str(value) for key, value in row.items()}
-                  for row in reader
+          with SOURCE.open(newline="", encoding="iso-8859-1") as stream:
+              reader = csv.reader(stream)
+              header = next(reader)
+              units = next(reader)
+              rows = [dict(zip(header, row, strict=True)) for row in reader]
+
+          times = [datetime.fromisoformat(row["precise_time"].replace("Z", "+00:00")) for row in rows]
+          deltas = [(later - earlier).total_seconds() for earlier, later in pairwise(times)]
+          time_counts = Counter(row["precise_time"] for row in rows)
+          duplicate_times = sorted(time for time, count in time_counts.items() if count > 1)
+          channel_sets: dict[str, list[list[str]]] = {}
+          identity = {"trajectory", "wmo_id", "profile_id", "precise_time", "latitude", "longitude"}
+          for timestamp in duplicate_times:
+              channel_sets[timestamp] = [
+                  sorted(
+                      field
+                      for field, value in row.items()
+                      if field not in identity and present(value)
+                  )
+                  for row in rows
+                  if row["precise_time"] == timestamp
               ]
 
-          missing = sorted(FIELDS.difference(fieldnames))
-          if missing:
-              raise RuntimeError(f"missing fields: {missing}")
-          rows = [row for row in raw_rows if row.get("profile_id", "").strip().isdigit()]
-          if not rows:
-              raise RuntimeError("no numeric data rows")
-          profile_ids = sorted({row["profile_id"].strip() for row in rows})
-          if profile_ids != [PROFILE_ID]:
-              raise RuntimeError(f"unexpected profile IDs: {profile_ids}")
-
-          times = [
-              datetime.fromisoformat(row["precise_time"].replace("Z", "+00:00"))
-              for row in rows
-          ]
-          deltas = [(later - earlier).total_seconds() for earlier, later in pairwise(times)]
-          if any(delta < 0.0 for delta in deltas):
-              raise RuntimeError("out-of-order precise_time values")
-
-          counts = {
-              "surface_gps_rows": sum(
-                  present(row.get("m_gps_lat")) and present(row.get("m_gps_lon"))
-                  for row in rows
-              ),
-              "dead_reckoned_rows": sum(
-                  present(row.get("m_lat")) and present(row.get("m_lon"))
-                  for row in rows
-              ),
-              "coincident_gps_dr_rows": sum(
-                  present(row.get("m_gps_lat")) and present(row.get("m_gps_lon"))
-                  and present(row.get("m_lat")) and present(row.get("m_lon"))
-                  for row in rows
-              ),
-              "pressure_rows": sum(present(row.get("pressure")) for row in rows),
-              "source_depth_rows": sum(present(row.get("m_depth")) for row in rows),
-          }
-          if counts["dead_reckoned_rows"] == 0 or counts["pressure_rows"] == 0:
-              raise RuntimeError(f"required source channels absent: {counts}")
-
-          gps_lat = numeric_range(rows, "m_gps_lat")
-          gps_lon = numeric_range(rows, "m_gps_lon")
-          decimal_range = (
-              gps_lat is not None and gps_lon is not None
-              and max(abs(gps_lat["minimum"]), abs(gps_lat["maximum"])) <= 90.0
-              and max(abs(gps_lon["minimum"]), abs(gps_lon["maximum"])) <= 180.0
-          )
-          summary: dict[str, Any] = {
-              "inspection_version": "sea-sub-selected-anchor-inspection-v0.1",
+          payload = {
+              "inspection_version": "sea-sub-selected-anchor-inspection-v0.2",
               "source_dataset_id": "ioos-ngdac-uaf-unit_191-20240309T1200",
-              "profile_id": int(PROFILE_ID),
-              "data_row_count": len(rows),
-              "nondata_row_count": len(raw_rows) - len(rows),
-              "trajectory_values": sorted({row["trajectory"] for row in rows}),
-              "wmo_id_values": sorted({row["wmo_id"] for row in rows}),
-              "time": {
-                  "first": times[0].isoformat(), "last": times[-1].isoformat(),
-                  "duplicate_count": sum(delta == 0.0 for delta in deltas),
-                  "maximum_positive_gap_s": max((d for d in deltas if d > 0.0), default=None),
+              "source_artifact": {
+                  "path": "fixtures/ioos_uaf_unit_191_profile_1709942882.csv",
+                  "query_path": "acquisition/ioos_profile_query.txt",
+                  "sha256": hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
+                  "byte_size": SOURCE.stat().st_size,
+                  "acquired_at_utc": "2026-08-24T21:23:55Z",
+                  "http_status": 200,
+                  "media_type": "text/csv;charset=ISO-8859-1",
+                  "erddap_version": "2.30.0",
+                  "response_filename": "unit_191-20240309T1200_8a71_2ac2_31bb.csv",
+                  "github_actions_run_id": 32779262198,
               },
-              "channel_presence": counts,
+              "identity": {
+                  "trajectory": sorted({row["trajectory"] for row in rows}),
+                  "wmo_id": sorted({row["wmo_id"] for row in rows}),
+                  "profile_id": sorted({int(row["profile_id"]) for row in rows}),
+              },
+              "shape": {"column_count": len(header), "data_row_count": len(rows), "units_row_count": 1},
+              "time": {
+                  "system": "UTC",
+                  "first": times[0].isoformat(),
+                  "last": times[-1].isoformat(),
+                  "out_of_order_count": sum(delta < 0.0 for delta in deltas),
+                  "duplicate_timestamp_count": len(duplicate_times),
+                  "duplicate_timestamps": duplicate_times,
+                  "maximum_positive_gap_s": max((delta for delta in deltas if delta > 0.0), default=None),
+              },
+              "source_units": dict(zip(header, units, strict=True)),
+              "channel_presence": {
+                  "onboard_gps_rows": count_pair(rows, "m_gps_lat", "m_gps_lon"),
+                  "dead_reckoned_rows": count_pair(rows, "m_lat", "m_lon"),
+                  "coincident_gps_dead_reckoned_rows": sum(
+                      present(row["m_gps_lat"])
+                      and present(row["m_gps_lon"])
+                      and present(row["m_lat"])
+                      and present(row["m_lon"])
+                      for row in rows
+                  ),
+                  "pressure_rows": count_field(rows, "pressure"),
+                  "source_depth_rows": count_field(rows, "m_depth"),
+                  "standardized_depth_rows": count_field(rows, "depth"),
+                  "heading_rows": count_field(rows, "m_heading"),
+                  "pitch_rows": count_field(rows, "m_pitch"),
+                  "roll_rows": count_field(rows, "m_roll"),
+              },
               "numeric_ranges": {
                   field: numeric_range(rows, field)
-                  for field in ("m_gps_lat", "m_gps_lon", "m_lat", "m_lon", "m_depth", "pressure", "depth")
+                  for field in (
+                      "m_gps_lat", "m_gps_lon", "m_lat", "m_lon", "m_depth",
+                      "pressure", "depth", "latitude", "longitude",
+                  )
               },
-              "coordinate_encoding_assessment": {
-                  "gps_values_fit_decimal_degree_range": decimal_range,
-                  "metadata_declares_degrees_minutes": True,
-                  "automatic_conversion_authorized": False,
+              "duplicate_timestamp_channel_sets": channel_sets,
+              "quality_findings": [
+                  {
+                      "code": "SEA_SUB_ASYNCHRONOUS_CHANNEL_EVENTS",
+                      "severity": "contract_relevant",
+                      "finding": "Rows are sparse channel events rather than complete joint state vectors. Duplicate timestamps carry different populated channels and must not be dropped by row-level deduplication.",
+                  },
+                  {
+                      "code": "SEA_SUB_GPS_UNITS_VALUE_MISMATCH",
+                      "severity": "adapter_blocking_for_generic_conversion",
+                      "finding": "The units row declares degrees_minutes for m_gps_lat/m_gps_lon, while retained values fit decimal-degree ranges and align with the local geodetic neighborhood. This artifact must not receive DDMM conversion.",
+                  },
+                  {
+                      "code": "SEA_SUB_GPS_PHASE_NOT_PROVEN",
+                      "severity": "claim_boundary",
+                      "finding": "The artifact contains one onboard GPS event but does not prove a surface-phase label.",
+                  },
+                  {
+                      "code": "SEA_SUB_PROFILE_POSITION_IS_CONTEXT",
+                      "severity": "feature_guardrail",
+                      "finding": "Provider-standardized latitude/longitude are constant across the selected profile and behave as profile-level context.",
+                  },
+              ],
+              "mapping_decisions": {
+                  "m_gps_lat_lon": {
+                      "state_role": "source_observation",
+                      "value_basis": "measured",
+                      "target_channel": "onboard_gps_horizontal_position",
+                      "artifact_encoding": "decimal_degrees_as_retained",
+                      "datum": "provider_geodetic_horizontal_unresolved",
+                      "surface_phase_inferred": False,
+                  },
+                  "m_lat_lon": {
+                      "state_role": "estimate",
+                      "value_basis": "dead_reckoned",
+                      "target_channel": "underwater_horizontal_position",
+                  },
+                  "pressure": {"state_role": "source_observation", "value_basis": "measured", "units": "dbar"},
+                  "m_depth": {
+                      "state_role": "estimate",
+                      "value_basis": "calculated_from_pressure",
+                      "units": "m",
+                      "vertical_reference": "sea_surface",
+                      "positive_direction": "down",
+                  },
               },
               "acceptance": {
                   "artifact_acquired": True,
                   "schema_inspected": True,
+                  "mapping_complete": True,
                   "selected_anchor_fixture_validated": False,
+                  "canonical_common_front_validated": False,
                   "lane_g2_satisfied": False,
               },
           }
-          (OUT / "inspection.json").write_text(
-              json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-          )
-          sample = rows if len(rows) <= 100 else [*rows[:50], *rows[-50:]]
-          (OUT / "bounded_sample_rows.json").write_text(
-              json.dumps({"source_row_count": len(rows), "rows": sample}, indent=2) + "\n",
-              encoding="utf-8",
-          )
+          TARGET.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
 
-      - name: Install focused validation tools
-        run: python -m pip install --disable-pip-version-check pytest PyYAML ruff pyright
-      - name: Run focused tests
-        run: >-
-          python -m pytest -q -p no:cacheprovider
-          tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
-      - name: Run Ruff
+      - name: Repair and validate focused test formatting
         run: |
-          python -m ruff check tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
-          python -m ruff format --check tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
-      - name: Run Pyright
-        run: pyright tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
-      - name: Upload evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sea-sub-selected-anchor-evidence
-          path: artifact/sea_sub_selected_anchor
-          if-no-files-found: error
-          retention-days: 7
+          python -m pip install --disable-pip-version-check ruff
+          python -m ruff check --fix tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
+          python -m ruff format tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
+
+      - name: Commit retained evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            docs/research/product4/sea_subsurface/fixtures/ioos_uaf_unit_191_profile_1709942882.csv \
+            docs/research/product4/sea_subsurface/acquisition/ioos_profile_1709942882_inspection.json \
+            tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
+          if git diff --cached --quiet; then
+            echo "Selected-anchor evidence already retained."
+          else
+            git commit -m "data: retain SEA-SUB selected anchor evidence"
+            git push origin HEAD:feature/product-4-sea-subsurface-research
+          fi
