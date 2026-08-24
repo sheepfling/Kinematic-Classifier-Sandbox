@@ -402,7 +402,7 @@ def _time_axis() -> TimeAxisDescriptor:
 def _quality(source: Mapping[str, NDArray[Any]]) -> QualitySummary:
     elapsed = np.asarray(source["elapsed_s"], dtype=np.float64)
     delta = np.diff(elapsed)
-    duplicate_count = int(np.count_nonzero(delta == 0.0))
+    duplicate_count = int(elapsed.size - np.unique(elapsed).size)
     out_of_order_count = int(np.count_nonzero(delta < 0.0))
     positive = delta[delta > 0.0]
     findings = [
@@ -500,6 +500,8 @@ def build_episode(
     route: RouteDefinition,
     source_artifact_id: str,
     source_artifact_sha256: str,
+    nomenclature_artifact_id: str,
+    nomenclature_artifact_sha256: str,
     corpus_snapshot_id: str,
     identity_key: bytes,
     dataset_id: str = DEFAULT_DATASET_ID,
@@ -703,7 +705,7 @@ def build_episode(
         default_operating_environment="water_surface",
         default_motion_regime="surface_navigation",
         source_dataset_id=dataset_id,
-        source_artifact_ids=(source_artifact_id,),
+        source_artifact_ids=(source_artifact_id, nomenclature_artifact_id),
         observation_modality="cooperative_ais",
         platform_group_id=platform_group,
         start_time=start_time,
@@ -793,7 +795,16 @@ def build_episode(
                     "destination_port": route.destination_port,
                     "nominal_length_m": route.nominal_length_m,
                 },
-                "source_artifact_sha256": source_artifact_sha256,
+                "source_artifacts": {
+                    "tracklets": {
+                        "artifact_id": source_artifact_id,
+                        "sha256": source_artifact_sha256,
+                    },
+                    "route_nomenclature": {
+                        "artifact_id": nomenclature_artifact_id,
+                        "sha256": nomenclature_artifact_sha256,
+                    },
+                },
                 "raw_identity_access": "adapter_only",
                 "platform_group_derivation": "HMAC-SHA256 truncated to 96 bits",
                 "identity_key_persisted": False,
@@ -832,6 +843,7 @@ def build_fixture(
     source_artifact_id: str,
     corpus_snapshot_id: str,
     identity_key: bytes,
+    nomenclature_artifact_id: str | None = None,
     selected_tracklet_ids: set[int] | None = None,
     dataset_id: str = DEFAULT_DATASET_ID,
 ) -> FixtureBuildResult:
@@ -842,7 +854,17 @@ def build_fixture(
     missing_routes = sorted({tracklet.route_id for tracklet in tracklets} - set(routes))
     if missing_routes:
         raise ValueError(f"route nomenclature is missing route IDs: {missing_routes}")
+    resolved_nomenclature_artifact_id = (
+        nomenclature_artifact_id
+        if nomenclature_artifact_id is not None
+        else f"{source_artifact_id}:route-nomenclature"
+    )
+    if not resolved_nomenclature_artifact_id:
+        raise ValueError("nomenclature_artifact_id must not be empty")
+    if resolved_nomenclature_artifact_id == source_artifact_id:
+        raise ValueError("nomenclature_artifact_id must differ from source_artifact_id")
     source_sha = sha256_file(tracklets_path)
+    nomenclature_sha = sha256_file(nomenclature_path)
     manifests = tuple(
         build_episode(
             output_root=output_root,
@@ -850,6 +872,8 @@ def build_fixture(
             route=routes[tracklet.route_id],
             source_artifact_id=source_artifact_id,
             source_artifact_sha256=source_sha,
+            nomenclature_artifact_id=resolved_nomenclature_artifact_id,
+            nomenclature_artifact_sha256=nomenclature_sha,
             corpus_snapshot_id=corpus_snapshot_id,
             identity_key=identity_key,
             dataset_id=dataset_id,
