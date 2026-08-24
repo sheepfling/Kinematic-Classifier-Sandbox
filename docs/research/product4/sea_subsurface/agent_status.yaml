@@ -1,4 +1,4 @@
-status_version: product4-sea-sub-research-status-v0.1
+status_version: product4-sea-sub-research-status-v0.2
 status_date: '2026-08-24'
 product: Product 4 — Real-World Corpus & Validation
 program_domain: sea
@@ -7,9 +7,12 @@ contract_version: trajectory-corpus-v0.1
 portfolio:
   anchor:
     source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
-    evidence_state: access_verified
+    evidence_state: mapping_complete
     score: 89
-    retained_numeric_bytes: false
+    retained_numeric_bytes: true
+    artifact_sha256: 29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a
+    schema_inspected: true
+    mapping_complete: true
     fixture_validated: false
   independent_validation:
     source_dataset_id: mgds-whoi-sentry-at26-09-navigation
@@ -27,6 +30,8 @@ portfolio:
     lane_g2_satisfied: false
 gates:
   G1_source_portfolio: complete
+  selected_anchor_artifact: acquired_and_inspected
+  selected_anchor_mapping: complete
   restricted_contract_regression: validated
   restricted_mixed_provenance_bridge: validated
   G2_selected_anchor_fixture: open
@@ -34,7 +39,8 @@ gates:
   G5_independent_source_validation: open
 counts:
   sources_researched: 4
-  retained_source_families: 2
+  retained_source_families: 3
+  retained_selected_anchor_artifacts: 1
   restricted_validated_fixtures: 2
   selected_anchor_fixtures: 0
   independent_validation_fixtures: 0
@@ -44,7 +50,7 @@ change_request:
   root_schema_fork_required: false
   decision: clarify measured pressure versus derived depth acceptance
 blockers:
-- retain and hash bounded IOOS/UAF profile bytes
-- inspect anchor GPS/dead-reckoning transitions, resets, gaps, duplicates, and ordering
-- run the anchor fixture through the canonical COMMON-FRONT implementation
+- construct a canonical selected-anchor state-view fixture from sparse asynchronous channel events
+- define channel-aware same-time event handling without deleting source evidence
+- run the selected-anchor fixture through the canonical COMMON-FRONT implementation
 - retain one Sentry PPL file and provenance record
