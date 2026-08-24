@@ -33,7 +33,7 @@ class ReadsbTracePoint:
     altitude_basis: ReadsbVerticalBasis | None
     on_ground: bool
     ground_speed_kt: float | None
-    track_deg: float | None
+    track_or_ground_heading_deg: float | None
     flags: int
     stale_position: bool
     starts_new_leg: bool
@@ -75,6 +75,11 @@ class ReadsbTraceLeg:
     leg_ordinal: int
     points: tuple[ReadsbTracePoint, ...]
 
+    def __post_init__(self) -> None:
+        if not self.points:
+            raise ValueError("readsb trace leg requires at least one point")
+    ####
+
     @property
     def start_source_index(self) -> int:
         return self.points[0].source_index
@@ -99,13 +104,15 @@ class ReadsbTraceFinding:
 ####
 
 
-def _optional_float(value: object) -> float | None:
-    if value is None or isinstance(value, bool):
+def _optional_finite_number(value: object, *, location: str) -> float | None:
+    if value is None:
         return None
-    if isinstance(value, (int, float)):
-        converted = float(value)
-        return converted if math.isfinite(converted) else None
-    return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{location} must be a finite number or null")
+    converted = float(value)
+    if not math.isfinite(converted):
+        raise ValueError(f"{location} must be finite")
+    return converted
 ####
 
 
@@ -123,7 +130,7 @@ def _row_value(row: Sequence[object], index: int) -> object:
 
 
 def _require_finite_number(value: object, *, location: str) -> float:
-    converted = _optional_float(value)
+    converted = _optional_finite_number(value, location=location)
     if converted is None:
         raise ValueError(f"{location} must be a finite number")
     return converted
@@ -138,7 +145,7 @@ def _optional_bounded_float(
     maximum: float,
     maximum_inclusive: bool = True,
 ) -> float | None:
-    converted = _optional_float(value)
+    converted = _optional_finite_number(value, location=location)
     if converted is None:
         return None
     maximum_valid = converted <= maximum if maximum_inclusive else converted < maximum
@@ -185,28 +192,49 @@ def parse_readsb_trace(payload: Mapping[str, Any]) -> ReadsbTrace:
         if not isinstance(flags_value, int) or isinstance(flags_value, bool):
             raise ValueError(f"trace[{source_index}][6] must be an integer bitfield")
         flags = int(flags_value)
+        if flags < 0:
+            raise ValueError(f"trace[{source_index}][6] must be non-negative")
 
         raw_altitude = _row_value(raw_row, 3)
         on_ground = raw_altitude == "ground"
-        altitude_ft = None if on_ground else _optional_float(raw_altitude)
+        altitude_ft = (
+            None
+            if on_ground
+            else _optional_finite_number(
+                raw_altitude,
+                location=f"trace[{source_index}][3]",
+            )
+        )
         if raw_altitude not in (None, "ground") and altitude_ft is None:
             raise ValueError(
                 f"trace[{source_index}][3] must be numeric, 'ground', or null"
             )
 
-        ground_speed_kt = _optional_float(_row_value(raw_row, 4))
+        ground_speed_kt = _optional_finite_number(
+            _row_value(raw_row, 4),
+            location=f"trace[{source_index}][4]",
+        )
         if ground_speed_kt is not None and ground_speed_kt < 0.0:
             raise ValueError(f"trace[{source_index}][4] must be non-negative")
 
-        indicated_airspeed_kt = _optional_float(_row_value(raw_row, 12))
+        indicated_airspeed_kt = _optional_finite_number(
+            _row_value(raw_row, 12),
+            location=f"trace[{source_index}][12]",
+        )
         if indicated_airspeed_kt is not None and indicated_airspeed_kt < 0.0:
             raise ValueError(f"trace[{source_index}][12] must be non-negative")
 
-        vertical_rate_fpm = _optional_float(_row_value(raw_row, 7))
+        vertical_rate_fpm = _optional_finite_number(
+            _row_value(raw_row, 7),
+            location=f"trace[{source_index}][7]",
+        )
         points.append(
             ReadsbTracePoint(
                 source_index=source_index,
-                event_time_unix_s=timestamp + offset_s,
+                event_time_unix_s=_require_finite_number(
+                    timestamp + offset_s,
+                    location=f"trace[{source_index}] event time",
+                ),
                 latitude_deg=_optional_bounded_float(
                     _row_value(raw_row, 1),
                     location=f"trace[{source_index}][1]",
@@ -227,7 +255,7 @@ def parse_readsb_trace(payload: Mapping[str, Any]) -> ReadsbTrace:
                 ),
                 on_ground=on_ground,
                 ground_speed_kt=ground_speed_kt,
-                track_deg=_optional_bounded_float(
+                track_or_ground_heading_deg=_optional_bounded_float(
                     _row_value(raw_row, 5),
                     location=f"trace[{source_index}][5]",
                     minimum=0.0,
@@ -244,20 +272,31 @@ def parse_readsb_trace(payload: Mapping[str, Any]) -> ReadsbTrace:
                     vertical_rate_fpm,
                 ),
                 source_type=_optional_string(_row_value(raw_row, 9)),
-                geometric_altitude_ft=_optional_float(_row_value(raw_row, 10)),
-                geometric_vertical_rate_fpm=_optional_float(_row_value(raw_row, 11)),
+                geometric_altitude_ft=_optional_finite_number(
+                    _row_value(raw_row, 10),
+                    location=f"trace[{source_index}][10]",
+                ),
+                geometric_vertical_rate_fpm=_optional_finite_number(
+                    _row_value(raw_row, 11),
+                    location=f"trace[{source_index}][11]",
+                ),
                 indicated_airspeed_kt=indicated_airspeed_kt,
-                roll_deg=_optional_float(_row_value(raw_row, 13)),
+                roll_deg=_optional_finite_number(
+                    _row_value(raw_row, 13),
+                    location=f"trace[{source_index}][13]",
+                ),
             )
         )
 
     database_flags_value = payload.get("dbFlags")
-    database_flags = (
-        int(database_flags_value)
-        if isinstance(database_flags_value, int)
-        and not isinstance(database_flags_value, bool)
-        else None
-    )
+    if database_flags_value is None:
+        database_flags = None
+    elif isinstance(database_flags_value, int) and not isinstance(database_flags_value, bool):
+        if database_flags_value < 0:
+            raise ValueError("dbFlags must be non-negative")
+        database_flags = int(database_flags_value)
+    else:
+        raise ValueError("dbFlags must be an integer bitfield or null")
 
     return ReadsbTrace(
         icao=icao.lower(),
@@ -296,12 +335,13 @@ def split_readsb_legs(
 
     accepted: list[ReadsbTraceLeg] = []
     current: list[ReadsbTracePoint] = []
+    source_leg_ordinal = 0
 
     def append_current() -> None:
         if len(current) >= minimum_samples:
             accepted.append(
                 ReadsbTraceLeg(
-                    leg_ordinal=len(accepted),
+                    leg_ordinal=source_leg_ordinal,
                     points=tuple(current),
                 )
             )
@@ -310,6 +350,7 @@ def split_readsb_legs(
     for point in trace.points:
         if point.starts_new_leg and current:
             append_current()
+            source_leg_ordinal += 1
             current = []
         current.append(point)
 
@@ -321,24 +362,30 @@ def split_readsb_legs(
 def trace_time_findings(trace: ReadsbTrace) -> tuple[ReadsbTraceFinding, ...]:
     findings: list[ReadsbTraceFinding] = []
     previous: ReadsbTracePoint | None = None
+    first_index_by_time: dict[float, int] = {}
+
     for point in trace.points:
-        if previous is not None:
-            if point.event_time_unix_s == previous.event_time_unix_s:
-                findings.append(
-                    ReadsbTraceFinding(
-                        code="AIR_DUPLICATE_TIMESTAMP",
-                        source_index=point.source_index,
-                        previous_source_index=previous.source_index,
-                    )
+        duplicate_of = first_index_by_time.get(point.event_time_unix_s)
+        if duplicate_of is not None:
+            findings.append(
+                ReadsbTraceFinding(
+                    code="AIR_DUPLICATE_TIMESTAMP",
+                    source_index=point.source_index,
+                    previous_source_index=duplicate_of,
                 )
-            elif point.event_time_unix_s < previous.event_time_unix_s:
-                findings.append(
-                    ReadsbTraceFinding(
-                        code="AIR_OUT_OF_ORDER_TIMESTAMP",
-                        source_index=point.source_index,
-                        previous_source_index=previous.source_index,
-                    )
+            )
+        else:
+            first_index_by_time[point.event_time_unix_s] = point.source_index
+
+        if previous is not None and point.event_time_unix_s < previous.event_time_unix_s:
+            findings.append(
+                ReadsbTraceFinding(
+                    code="AIR_OUT_OF_ORDER_TIMESTAMP",
+                    source_index=point.source_index,
+                    previous_source_index=previous.source_index,
                 )
+            )
         previous = point
+
     return tuple(findings)
 ####
