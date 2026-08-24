@@ -33,6 +33,18 @@ for track in result.tracks:
 The repository does not redistribute the raw dataset. The manifest records the official landing
 page, download endpoint, citation, DOI, access date, coordinate-frame description, and license.
 
+## AIR atmospheric source groundwork
+
+`adapters.adsblol.readsb_trace` parses plain or gzip-compressed historical `readsb` trace JSON.
+It preserves source sample order, explicit time offsets, ground-state sentinels, stale-position and
+source-derived new-leg flags, source type, and separate barometric/geometric altitude and vertical-
+rate semantics.
+
+This is parser and mapping groundwork for the proposed ADSB.lol Product 4 AIR anchor. It does not
+yet claim a prepared AIR pilot or a validated historical flight-leg fixture. The source portfolio,
+native mapping, grouping boundary, and remaining G2 work are documented in
+`docs/product4/air_atmospheric/`.
+
 ## Leakage-safe windowing and splits
 
 `windowing.py` breaks tracks at timing discontinuities before creating deterministic half-open

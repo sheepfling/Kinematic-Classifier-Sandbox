@@ -1,0 +1,119 @@
+mapping_version: adsblol-readsb-v0.1
+contract_version: trajectory-corpus-v0.1
+lane: air_atmospheric
+source_dataset_id: adsblol_globe_history
+source_schema: readsb_trace_json_2022_plus
+source_unit: physical_aircraft_by_collection_day
+prepared_episode_kind: source_derived_flight_leg
+identity_and_grouping:
+  physical_platform:
+    source_field: icao
+    access_class: identity_grouping_only
+    prepared_value: pseudonymous_or_hmac_identifier
+  source_recording:
+    composition:
+      - source_dataset_id
+      - collection_date
+      - physical_platform_group
+  mission_event:
+    derivation: new_leg_flag_plus_versioned_corroboration_policy
+  classifier_visible_episode_id:
+    derivation: opaque_digest
+    prohibited_components:
+      - raw_icao
+      - registration
+      - callsign
+      - aircraft_type
+      - provider_name
+      - route
+source_native_fields:
+  time:
+    source_fields:
+      - timestamp
+      - trace[*][0]
+    target_semantics: unix_utc_event_time_s
+    derivation: timestamp + sample_offset
+  latitude:
+    source_field: trace[*][1]
+    unit: degree
+    frame: WGS84_geodetic
+  longitude:
+    source_field: trace[*][2]
+    unit: degree
+    frame: WGS84_geodetic
+  altitude_primary:
+    source_field: trace[*][3]
+    unit: ft
+    sentinels:
+      ground: ground_state_without_numeric_altitude
+      null: missing
+    basis:
+      geometric_when: trace[*][6] bit 8
+      otherwise: barometric
+    policy: never_coalesce_with_explicit_geometric_altitude_without_declared_transform
+  ground_speed:
+    source_field: trace[*][4]
+    unit: knot
+  track_or_ground_heading:
+    source_field: trace[*][5]
+    unit: degree_true
+    note: source documentation defines ground heading when altitude sentinel is ground
+  trace_flags:
+    source_field: trace[*][6]
+    bits:
+      1: stale_position
+      2: start_of_new_leg
+      4: primary_vertical_rate_is_geometric
+      8: primary_altitude_is_geometric
+  vertical_rate_primary:
+    source_field: trace[*][7]
+    unit: ft/min
+    basis:
+      geometric_when: trace[*][6] bit 4
+      otherwise: barometric
+  position_source:
+    source_field: trace[*][9]
+    role: nuisance_and_quality_metadata
+  geometric_altitude:
+    source_field: trace[*][10]
+    unit: ft
+    vertical_reference: WGS84_ellipsoid
+  geometric_vertical_rate:
+    source_field: trace[*][11]
+    unit: ft/min
+  indicated_airspeed:
+    source_field: trace[*][12]
+    unit: knot
+  roll:
+    source_field: trace[*][13]
+    unit: degree
+analysis_view:
+  permitted_frames:
+    - ECEF
+    - local_ENU
+  required_lineage:
+    - source_row_index
+    - source_time_interpretation
+    - unit_conversion
+    - vertical_channel_selection
+    - coordinate_transform
+  missing_vertical_policy: preserve_missing_never_zero_fill
+  velocity: optional
+  acceleration: omitted_in_this_tranche
+quality_findings:
+  - AIR_DUPLICATE_TIMESTAMP
+  - AIR_OUT_OF_ORDER_TIMESTAMP
+  - AIR_STALE_POSITION
+  - AIR_POSITION_SOURCE_TRANSITION
+  - AIR_AMBIGUOUS_LEG_BOUNDARY
+claim_boundary:
+  supports:
+    - native_readsb_trace_parsing
+    - source_derived_leg_candidates
+    - explicit_vertical_semantics
+    - source_regime_auditing
+  does_not_support:
+    - physical_truth_state
+    - authoritative_flight_identity
+    - authoritative_military_affiliation
+    - AIR_G2_completion_without_genuine_historical_fixture
