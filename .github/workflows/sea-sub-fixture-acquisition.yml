@@ -2,7 +2,9 @@ name: SEA-SUB fixture validation
 
 on:
   pull_request:
-    branches: [feature/product-4-real-world-corpus]
+    branches:
+      - feature/product-4-real-world-corpus
+      - main
     paths:
       - .github/workflows/sea-sub-fixture-acquisition.yml
       - docs/research/product4/sea_subsurface/**
