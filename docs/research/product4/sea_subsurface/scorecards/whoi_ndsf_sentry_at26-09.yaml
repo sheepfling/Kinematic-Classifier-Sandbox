@@ -6,7 +6,7 @@ hard_gates:
   reproducible_retrieval: {passed: false, evidence: file UID and direct download not retained}
   publisher_and_citation: {passed: true, evidence: MGDS landing page and DOI}
   rights_and_redistribution: {passed: true, evidence: CC BY 4.0}
-  time_semantics: {passed: true, evidence: documented date/time columns; exact system pending file}
+  time_semantics: {passed: false, evidence: date/time columns documented but exact time system remains unresolved pending retained PPL artifact}
   frame_axes_units: {passed: false, evidence: decimal degrees and metres documented; datum/reference pending}
   object_event_grouping: {passed: true, evidence: expedition plus sentry213 through sentry220}
   label_and_claim_boundary: {passed: true, evidence: scientific AUV identity only}
