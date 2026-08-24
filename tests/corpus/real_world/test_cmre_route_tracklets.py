@@ -9,6 +9,7 @@ import pytest
 from kinematic_classifier_sandbox.corpus.real_world.adapters.cmre_route_tracklets import (
     build_fixture,
     parse_tracklets,
+    protected_identity_group_id,
     write_fixture_index,
 )
 from kinematic_classifier_sandbox.corpus.real_world.episode_contracts import (
@@ -19,6 +20,9 @@ from kinematic_classifier_sandbox.corpus.real_world.episode_contracts import (
 )
 
 
+_TEST_IDENTITY_KEY = b"unit-test-identity-key-material-32-bytes"
+
+
 def _tracklet_row(
     *,
     tracklet_id: int,
@@ -26,15 +30,18 @@ def _tracklet_row(
     route: str,
     timestamps: tuple[int, int, int, int, int],
     heading: float = 90.0,
+    course: float = 90.0,
+    speed: float | None = None,
 ) -> str:
     fields: list[str] = [str(tracklet_id)]
     for index, timestamp in enumerate(timestamps, start=1):
+        speed_value = speed if speed is not None else 8.0 + index / 10.0
         fields.extend(
             (
                 str(tracklet_id * 100 + index),
                 str(mmsi),
-                f"{8.0 + index / 10.0:.1f}",
-                "90.0",
+                f"{speed_value:.1f}",
+                f"{course:.1f}",
                 f"{heading:.1f}",
                 f"{-4.70 + index * 0.001:.6f}",
                 f"{48.30 + index * 0.0001:.6f}",
@@ -46,7 +53,7 @@ def _tracklet_row(
 ####
 
 
-def _write_sources(root: Path) -> tuple[Path, Path]:
+def _header() -> list[str]:
     header = ["idtracklet"]
     for index in range(1, 6):
         header.extend(
@@ -62,11 +69,16 @@ def _write_sources(root: Path) -> tuple[Path, Path]:
             )
         )
     header.append("route")
+    return header
+####
+
+
+def _write_sources(root: Path) -> tuple[Path, Path]:
     tracklets = root / "tracklets.csv"
     tracklets.write_text(
         "\n".join(
             (
-                "|".join(header),
+                "|".join(_header()),
                 _tracklet_row(
                     tracklet_id=1,
                     mmsi=111_111_111,
@@ -105,6 +117,7 @@ def _build(root: Path):
         output_root=output,
         source_artifact_id="synthetic-contract-fixture",
         corpus_snapshot_id="synthetic-sea-surface-fixture",
+        identity_key=_TEST_IDENTITY_KEY,
     )
     return result, output
 ####
@@ -173,7 +186,9 @@ def test_classifier_asset_excludes_identity_route_and_target_labels(tmp_path: Pa
             assert set(arrays.files) == {
                 "elapsed_s",
                 "position_xy_m",
+                "position_valid_xy",
                 "reported_velocity_xy_mps",
+                "reported_velocity_valid_xy",
             }
         ####
     ####
@@ -196,6 +211,32 @@ def test_grouping_key_links_repeated_platform_without_raw_mmsi(tmp_path: Path) -
 ####
 
 
+def test_platform_group_is_keyed_and_changes_with_identity_key() -> None:
+    first = protected_identity_group_id(
+        dataset_id="dataset",
+        namespace="physical_platform",
+        raw_value="111111111",
+        identity_key=b"first-key-material-for-tests",
+    )
+    second = protected_identity_group_id(
+        dataset_id="dataset",
+        namespace="physical_platform",
+        raw_value="111111111",
+        identity_key=b"second-key-material-for-tests",
+    )
+    assert first != second
+    assert "111111111" not in first
+    with pytest.raises(ValueError, match="at least 16 bytes"):
+        protected_identity_group_id(
+            dataset_id="dataset",
+            namespace="physical_platform",
+            raw_value="111111111",
+            identity_key=b"short",
+        )
+    ####
+####
+
+
 def test_heading_sentinel_is_retained_and_marked_invalid(tmp_path: Path) -> None:
     result, output = _build(tmp_path)
     manifest = result.manifests[1]
@@ -207,6 +248,48 @@ def test_heading_sentinel_is_retained_and_marked_invalid(tmp_path: Path) -> None
         assert np.all(~arrays["heading_valid"])
     ####
     assert "invalid_heading" in {
+        finding.code for finding in manifest.quality_summary.findings
+    }
+####
+
+
+def test_invalid_reported_motion_is_masked_in_classifier_asset(tmp_path: Path) -> None:
+    tracklets = tmp_path / "invalid_motion.csv"
+    tracklets.write_text(
+        "|".join(_header())
+        + "\n"
+        + _tracklet_row(
+            tracklet_id=4,
+            mmsi=444_444_444,
+            route="R_TEST_A",
+            timestamps=(100, 110, 120, 130, 140),
+            course=360.0,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    nomenclature = tmp_path / "nomenclature_invalid_motion.csv"
+    nomenclature.write_text(
+        "route|originport|destinationport|length\nR_TEST_A|PORT_A|PORT_B|1000\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "prepared_invalid_motion"
+    result = build_fixture(
+        tracklets_path=tracklets,
+        nomenclature_path=nomenclature,
+        output_root=output,
+        source_artifact_id="invalid-motion-contract-fixture",
+        corpus_snapshot_id="invalid-motion-sea-surface-fixture",
+        identity_key=_TEST_IDENTITY_KEY,
+    )
+    manifest = result.manifests[0]
+    classifier = manifest.classifier_trajectory_view
+    assert classifier is not None
+    with np.load(output / classifier.asset.path, allow_pickle=False) as arrays:
+        assert np.all(np.isnan(arrays["reported_velocity_xy_mps"]))
+        assert np.all(~arrays["reported_velocity_valid_xy"])
+    ####
+    assert "invalid_reported_motion" in {
         finding.code for finding in manifest.quality_summary.findings
     }
 ####
@@ -233,25 +316,28 @@ def test_parser_rejects_mixed_platform_identity(tmp_path: Path) -> None:
 ####
 
 
-def test_classifier_projection_is_strict_after_out_of_order_source_time(tmp_path: Path) -> None:
-    header = ["idtracklet"]
-    for index in range(1, 6):
-        header.extend(
-            (
-                f"id{index}",
-                f"mmsi{index}",
-                f"speed{index}",
-                f"course{index}",
-                f"heading{index}",
-                f"lon{index}",
-                f"lat{index}",
-                f"ts{index}",
-            )
-        )
-    header.append("route")
+def test_parser_rejects_duplicate_tracklet_id(tmp_path: Path) -> None:
+    tracklets, _ = _write_sources(tmp_path)
+    rows = tracklets.read_text().splitlines()
+    tracklets.write_text("\n".join((rows[0], rows[1], rows[1])) + "\n")
+    with pytest.raises(ValueError, match="duplicate tracklet ID"):
+        parse_tracklets(tracklets)
+    ####
+####
+
+
+def test_parser_rejects_missing_selected_tracklet_id(tmp_path: Path) -> None:
+    tracklets, _ = _write_sources(tmp_path)
+    with pytest.raises(ValueError, match="were not found"):
+        parse_tracklets(tracklets, selected_tracklet_ids={1, 99})
+    ####
+####
+
+
+def test_classifier_projection_sorts_and_deduplicates_source_time(tmp_path: Path) -> None:
     tracklets = tmp_path / "tracklets_out_of_order.csv"
     tracklets.write_text(
-        "|".join(header)
+        "|".join(_header())
         + "\n"
         + _tracklet_row(
             tracklet_id=3,
@@ -274,13 +360,14 @@ def test_classifier_projection_is_strict_after_out_of_order_source_time(tmp_path
         output_root=output,
         source_artifact_id="out-of-order-contract-fixture",
         corpus_snapshot_id="out-of-order-sea-surface-fixture",
+        identity_key=_TEST_IDENTITY_KEY,
     )
     manifest = result.manifests[0]
     classifier = manifest.classifier_trajectory_view
     assert classifier is not None
     with np.load(output / classifier.asset.path, allow_pickle=False) as arrays:
         assert np.all(np.diff(arrays["elapsed_s"]) > 0.0)
-        assert arrays["elapsed_s"].tolist() == [0.0, 10.0, 20.0]
+        assert arrays["elapsed_s"].tolist() == [0.0, 5.0, 6.0, 10.0, 20.0]
     ####
     assert "out_of_order_timestamp" in {
         finding.code for finding in manifest.quality_summary.findings

@@ -180,3 +180,21 @@ def test_episode_requires_split_capable_grouping() -> None:
         TrajectoryEpisodeManifest.model_validate(payload)
     ####
 ####
+
+
+def test_classifier_frame_must_match_referenced_state_view() -> None:
+    payload = _manifest().model_dump()
+    payload["classifier_trajectory_view"]["frame_id"] = "wrong-frame"
+    with pytest.raises(ValidationError, match="frame_id must match"):
+        TrajectoryEpisodeManifest.model_validate(payload)
+    ####
+####
+
+
+def test_classifier_sample_count_must_not_exceed_state_view() -> None:
+    payload = _manifest().model_dump()
+    payload["classifier_trajectory_view"]["sample_count"] = 3
+    with pytest.raises(ValidationError, match="must not exceed"):
+        TrajectoryEpisodeManifest.model_validate(payload)
+    ####
+####

@@ -110,6 +110,8 @@ class AssetReference(StrictFrozenModel):
     @classmethod
     def validate_relative_path(cls, value: str) -> str:
         path = PurePosixPath(value)
+        if path == PurePosixPath("."):
+            raise ValueError("asset paths must identify a file")
         if path.is_absolute() or ".." in path.parts:
             raise ValueError("asset paths must be relative and may not traverse parents")
         return value
@@ -174,6 +176,8 @@ class ChannelDescriptor(StrictFrozenModel):
     def validate_components_and_units(self) -> Self:
         if len(self.component_names) != len(self.units):
             raise ValueError("channel component_names and units must have equal length")
+        if len(set(self.component_names)) != len(self.component_names):
+            raise ValueError("channel component names must be unique")
         return self
     ####
 ####
@@ -197,6 +201,8 @@ class TrajectoryStateViewManifest(StrictFrozenModel):
         channel_ids = tuple(channel.channel_id for channel in self.channel_descriptors)
         if len(channel_ids) != len(set(channel_ids)):
             raise ValueError("state-view channel IDs must be unique")
+        if len(self.processing_step_ids) != len(set(self.processing_step_ids)):
+            raise ValueError("state-view processing step IDs must be unique")
         for channel in self.channel_descriptors:
             if channel.frame_id is not None and channel.frame_id != self.frame.frame_id:
                 raise ValueError("channel frame_id must match the owning state view")
@@ -282,6 +288,19 @@ class QualityFinding(StrictFrozenModel):
     start_offset_s: float | None = Field(default=None, ge=0.0)
     end_offset_s: float | None = Field(default=None, ge=0.0)
     source_reference: str | None = None
+
+    @model_validator(mode="after")
+    def validate_interval(self) -> Self:
+        if self.end_offset_s is not None and self.start_offset_s is None:
+            raise ValueError("quality finding end_offset_s requires start_offset_s")
+        if (
+            self.start_offset_s is not None
+            and self.end_offset_s is not None
+            and self.end_offset_s < self.start_offset_s
+        ):
+            raise ValueError("quality finding end_offset_s must not precede start_offset_s")
+        return self
+    ####
 ####
 
 
@@ -321,6 +340,10 @@ class ClassifierTrajectoryView(StrictFrozenModel):
             raise ValueError("classifier assets must not contain target labels")
         if not self.identity_and_grouping_values_excluded:
             raise ValueError("classifier assets must exclude identity and grouping values")
+        if len(self.permitted_extra_channels) != len(set(self.permitted_extra_channels)):
+            raise ValueError("classifier permitted_extra_channels must be unique")
+        if len(self.processing_step_ids) != len(set(self.processing_step_ids)):
+            raise ValueError("classifier processing step IDs must be unique")
         return self
     ####
 ####
@@ -359,18 +382,30 @@ class TrajectoryEpisodeManifest(StrictFrozenModel):
 
         if len(self.source_artifact_ids) != len(set(self.source_artifact_ids)):
             raise ValueError("source artifact IDs must be unique")
+        if len(self.processing_step_ids) != len(set(self.processing_step_ids)):
+            raise ValueError("episode processing step IDs must be unique")
 
         state_view_ids = tuple(view.state_view_id for view in self.state_views)
         if len(state_view_ids) != len(set(state_view_ids)):
             raise ValueError("state view IDs must be unique")
+        state_views_by_id = {view.state_view_id: view for view in self.state_views}
 
         root_steps = set(self.processing_step_ids)
+        channel_ids: set[str] = set()
         for view in self.state_views:
             if not set(view.processing_step_ids).issubset(root_steps):
                 raise ValueError("state-view processing steps must be declared by the episode")
             for channel in view.channel_descriptors:
+                channel_ids.add(channel.channel_id)
                 if not set(channel.lineage_step_ids).issubset(root_steps):
                     raise ValueError("channel lineage steps must be declared by the episode")
+
+        assertion_ids = tuple(label.assertion_id for label in self.labels)
+        if len(assertion_ids) != len(set(assertion_ids)):
+            raise ValueError("label assertion IDs must be unique")
+        for label in self.labels:
+            if not set(label.dependency_channel_ids).issubset(channel_ids):
+                raise ValueError("label dependency channels must exist in an episode state view")
 
         classifier = self.classifier_trajectory_view
         if classifier is not None:
@@ -380,6 +415,17 @@ class TrajectoryEpisodeManifest(StrictFrozenModel):
                 raise ValueError("classifier view must reference an episode state view")
             if not set(classifier.processing_step_ids).issubset(root_steps):
                 raise ValueError("classifier processing steps must be declared by the episode")
+            referenced_view = state_views_by_id[classifier.state_view_id]
+            if classifier.frame_id != referenced_view.frame.frame_id:
+                raise ValueError("classifier frame_id must match the referenced state view")
+            if classifier.sample_count > referenced_view.sample_count:
+                raise ValueError("classifier sample_count must not exceed the referenced state view")
+
+        grouping_pairs = tuple(
+            (key.namespace, key.opaque_value) for key in self.grouping_keys
+        )
+        if len(grouping_pairs) != len(set(grouping_pairs)):
+            raise ValueError("grouping keys must be unique by namespace and value")
 
         split_capable = {
             GroupingNamespace.PHYSICAL_PLATFORM,

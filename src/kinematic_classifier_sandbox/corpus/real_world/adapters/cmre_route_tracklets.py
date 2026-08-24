@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import hmac
 import json
 import math
 from collections import Counter
@@ -41,12 +42,13 @@ from kinematic_classifier_sandbox.corpus.real_world.episode_contracts import (
 
 EARTH_RADIUS_M = 6_378_137.0
 KNOT_TO_MPS = 0.514444
+MINIMUM_IDENTITY_KEY_BYTES = 16
 DEFAULT_DATASET_ID = "cmre_brest_maritime_routes_tracklets_v1_0"
 
 PARSE_STEP_ID = "cmre-parse-tracklets-v1"
 LOCAL_TANGENT_STEP_ID = "cmre-local-tangent-v1"
 REPORTED_VELOCITY_STEP_ID = "cmre-reported-velocity-v1"
-CLASSIFIER_DEDUPLICATE_STEP_ID = "cmre-classifier-deduplicate-v1"
+CLASSIFIER_TIME_NORMALIZATION_STEP_ID = "cmre-classifier-time-normalization-v1"
 
 FloatArray = NDArray[np.float64]
 IntArray = NDArray[np.int64]
@@ -106,6 +108,22 @@ def stable_group_id(*, dataset_id: str, namespace: str, raw_value: str) -> str:
 ####
 
 
+def protected_identity_group_id(
+    *,
+    dataset_id: str,
+    namespace: str,
+    raw_value: str,
+    identity_key: bytes,
+) -> str:
+    if len(identity_key) < MINIMUM_IDENTITY_KEY_BYTES:
+        raise ValueError(
+            f"identity_key must contain at least {MINIMUM_IDENTITY_KEY_BYTES} bytes"
+        )
+    material = f"{dataset_id}:{namespace}:{raw_value}".encode()
+    return hmac.new(identity_key, material, hashlib.sha256).hexdigest()[:24]
+####
+
+
 def _require_columns(fieldnames: Sequence[str] | None, expected: Iterable[str]) -> None:
     if fieldnames is None:
         raise ValueError("source has no header")
@@ -140,11 +158,15 @@ def parse_tracklets(
     ####
 
     result: list[RouteTracklet] = []
+    seen_tracklet_ids: set[int] = set()
     with Path(path).open("r", encoding="utf-8", newline="") as stream:
         reader = csv.DictReader(stream, delimiter="|")
         _require_columns(reader.fieldnames, expected)
         for row in reader:
             tracklet_id = int(row["idtracklet"])
+            if tracklet_id in seen_tracklet_ids:
+                raise ValueError(f"duplicate tracklet ID {tracklet_id}")
+            seen_tracklet_ids.add(tracklet_id)
             if selected_tracklet_ids is not None and tracklet_id not in selected_tracklet_ids:
                 continue
             ####
@@ -164,8 +186,17 @@ def parse_tracklets(
             identities = {contact.mmsi for contact in contacts}
             if len(identities) != 1:
                 raise ValueError(f"tracklet {tracklet_id} mixes MMSI values")
-            result.append(RouteTracklet(tracklet_id, contacts, row["route"]))
+            route_id = row["route"].strip()
+            if not route_id:
+                raise ValueError(f"tracklet {tracklet_id} has no route label")
+            result.append(RouteTracklet(tracklet_id, contacts, route_id))
         ####
+
+    if selected_tracklet_ids is not None:
+        loaded_ids = {tracklet.tracklet_id for tracklet in result}
+        missing = sorted(selected_tracklet_ids - loaded_ids)
+        if missing:
+            raise ValueError(f"selected tracklet IDs were not found: {missing}")
     return tuple(result)
 ####
 
@@ -177,11 +208,13 @@ def parse_route_nomenclature(path: str | Path) -> dict[str, RouteDefinition]:
         _require_columns(reader.fieldnames, {"route", "originport", "destinationport", "length"})
         for row in reader:
             route = RouteDefinition(
-                route_id=row["route"],
-                origin_port=row["originport"],
-                destination_port=row["destinationport"],
+                route_id=row["route"].strip(),
+                origin_port=row["originport"].strip(),
+                destination_port=row["destinationport"].strip(),
                 nominal_length_m=int(row["length"]),
             )
+            if not route.route_id:
+                raise ValueError("route nomenclature contains an empty route ID")
             if route.route_id in routes:
                 raise ValueError(f"duplicate route {route.route_id!r}")
             routes[route.route_id] = route
@@ -190,17 +223,36 @@ def parse_route_nomenclature(path: str | Path) -> dict[str, RouteDefinition]:
 ####
 
 
+def _valid_geodetic(latitude_deg: FloatArray, longitude_deg: FloatArray) -> NDArray[np.bool_]:
+    return (
+        np.isfinite(latitude_deg)
+        & np.isfinite(longitude_deg)
+        & (latitude_deg >= -90.0)
+        & (latitude_deg <= 90.0)
+        & (longitude_deg >= -180.0)
+        & (longitude_deg <= 180.0)
+    )
+####
+
+
 def local_enu_position(latitude_deg: FloatArray, longitude_deg: FloatArray) -> FloatArray:
     if latitude_deg.ndim != 1 or longitude_deg.ndim != 1:
         raise ValueError("latitude and longitude must be one-dimensional")
     if latitude_deg.shape != longitude_deg.shape or latitude_deg.size == 0:
         raise ValueError("latitude and longitude must be nonempty and aligned")
+    valid = _valid_geodetic(latitude_deg, longitude_deg)
+    valid_indices = np.flatnonzero(valid)
+    if valid_indices.size == 0:
+        raise ValueError("trajectory has no valid geodetic position")
+    origin_index = int(valid_indices[0])
     latitude_rad = np.deg2rad(latitude_deg)
     longitude_rad = np.deg2rad(longitude_deg)
-    latitude_origin = float(latitude_rad[0])
-    longitude_origin = float(longitude_rad[0])
+    latitude_origin = float(latitude_rad[origin_index])
+    longitude_origin = float(longitude_rad[origin_index])
     east = (longitude_rad - longitude_origin) * EARTH_RADIUS_M * math.cos(latitude_origin)
     north = (latitude_rad - latitude_origin) * EARTH_RADIUS_M
+    east[~valid] = np.nan
+    north[~valid] = np.nan
     up = np.full(latitude_deg.shape, np.nan, dtype=np.float64)
     return np.column_stack((east, north, up)).astype(np.float64)
 ####
@@ -238,79 +290,97 @@ def _npz(
 
 
 def _source_arrays(tracklet: RouteTracklet) -> dict[str, NDArray[Any]]:
+    contact_id = np.array(
+        [item.source_contact_id for item in tracklet.contacts], dtype=np.int64
+    )
     timestamp = np.array([item.unix_time_s for item in tracklet.contacts], dtype=np.int64)
     latitude = np.array([item.latitude_deg for item in tracklet.contacts], dtype=np.float64)
     longitude = np.array([item.longitude_deg for item in tracklet.contacts], dtype=np.float64)
     speed = np.array([item.speed_knots for item in tracklet.contacts], dtype=np.float64)
     course = np.array([item.course_deg for item in tracklet.contacts], dtype=np.float64)
     heading = np.array([item.heading_deg for item in tracklet.contacts], dtype=np.float64)
+    horizontal_position_valid = _valid_geodetic(latitude, longitude)
     position = np.column_stack((latitude, longitude, np.full(latitude.shape, np.nan)))
     position_valid = np.column_stack(
-        (np.ones(latitude.shape, dtype=np.bool_), np.ones(latitude.shape, dtype=np.bool_), np.zeros(latitude.shape, dtype=np.bool_))
+        (
+            horizontal_position_valid,
+            horizontal_position_valid,
+            np.zeros(latitude.shape, dtype=np.bool_),
+        )
     )
     return {
-        "elapsed_s": (timestamp - timestamp[0]).astype(np.float64),
+        "elapsed_s": (timestamp - np.min(timestamp)).astype(np.float64),
         "unix_time_s": timestamp,
+        "source_contact_id": contact_id,
         "position_geodetic": position.astype(np.float64),
         "position_valid": position_valid,
         "speed_over_ground_knots": speed,
-        "speed_valid": (speed >= 0.0) & (speed < 102.3),
+        "speed_valid": np.isfinite(speed) & (speed >= 0.0) & (speed < 102.3),
         "course_over_ground_deg": course,
-        "course_valid": (course >= 0.0) & (course < 360.0),
+        "course_valid": np.isfinite(course) & (course >= 0.0) & (course < 360.0),
         "heading_deg": heading,
-        "heading_valid": (heading >= 0.0) & (heading < 360.0),
+        "heading_valid": np.isfinite(heading) & (heading >= 0.0) & (heading < 360.0),
     }
 ####
 
 
 def _analysis_arrays(source: Mapping[str, NDArray[Any]]) -> dict[str, NDArray[Any]]:
     position = np.asarray(source["position_geodetic"], dtype=np.float64)
+    position_valid = np.asarray(source["position_valid"], dtype=np.bool_)
     speed = np.asarray(source["speed_over_ground_knots"], dtype=np.float64)
     course = np.asarray(source["course_over_ground_deg"], dtype=np.float64)
     speed_valid = np.asarray(source["speed_valid"], dtype=np.bool_)
     course_valid = np.asarray(source["course_valid"], dtype=np.bool_)
     position_enu = local_enu_position(position[:, 0], position[:, 1])
     velocity = reported_velocity_enu(speed, course)
+    horizontal_velocity_valid = speed_valid & course_valid
+    velocity[~horizontal_velocity_valid, :2] = np.nan
     velocity_valid = np.column_stack(
-        (speed_valid & course_valid, speed_valid & course_valid, np.zeros(speed.shape, dtype=np.bool_))
+        (
+            horizontal_velocity_valid,
+            horizontal_velocity_valid,
+            np.zeros(speed.shape, dtype=np.bool_),
+        )
     )
     return {
         "elapsed_s": np.asarray(source["elapsed_s"], dtype=np.float64),
         "position_enu_m": position_enu,
-        "position_valid": np.column_stack(
-            (np.ones(speed.shape, dtype=np.bool_), np.ones(speed.shape, dtype=np.bool_), np.zeros(speed.shape, dtype=np.bool_))
-        ),
+        "position_valid": position_valid,
         "reported_velocity_enu_mps": velocity,
         "velocity_valid": velocity_valid,
     }
 ####
 
 
-def _strictly_increasing_mask(values: FloatArray) -> NDArray[np.bool_]:
-    keep = np.zeros(values.shape, dtype=np.bool_)
-    if values.size == 0:
-        return keep
-    keep[0] = True
-    last_kept = float(values[0])
-    for index in range(1, values.size):
-        candidate = float(values[index])
-        if candidate > last_kept:
-            keep[index] = True
-            last_kept = candidate
-        ####
-    return keep
+def _chronological_unique_indices(values: FloatArray) -> IntArray:
+    if values.ndim != 1:
+        raise ValueError("time values must be one-dimensional")
+    order = np.argsort(values, kind="stable").astype(np.int64)
+    sorted_values = values[order]
+    keep = np.ones(sorted_values.shape, dtype=np.bool_)
+    if sorted_values.size > 1:
+        keep[1:] = sorted_values[1:] > sorted_values[:-1]
+    return order[keep]
 ####
 
 
 def _classifier_arrays(analysis: Mapping[str, NDArray[Any]]) -> dict[str, NDArray[Any]]:
     elapsed = np.asarray(analysis["elapsed_s"], dtype=np.float64)
-    keep = _strictly_increasing_mask(elapsed)
+    indices = _chronological_unique_indices(elapsed)
     return {
-        "elapsed_s": elapsed[keep],
-        "position_xy_m": np.asarray(analysis["position_enu_m"], dtype=np.float64)[keep, :2],
+        "elapsed_s": elapsed[indices],
+        "position_xy_m": np.asarray(analysis["position_enu_m"], dtype=np.float64)[
+            indices, :2
+        ],
+        "position_valid_xy": np.asarray(analysis["position_valid"], dtype=np.bool_)[
+            indices, :2
+        ],
         "reported_velocity_xy_mps": np.asarray(
             analysis["reported_velocity_enu_mps"], dtype=np.float64
-        )[keep, :2],
+        )[indices, :2],
+        "reported_velocity_valid_xy": np.asarray(
+            analysis["velocity_valid"], dtype=np.bool_
+        )[indices, :2],
     }
 ####
 
@@ -321,7 +391,7 @@ def _time_axis() -> TimeAxisDescriptor:
         normalized_time_system="elapsed SI seconds",
         absolute_time_available=True,
         source_epoch_or_reference="1970-01-01T00:00:00Z",
-        elapsed_origin="first source contact",
+        elapsed_origin="earliest source timestamp",
         precision_or_resolution="whole seconds",
         rollover_policy="none",
         leap_second_policy="Unix/POSIX convention",
@@ -347,7 +417,10 @@ def _quality(source: Mapping[str, NDArray[Any]]) -> QualitySummary:
             QualityFinding(
                 code="duplicate_timestamp",
                 severity=QualitySeverity.WARNING,
-                message="Source view preserves exact duplicate timestamps; classifier view keeps the first.",
+                message=(
+                    "Source view preserves exact duplicate timestamps; classifier projection "
+                    "retains the first source occurrence at each timestamp."
+                ),
                 value=duplicate_count,
             )
         )
@@ -358,7 +431,7 @@ def _quality(source: Mapping[str, NDArray[Any]]) -> QualitySummary:
                 severity=QualitySeverity.WARNING,
                 message=(
                     "Source view preserves out-of-order timestamps; classifier projection "
-                    "keeps only the strictly increasing subsequence."
+                    "stable-sorts unique timestamps."
                 ),
                 value=out_of_order_count,
             )
@@ -371,6 +444,26 @@ def _quality(source: Mapping[str, NDArray[Any]]) -> QualitySummary:
                 severity=QualitySeverity.WARNING,
                 message="Heading contains AIS sentinel or out-of-range values.",
                 value=invalid_heading,
+            )
+        )
+    invalid_motion = int(
+        np.count_nonzero(
+            ~(
+                np.asarray(source["speed_valid"], dtype=np.bool_)
+                & np.asarray(source["course_valid"], dtype=np.bool_)
+            )
+        )
+    )
+    if invalid_motion:
+        findings.append(
+            QualityFinding(
+                code="invalid_reported_motion",
+                severity=QualitySeverity.WARNING,
+                message=(
+                    "Reported SOG or COG is missing, sentinel-valued, or out of range; "
+                    "derived horizontal velocity is NaN and invalid for those samples."
+                ),
+                value=invalid_motion,
             )
         )
     return QualitySummary(
@@ -386,6 +479,20 @@ def _quality(source: Mapping[str, NDArray[Any]]) -> QualitySummary:
 ####
 
 
+def _local_origin(source: Mapping[str, NDArray[Any]]) -> dict[str, float]:
+    position = np.asarray(source["position_geodetic"], dtype=np.float64)
+    valid = np.asarray(source["position_valid"], dtype=np.bool_)[:, :2].all(axis=1)
+    indices = np.flatnonzero(valid)
+    if indices.size == 0:
+        raise ValueError("trajectory has no valid horizontal position")
+    index = int(indices[0])
+    return {
+        "latitude_deg": float(position[index, 0]),
+        "longitude_deg": float(position[index, 1]),
+    }
+####
+
+
 def build_episode(
     *,
     output_root: str | Path,
@@ -394,6 +501,7 @@ def build_episode(
     source_artifact_id: str,
     source_artifact_sha256: str,
     corpus_snapshot_id: str,
+    identity_key: bytes,
     dataset_id: str = DEFAULT_DATASET_ID,
 ) -> TrajectoryEpisodeManifest:
     root = Path(output_root)
@@ -412,10 +520,11 @@ def build_episode(
     )
 
     raw_mmsi = str(tracklet.contacts[0].mmsi)
-    platform_group = stable_group_id(
+    platform_group = protected_identity_group_id(
         dataset_id=dataset_id,
         namespace=GroupingNamespace.PHYSICAL_PLATFORM.value,
         raw_value=raw_mmsi,
+        identity_key=identity_key,
     )
     source_times = tuple(contact.unix_time_s for contact in tracklet.contacts)
     start_unix = min(source_times)
@@ -443,10 +552,7 @@ def build_episode(
         vertical_reference="unavailable",
         vertical_positive_direction="unavailable",
         crs_or_datum="WGS 84 local tangent approximation",
-        local_origin={
-            "latitude_deg": tracklet.contacts[0].latitude_deg,
-            "longitude_deg": tracklet.contacts[0].longitude_deg,
-        },
+        local_origin=_local_origin(source),
     )
     source_view = TrajectoryStateViewManifest(
         state_view_id=f"{episode_id}:source-native",
@@ -458,6 +564,18 @@ def build_episode(
         sample_count=len(tracklet.contacts),
         sample_asset=source_asset,
         channel_descriptors=(
+            ChannelDescriptor(
+                channel_id="source_contact_id",
+                semantic_role="source_row_identity",
+                component_names=("source_contact_id",),
+                units=("1",),
+                state_role=StateRole.OBSERVATION,
+                value_basis=ValueBasis.REPORTED,
+                access_class=AccessClass.AUDIT_ONLY,
+                source_fields=("id1..id5",),
+                lineage_step_ids=(PARSE_STEP_ID,),
+                notes="Source contact identity is excluded from classifier-facing assets.",
+            ),
             ChannelDescriptor(
                 channel_id="position_geodetic",
                 semantic_role="position",
@@ -550,10 +668,17 @@ def build_episode(
                 notes="Up is NaN with validity false.",
             ),
         ),
+        normalization_assumptions=(
+            "Horizontal position uses a short-arc equirectangular local-tangent approximation.",
+            "The first valid geodetic position is the local origin.",
+            "Vertical position remains unavailable and invalid.",
+        ),
         processing_step_ids=(LOCAL_TANGENT_STEP_ID, REPORTED_VELOCITY_STEP_ID),
     )
 
-    route_group = stable_group_id(dataset_id=dataset_id, namespace="route", raw_value=tracklet.route_id)
+    route_group = stable_group_id(
+        dataset_id=dataset_id, namespace="route", raw_value=tracklet.route_id
+    )
     recording_group = stable_group_id(
         dataset_id=dataset_id,
         namespace="source_recording",
@@ -568,7 +693,7 @@ def build_episode(
         PARSE_STEP_ID,
         LOCAL_TANGENT_STEP_ID,
         REPORTED_VELOCITY_STEP_ID,
-        CLASSIFIER_DEDUPLICATE_STEP_ID,
+        CLASSIFIER_TIME_NORMALIZATION_STEP_ID,
     )
     manifest = TrajectoryEpisodeManifest(
         corpus_snapshot_id=corpus_snapshot_id,
@@ -613,7 +738,7 @@ def build_episode(
             GroupingKey(
                 namespace=GroupingNamespace.PHYSICAL_PLATFORM,
                 opaque_value=platform_group,
-                scope="source MMSI within the dataset",
+                scope="keyed corpus-scoped source MMSI",
                 evidence_strength=EvidenceStrength.STRONG,
             ),
             GroupingKey(
@@ -630,13 +755,21 @@ def build_episode(
             ),
             GroupingKey(
                 namespace=GroupingNamespace.SOURCE_DATASET,
-                opaque_value=stable_group_id(dataset_id=dataset_id, namespace="dataset", raw_value=dataset_id),
+                opaque_value=stable_group_id(
+                    dataset_id=dataset_id,
+                    namespace="dataset",
+                    raw_value=dataset_id,
+                ),
                 scope="source dataset",
                 evidence_strength=EvidenceStrength.STRONG,
             ),
             GroupingKey(
                 namespace=GroupingNamespace.GEOGRAPHY,
-                opaque_value=stable_group_id(dataset_id=dataset_id, namespace="geography", raw_value="brest_france_routes"),
+                opaque_value=stable_group_id(
+                    dataset_id=dataset_id,
+                    namespace="geography",
+                    raw_value="brest_france_routes",
+                ),
                 scope="Brest route network",
                 evidence_strength=EvidenceStrength.STRONG,
             ),
@@ -662,6 +795,8 @@ def build_episode(
                 },
                 "source_artifact_sha256": source_artifact_sha256,
                 "raw_identity_access": "adapter_only",
+                "platform_group_derivation": "HMAC-SHA256 truncated to 96 bits",
+                "identity_key_persisted": False,
             },
         ),
         classifier_trajectory_view=ClassifierTrajectoryView(
@@ -670,14 +805,21 @@ def build_episode(
             asset=classifier_asset,
             sample_count=int(np.asarray(classifier["elapsed_s"]).size),
             frame_id=analysis_frame.frame_id,
-            processing_step_ids=(CLASSIFIER_DEDUPLICATE_STEP_ID,),
+            permitted_extra_channels=(
+                "position_valid_xy",
+                "reported_velocity_valid_xy",
+            ),
+            processing_step_ids=(CLASSIFIER_TIME_NORMALIZATION_STEP_ID,),
             target_labels_stored_outside_asset=True,
             identity_and_grouping_values_excluded=True,
         ),
     )
     episode_path = root / "episodes" / f"{episode_id}.json"
     episode_path.parent.mkdir(parents=True, exist_ok=True)
-    episode_path.write_text(manifest.model_dump_json(indent=2, exclude_none=True) + "\n")
+    episode_path.write_text(
+        manifest.model_dump_json(indent=2, exclude_none=True) + "\n",
+        encoding="utf-8",
+    )
     return manifest
 ####
 
@@ -689,6 +831,7 @@ def build_fixture(
     output_root: str | Path,
     source_artifact_id: str,
     corpus_snapshot_id: str,
+    identity_key: bytes,
     selected_tracklet_ids: set[int] | None = None,
     dataset_id: str = DEFAULT_DATASET_ID,
 ) -> FixtureBuildResult:
@@ -696,6 +839,9 @@ def build_fixture(
     if not tracklets:
         raise ValueError("selected source contains no tracklets")
     routes = parse_route_nomenclature(nomenclature_path)
+    missing_routes = sorted({tracklet.route_id for tracklet in tracklets} - set(routes))
+    if missing_routes:
+        raise ValueError(f"route nomenclature is missing route IDs: {missing_routes}")
     source_sha = sha256_file(tracklets_path)
     manifests = tuple(
         build_episode(
@@ -705,12 +851,15 @@ def build_fixture(
             source_artifact_id=source_artifact_id,
             source_artifact_sha256=source_sha,
             corpus_snapshot_id=corpus_snapshot_id,
+            identity_key=identity_key,
             dataset_id=dataset_id,
         )
         for tracklet in tracklets
     )
     counts = Counter(item.platform_group_id for item in manifests)
-    repeated = tuple(sorted(key for key, count in counts.items() if key is not None and count > 1))
+    repeated = tuple(
+        sorted(key for key, count in counts.items() if key is not None and count > 1)
+    )
     return FixtureBuildResult(
         manifests=manifests,
         physical_platform_group_count=len(counts),
@@ -722,22 +871,26 @@ def build_fixture(
 def write_fixture_index(*, output_root: str | Path, result: FixtureBuildResult) -> Path:
     root = Path(output_root)
     payload = {
-        "fixture_version": "sea-surface-real-fixture-v0.3",
+        "fixture_version": "sea-surface-real-fixture-v0.4",
         "contract_version": "trajectory-corpus-v0.1",
         "episode_count": len(result.manifests),
         "physical_platform_group_count": result.physical_platform_group_count,
-        "repeated_physical_platform_groups": list(result.repeated_physical_platform_groups),
+        "repeated_physical_platform_groups": list(
+            result.repeated_physical_platform_groups
+        ),
         "episodes": [
             {
                 "episode_id": item.episode_id,
                 "manifest_path": f"episodes/{item.episode_id}.json",
-                "manifest_sha256": sha256_file(root / "episodes" / f"{item.episode_id}.json"),
+                "manifest_sha256": sha256_file(
+                    root / "episodes" / f"{item.episode_id}.json"
+                ),
             }
             for item in result.manifests
         ],
     }
     path = root / "fixture_index.json"
-    path.write_text(json.dumps(payload, indent=2) + "\n")
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return path
 ####
 
@@ -752,6 +905,7 @@ __all__ = [
     "local_enu_position",
     "parse_route_nomenclature",
     "parse_tracklets",
+    "protected_identity_group_id",
     "reported_velocity_enu",
     "sha256_file",
     "stable_group_id",

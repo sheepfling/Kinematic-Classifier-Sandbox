@@ -22,6 +22,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-artifact-id", required=True)
     parser.add_argument("--corpus-snapshot-id", required=True)
     parser.add_argument(
+        "--identity-key-file",
+        type=Path,
+        required=True,
+        help=(
+            "Path to a private key file used for HMAC-based physical-platform grouping. "
+            "The key is read locally and is never written to the prepared corpus."
+        ),
+    )
+    parser.add_argument(
         "--tracklet-id",
         type=int,
         action="append",
@@ -45,6 +54,7 @@ def main() -> None:
         output_root=arguments.output_dir,
         source_artifact_id=arguments.source_artifact_id,
         corpus_snapshot_id=arguments.corpus_snapshot_id,
+        identity_key=arguments.identity_key_file.read_bytes(),
         selected_tracklet_ids=selected,
     )
     index_path = write_fixture_index(

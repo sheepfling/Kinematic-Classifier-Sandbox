@@ -2,7 +2,7 @@
 
 ## Decision
 
-Land this tranche as a stacked draft PR on `feature/product-4-real-world-corpus`.
+Land this tranche as a stacked PR on `feature/product-4-real-world-corpus`.
 It establishes a real `sea_surface` G2 expansion/regression witness while keeping the preferred
 NOAA anchor and Kystverket independent holdout at their honest evidence states.
 
@@ -12,10 +12,12 @@ NOAA anchor and Kystverket independent holdout at their honest evidence states.
 - a source-specific CMRE/Brest route-tracklet adapter;
 - source-native AIS channels and a named local-ENU analysis view;
 - explicit per-component validity, including unavailable vertical state as invalid and `NaN`;
-- reported SOG/COG-to-horizontal-velocity derivation with lineage;
-- source duplicate-time preservation plus named classifier-view deduplication;
+- reported SOG/COG-to-horizontal-velocity derivation with lineage and invalid-value masking;
+- source duplicate/out-of-order time preservation plus stable chronological deduplication for the
+  classifier-facing projection;
 - route labels outside classifier assets;
-- opaque physical-platform grouping across repeated source tracklets;
+- keyed HMAC-SHA256 physical-platform grouping across repeated source tracklets;
+- an identity key supplied externally and never persisted in corpus outputs;
 - machine-readable source portfolio, bounded-extract specification, and validation receipt;
 - network-free tests using a synthetic shape fixture.
 
@@ -53,11 +55,22 @@ packet checksum, adapter, and tests instead.
 ## Merge gates
 
 1. Contract and adapter tests pass without network access.
-2. Ruff, Pyright, import-simplicity audit, and repository check lane pass in CI.
+2. Ruff, Pyright, import-simplicity audit, and repository check lane pass in CI or the merge-agent
+   checkout.
 3. PR body preserves source roles and evidence states exactly.
-4. No raw MMSI, route target, provider identifier, or source filename enters classifier assets.
+4. No raw MMSI, route target, provider identifier, identity key, or source filename enters
+   classifier assets.
 5. No vertical value is represented as observed zero.
-6. Reviewers accept the conservative non-redistribution treatment.
+6. Invalid reported SOG/COG values remain invalid in classifier-facing assets.
+7. Reviewers accept the conservative non-redistribution treatment.
+
+## Merge-agent sequence
+
+1. Merge Product 4 architecture PR #2 first.
+2. Retarget this PR from `feature/product-4-real-world-corpus` to the branch that received #2.
+3. Confirm the retargeted diff contains only the SEA-surface tranche.
+4. Run the repository-wide check lane and the focused real-world corpus tests.
+5. Merge this PR without enabling automatic source-data downloads or redistributing CMRE rows.
 
 ## Follow-up gates
 

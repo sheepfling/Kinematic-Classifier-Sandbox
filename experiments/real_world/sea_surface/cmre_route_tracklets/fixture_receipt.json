@@ -1,5 +1,5 @@
 {
-  "receipt_version": "product4-real-fixture-receipt-v0.1",
+  "receipt_version": "product4-real-fixture-receipt-v0.2",
   "contract_version": "trajectory-corpus-v0.1",
   "fixture_id": "cmre_route_tracklets_tiny_fixture_v1",
   "source_dataset_id": "cmre_brest_maritime_routes_tracklets_v1_0",
@@ -17,7 +17,15 @@
     "repeated_physical_platform_group_count": 3,
     "route_count": 7,
     "common_contract_model_validation": true,
-    "deterministic_regeneration": true,
+    "deterministic_regeneration": {
+      "supported": true,
+      "conditions": [
+        "same pinned source artifacts",
+        "same selected tracklet IDs",
+        "same adapter version",
+        "same externally supplied identity key"
+      ]
+    },
     "raw_mmsi_leakage_scan": true,
     "missing_vertical_state_check": true,
     "strict_classifier_time_check": true
@@ -42,6 +50,7 @@
   "redistribution": {
     "source_rows_in_repository": false,
     "derived_state_assets_in_repository": false,
+    "identity_key_in_repository": false,
     "disposition": "accept_with_restrictions"
   }
 }
