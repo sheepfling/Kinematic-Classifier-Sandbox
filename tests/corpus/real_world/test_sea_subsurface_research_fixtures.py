@@ -110,7 +110,7 @@ def test_all_committed_structured_files_parse() -> None:
     json_paths = sorted(LANE_ROOT.rglob("*.json"))
 
     assert len(yaml_paths) == 11
-    assert len(json_paths) == 2
+    assert len(json_paths) == 3
     for path in yaml_paths:
         assert yaml.safe_load(path.read_text(encoding="utf-8")) is not None
     for path in json_paths:
@@ -137,18 +137,22 @@ def test_scorecards_have_valid_weighted_totals() -> None:
 ####
 
 
-def test_portfolio_keeps_anchor_and_holdout_at_access_verified() -> None:
+def test_portfolio_promotes_anchor_to_mapping_complete_and_keeps_holdout_verified() -> None:
     anchor = _read_yaml("source_cards/ioos_ngdac_uaf_unit_191-20240309T1200.yaml")
     holdout = _read_yaml("source_cards/whoi_ndsf_sentry_at26-09.yaml")
     status = _read_yaml("agent_status.yaml")
 
     assert anchor["portfolio_role"] == "anchor"
-    assert anchor["access"]["evidence_state"] == "access_verified"
-    assert anchor["access"]["artifact_acquired"] is False
+    assert anchor["access"]["evidence_state"] == "mapping_complete"
+    assert anchor["access"]["artifact_acquired"] is True
+    assert anchor["access"]["schema_inspected"] is True
+    assert anchor["access"]["mapping_complete"] is True
+    assert anchor["access"]["fixture_validated"] is False
     assert holdout["portfolio_role"] == "independent_validation"
     assert holdout["access"]["evidence_state"] == "access_verified"
     assert holdout["access"]["artifact_acquired"] is False
     assert status["gates"]["G1_source_portfolio"] == "complete"
+    assert status["gates"]["selected_anchor_artifact"] == "acquired_and_inspected"
     assert status["gates"]["G2_selected_anchor_fixture"] == "open"
 
 
@@ -348,8 +352,12 @@ def test_registry_patch_preserves_honest_lifecycle_states() -> None:
     updates = {update["source_dataset_id"]: update for update in registry["updates"]}
 
     assert len(updates) == 4
-    assert updates["ioos-ngdac-uaf-unit_191-20240309T1200"]["evidence_state"] == ("access_verified")
-    assert updates["ioos-ngdac-uaf-unit_191-20240309T1200"]["fixture_validated"] is False
+    anchor_update = updates["ioos-ngdac-uaf-unit_191-20240309T1200"]
+    assert anchor_update["evidence_state"] == "mapping_complete"
+    assert anchor_update["artifact_acquired"] is True
+    assert anchor_update["schema_inspected"] is True
+    assert anchor_update["mapping_complete"] is True
+    assert anchor_update["fixture_validated"] is False
     assert updates["mgds-whoi-sentry-at26-09-navigation"]["evidence_state"] == ("access_verified")
     assert updates["mgds-whoi-sentry-at26-09-navigation"]["artifact_acquired"] is False
     assert (

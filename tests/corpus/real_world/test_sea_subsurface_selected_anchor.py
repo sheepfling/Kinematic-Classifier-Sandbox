@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 LANE_ROOT = REPO_ROOT / "docs/research/product4/sea_subsurface"
 ARTIFACT_PATH = LANE_ROOT / "fixtures/ioos_uaf_unit_191_profile_1709942882.csv"
@@ -18,6 +17,8 @@ def _read_inspection() -> dict[str, Any]:
     payload = json.loads(INSPECTION_PATH.read_text(encoding="utf-8"))
     assert isinstance(payload, dict)
     return payload
+
+
 ####
 
 
@@ -32,11 +33,15 @@ def _read_anchor_rows() -> tuple[dict[str, str], list[dict[str, str]]]:
     units = raw_rows[0]
     data_rows = [row for row in raw_rows[1:] if row["profile_id"].isdigit()]
     return units, data_rows
+
+
 ####
 
 
 def _present(value: str) -> bool:
     return value.strip() not in MISSING_VALUES
+
+
 ####
 
 
@@ -54,6 +59,8 @@ def _populated_source_channels(row: dict[str, str]) -> set[str]:
         for field, value in row.items()
         if field not in identity_and_context and _present(value)
     }
+
+
 ####
 
 
@@ -75,6 +82,8 @@ def test_selected_anchor_bytes_match_retained_inspection() -> None:
         "data_row_count": 99,
         "units_row_count": 1,
     }
+
+
 ####
 
 
@@ -104,6 +113,8 @@ def test_selected_anchor_preserves_sparse_mixed_provenance_channels() -> None:
     assert len(dead_reckoned_rows) == 2
     assert all(not _present(row["m_lat"]) for row in gps_rows)
     assert all(not _present(row["m_gps_lat"]) for row in dead_reckoned_rows)
+
+
 ####
 
 
@@ -127,6 +138,8 @@ def test_duplicate_timestamps_are_channel_events_not_duplicate_states() -> None:
     assert inspection["time"]["maximum_positive_gap_s"] == 9.0
     finding_codes = {finding["code"] for finding in inspection["quality_findings"]}
     assert "SEA_SUB_ASYNCHRONOUS_CHANNEL_EVENTS" in finding_codes
+
+
 ####
 
 
@@ -151,6 +164,8 @@ def test_gps_units_mismatch_is_pinned_without_unsafe_ddmm_conversion() -> None:
     finding_codes = {finding["code"] for finding in inspection["quality_findings"]}
     assert "SEA_SUB_GPS_UNITS_VALUE_MISMATCH" in finding_codes
     assert "SEA_SUB_GPS_PHASE_NOT_PROVEN" in finding_codes
+
+
 ####
 
 
@@ -166,4 +181,6 @@ def test_selected_anchor_is_mapping_complete_but_not_g2_validated() -> None:
         "schema_inspected": True,
         "selected_anchor_fixture_validated": False,
     }
+
+
 ####
