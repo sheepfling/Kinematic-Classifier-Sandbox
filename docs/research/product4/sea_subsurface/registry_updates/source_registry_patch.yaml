@@ -1,0 +1,59 @@
+registry_patch_version: trajectory-source-registry-patch-v0.1
+contract_version: trajectory-corpus-v0.1
+program_domain: sea
+corpus_sublane: sea_subsurface
+updates:
+- source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+  role: anchor
+  evidence_state: access_verified
+  publisher: AOOS Glider Observatory / IOOS Glider DAC
+  exact_artifact_or_query: acquisition/ioos_profile_query.txt
+  rights_disposition: usable
+  physical_grouping:
+  - wmo_id=4902987
+  - trajectory=unit_191-20240309T1200
+  - profile_id=1709942882
+  artifact_acquired: false
+  fixture_validated: false
+  lane_g2_satisfied: false
+  blocking_issue: Retain, hash, inspect, and validate the selected profile response.
+- source_dataset_id: mgds-whoi-sentry-at26-09-navigation
+  role: independent_validation
+  evidence_state: access_verified
+  publisher: Marine Geoscience Data System / WHOI NDSF
+  doi: 10.60521/331959
+  license: CC BY 4.0
+  physical_grouping:
+  - Sentry AUV
+  - AT26-09
+  - sentry213..sentry220
+  - MGDS file UID
+  artifact_acquired: false
+  fixture_validated: false
+  independent_validation_satisfied: false
+  blocking_issue: Retain one PPL file, file UID, provenance record, size, and SHA-256.
+  lane_g2_satisfied: false
+- source_dataset_id: ioos-glider-dac-murphy-official-regression-artifact
+  role: stress_proxy
+  evidence_state: fixture_validated
+  publisher: IOOS National Glider Data Assembly Center
+  source_version: ioos/glider-dac@4860f355d5fd207df47fd8fbedd8429f9deddea0
+  artifact: fixtures/ioos_glider_dac_murphy_profile_1.csv
+  artifact_sha256: a06b21f02fd1a73e63eb75c1f2fc5fce66426e1b99b8c49510849e90fef96750
+  fixture: fixtures/ioos_glider_dac_murphy_profile_1.json
+  artifact_acquired: true
+  fixture_validated: true
+  lane_g2_satisfied: false
+  release_restriction: Restricted regression use; no separate GPS/dead-reckoning proof.
+- source_dataset_id: ooici-marine-integrations-glider-parser-resource
+  role: stress_proxy
+  evidence_state: fixture_validated
+  publisher: OOI/OOICI historical marine-integrations repository
+  source_version: ooici/marine-integrations@a1f2fa611b773cb2ae309fce7b9df2dec6d739d6
+  artifact: fixtures/ooi_unit_364_2013_192_1_0.mrg
+  artifact_sha256: 2cd5d6a39e3bf47b7061c4dd1d7ba02c031eaba7a0e3c0e8a6ff872b3ac82557
+  fixture: fixtures/ooi_unit_364_mixed_provenance.json
+  artifact_acquired: true
+  fixture_validated: true
+  lane_g2_satisfied: false
+  release_restriction: Restricted representation bridge; campaign/datum/depth lineage unresolved.

@@ -1,0 +1,39 @@
+source_card_version: trajectory-source-card-v0.1
+source_dataset_id: mgds-whoi-sentry-at26-09-navigation
+program_domain: sea
+corpus_sublane: sea_subsurface
+portfolio_role: independent_validation
+identity:
+  publisher: Marine Geoscience Data System / WHOI National Deep Submergence Facility
+  dataset_title: Sentry AUV processed navigation, expedition AT26-09
+  doi: 10.60521/331959
+  landing_page: https://www.marine-geo.org/tools/files/31959
+access:
+  evidence_state: access_verified
+  authentication_required: false
+  license: CC BY 4.0
+  retrieval_method: MGDS FileServer event query followed by FileDownloadServer
+  artifact_acquired: false
+native_trajectory:
+  physical_platform_key: Sentry AUV
+  expedition_key: AT26-09
+  episode_keys: [sentry213, sentry214, sentry215, sentry216, sentry217, sentry218, sentry219, sentry220]
+  documented_columns: [date, time, vehicle, latitude, longitude, depth, heading, pitch, roll]
+observation:
+  product_role: processed_or_renavigated_navigation_estimate
+  physical_truth_available: false
+  note: broader NDSF documentation distinguishes dead-reckoning, USBL/LBL aiding, and renavigation; exact AT26-09 lineage awaits file inspection
+time:
+  source_fields: [date, time]
+  system: unresolved_pending_artifact
+frames:
+  horizontal: decimal-degree latitude/longitude; datum unresolved pending artifact
+  vertical: depth in metres; reference and sign unresolved pending artifact
+label_claim_boundary:
+  supports: [Sentry_AUV_identity, expedition_and_dive_grouping]
+  does_not_support: [military_submarine, independent_navigation_truth]
+leakage_groups: [physical_platform, expedition, dive_event, source_recording, source_dataset]
+open_questions:
+- retain one exact PPL file UID, bytes, provenance record, checksum, and size
+- resolve time system, horizontal datum, depth reference, sentinels, and processing revision
+research_evidence_state: access_verified

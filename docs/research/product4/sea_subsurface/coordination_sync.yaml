@@ -1,0 +1,53 @@
+sync_report_version: product4-corpus-agent-sync-v0.1
+report_date: '2026-08-24'
+program_domain: sea
+corpus_sublane: sea_subsurface
+anchor:
+  source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+  evidence_state: access_verified
+  selected_profile_id: 1709942882
+  actual_bytes_retained: false
+  g2_satisfied: false
+independent_holdout:
+  source_dataset_id: mgds-whoi-sentry-at26-09-navigation
+  evidence_state: access_verified
+  doi: 10.60521/331959
+  event_groups: [sentry213, sentry214, sentry215, sentry216, sentry217, sentry218, sentry219, sentry220]
+  actual_ppl_bytes_retained: false
+  independent_validation_satisfied: false
+inspected_artifacts:
+- source_dataset_id: ioos-glider-dac-murphy-official-regression-artifact
+  artifact: fixtures/ioos_glider_dac_murphy_profile_1.csv
+  sha256: a06b21f02fd1a73e63eb75c1f2fc5fce66426e1b99b8c49510849e90fef96750
+  rows: 8
+  restriction: no separate surface-GPS/dead-reckoning channels; not lane G2
+- source_dataset_id: ooici-marine-integrations-glider-parser-resource
+  artifact: fixtures/ooi_unit_364_2013_192_1_0.mrg
+  sha256: 2cd5d6a39e3bf47b7061c4dd1d7ba02c031eaba7a0e3c0e8a6ff872b3ac82557
+  rows: 4
+  restriction: parser resource with unresolved campaign, datum, and depth lineage
+physical_grouping:
+  hierarchy: [physical_platform, deployment_or_expedition, profile_or_dive, source_recording, source_dataset]
+  sentry_rule: all products/windows from one event remain together; all eight events share one physical-platform group
+  feature_access: identity_grouping_only
+semantics:
+  anchor_horizontal: surface m_gps_* observation versus underwater m_lat/m_lon dead-reckoned estimate
+  anchor_vertical: measured pressure plus calculated depth, positive down from sea surface
+  regression_horizontal: provider position treated as estimate because interpolation is permitted
+  bridge_horizontal: separate GPS and dead-reckoned fields converted from source DDMM encoding
+  bridge_vertical: m_depth and pressure remain separate; depth datum/sign/derivation unresolved
+defensible_labels:
+  supported: [scientific_glider, Sentry_AUV_identity_for_grouping]
+  unsupported: [military_submarine, independent_navigation_truth, provider_identity_as_classifier_feature]
+fixture_validation:
+- fixture: fixtures/ioos_glider_dac_murphy_profile_1.json
+  status: validated_restricted
+  lane_g2_satisfied: false
+- fixture: fixtures/ooi_unit_364_mixed_provenance.json
+  status: validated_restricted
+  lane_g2_satisfied: false
+schema_change:
+  request_id: SCR-SEA-SUB-001
+  request: accept measured pressure plus explicitly derived depth without relabeling depth as measured
+  root_schema_fork_required: false
+recommended_disposition: accept_restricted_research_tranche_keep_g2_open

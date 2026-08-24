@@ -1,0 +1,76 @@
+adapter_mapping_version: trajectory-adapter-mapping-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+adapter_id: ioos_ngdac_glider_v0
+adapter_version: 0.0-research
+status: mapping_complete_pending_artifact
+episode_identity:
+  physical_platform: wmo_id
+  deployment: trajectory
+  profile: profile_id
+  ordering: ascending precise_time; retain duplicates until quality policy resolves them
+field_mappings:
+- source_fields:
+  - m_gps_lat
+  - m_gps_lon
+  target_channel: surface_gps_horizontal_position
+  state_role: source_observation
+  value_basis: measured
+  frame: geodetic; exact source encoding requires retained-row verification
+  validity: both components present, non-sentinel, and encoding validated
+- source_fields:
+  - m_lat
+  - m_lon
+  target_channel: underwater_horizontal_position
+  state_role: estimate
+  value_basis: dead_reckoned
+  frame: provider geodetic horizontal
+  validity: both components present and non-sentinel
+- source_fields:
+  - pressure
+  target_channel: sea_water_pressure
+  state_role: source_observation
+  value_basis: measured
+  units: dbar
+- source_fields:
+  - m_depth
+  target_channel: source_depth
+  state_role: estimate
+  value_basis: calculated_from_pressure
+  units: m
+  vertical_reference: sea_surface
+  positive_direction: down
+  dependency_channels:
+  - sea_water_pressure
+- source_fields:
+  - latitude
+  - longitude
+  target_channel: provider_standardized_horizontal_position
+  state_role: estimate
+  value_basis: provider_reported_mixed_measured_or_interpolated
+  access_class: source_context
+grouping_key_rules:
+- namespace: physical_platform
+  source_field: wmo_id
+  access_class: identity_grouping_only
+- namespace: deployment
+  source_field: trajectory
+  access_class: identity_grouping_only
+- namespace: profile
+  source_field: profile_id
+  access_class: identity_grouping_only
+- namespace: source_dataset
+  constant: ioos-ngdac-uaf-unit_191-20240309T1200
+  access_class: identity_grouping_only
+quality_rules:
+- GPS/DR transition and reacquisition
+- dead-reckoning reset or jump
+- long navigation gap
+- pressure/depth inconsistency
+- GPS encoding ambiguity
+- duplicate or out-of-order time
+prohibited_exposures:
+- identity, profile, provider, and adapter fields as ordinary kinematic features
+- dead-reckoned or interpolated position relabeled as measured GPS
+- calculated depth relabeled as measured depth
+classifier_view_status: blocked_until_selected_profile_artifact_is_retained_and_validated

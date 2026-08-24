@@ -1,0 +1,80 @@
+adapter_mapping_version: trajectory-adapter-mapping-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: mgds-whoi-sentry-at26-09-navigation
+adapter_id: mgds_sentry_ppl_v0
+adapter_version: 0.0-research
+status: mapping_complete_pending_artifact
+episode_identity:
+  physical_platform: Sentry AUV
+  expedition: AT26-09
+  dive_event: MGDS event ID
+  source_recording: MGDS file UID
+  ordering: date/time after exact time-system and sentinel validation
+documented_columns:
+- date
+- time
+- vehicle
+- latitude
+- longitude
+- depth
+- heading
+- pitch
+- roll
+field_mappings:
+- source_fields:
+  - date
+  - time
+  target_channel: time
+  state_role: source_reported
+  value_basis: provider_processed
+  open_issue: exact time system and encoding require a retained PPL file
+- source_fields:
+  - latitude
+  - longitude
+  target_channel: processed_horizontal_navigation
+  state_role: estimate
+  value_basis: processed_or_renavigated
+  units: decimal_degrees
+  open_issue: horizontal datum and exact navigation lineage require artifact inspection
+- source_fields:
+  - depth
+  target_channel: processed_depth
+  state_role: estimate
+  value_basis: provider_processed
+  units: m
+  open_issue: depth reference, sign, sensor dependency, and revision require artifact inspection
+- source_fields:
+  - heading
+  - pitch
+  - roll
+  target_channel: processed_attitude
+  state_role: estimate
+  value_basis: provider_processed
+  open_issue: axis and rotation conventions require artifact inspection
+grouping_key_rules:
+- namespace: physical_platform
+  constant: Sentry AUV
+  access_class: identity_grouping_only
+- namespace: expedition
+  constant: AT26-09
+  access_class: identity_grouping_only
+- namespace: dive_event
+  source_field: event_id
+  access_class: identity_grouping_only
+- namespace: source_recording
+  source_field: file_uid
+  access_class: identity_grouping_only
+- namespace: source_dataset
+  constant: mgds-whoi-sentry-at26-09-navigation
+  access_class: identity_grouping_only
+quality_rules:
+- date/time parse and monotonicity
+- sentinel and missing-value detection
+- navigation jump or reset
+- depth/attitude range
+- processing-revision and provenance completeness
+prohibited_exposures:
+- vehicle, expedition, event, file UID, provider, or adapter identity as ordinary kinematic features
+- processed or renavigated navigation relabeled as independent truth
+- scientific AUV identity promoted to military-submarine label
+classifier_view_status: blocked_until_one_ppl_file_and_provenance_record_are_retained_and_validated

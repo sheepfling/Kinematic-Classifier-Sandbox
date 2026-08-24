@@ -1,0 +1,305 @@
+{
+  "fixture_version": "sea-sub-ioos-murphy-restricted-v0.1",
+  "contract_version": "trajectory-corpus-v0.1",
+  "source_dataset_id": "ioos-glider-dac-murphy-official-regression-artifact",
+  "fixture_role": "restricted_contract_regression",
+  "source_artifact": {
+    "path": "fixtures/ioos_glider_dac_murphy_profile_1.csv",
+    "sha256": "a06b21f02fd1a73e63eb75c1f2fc5fce66426e1b99b8c49510849e90fef96750",
+    "byte_size": 1641,
+    "row_count": 8,
+    "upstream_repository": "ioos/glider-dac",
+    "upstream_commit": "4860f355d5fd207df47fd8fbedd8429f9deddea0",
+    "upstream_cdl_blob": "09cb8fd62836693044c897f615e214fcf0ba5028",
+    "upstream_netcdf_blob": "2dbbf9370b3336b273c3c17697d821cc2530c929"
+  },
+  "episode": {
+    "physical_platform_id": "wmo:4801919",
+    "deployment_id": "murphy-20150809T135508Z",
+    "profile_id": "1",
+    "grouping_keys": [
+      {
+        "namespace": "physical_platform",
+        "value": "wmo:4801919",
+        "access_class": "identity_grouping_only"
+      },
+      {
+        "namespace": "deployment",
+        "value": "murphy-20150809T135508Z",
+        "access_class": "identity_grouping_only"
+      },
+      {
+        "namespace": "profile",
+        "value": "murphy-20150809T135508Z:1",
+        "access_class": "identity_grouping_only"
+      },
+      {
+        "namespace": "source_dataset",
+        "value": "ioos-glider-dac-murphy-official-regression-artifact",
+        "access_class": "identity_grouping_only"
+      }
+    ]
+  },
+  "time": {
+    "source_field": "time_epoch_s",
+    "system": "UTC",
+    "encoding": "seconds since 1970-01-01T00:00:00Z",
+    "analysis_field": "elapsed_s",
+    "sample_count": 8
+  },
+  "state_views": [
+    {
+      "state_view_id": "murphy-profile-1:provider-horizontal",
+      "state_role": "estimate",
+      "value_basis": "provider_reported_mixed_measured_or_interpolated",
+      "frame": {
+        "horizontal": "EPSG:4326",
+        "vertical": null
+      },
+      "channels": {
+        "latitude": "degrees_north",
+        "longitude": "degrees_east"
+      },
+      "samples": [
+        {
+          "elapsed_s": 0.0,
+          "latitude_deg": 27.0607497737591,
+          "longitude_deg": -88.9924533775788,
+          "horizontal_valid": true,
+          "source_qc": {
+            "latitude": 0,
+            "longitude": 0
+          }
+        },
+        {
+          "elapsed_s": 10.39437985,
+          "latitude_deg": 27.0608225654146,
+          "longitude_deg": -88.9924520556616,
+          "horizontal_valid": true,
+          "source_qc": {
+            "latitude": 0,
+            "longitude": 0
+          }
+        },
+        {
+          "elapsed_s": 20.73067999,
+          "latitude_deg": 27.0608949502207,
+          "longitude_deg": -88.992450741133,
+          "horizontal_valid": true,
+          "source_qc": {
+            "latitude": 0,
+            "longitude": 0
+          }
+        },
+        {
+          "elapsed_s": 31.05736995,
+          "latitude_deg": 27.0609672676882,
+          "longitude_deg": -88.9924494278272,
+          "horizontal_valid": true,
+          "source_qc": {
+            "latitude": 0,
+            "longitude": 0
+          }
+        },
+        {
+          "elapsed_s": 41.41855001,
+          "latitude_deg": 27.0610398268986,
+          "longitude_deg": -88.9924481101313,
+          "horizontal_valid": true,
+          "source_qc": {
+            "latitude": 0,
+            "longitude": 0
+          }
+        },
+        {
+          "elapsed_s": 53.19643998,
+          "latitude_deg": 27.0611223071467,
+          "longitude_deg": -88.9924466122666,
+          "horizontal_valid": true,
+          "source_qc": {
+            "latitude": 0,
+            "longitude": 0
+          }
+        },
+        {
+          "elapsed_s": 65.15935993,
+          "latitude_deg": 27.0612060831704,
+          "longitude_deg": -88.9924450908702,
+          "horizontal_valid": true,
+          "source_qc": {
+            "latitude": 0,
+            "longitude": 0
+          }
+        },
+        {
+          "elapsed_s": 75.31890988,
+          "latitude_deg": 27.0612772302417,
+          "longitude_deg": -88.9924437988191,
+          "horizontal_valid": true,
+          "source_qc": {
+            "latitude": 0,
+            "longitude": 0
+          }
+        }
+      ],
+      "lineage_note": "Provider-standardized positions may be interpolated between measured GPS fixes."
+    },
+    {
+      "state_view_id": "murphy-profile-1:pressure-observation",
+      "state_role": "source_observation",
+      "value_basis": "measured",
+      "frame": {
+        "vertical_reference": "sea_surface",
+        "positive_direction": "down"
+      },
+      "channels": {
+        "sea_water_pressure": "dbar"
+      },
+      "samples": [
+        {
+          "elapsed_s": 0.0,
+          "pressure_dbar": 11.3015003204346,
+          "pressure_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 10.39437985,
+          "pressure_dbar": 11.9585008621216,
+          "pressure_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 20.73067999,
+          "pressure_dbar": 13.7800006866455,
+          "pressure_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 31.05736995,
+          "pressure_dbar": 16.2129974365234,
+          "pressure_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 41.41855001,
+          "pressure_dbar": 18.6863479614258,
+          "pressure_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 53.19643998,
+          "pressure_dbar": 21.3239307403564,
+          "pressure_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 65.15935993,
+          "pressure_dbar": 22.7816638946533,
+          "pressure_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 75.31890988,
+          "pressure_dbar": 24.0699977874756,
+          "pressure_valid": true,
+          "source_qc": 0
+        }
+      ]
+    },
+    {
+      "state_view_id": "murphy-profile-1:derived-depth",
+      "state_role": "estimate",
+      "value_basis": "calculated_from_pressure",
+      "dependency_channels": [
+        "sea_water_pressure"
+      ],
+      "frame": {
+        "vertical_reference": "sea_surface",
+        "positive_direction": "down"
+      },
+      "channels": {
+        "depth": "m"
+      },
+      "samples": [
+        {
+          "elapsed_s": 0.0,
+          "depth_m": 11.2268542882021,
+          "depth_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 10.39437985,
+          "depth_m": 11.879496310828,
+          "depth_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 20.73067999,
+          "depth_m": 13.6889025987208,
+          "depth_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 31.05736995,
+          "depth_m": 16.1057179897388,
+          "depth_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 41.41855001,
+          "depth_m": 18.5625919024978,
+          "depth_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 53.19643998,
+          "depth_m": 21.1825727972622,
+          "depth_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 65.15935993,
+          "depth_m": 22.6305605252711,
+          "depth_valid": true,
+          "source_qc": 0
+        },
+        {
+          "elapsed_s": 75.31890988,
+          "depth_m": 23.9102764282963,
+          "depth_valid": true,
+          "source_qc": 0
+        }
+      ]
+    }
+  ],
+  "quality_findings": [
+    {
+      "code": "SEA_SUB_STANDARDIZED_POSITION_MAY_BE_INTERPOLATED",
+      "severity": "warning",
+      "message": "Horizontal state is retained as an estimate because provider-standardized latitude/longitude may be interpolated."
+    },
+    {
+      "code": "SEA_SUB_QC_ZERO_MEANS_NO_QC_PERFORMED",
+      "severity": "warning",
+      "message": "QC value zero is no_qc_performed and must not be promoted to good_data."
+    },
+    {
+      "code": "SEA_SUB_PRESSURE_DEPTH_ROLE_SEPARATION",
+      "severity": "info",
+      "message": "Pressure is measured; depth is calculated and remains an estimate with pressure dependency."
+    }
+  ],
+  "classifier_view": {
+    "status": "intentionally_blocked",
+    "blocking_reasons": [
+      "The artifact does not expose separate surface GPS and underwater dead-reckoned channels.",
+      "The fixture is a repository regression artifact rather than the selected anchor deployment."
+    ]
+  },
+  "acceptance": {
+    "common_contract_representation": true,
+    "restricted_fixture_validated": true,
+    "lane_g2_satisfied": false,
+    "independent_validation_satisfied": false
+  }
+}

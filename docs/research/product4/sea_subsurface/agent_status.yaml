@@ -1,0 +1,50 @@
+status_version: product4-sea-sub-research-status-v0.1
+status_date: '2026-08-24'
+product: Product 4 — Real-World Corpus & Validation
+program_domain: sea
+corpus_sublane: sea_subsurface
+contract_version: trajectory-corpus-v0.1
+portfolio:
+  anchor:
+    source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+    evidence_state: access_verified
+    score: 89
+    retained_numeric_bytes: false
+    fixture_validated: false
+  independent_validation:
+    source_dataset_id: mgds-whoi-sentry-at26-09-navigation
+    evidence_state: access_verified
+    score: 87
+    retained_numeric_bytes: false
+    fixture_validated: false
+  restricted_regression:
+    source_dataset_id: ioos-glider-dac-murphy-official-regression-artifact
+    evidence_state: fixture_validated
+    lane_g2_satisfied: false
+  restricted_bridge:
+    source_dataset_id: ooici-marine-integrations-glider-parser-resource
+    evidence_state: fixture_validated
+    lane_g2_satisfied: false
+gates:
+  G1_source_portfolio: complete
+  restricted_contract_regression: validated
+  restricted_mixed_provenance_bridge: validated
+  G2_selected_anchor_fixture: open
+  G3_reproducible_prepared_pilot: not_started
+  G5_independent_source_validation: open
+counts:
+  sources_researched: 4
+  retained_source_families: 2
+  restricted_validated_fixtures: 2
+  selected_anchor_fixtures: 0
+  independent_validation_fixtures: 0
+  production_adapters: 0
+change_request:
+  request_id: SCR-SEA-SUB-001
+  root_schema_fork_required: false
+  decision: clarify measured pressure versus derived depth acceptance
+blockers:
+- retain and hash bounded IOOS/UAF profile bytes
+- inspect anchor GPS/dead-reckoning transitions, resets, gaps, duplicates, and ordering
+- run the anchor fixture through the canonical COMMON-FRONT implementation
+- retain one Sentry PPL file and provenance record

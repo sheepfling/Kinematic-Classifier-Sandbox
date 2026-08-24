@@ -1,0 +1,55 @@
+source_card_version: trajectory-source-card-v0.1
+source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+program_domain: sea
+corpus_sublane: sea_subsurface
+portfolio_role: anchor
+identity:
+  publisher: AOOS Glider Observatory / IOOS Glider DAC
+  institution: University of Alaska Fairbanks College of Fisheries and Ocean Science
+  dataset_title: UAF Slocum G191 deployment unit_191-20240309T1200
+  landing_page: https://gliders.ioos.us/erddap/tabledap/unit_191-20240309T1200.html
+access:
+  evidence_state: access_verified
+  authentication_required: false
+  rights_disposition: usable
+  rights_evidence: provider metadata states unrestricted redistribution and use
+  exact_query: acquisition/ioos_profile_query.txt
+  artifact_acquired: false
+native_trajectory:
+  physical_platform_key: wmo_id=4902987
+  deployment_key: trajectory=unit_191-20240309T1200
+  episode_key: profile_id
+  selected_profile_id: 1709942882
+time:
+  field: precise_time
+  system: UTC
+  encoding: seconds since 1970-01-01T00:00:00Z
+horizontal_channels:
+- fields: [m_gps_lat, m_gps_lon]
+  state_role: source_observation
+  value_basis: measured
+  note: onboard GPS; source encoding must be verified from retained rows
+- fields: [m_lat, m_lon]
+  state_role: estimate
+  value_basis: dead_reckoned
+  note: underwater dead-reckoned position
+vertical_channels:
+- field: pressure
+  state_role: source_observation
+  value_basis: measured
+  units: dbar
+- field: m_depth
+  state_role: estimate
+  value_basis: calculated_from_pressure
+  units: m
+  vertical_reference: sea_surface
+  positive_direction: down
+label_claim_boundary:
+  supports: [scientific_Slocum_glider_identity]
+  does_not_support: [military_submarine, independent_navigation_truth]
+leakage_groups: [physical_platform, deployment, profile, source_recording, source_dataset, geography]
+open_questions:
+- retain and hash the selected profile response
+- resolve m_gps_* encoding from actual rows and provider convention
+- inspect GPS/DR coexistence, transitions, resets, gaps, duplicates, and ordering
+research_evidence_state: access_verified
