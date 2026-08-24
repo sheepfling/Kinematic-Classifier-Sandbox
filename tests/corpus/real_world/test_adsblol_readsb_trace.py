@@ -42,6 +42,7 @@ def test_parse_preserves_documented_time_vertical_and_source_semantics() -> None
     assert first.vertical_rate_basis is ReadsbVerticalBasis.BAROMETRIC
     assert first.geometric_vertical_rate_fpm == -2208.0
     assert first.source_type == "adsb_icao"
+    assert first.track_or_ground_heading_deg == 309.0
 ####
 
 
@@ -133,5 +134,36 @@ def test_parser_rejects_invalid_coordinates_without_silent_clamping() -> None:
     trace_rows[0][1] = 91.0
 
     with pytest.raises(ValueError, match=r"trace\[0\]\[1\].*\[-90.0, 90.0\]"):
+        parse_readsb_trace(payload)
+####
+
+
+def test_filtered_short_leg_does_not_renumber_source_leg_ordinals() -> None:
+    payload: dict[str, object] = {
+        "icao": "abc123",
+        "timestamp": 1000.0,
+        "trace": [
+            [0.0, 34.0, -86.0, 1000, 80.0, 90.0, 0, 100],
+            [1.0, 34.1, -86.1, 1100, 82.0, 90.0, 2, 100],
+            [2.0, 34.2, -86.2, 1200, 84.0, 90.0, 0, 100],
+        ],
+    }
+
+    legs = split_readsb_legs(parse_readsb_trace(payload), minimum_samples=2)
+
+    assert len(legs) == 1
+    assert legs[0].leg_ordinal == 1
+    assert (legs[0].start_source_index, legs[0].end_source_index) == (1, 2)
+####
+
+
+def test_parser_rejects_non_numeric_optional_values_instead_of_dropping_them() -> None:
+    payload = _load_documented_fixture()
+    trace_rows = payload["trace"]
+    assert isinstance(trace_rows, list)
+    assert isinstance(trace_rows[0], list)
+    trace_rows[0][4] = "fast"
+
+    with pytest.raises(ValueError, match=r"trace\[0\]\[4\].*finite number or null"):
         parse_readsb_trace(payload)
 ####
