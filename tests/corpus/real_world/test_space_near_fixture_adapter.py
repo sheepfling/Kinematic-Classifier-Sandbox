@@ -17,6 +17,19 @@ from kinematic_classifier_sandbox.corpus.real_world.space_near.fixture_adapter i
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "space_near"
 
 
+def test_repository_fixture_gzip_members_are_intact_and_parseable() -> None:
+    fixture_paths = tuple(sorted(FIXTURE_PATH.glob("*.json.gz")))
+
+    assert len(fixture_paths) == 6
+    for fixture_path in fixture_paths:
+        with gzip.open(fixture_path, "rt", encoding="utf-8") as stream:
+            payload = json.load(stream)
+        assert payload["portfolio_version"] == "space-near-repository-fixtures-v0.1"
+        assert len(payload["fixtures"]) == 1
+    ####
+####
+
+
 def test_space_near_portfolio_loads_six_real_missions() -> None:
     trajectories = load_space_near_fixture_portfolio(FIXTURE_PATH)
 
