@@ -1,0 +1,19 @@
+inventory_version: sea-sub-sentry-event-inventory-v0.1
+source_dataset_id: mgds-whoi-sentry-at26-09-navigation
+publisher: Marine Geoscience Data System / WHOI National Deep Submergence Facility
+doi: 10.60521/331959
+license: CC BY 4.0
+expedition_id: AT26-09
+file_format: processed navigation PPL ASCII
+documented_columns: [date, time, vehicle, latitude_decimal_degrees, longitude_decimal_degrees, depth_m, heading_deg, pitch_deg, roll_deg]
+events:
+- event_id: sentry213
+- event_id: sentry214
+- event_id: sentry215
+- event_id: sentry216
+- event_id: sentry217
+- event_id: sentry218
+- event_id: sentry219
+- event_id: sentry220
+pending_artifact_fields: [file_uid, direct_download_locator, sha256, byte_size, time_system, horizontal_datum, depth_reference, sentinels, processing_revision]
+retrieval_state: reproducible_discovery_path_not_file_pinned

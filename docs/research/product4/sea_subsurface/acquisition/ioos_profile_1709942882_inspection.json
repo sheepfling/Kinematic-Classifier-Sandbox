@@ -1,0 +1,218 @@
+{
+  "acceptance": {
+    "artifact_acquired": true,
+    "canonical_common_front_validated": false,
+    "lane_g2_satisfied": false,
+    "mapping_complete": true,
+    "schema_inspected": true,
+    "selected_anchor_fixture_validated": false
+  },
+  "channel_presence": {
+    "coincident_gps_dead_reckoned_rows": 0,
+    "dead_reckoned_rows": 2,
+    "heading_rows": 4,
+    "onboard_gps_rows": 1,
+    "pitch_rows": 4,
+    "pressure_rows": 63,
+    "roll_rows": 4,
+    "source_depth_rows": 24,
+    "standardized_depth_rows": 63
+  },
+  "duplicate_timestamp_channel_sets": {
+    "2024-03-09T00:08:18Z": [
+      [
+        "m_depth"
+      ],
+      [
+        "depth",
+        "pressure"
+      ]
+    ],
+    "2024-03-09T00:10:28Z": [
+      [
+        "m_depth"
+      ],
+      [
+        "depth",
+        "pressure"
+      ]
+    ],
+    "2024-03-09T00:12:16Z": [
+      [
+        "m_depth"
+      ],
+      [
+        "depth",
+        "pressure"
+      ]
+    ],
+    "2024-03-09T00:15:07Z": [
+      [
+        "m_depth"
+      ],
+      [
+        "depth",
+        "pressure"
+      ]
+    ],
+    "2024-03-09T00:16:11Z": [
+      [
+        "m_depth"
+      ],
+      [
+        "depth",
+        "pressure"
+      ]
+    ]
+  },
+  "identity": {
+    "profile_id": [
+      1709942882
+    ],
+    "trajectory": [
+      "unit_191-20240309T1200"
+    ],
+    "wmo_id": [
+      "4902987"
+    ]
+  },
+  "inspection_version": "sea-sub-selected-anchor-inspection-v0.2",
+  "mapping_decisions": {
+    "m_depth": {
+      "positive_direction": "down",
+      "state_role": "estimate",
+      "units": "m",
+      "value_basis": "calculated_from_pressure",
+      "vertical_reference": "sea_surface"
+    },
+    "m_gps_lat_lon": {
+      "artifact_encoding": "decimal_degrees_as_retained",
+      "datum": "provider_geodetic_horizontal_unresolved",
+      "state_role": "source_observation",
+      "surface_phase_inferred": false,
+      "target_channel": "onboard_gps_horizontal_position",
+      "value_basis": "measured"
+    },
+    "m_lat_lon": {
+      "state_role": "estimate",
+      "target_channel": "underwater_horizontal_position",
+      "value_basis": "dead_reckoned"
+    },
+    "pressure": {
+      "state_role": "source_observation",
+      "units": "dbar",
+      "value_basis": "measured"
+    }
+  },
+  "numeric_ranges": {
+    "depth": {
+      "maximum": 60.020077,
+      "minimum": 2.2287838
+    },
+    "latitude": {
+      "maximum": 59.962662196571614,
+      "minimum": 59.962662196571614
+    },
+    "longitude": {
+      "maximum": -149.39581501527857,
+      "minimum": -149.39581501527857
+    },
+    "m_depth": {
+      "maximum": 61.374900817871094,
+      "minimum": 4.075319766998291
+    },
+    "m_gps_lat": {
+      "maximum": 59.962785,
+      "minimum": 59.962785
+    },
+    "m_gps_lon": {
+      "maximum": -149.39594,
+      "minimum": -149.39594
+    },
+    "m_lat": {
+      "maximum": 59.963271,
+      "minimum": 59.962873
+    },
+    "m_lon": {
+      "maximum": -149.394941,
+      "minimum": -149.395883
+    },
+    "pressure": {
+      "maximum": 60.6,
+      "minimum": 2.25
+    }
+  },
+  "quality_findings": [
+    {
+      "code": "SEA_SUB_ASYNCHRONOUS_CHANNEL_EVENTS",
+      "finding": "Rows are sparse channel events rather than complete joint state vectors. Duplicate timestamps carry different populated channels and must not be dropped by row-level deduplication.",
+      "severity": "contract_relevant"
+    },
+    {
+      "code": "SEA_SUB_GPS_UNITS_VALUE_MISMATCH",
+      "finding": "The units row declares degrees_minutes for m_gps_lat/m_gps_lon, while retained values fit decimal-degree ranges and align with the local geodetic neighborhood. This artifact must not receive DDMM conversion.",
+      "severity": "adapter_blocking_for_generic_conversion"
+    },
+    {
+      "code": "SEA_SUB_GPS_PHASE_NOT_PROVEN",
+      "finding": "The artifact contains one onboard GPS event but does not prove a surface-phase label.",
+      "severity": "claim_boundary"
+    },
+    {
+      "code": "SEA_SUB_PROFILE_POSITION_IS_CONTEXT",
+      "finding": "Provider-standardized latitude/longitude are constant across the selected profile and behave as profile-level context.",
+      "severity": "feature_guardrail"
+    }
+  ],
+  "shape": {
+    "column_count": 16,
+    "data_row_count": 99,
+    "units_row_count": 1
+  },
+  "source_artifact": {
+    "acquired_at_utc": "2026-08-24T21:23:55Z",
+    "byte_size": 15465,
+    "erddap_version": "2.30.0",
+    "github_actions_run_id": 32779262198,
+    "http_status": 200,
+    "media_type": "text/csv;charset=ISO-8859-1",
+    "path": "fixtures/ioos_uaf_unit_191_profile_1709942882.csv",
+    "query_path": "acquisition/ioos_profile_query.txt",
+    "response_filename": "unit_191-20240309T1200_8a71_2ac2_31bb.csv",
+    "sha256": "29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a"
+  },
+  "source_dataset_id": "ioos-ngdac-uaf-unit_191-20240309T1200",
+  "source_units": {
+    "depth": "m",
+    "latitude": "degrees_north",
+    "longitude": "degrees_east",
+    "m_depth": "m",
+    "m_gps_lat": "degrees_minutes_north",
+    "m_gps_lon": "degrees_minutes_east",
+    "m_heading": "rad",
+    "m_lat": "degrees_north",
+    "m_lon": "degrees_east",
+    "m_pitch": "rad",
+    "m_roll": "rad",
+    "precise_time": "UTC",
+    "pressure": "dbar",
+    "profile_id": "",
+    "trajectory": "",
+    "wmo_id": ""
+  },
+  "time": {
+    "duplicate_timestamp_count": 5,
+    "duplicate_timestamps": [
+      "2024-03-09T00:08:18Z",
+      "2024-03-09T00:10:28Z",
+      "2024-03-09T00:12:16Z",
+      "2024-03-09T00:15:07Z",
+      "2024-03-09T00:16:11Z"
+    ],
+    "first": "2024-03-09T00:08:02+00:00",
+    "last": "2024-03-09T00:16:32+00:00",
+    "maximum_positive_gap_s": 9.0,
+    "out_of_order_count": 0,
+    "system": "UTC"
+  }
+}

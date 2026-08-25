@@ -1,0 +1,11 @@
+# Product 4 SEA-SUB anchor bounded acquisition
+# Dataset: unit_191-20240309T1200
+# Profile ID selected from provider-declared profile_id range minimum: 1709942882
+https://gliders.ioos.us/erddap/tabledap/unit_191-20240309T1200.csv?trajectory,wmo_id,profile_id,precise_time,m_gps_lat,m_gps_lon,m_lat,m_lon,m_depth,pressure,m_heading,m_pitch,m_roll,depth,latitude,longitude&profile_id=1709942882
+
+Required retention:
+- save response byte-for-byte
+- record retrieval UTC
+- SHA-256 response
+- record HTTP status/content type/content length
+- do not normalize before the raw artifact is inventoried

@@ -1,0 +1,33 @@
+schema_change_request_version: trajectory-schema-change-request-v0.1
+request_id: SCR-SEA-SUB-001
+title: Clarify underwater vertical-state acceptance to distinguish measured pressure from derived depth
+requesting_domain: sea
+requesting_sublane: sea_subsurface
+contract_version: trajectory-corpus-v0.1
+status: proposed
+scope: common_contract_acceptance_clarification
+problem_statement: >-
+  The current underwater example describes depth as measured. The selected IOOS/NGDAC source
+  declares pressure as measured and depth as calculated from pressure. Relabeling calculated depth
+  as measured would destroy source semantics.
+evidence:
+- source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+  claims:
+  - pressure is measured in dbar
+  - m_depth is calculated in metres, positive down, referenced to sea surface
+proposed_change: >-
+  Replace measured-depth acceptance wording with measured vertical sensing plus an explicitly
+  characterized depth or vertical-position channel. Permit value_basis=derived when depth is
+  computed from measured pressure, provided pressure remains available and depth reference, sign,
+  lineage, dependencies, and validity are explicit.
+proposed_example:
+  pressure: {state_role: source_observation, value_basis: measured, units: dbar}
+  depth:
+    state_role: estimate
+    value_basis: derived
+    vertical_reference: sea_surface
+    positive_direction: down
+    dependency_channels: [sea_water_pressure]
+backward_compatibility: No root-schema field change is required; existing state-role and value-basis fields already represent the distinction.
+rejected_alternative: Relabeling source-calculated depth as measured is prohibited.
+coordinator_decision_needed: true

@@ -1,0 +1,106 @@
+adapter_mapping_version: trajectory-adapter-mapping-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+adapter_id: ioos_ngdac_glider_v0
+adapter_version: 0.0-research
+status: mapping_complete
+grounded_artifact:
+  path: fixtures/ioos_uaf_unit_191_profile_1709942882.csv
+  sha256: 29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a
+  byte_size: 15465
+  profile_id: 1709942882
+  data_rows: 99
+episode_identity:
+  physical_platform: wmo_id
+  deployment: trajectory
+  profile: profile_id
+  ordering: ascending precise_time while retaining same-time channel events
+row_model:
+  kind: sparse_asynchronous_channel_events
+  duplicate_policy: >-
+    Do not drop same-time rows. Coalesce only by an explicit channel-aware common-front policy that
+    preserves source rows and their lineage.
+field_mappings:
+- source_fields:
+  - m_gps_lat
+  - m_gps_lon
+  target_channel: onboard_gps_horizontal_position
+  state_role: source_observation
+  value_basis: measured
+  frame: provider geodetic horizontal; datum unresolved
+  artifact_encoding: decimal_degrees_as_retained
+  source_units_metadata: [degrees_minutes_north, degrees_minutes_east]
+  validity: both components present and within geographic bounds
+  constraints:
+  - prohibit DDMM conversion for the retained artifact
+  - do not infer surface phase from GPS presence alone
+  - do not generalize the artifact-specific encoding rule without inspecting another artifact
+- source_fields:
+  - m_lat
+  - m_lon
+  target_channel: underwater_horizontal_position
+  state_role: estimate
+  value_basis: dead_reckoned
+  frame: provider geodetic horizontal; datum unresolved
+  validity: both components present and non-sentinel
+- source_fields:
+  - pressure
+  target_channel: sea_water_pressure
+  state_role: source_observation
+  value_basis: measured
+  units: dbar
+- source_fields:
+  - m_depth
+  target_channel: source_depth
+  state_role: estimate
+  value_basis: calculated_from_pressure
+  units: m
+  vertical_reference: sea_surface
+  positive_direction: down
+  dependency_channels:
+  - sea_water_pressure
+- source_fields:
+  - depth
+  target_channel: provider_standardized_depth
+  state_role: estimate
+  value_basis: calculated_from_pressure
+  units: m
+  vertical_reference: sea_surface
+  positive_direction: down
+  dependency_channels:
+  - sea_water_pressure
+- source_fields:
+  - latitude
+  - longitude
+  target_channel: provider_profile_horizontal_context
+  state_role: estimate
+  value_basis: provider_reported_profile_position
+  access_class: source_context
+  retained_behavior: constant across the selected profile
+grouping_key_rules:
+- namespace: physical_platform
+  source_field: wmo_id
+  access_class: identity_grouping_only
+- namespace: deployment
+  source_field: trajectory
+  access_class: identity_grouping_only
+- namespace: profile
+  source_field: profile_id
+  access_class: identity_grouping_only
+- namespace: source_dataset
+  constant: ioos-ngdac-uaf-unit_191-20240309T1200
+  access_class: identity_grouping_only
+quality_rules:
+- GPS/dead-reckoning transition and reacquisition
+- dead-reckoning reset or jump
+- long navigation gap
+- pressure/depth inconsistency
+- source-units/value-range mismatch
+- duplicate or out-of-order time
+- asynchronous event coalescing without source-row loss
+prohibited_exposures:
+- identity, profile, provider, and adapter fields as ordinary kinematic features
+- dead-reckoned or interpolated position relabeled as measured GPS
+- calculated depth relabeled as measured depth
+- profile-level latitude/longitude treated as per-sample observed trajectory
+classifier_view_status: blocked_until_common_front_fixture_validation
