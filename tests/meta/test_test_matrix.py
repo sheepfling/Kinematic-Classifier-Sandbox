@@ -65,6 +65,11 @@ class ProductTestMatrixTests(unittest.TestCase):
         self.assertTrue(all(by_id[suite_id]["parallel_safe"] for suite_id in lane_ids))
         self.assertFalse(by_id["product4_all"]["parallel_safe"])
 
+        analysis = by_id["product4_analysis"]
+        self.assertEqual(analysis["pytest_marker"], "product4_analysis")
+        self.assertTrue(analysis["parallel_safe"])
+        self.assertFalse(analysis["cross_product_gate"])
+
         bridge = by_id["real_world_classifier_bridge"]
         self.assertFalse(bridge["runnable"])
         self.assertEqual(bridge["status"], "blocked_until_prepared_snapshot")

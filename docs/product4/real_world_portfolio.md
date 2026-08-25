@@ -100,11 +100,23 @@ PYTHONPATH=src python3 scripts/run/build_product4_validation_snapshot.py \
 PYTHONPATH=src python3 scripts/audit/evaluate_product4_gates.py \
   --snapshot /path/to/external/product4-six-lane/snapshot.json \
   --assignments /path/to/external/product4-six-lane/assignments.json
+
+PYTHONPATH=src python3 scripts/audit/build_analysis_product_manifest.py \
+  --snapshot /path/to/external/product4-six-lane/snapshot.json \
+  --product kinematic_analysis \
+  --output /path/to/external/product4-six-lane/kinematic-analysis.json
 ```
 
 The validation snapshot is expected to pass immutable snapshot integrity, six-lane coverage,
 quality, and grouped leakage gates. It must continue to fail classifier projection, prepared-source,
 or release-rights gates until each selected source has independently passed those promotions.
+
+The `source_audit` and `kinematic_analysis` profiles can be materialized from this validation
+snapshot. The `classifier_ladder` profile is intentionally stricter: it selects only episodes with
+classifier views and fails unless their registry sources are `prepared`, so a deep analysis product
+cannot be mistaken for a Product 2 held-out evaluation input. A classifier request must also name
+the target-label namespace explicitly; route or provenance labels are not silently treated as
+platform classes.
 
 The checked-in registry currently reports `insufficient_real_world_evidence`: all six lanes are
 represented, but no lane is `prepared`, and the classifier bridge remains blocked. A validation

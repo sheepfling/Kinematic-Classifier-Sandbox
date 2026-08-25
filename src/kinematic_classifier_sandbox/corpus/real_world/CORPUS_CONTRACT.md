@@ -150,6 +150,9 @@ snapshot, split, and promotion operations:
   groups that cross train/validation/test partitions.
 - `assign_grouped_snapshot_splits()` proposes deterministic partitions only after unioning all
   split-capable grouping keys; it never changes evidence state or creates classifier assets.
+- `analysis_products.build_analysis_product_manifest()` separates source-audit, kinematic-
+  analysis, and classifier-ladder consumers; the classifier-ladder profile selects no analysis
+  state asset, requires prepared sources, and keeps target labels out of the feature asset.
 - `evaluate_product4_gates()` composes those checks into one explicit promotion report without
   treating source-registry coverage as classifier readiness.
 - `build_snapshot_manifest()` builds a hash-pinned manifest from episode JSON files in an external

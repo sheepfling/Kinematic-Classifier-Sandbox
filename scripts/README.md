@@ -41,7 +41,7 @@ Product 4 lane tests can run in isolated worker processes:
 - `PYTHONPATH=src python3 scripts/run/run_product4_tests.py --workers 4`
 
 The runner uses the explicit `product4_*` pytest markers and keeps common-contract, cross-domain,
-and six lane groups separate. It is safe for the current real-world tests because they use
+analysis-product, and six lane groups separate. It is safe for the current real-world tests because they use
 repository fixtures and per-test temporary directories; add a dedicated output root before
 parallelizing any test that writes shared generated artifacts.
 
@@ -93,6 +93,7 @@ Common audit and rerun commands:
 - Artifact/showcase validation: `python3 scripts/audit/validate_artifacts.py`
 - Corpus audit: `python3 scripts/audit/audit_corpus.py`
 - Product 4 corpus gates: `PYTHONPATH=src python3 scripts/audit/evaluate_product4_gates.py`
+- Product 4 analysis-product selection: `PYTHONPATH=src python3 scripts/audit/build_analysis_product_manifest.py --snapshot /external/product4-six-lane/snapshot.json --product kinematic_analysis --output /external/product4-six-lane/kinematic-analysis.json`; add `--target-label-namespace NAMESPACE` for `classifier_ladder`.
 - Build Product 4 snapshot manifest: `PYTHONPATH=src python3 scripts/run/build_product4_snapshot.py --snapshot-root /external/product4-snapshot --snapshot-id product4-snapshot-v0.1`
 - Build SPACE-NEAR validation tranche: `PYTHONPATH=src python3 scripts/run/build_space_near_validation_snapshot.py --snapshot-root /external/product4-space-near --snapshot-id product4-space-near-validation-v0.1`
 - Build six-lane validation tranche: `PYTHONPATH=src python3 scripts/run/build_product4_validation_snapshot.py --snapshot-root /external/product4-six-lane --snapshot-id product4-six-lane-validation-v0.1 --cmre-tracklets /external/tracklets.csv --cmre-nomenclature /external/nomen.csv --cmre-identity-key /secure/cmre-identity.key`

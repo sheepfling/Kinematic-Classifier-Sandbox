@@ -61,6 +61,7 @@ markers = [
     "cross_product: tests spanning multiple products or repository infrastructure",
     "product4_common: Product 4 common-contract tests",
     "product4_cross_domain: Product 4 cross-domain portfolio and gate tests",
+    "product4_analysis: Product 4 analysis-product boundary tests",
     "product4_land_surface: Product 4 LAND lane tests",
     "product4_sea_surface: Product 4 SEA-SURF lane tests",
     "product4_sea_subsurface: Product 4 SEA-SUB lane tests",

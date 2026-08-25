@@ -113,6 +113,21 @@ suites:
     promotion_gate: six-lane coherence, provenance, rights, snapshot, quality, leakage, and classifier-view gates
     notes: The snapshot builder, grouped split proposer, and Product4GateReport keep six-lane coherence separate from classifier-ready maturity.
 
+  - suite_id: product4_analysis
+    product: product4
+    title: Product 4 analysis-product boundaries
+    pytest_marker: product4_analysis
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: external selection manifests and per-test temporary snapshot assets
+    runnable: true
+    status: active
+    promotion_gate: explicit source-audit, kinematic-analysis, and classifier-bridge boundaries
+    notes: Source and kinematic analysis may inspect deeper state views; the Product 2 bridge may select only identity-free classifier assets from prepared sources.
+
   - suite_id: product4_land_surface
     product: product4
     title: LAND surface lane
