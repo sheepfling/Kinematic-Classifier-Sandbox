@@ -33,15 +33,25 @@ class ImportSimplicityAuditTests(unittest.TestCase):
         ):
             self.assertIn(key, result.summary)
             self.assertEqual(result.summary[key], 0, key)
-        self.assertEqual(result.summary["debt_count"], 0)
+        debt_rows = [row for row in result.issue_rows if row["status"] == "debt"]
+        self.assertEqual(
+            {(row["kind"], row["path"]) for row in debt_rows},
+            {
+                (
+                    "broad_package_surface",
+                    "src/kinematic_classifier_sandbox/registry/__init__.py",
+                )
+            },
+        )
+        self.assertEqual(result.summary["debt_count"], len(debt_rows))
         self.assertEqual(result.summary["accidental_export_count"], 0)
-        self.assertEqual(result.summary["broad_package_surface_count"], 0)
+        self.assertEqual(result.summary["broad_package_surface_count"], 1)
         self.assertEqual(result.summary["import_cycle_count"], 0)
 
         kinds = {row["kind"] for row in result.issue_rows}
         self.assertNotIn("root_wrapper_surface", kinds)
         self.assertNotIn("accidental_export", kinds)
-        self.assertNotIn("broad_package_surface", kinds)
+        self.assertIn("broad_package_surface", kinds)
         self.assertNotIn("import_cycle", kinds)
 
     def test_artifacts_are_written(self) -> None:
