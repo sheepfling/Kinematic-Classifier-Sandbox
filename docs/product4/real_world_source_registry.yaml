@@ -1,5 +1,5 @@
 registry_version: real-world-source-registry-v0.1
-registry_id: product4-real-world-portfolio-2026-08-25-r4
+registry_id: product4-real-world-portfolio-2026-08-25-r5
 sources:
   - source_dataset_id: fhwa_tgsim_foggy_bottom
     lane: land_surface
@@ -111,8 +111,8 @@ sources:
     title: CMRE/Brest maritime route-association AIS tracklets
     adapter_id: cmre_route_tracklet_fixture_builder
     adapter_version: 0.1.0
-    portfolio_role: expansion_regression
-    evidence_state: fixture_validated
+    portfolio_role: bounded_task_prepared_cohort
+    evidence_state: prepared
     artifacts:
       - artifact_id: cmre_brest_external_validation_packet_v2
         uri_or_query: external://WP-SEA-SURF-001_progress_2026-08-23_v2.zip
@@ -137,6 +137,17 @@ sources:
         notes:
           - Route nomenclature is retained as a separate provenance input to the common-front builder.
           - Raw route rows remain outside Git.
+      - artifact_id: cmre_brest_upstream_tracklets_v2
+        uri_or_query: external://WP-SEA-SURF-001_progress_2026-08-23_v2.zip#tracklets
+        media_type: text/csv
+        sha256: 655beb132941cc6d5254ef8155e68975b649a4e6ec159488970c828d8de7b7e5
+        accessed_on: 2026-08-25
+        license_id: CC-BY-NC-SA-4.0-provisional
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - Pinned upstream input contains 800 route tracklets; the bounded task selects R_06 and R_14.
+          - Raw rows and the identity key remain outside Git; this hash pins the external input.
     grouping_namespaces:
       - physical_platform
       - source_recording
@@ -146,10 +157,11 @@ sources:
       - temporal_collection
     claim_boundary:
       - Supports real AIS tracklet ingestion, missing vertical-state semantics, and route assertions.
-      - Does not support vessel-family classification or population-representative maritime claims.
+      - Supports a bounded within-source R_06 versus R_14 route-motion task with an explicit route target namespace.
+      - Does not support vessel-family classification, population-representative maritime claims, or independent-provider generalization.
     promotion_blockers:
-      - Build the bounded fixture through the common snapshot loader.
-      - Add an independent-provider holdout before any maritime generalization claim.
+      - Add an independent AIS provider/source-shift holdout before any maritime generalization claim.
+      - Keep Product 2 target namespace `route`; route association is not a vessel-family label.
 
   - source_dataset_id: noaa_ais_2024_broadcast_points
     lane: sea_surface

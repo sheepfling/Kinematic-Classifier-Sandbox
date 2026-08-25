@@ -127,7 +127,8 @@ The validation-only common-front builders are intentionally separated by lane:
 - `space_orbital.common_front`: NASA OEM EME2000 source velocity kept distinct from derived
   velocity; and
 - the existing SEA-SURF adapter: route-tracklet source/analysis/classifier-candidate assets with
-  keyed platform grouping.
+  keyed platform grouping. Its prepared task projection is an explicit route-pair speed profile;
+  route association remains an out-of-band target and is not a vessel-family label.
 
 `portfolio.assign_grouped_snapshot_splits()` unions shared physical-platform, source-recording,
 and mission-event keys before proposing deterministic partitions. It is a split proposal only;

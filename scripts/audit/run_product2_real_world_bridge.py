@@ -188,8 +188,10 @@ def main() -> int:
                 "product4_task_gate": gate_report.model_dump(mode="json"),
                 "product2_summary": asdict(result.summary),
                 "claim_boundary": (
-                    "Held-out physical-platform evaluation within the pinned TGSIM recording; "
-                    "no source-shift, population-representative, or six-lane claim."
+                    "Bounded held-out evaluation within the selected "
+                    f"{', '.join(arguments.expected_lane)} snapshot for target namespace "
+                    f"{config.target_label_namespace!r}; no source-shift, "
+                    "population-representative, or six-lane claim."
                 ),
                 "artifact_root": str(artifacts.run_dir),
             },
