@@ -1,0 +1,266 @@
+source_card_version: trajectory-source-card-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: epfl_pneuma
+program_domain: land
+corpus_sublane: land_surface
+identity:
+  publisher: EPFL Urban Transport Systems Laboratory / Zenodo
+  dataset_title: pNEUMA dataset
+  source_version: Zenodo v1, published 2024-01-11
+  publication_or_release_date: '2024-01-11'
+  citation: Barmpounakis & Geroliminis; DOI 10.5281/zenodo.10491409
+  official_landing_page: https://open-traffic.epfl.ch/
+  documentation_references:
+  - https://open-traffic.epfl.ch/index.php/downloads/
+  - https://open-traffic.epfl.ch/index.php/terms-conditions/
+  - https://zenodo.org/records/10491409
+access:
+  status: conditional
+  retrieval_method: Open download through pNEUMA site or Zenodo archive
+  authentication_required: false
+  terms_or_license_id: official-license-text-conflict
+  license_text_or_reference: Download page states CC BY-NC 4.0 at page level but FAQ
+    states CC BY 4.0; terms page requires free use with creator attribution.
+  redistribution_allowed: null
+  derived_data_redistribution_allowed: null
+  privacy_or_sensitive_data_notes: null
+  export_or_control_notes: null
+  access_evidence:
+  - Official pNEUMA site describes the dataset as open access/free distribution.
+  - Official download page displays a CC BY-NC 4.0 notice.
+  - The same official page FAQ states CC BY 4.0.
+  - Official terms page requires attribution but does not resolve the license-version
+    discrepancy.
+  - Zenodo record v1 is open and exposes archive metadata plus previewable member
+    inventory.
+artifacts:
+  expected_artifact_kinds:
+  - pNEUMA_dataset.zip
+  - README.html
+  - individual trajectory CSV members inside archive
+  acquired_artifacts: []
+  api_query_definition: null
+  expected_refresh_or_versioning: Pin Zenodo record v1 / DOI 10.5281/zenodo.10491409,
+    archive MD5 4e842b2200bea2f80d41c6b785a9de25, and selected member identity.
+native_trajectory:
+  native_unit: trip
+  identity_fields:
+  - trackID
+  parent_child_structure: flight session/drone file -> vehicle trajectory row -> repeated
+    time samples
+  segmentation_semantics: one row represents one vehicle trajectory
+  sample_count_or_scale: over 0.5 million trajectories; Zenodo archive 15.8 GB
+  sampling_pattern: mixed
+observation:
+  observation_modality: drone_video_optical_tracking
+  state_roles_present:
+  - estimate
+  value_bases_present:
+  - postprocessed
+  observer_or_navigation_system: swarm of ten drones over Athens
+  physical_truth_available: false
+  truth_or_reference_notes: Trajectory extraction from drone observations, not onboard
+    truth.
+time:
+  source_time_system: relative_seconds
+  absolute_time_available: false
+  epoch_or_reference: file/session context
+  units_or_encoding: seconds
+  precision_or_resolution: nominally frame-based; one drone used 23.97 FPS instead
+    of 25 FPS
+  rollover_or_leap_second_notes: null
+frames:
+- frame_id: pneuma_wgs84
+  frame_kind: geodetic
+  axes:
+  - latitude
+  - longitude
+  - vertical unavailable
+  axis_units:
+  - deg
+  - deg
+  - unavailable
+  crs_or_datum: WGS-84
+  center_or_origin: null
+  reference_epoch: null
+  vertical_reference: unavailable
+  vertical_positive_direction: unavailable
+  transform_requirements:
+  - preserve geodetic source view; derive local Cartesian only in named analysis view
+  unresolved_ambiguities:
+  - exact file-level absolute timing and drone/session IDs require artifact inspection
+channels:
+- source_field_or_group: trackID
+  semantic_channel: source_track_identity
+  units: ''
+  state_role: ''
+  value_basis: reported
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: type
+  semantic_channel: road_vehicle_class
+  units: ''
+  state_role: ''
+  value_basis: reported
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: latitude, longitude
+  semantic_channel: geodetic_horizontal_position
+  units: deg
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: speed
+  semantic_channel: speed
+  units: km/h
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: longitudinal acceleration, lateral acceleration
+  semantic_channel: vehicle_frame_acceleration
+  units: m/s^2
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: time
+  semantic_channel: elapsed_time
+  units: s
+  state_role: estimate
+  value_basis: reported
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+labels:
+  native_assertions:
+  - namespace: land.road_vehicle_class
+    values:
+    - Car
+    - Taxi
+    - Bus
+    - Medium Vehicle
+    - Heavy Vehicle
+    - Motorcycle
+    evidence_kind: source_native
+    proxy: false
+  identity_linked_assertions: []
+  trajectory_derived_assertions: []
+  analyst_or_proxy_assertions: []
+  unavailable_or_unsafe_targets:
+  - make
+  - model
+  - mass
+  - tank
+  label_dependency_channels: {}
+population:
+  represented_platforms_or_regimes:
+  - car
+  - taxi
+  - bus
+  - medium_vehicle
+  - heavy_vehicle
+  - motorcycle
+  temporal_coverage: five morning-peak collection days/sessions
+  geographic_or_operational_coverage: central Athens, Greece, approximately 1.3 km^2
+  population_biases:
+  - single city
+  - drone optical extraction
+  - morning peak traffic
+  known_exclusions:
+  - vertical state
+  - onboard vehicle telemetry
+quality_and_segmentation:
+  known_sentinels: []
+  duplicate_or_rebroadcast_behavior: pending artifact inspection
+  gap_behavior: Official README states one or more drones sometimes stopped recording,
+    producing periods with no data in affected zones.
+  reset_or_discontinuity_behavior: pending artifact inspection
+  source_transition_behavior: File/date/drone/session context must remain explicit.
+    Official README also identifies 20181024_d4_0830_0900.csv as an example with reduced
+    georegistration quality due to drone movement.
+  physically_implausible_or_projection_risks:
+  - One drone operated at 23.97 FPS rather than 25 FPS, so cadence is not globally
+    fixed at 0.04 s.
+  - Drone outages create missing periods for affected zones.
+  - Drone movement can reduce georegistration quality.
+  - Some motorcycle paths legitimately leave conventional road lanes; do not auto-reject
+    them as impossible.
+  proposed_episode_segmentation: one source vehicle row/trackID within a pinned file/session
+  proposed_segment_annotations:
+  - gap
+  - low_speed
+  - quality_warning
+leakage_and_grouping:
+  physical_platform_key_available: true
+  event_or_mission_key_available: false
+  source_recording_key_available: true
+  route_key_available: true
+  geography_key_available: true
+  temporal_collection_key_available: true
+  provider_or_source_key: true
+  raw_identity_restrictions:
+  - trackID/file/session are grouping context only
+  recommended_disjoint_split_groups:
+  - physical_platform
+  - source_recording
+  - temporal_collection
+  - geography
+  - source_dataset
+common_contract_mapping:
+  direct_common_fields:
+  - source lineage
+  - elapsed time
+  - WGS-84 horizontal position with invalid vertical
+  - source speed
+  - source acceleration channels
+  - labels
+  - grouping keys
+  domain_extension_fields:
+  - distance_traveled
+  - average_speed
+  separate_sensor_observation_fields: []
+  unresolved_schema_fit:
+  - exact repeated-column names and file/session identifiers require real artifact
+    inspection
+  schema_change_request_needed: false
+pilot:
+  preferred_pilot_subset: one or more bounded files with complete car/heavy/motorcycle
+    trajectories
+  pilot_artifact_size_or_scope: small deterministic subset after archive/file acquisition
+  first_within_source_experiment: car vs heavy_vehicle or motorcycle, grouped by source
+    track/file
+  first_independent_validation: source-shift comparison against TGSIM broad road classes
+  refresh_strategy: pin Zenodo DOI/version and file hash
+claim_boundary:
+  supports:
+  - independently collected urban road trajectories
+  - six native vehicle classes
+  does_not_support:
+  - vertical state
+  - physical truth
+  - military or tracked semantics
+  summary: Preferred independent LAND road holdout because it changes provider, geography
+    and source format.
+research_evidence_state: access_verified
+open_questions:
+- Exact raw rows have not been retained in this environment.
+- Official license wording conflict requires coordinator/legal disposition before
+  fixture redistribution.
+- Exact file-level session and drone identity mapping should be confirmed from selected
+  member/artifact context.
+next_actions:
+- acquire a bounded pNEUMA file after TGSIM fixture
+- pin rights evidence and file hash

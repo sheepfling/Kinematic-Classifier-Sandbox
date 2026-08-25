@@ -1,0 +1,11 @@
+scorecard_version: source-candidate-scorecard-v0.1
+source_dataset_id: epfl_pneuma
+portfolio_role: independent_validation
+provisional: true
+total_score_0_to_100: 74
+hard_gate_status: not_all_passed
+critical_blockers:
+- No bounded trajectory CSV member retained.
+- Official pNEUMA license text is internally inconsistent (CC BY-NC vs CC BY).
+note: Archive/member metadata and README semantics are strong, but rights disposition
+  and trajectory-row retention prevent promotion.

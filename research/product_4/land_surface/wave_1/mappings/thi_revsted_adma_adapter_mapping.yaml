@@ -1,0 +1,118 @@
+adapter_mapping_version: trajectory-adapter-mapping-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: thi_revsted
+adapter_id: thi_revsted_adma_sample
+adapter_version: wave1-research-prototype
+program_domain: land
+corpus_sublane: land_surface
+mapping_status: actual_rows_mapped_locally_fixture_bytes_withheld
+source_artifact_contract:
+  accepted_media_types:
+  - text/csv
+  accepted_source_schema_versions:
+  - github-commit-415f4b9e46d29e7b74f0bbcbcb0baad59378cc5d
+  artifact_grouping_rule: one committed ADMA sample file is one source recording artifact
+  checksum_policy: pin Git commit and blob; SHA-256 every locally retained extract and state asset
+native_episode_extraction:
+  native_identity_fields:
+  - source file
+  - recording identity
+  episode_id_rule: hash(source dataset, source recording)
+  parent_episode_rule: null
+  mission_id_rule: null
+  object_id_rule: opaque physical test-vehicle identity
+  platform_group_id_rule: one physical test-vehicle group
+  segmentation_rule: one recording per episode; maneuvers are segments
+  ordering_rule: ADMA INS state time, then source row order
+state_view_prototypes:
+- view_kind: source_native
+  state_role: estimate
+  frame_kind: geodetic
+  horizontal_channels:
+  - ins_lat_abs
+  - ins_long_abs
+  vertical_policy: invalid in normalized position; source ins_height remains audit-only until datum is
+    established
+  state_time:
+  - ins_time_week
+  - ins_time_msec
+  - leap_seconds
+  source_context:
+  - rosbagTimestamp
+  normalization_assumptions:
+  - ADMA INS time defines the state axis.
+  - ROS bag time remains transport context.
+  - No interpolation or resampling.
+- view_kind: analysis
+  state_role: estimate
+  frame_kind: other_declared
+  horizontal_position_channels:
+  - ins_pos_rel_x
+  - ins_pos_rel_y
+  horizontal_velocity_channels:
+  - ins_vel_frame.x
+  - ins_vel_frame.y
+  vertical_policy: position and velocity vertical components remain invalid
+  normalization_assumptions:
+  - normalize state time to elapsed seconds
+  - do not rotate source-relative axes without frame documentation
+  - do not infer a local origin
+field_mappings:
+- source_field: ins_time_week, ins_time_msec, leap_seconds
+  target_location: time_axis
+  target_field_or_channel_id: vehicle_state_time
+  access_class: kinematics
+- source_field: rosbagTimestamp
+  target_location: source_context
+  target_field_or_channel_id: transport_timestamp
+  access_class: source_context
+- source_field: ins_lat_abs, ins_long_abs
+  target_location: source_native_state_view
+  target_field_or_channel_id: horizontal_geodetic_position
+  access_class: kinematics
+- source_field: ins_height
+  target_location: source_native_extra_channel
+  target_field_or_channel_id: height_unresolved_datum
+  access_class: audit_only
+- source_field: ins_pos_rel_x, ins_pos_rel_y
+  target_location: analysis_state_view
+  target_field_or_channel_id: source_relative_horizontal_position
+  access_class: kinematics
+- source_field: ins_vel_frame.x, ins_vel_frame.y
+  target_location: analysis_state_view
+  target_field_or_channel_id: source_frame_horizontal_velocity
+  access_class: kinematics
+label_assertion_rules:
+- publisher-documented instrumented test-vehicle collection role only
+grouping_key_rules:
+- physical_platform
+- source_recording
+- source_dataset
+quality_finding_rules:
+- LAND_TRANSPORT_TIME_NOT_STATE_TIME
+- LAND_LOCAL_FRAME_SEMANTICS_PARTIAL
+- LAND_POSITION_VELOCITY_CONSISTENCY
+- LAND_FIXTURE_TOO_SHORT_FOR_STUDY
+- LAND_SOURCE_RIGHTS_UNRESOLVED
+domain_extension_schema:
+  schema_id: land_vehicle_state_estimation_v0.1_proposed
+  schema_version: 0.1-proposed
+  fields:
+  - sensor_system
+  - reference_channels
+  - uncertainty
+  - status_flags
+prohibited_exposures:
+- source, file, recording, and platform identity remain grouping/audit metadata
+- transport timestamp is not a kinematic feature
+- unresolved height is not normalized altitude
+- collection-role assertion is not a class feature
+repository_disposition:
+  fixture_bytes_committed: false
+  reason: concrete source redistribution license unresolved
+  local_validation_record: validation/auxiliary_fixture_validation.json
+unresolved_ambiguities:
+- source license
+- local frame definition
+- vertical datum
+change_requests: []

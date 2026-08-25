@@ -1,0 +1,16 @@
+{
+  "validator": "cycle5-local-structural-validator-v0.1",
+  "status": "pass",
+  "scope": "local structural validation; not authoritative COMMON-FRONT validation",
+  "fixture_id": "fixture-94b82cc44ceffa427a5f31f8",
+  "sample_count": 6,
+  "duration_s": 0.05,
+  "state_view_count": 2,
+  "grouping_key_count": 3,
+  "quality_finding_count": 5,
+  "source_extract_sha256": "4621b5cebd2edbc8d75b7b47cf64522bccc7466e4a5917e407b88ffd01dd1922",
+  "source_native_sha256": "c09698b2f2f8173ac30f4e664572f51604e5323b9b9d829a83535ed5c9eb8ef9",
+  "analysis_sha256": "8879ec1bb3f79637aa7080beeff911259c842ecf2e386f8b9872961e76e4c0e1",
+  "repository_fixture_bytes_committed": false,
+  "repository_disposition": "aggregate validation record only; source and derived state arrays withheld pending license"
+}

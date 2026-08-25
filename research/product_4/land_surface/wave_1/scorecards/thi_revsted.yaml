@@ -1,0 +1,15 @@
+scorecard_version: source-candidate-scorecard-v0.1
+source_dataset_id: thi_revsted
+portfolio_role: auxiliary_contract_validation
+provisional: true
+hard_gate_status: partial
+total_score_0_to_100: 67
+strengths:
+- immutable source artifact
+- actual rows inspected
+- rich state/time schema
+critical_blockers:
+- license unresolved
+- single platform
+- authoritative validator unavailable
+recommended_role: auxiliary_contract_validation_only

@@ -1,0 +1,26 @@
+manifest_version: product4-research-tranche-v0.1
+tranche_id: product-4-land-surface-wave-1
+program_product: 4
+program_domain: land
+corpus_sublane: land_surface
+wave: 1
+contract_version: trajectory-corpus-v0.1
+source_packet:
+  file_name: WP-LAND-001_cycle5_common_format.zip
+  sha256: 5f5f4c538be2e38c036ba14f5836cde6270f215cefdaaf73b95eb2eb4cf98cf7
+  evidence_snapshot_date: '2026-08-23'
+repository_intake:
+  date: '2026-08-24'
+  base_branch: feature/product-4-real-world-corpus
+  raw_source_rows_committed: false
+  derived_coordinate_arrays_committed: false
+  large_binary_artifacts_committed: false
+portfolio:
+  anchor: fhwa_tgsim_foggy_bottom
+  independent_validation: epfl_pneuma
+  secondary_validation: rwth_highd
+  auxiliary_contract_validation: thi_revsted
+  state_quality_expansion: amazon_precision_gnss
+gate_status:
+  overall_evidence_state: access_verified
+  g2_fixture_validated: false

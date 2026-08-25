@@ -1,0 +1,266 @@
+source_card_version: trajectory-source-card-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: thi_revsted
+program_domain: land
+corpus_sublane: land_surface
+portfolio_role: auxiliary_contract_validation
+identity:
+  publisher: Technische Hochschule Ingolstadt / ReV-StED authors
+  dataset_title: Real-world Vehicle State Estimation Dataset (ReV-StED)
+  source_version: GitHub sample pinned at commit 415f4b9e46d29e7b74f0bbcbcb0baad59378cc5d
+  publication_or_release_date: '2025-04-24'
+  citation: ReV-StED dataset, DOI 10.5281/zenodo.15270060
+  official_landing_page: https://zenodo.org/records/15270060
+  documentation_references:
+  - https://github.com/MB-Team-THI/UAHL-RevStED
+  - https://zenodo.org/records/15270060
+access:
+  status: access_verified
+  retrieval_method: public immutable GitHub file and Zenodo record
+  authentication_required: false
+  terms_or_license_id: unresolved
+  license_text_or_reference: Zenodo marks the dataset Open but the inspected Rights section names no license.
+  redistribution_allowed: null
+  derived_data_redistribution_allowed: null
+  privacy_or_sensitive_data_notes: null
+  export_or_control_notes: null
+  access_evidence:
+  - Official repository commits ADMA_data_sample.csv as a 2,440,637-byte Git blob.
+  - Official README identifies it as a real ten-second vehicle-state measurement.
+  - Zenodo lists seven recording CSVs totaling 531.5 MB.
+artifacts:
+  expected_artifact_kinds:
+  - ADMA_data_sample.csv
+  - OBD_Sample.csv
+  - Recording_1_ReVSTED.csv through Recording_7_ReVSTED.csv
+  - ReV-StED Description.xlsx
+  acquired_artifacts:
+  - source_artifact_id: revsted_adma_git_blob_2e7385074dc741dbda0a2036184923d1b4942462
+    path: ADMA_data_sample.csv
+    git_commit: 415f4b9e46d29e7b74f0bbcbcb0baad59378cc5d
+    git_blob_sha1: 2e7385074dc741dbda0a2036184923d1b4942462
+    size_bytes: 2440637
+    inspection_scope: full header plus six consecutive records in a rights-restricted local workspace
+    repository_disposition: source rows and derived coordinate arrays withheld pending concrete license
+  api_query_definition: null
+  expected_refresh_or_versioning: Pin Git commit/blob or Zenodo file checksum.
+native_trajectory:
+  native_unit: sensor recording
+  identity_fields:
+  - source file
+  - full-dataset recording identity
+  parent_child_structure: dataset -> recording -> synchronized sensor samples
+  segmentation_semantics: one recording is parent episode; maneuvers are segments
+  sample_count_or_scale: Committed sample is documented as ten seconds; six records were inspected locally.
+  sampling_pattern: regular ADMA INS state time plus irregular ROS transport time
+observation:
+  observation_modality: multi_sensor_vehicle_state_measurement
+  state_roles_present:
+  - source_observation
+  - estimate
+  - reference_measurement
+  value_bases_present:
+  - measured
+  - postprocessed
+  observer_or_navigation_system: GeneSys ADMA, Correvit, and onboard sensors
+  physical_truth_available: false
+  truth_or_reference_notes: Reference measurements are not universal simulation truth.
+time:
+  source_time_system: GPS week/ADMA milliseconds plus ROS transport timestamp
+  absolute_time_available: true
+  epoch_or_reference: source GPS week retained locally; not committed
+  units_or_encoding: milliseconds and nanosecond text
+  precision_or_resolution: 10 ms ADMA INS interval
+  rollover_or_leap_second_notes: Source leap-second metadata was preserved locally; no UTC conversion
+    was performed.
+frames:
+- frame_id: revsted_adma_ins_geodetic_horizontal
+  frame_kind: geodetic
+  axes:
+  - latitude
+  - longitude
+  - unavailable_vertical
+  axis_units:
+  - degree
+  - degree
+  - m
+  center_or_origin: Earth-referenced geodetic coordinates reported by ADMA INS
+  vertical_reference: unresolved
+  vertical_positive_direction: unresolved
+  crs_or_datum: source ADMA GNSS/INS datum; WGS-84 not asserted
+  reference_epoch: null
+  local_origin: null
+  notes:
+  - Third position component is invalid.
+  - Source INS height is separate because its datum is unresolved.
+- frame_id: revsted_adma_ins_relative_xy
+  frame_kind: other_declared
+  axes:
+  - source_relative_x
+  - source_relative_y
+  - unavailable_vertical
+  axis_units:
+  - m
+  - m
+  - m
+  center_or_origin: ADMA source-defined local relative origin
+  vertical_reference: unavailable
+  vertical_positive_direction: unavailable
+  crs_or_datum: null
+  reference_epoch: null
+  local_origin: source-defined; exact origin and orientation unresolved
+  notes:
+  - Third position and velocity components are invalid.
+channels:
+- source_field_or_group: ins_time_week, ins_time_msec, leap_seconds
+  semantic_channel: vehicle_state_time
+  units: GPS week / ms / s
+  state_role: estimate
+  value_basis: reported
+  source_or_derived: source
+  availability: present
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: rosbagTimestamp
+  semantic_channel: transport_timestamp
+  units: ns
+  state_role: source_observation
+  value_basis: reported
+  source_or_derived: source
+  availability: present
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators:
+  - not canonical state time
+- source_field_or_group: ins_lat_abs, ins_long_abs
+  semantic_channel: geodetic_horizontal_position
+  units: degree
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: present
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: ins_pos_rel_x, ins_pos_rel_y
+  semantic_channel: source_relative_horizontal_position
+  units: m
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: present
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators:
+  - origin/orientation unresolved
+- source_field_or_group: ins_vel_frame.x, ins_vel_frame.y
+  semantic_channel: source_frame_horizontal_velocity
+  units: m/s
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: present
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+labels:
+  native_assertions: []
+  identity_linked_assertions:
+  - namespace: land.collection_role
+    value: instrumented_test_vehicle
+    evidence_kind: publisher_documentation
+    source_reference: Official README
+    proxy: false
+  trajectory_derived_assertions: []
+  analyst_or_proxy_assertions: []
+  unavailable_or_unsafe_targets:
+  - vehicle-class discrimination
+  - fleet diversity
+  - tracked
+  - armored
+  - tank
+  label_dependency_channels: {}
+population:
+  represented_platforms_or_regimes:
+  - single instrumented road test vehicle
+  temporal_coverage: committed sample documented as ten seconds
+  geographic_or_operational_coverage: controlled real-vehicle collection
+  population_biases:
+  - single platform
+  - not an ordinary traffic population
+  known_exclusions:
+  - no class diversity
+  - partial local-frame semantics
+quality_and_segmentation:
+  known_sentinels:
+  - 655.0 appears in some standard-deviation fields and needs source interpretation
+  duplicate_or_rebroadcast_behavior: none in retained ADMA INS time slice
+  gap_behavior: state time regular; ROS transport time irregular
+  reset_or_discontinuity_behavior: not exercised by six-record fixture
+  source_transition_behavior: multiple sensors retain distinct roles
+  physically_implausible_or_projection_risks:
+  - using transport time as state time
+  - mixing frames
+  - using unresolved height as altitude
+  proposed_episode_segmentation: one recording per episode; maneuvers are segments
+  proposed_segment_annotations:
+  - maneuver
+  - sensor_quality
+  - time_sync_warning
+leakage_and_grouping:
+  physical_platform_key_available: true
+  event_or_mission_key_available: false
+  source_recording_key_available: true
+  route_key_available: false
+  geography_key_available: null
+  temporal_collection_key_available: true
+  provider_or_source_key: true
+  raw_identity_restrictions:
+  - source identities remain grouping/audit metadata
+  recommended_disjoint_split_groups:
+  - physical_platform
+  - source_recording
+  - source_dataset
+common_contract_mapping:
+  direct_common_fields:
+  - artifact lineage
+  - state time
+  - horizontal positions
+  - horizontal velocity
+  - grouping
+  - quality
+  - processing lineage
+  domain_extension_fields:
+  - sensor system
+  - reference channels
+  - uncertainty
+  - status flags
+  separate_sensor_observation_fields:
+  - Correvit reference
+  - GNSS observations
+  - ADMA INS estimate
+  - ROS transport timestamp
+  unresolved_schema_fit:
+  - local frame definition
+  - vertical datum
+  - license
+  schema_change_request_needed: false
+pilot:
+  preferred_pilot_subset: Auxiliary contract witness only.
+  pilot_artifact_size_or_scope: six-record local contract witness; bytes withheld from repository
+  first_within_source_experiment: null
+  first_independent_validation: null
+  refresh_strategy: pin Git commit/blob or Zenodo checksum
+claim_boundary:
+  supports:
+  - state/time/frame/validity/lineage fixture construction
+  does_not_support:
+  - vehicle-class discrimination
+  - TGSIM anchor completion
+  summary: Auxiliary contract witness, not class pilot.
+research_evidence_state: schema_inspected
+open_questions:
+- source license
+- local frame definition
+- vertical datum
+- Whether a concrete source license permits redistribution of fixture rows.
+- Whether the authoritative COMMON-FRONT validator accepts the local witness.
+next_actions:
+- authoritative validation
+- rights disposition

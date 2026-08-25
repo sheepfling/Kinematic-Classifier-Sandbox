@@ -1,0 +1,89 @@
+artifact_inventory_version: trajectory-artifact-inventory-v0.1
+status_date: '2026-08-24'
+artifacts:
+- source_dataset_id: fhwa_tgsim_foggy_bottom
+  source_artifact_id: tgsim_foggy_bottom_trajectory_csv_pending
+  artifact: TGSIM-Foggy Bottom-Data.csv
+  official_locator: https://data.transportation.gov/api/v3/views/brzy-6zfh/export.csv?accessType=DOWNLOAD
+  alternate_json_locator: https://data.transportation.gov/api/v3/views/brzy-6zfh/query.json?accessType=DOWNLOAD
+  schema_locator: https://data.transportation.gov/api/views/brzy-6zfh/columns.json
+  status: access_verified_not_retained
+  reported_size: 350 MB
+  publisher_version: Data.gov modified 2026-01-20
+  checksum: null
+  rights: U.S. public domain
+  notes:
+  - Complete JSON response is reachable but exceeds current web response-size limit.
+  - Need bounded complete-track response, not arbitrary first-N rows.
+- source_dataset_id: fhwa_tgsim_foggy_bottom
+  source_artifact_id: tgsim_reference_image
+  artifact: Reference_Image_Foggy Bottom.png
+  status: publisher_declared_support_artifact_not_retained
+  checksum: null
+- source_dataset_id: fhwa_tgsim_foggy_bottom
+  source_artifact_id: tgsim_region_boundaries
+  artifact: Foggy_Bottom_boundaries.txt
+  status: publisher_declared_support_artifact_not_retained
+  checksum: null
+  notes:
+  - 49 polygons, 4-6 coordinate pairs each, source coordinates in pixels.
+- source_dataset_id: epfl_pneuma
+  source_artifact_id: pneuma_zenodo_archive_v1
+  artifact: pNEUMA_dataset.zip
+  official_locator: https://zenodo.org/records/10491409
+  status: artifact_metadata_and_member_inventory_verified_not_retained
+  reported_size: 15.8 GB
+  publisher_version: Zenodo v1, published 2024-01-11
+  publisher_md5: 4e842b2200bea2f80d41c6b785a9de25
+  rights: conditional_pending_official_license-text_reconciliation
+- source_dataset_id: epfl_pneuma
+  source_artifact_id: pneuma_readme_v1
+  artifact: README.html
+  official_locator: https://zenodo.org/records/10491409/files/README.html?download=1
+  status: content_inspected_via_official_zenodo_endpoint_not_locally_retained
+  reported_size: 4.3 kB
+  publisher_md5: 92e4c1f270736964f064b0cfdc761e47
+  rights: same dataset rights disposition
+- source_dataset_id: epfl_pneuma
+  source_artifact_id: pneuma_member_20181024_d1_0830_0900
+  artifact: pNEUMA_dataset/20181024_d1_0830_0900.csv
+  official_locator: inside Zenodo archive preview for record 10491409
+  status: member_identity_and_size_verified_not_retained
+  reported_size: 85.6 MB
+  publisher_checksum: null
+  corroborative_nonpublisher_evidence:
+    github_dvc_path: isaaclucky/data-warehousing:data/20181024_d1_0830_0900.csv.dvc
+    reported_size_bytes: 85620788
+    reported_md5: f70eeb7e3a079eb3566cddf9267ccbe6
+    use: corroboration only; not treated as publisher artifact identity
+- source_dataset_id: rwth_highd
+  source_artifact_id: highd_provider_delivery_pending
+  artifact: provider delivery
+  status: conditional_not_acquired
+  checksum: null
+  rights: non-commercial standard terms; raw/modified redistribution prohibited
+- source_dataset_id: thi_revsted
+  source_artifact_id: revsted_adma_git_blob_2e7385074dc741dbda0a2036184923d1b4942462
+  artifact: ADMA_data_sample.csv
+  official_locator: https://raw.githubusercontent.com/MB-Team-THI/UAHL-RevStED/415f4b9e46d29e7b74f0bbcbcb0baad59378cc5d/ADMA_data_sample.csv
+  status: immutable_source_inspected_local_fixture_withheld_from_repository
+  size_bytes: 2440637
+  stable_content_identity:
+    algorithm: git_blob_sha1
+    value: 2e7385074dc741dbda0a2036184923d1b4942462
+  full_artifact_sha256: null
+  local_extract_sha256: 4621b5cebd2edbc8d75b7b47cf64522bccc7466e4a5917e407b88ffd01dd1922
+  inspection_scope: full header and six source records
+  rights: public_read_release_license_unresolved
+  repository_disposition: source rows and coordinate arrays withheld pending concrete license
+- source_dataset_id: amazon_precision_gnss
+  source_artifact_id: amazon_precision_gnss_trajectories_zip
+  artifact: trajectories.zip
+  official_locator: https://github.com/amazon-science/precision-gnss/raw/refs/heads/main/trajectories.zip
+  status: access_verified_not_retained
+  reported_size: 14.6 MB
+  stable_content_identity:
+    algorithm: git_blob_sha1
+    value: bd3ac612e7eb8662578f3f9567758c56bc849e33
+  full_artifact_sha256: null
+  rights: CC-BY-4.0

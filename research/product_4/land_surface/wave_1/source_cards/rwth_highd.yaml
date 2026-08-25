@@ -1,0 +1,179 @@
+source_card_version: trajectory-source-card-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: rwth_highd
+program_domain: land
+corpus_sublane: land_surface
+identity:
+  publisher: Institute for Automotive Engineering, RWTH Aachen University / leveLXData
+  dataset_title: highD Dataset
+  source_version: provider-controlled
+  publication_or_release_date: '2018'
+  citation: Krajewski et al., IEEE ITSC 2018, DOI 10.1109/ITSC.2018.8569552
+  official_landing_page: https://levelxdata.com/highd-dataset/
+  documentation_references:
+  - https://levelxdata.com/wp-content/uploads/2023/10/highD-Format.pdf
+access:
+  status: conditional
+  retrieval_method: individual application and manual approval
+  authentication_required: true
+  terms_or_license_id: highD non-commercial terms
+  license_text_or_reference: https://levelxdata.com/highd-dataset/
+  redistribution_allowed: false
+  derived_data_redistribution_allowed: false
+  privacy_or_sensitive_data_notes: null
+  export_or_control_notes: No distribution of dataset or modified versions; non-commercial
+    use only under standard terms.
+  access_evidence:
+  - Official provider access form and terms reviewed.
+artifacts:
+  expected_artifact_kinds:
+  - recording image
+  - recordingMeta.csv
+  - tracksMeta.csv
+  - tracks.csv
+  acquired_artifacts: []
+  api_query_definition: null
+  expected_refresh_or_versioning: pin provider delivery and hashes after approval
+native_trajectory:
+  native_unit: image_track
+  identity_fields:
+  - recording id
+  - track id
+  parent_child_structure: recording -> track -> frame samples
+  segmentation_semantics: one track within a recording
+  sample_count_or_scale: 60 recordings; 110,500 vehicles; 44,500 km; 147 driven hours
+  sampling_pattern: regular
+observation:
+  observation_modality: drone_video_optical_tracking
+  state_roles_present:
+  - estimate
+  value_bases_present:
+  - postprocessed
+  observer_or_navigation_system: drone video trajectory extraction
+  physical_truth_available: false
+  truth_or_reference_notes: position/kinematics are extracted estimates
+time:
+  source_time_system: frame_index
+  absolute_time_available: false
+  epoch_or_reference: recording start
+  units_or_encoding: frame plus recording frameRate
+  precision_or_resolution: recording-specific frame rate
+  rollover_or_leap_second_notes: null
+frames:
+- frame_id: highd_recording_image_xy
+  frame_kind: other_declared
+  axes:
+  - x right
+  - y down
+  - vertical unavailable
+  axis_units:
+  - m
+  - m
+  - unavailable
+  crs_or_datum: null
+  center_or_origin: upper-left corner of each recording image
+  reference_epoch: null
+  vertical_reference: unavailable
+  vertical_positive_direction: unavailable
+  transform_requirements:
+  - preserve per-recording image frame
+  - vertical invalid
+  unresolved_ambiguities: []
+channels: []
+labels:
+  native_assertions:
+  - namespace: land.road_vehicle_class
+    values:
+    - Car
+    - Truck
+    evidence_kind: source_native
+  identity_linked_assertions: []
+  trajectory_derived_assertions:
+  - lane-change and headway summaries
+  analyst_or_proxy_assertions: []
+  unavailable_or_unsafe_targets:
+  - make
+  - model
+  - mass
+  label_dependency_channels: {}
+population:
+  represented_platforms_or_regimes:
+  - car
+  - truck
+  - highway traffic
+  temporal_coverage: 60 recordings
+  geographic_or_operational_coverage: six German highway locations
+  population_biases:
+  - highway-only
+  - Germany
+  - single provider pipeline
+  known_exclusions:
+  - urban multimodal traffic
+  - vertical state
+quality_and_segmentation:
+  known_sentinels:
+  - -1 in unavailable summary DHW/THW/TTC
+  - 0 in unavailable per-frame relational fields
+  duplicate_or_rebroadcast_behavior: pending artifact
+  gap_behavior: pending artifact
+  reset_or_discontinuity_behavior: recording-local
+  source_transition_behavior: do not merge recording frames without transform
+  physically_implausible_or_projection_risks:
+  - bounding-box corner semantics
+  - sentinel misuse
+  proposed_episode_segmentation: recording id + track id
+  proposed_segment_annotations:
+  - lane_change
+  - quality_warning
+leakage_and_grouping:
+  physical_platform_key_available: true
+  event_or_mission_key_available: false
+  source_recording_key_available: true
+  route_key_available: true
+  geography_key_available: true
+  temporal_collection_key_available: true
+  provider_or_source_key: true
+  raw_identity_restrictions:
+  - recording/track/location/lane are grouping context only
+  recommended_disjoint_split_groups:
+  - physical_platform
+  - source_recording
+  - geography
+  - source_dataset
+common_contract_mapping:
+  direct_common_fields:
+  - recording/track identity
+  - 2D position
+  - velocity
+  - acceleration
+  - Car/Truck label
+  domain_extension_fields:
+  - laneId
+  - headways
+  - surrounding vehicle relations
+  - dimensions
+  separate_sensor_observation_fields: []
+  unresolved_schema_fit:
+  - rights-compliant fixture strategy
+  schema_change_request_needed: false
+pilot:
+  preferred_pilot_subset: complete car/truck tracks from multiple recordings
+  pilot_artifact_size_or_scope: restricted local only unless rights review permits
+  first_within_source_experiment: car vs truck
+  first_independent_validation: secondary source-shift validation
+  refresh_strategy: pin delivered files and hashes
+claim_boundary:
+  supports:
+  - independent car/truck highway validation
+  does_not_support:
+  - redistribution under standard terms
+  - commercial use
+  - urban multimodal classes
+  summary: Strong secondary validation source but weaker Wave 1 fit than pNEUMA because
+    access and redistribution are restricted.
+research_evidence_state: access_verified
+open_questions:
+- access approval
+- rights-compliant fixture handling
+next_actions:
+- apply for access only after anchor G2 if still needed

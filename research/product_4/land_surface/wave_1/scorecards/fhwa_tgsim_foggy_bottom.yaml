@@ -1,0 +1,12 @@
+scorecard_version: source-candidate-scorecard-v0.1
+source_dataset_id: fhwa_tgsim_foggy_bottom
+portfolio_role: anchor
+provisional: true
+total_score_0_to_100: 82
+hard_gate_status: not_all_passed
+critical_blockers:
+- No bounded complete real trajectory-row artifact retained.
+- Actual row-level recording/ID scope and missingness remain unverified.
+- No common-front real fixture validation yet.
+note: Improved artifact/access/frame evidence from official Data.gov metadata; hard
+  gates remain incomplete until bounded real rows are retained.
