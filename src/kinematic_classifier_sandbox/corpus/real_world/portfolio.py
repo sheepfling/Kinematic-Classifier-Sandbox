@@ -15,6 +15,7 @@ from pydantic import Field, field_validator, model_validator
 from .episode_contracts import (
     AssetReference,
     GroupingNamespace,
+    LabelEvidenceKind,
     ProgramDomain,
     StateRole,
     StrictFrozenModel,
@@ -222,6 +223,32 @@ class SourceRegistryEvaluationReport(StrictFrozenModel):
     classifier_ready: bool
     open_gates: tuple[str, ...] = ()
     issues: tuple[str, ...] = ()
+
+
+class Product4GateReport(StrictFrozenModel):
+    """Composed Product 4 decision across portfolio and study-eligibility gates."""
+
+    registry_id: str
+    passes: bool
+    decision: str
+    registry_passes: bool
+    provenance_passes: bool
+    rights_passes: bool
+    rights_release_ready: bool
+    snapshot_present: bool
+    snapshot_passes: bool
+    coverage_passes: bool
+    quality_passes: bool
+    leakage_passes: bool
+    classifier_projection_passes: bool
+    classifier_ready: bool
+    registry_report: SourceRegistryEvaluationReport
+    snapshot_report: SnapshotEvaluationReport | None = None
+    split_report: SplitAuditReport | None = None
+    selected_source_dataset_ids: tuple[str, ...] = ()
+    selected_source_artifact_ids: tuple[str, ...] = ()
+    issues: tuple[str, ...] = ()
+    open_gates: tuple[str, ...] = ()
 
 
 def load_source_registry(path: str | Path) -> SourceRegistry:
@@ -436,6 +463,301 @@ def evaluate_source_registry(
     )
 
 
+def _registry_provenance_issues(
+    registry: SourceRegistry,
+    *,
+    source_dataset_ids: set[str] | None,
+) -> tuple[str, ...]:
+    issues: list[str] = []
+    for source in registry.sources:
+        if source_dataset_ids is not None and source.source_dataset_id not in source_dataset_ids:
+            continue
+        evidence_rank = _EVIDENCE_RANK[source.evidence_state]
+        for artifact in source.artifacts:
+            if (
+                evidence_rank >= _EVIDENCE_RANK[SourceEvidenceState.ARTIFACT_ACQUIRED]
+                and artifact.sha256 is None
+            ):
+                issues.append(f"missing_artifact_sha256:{artifact.artifact_id}")
+            if (
+                evidence_rank >= _EVIDENCE_RANK[SourceEvidenceState.SCHEMA_INSPECTED]
+                and artifact.license_id is None
+            ):
+                issues.append(f"missing_license_terms:{artifact.artifact_id}")
+    return tuple(issues)
+
+
+def _snapshot_source_integrity_issues(
+    registry: SourceRegistry,
+    snapshot: CorpusSnapshotManifest,
+    episodes: tuple[TrajectoryEpisodeManifest, ...],
+) -> tuple[str, ...]:
+    issues: list[str] = []
+    if snapshot.registry_id != registry.registry_id:
+        issues.append("snapshot_registry_id_mismatch")
+
+    registry_artifacts = {
+        artifact.artifact_id: source
+        for source in registry.sources
+        for artifact in source.artifacts
+    }
+    snapshot_artifact_ids = set(snapshot.source_artifact_ids)
+    for artifact_id in snapshot.source_artifact_ids:
+        if artifact_id not in registry_artifacts:
+            issues.append(f"snapshot_unknown_source_artifact:{artifact_id}")
+
+    registry_sources = {source.source_dataset_id: source for source in registry.sources}
+    references = {reference.episode_id: reference for reference in snapshot.episodes}
+    for reference in snapshot.episodes:
+        source = registry_sources.get(reference.source_dataset_id)
+        if source is None:
+            issues.append(f"snapshot_unknown_source_dataset:{reference.source_dataset_id}")
+            continue
+        if source.lane != reference.lane:
+            issues.append(f"snapshot_lane_source_mismatch:{reference.episode_id}")
+
+    for episode in episodes:
+        reference = references.get(episode.episode_id)
+        if reference is None:
+            continue
+        if not set(episode.source_artifact_ids).issubset(snapshot_artifact_ids):
+            issues.append(f"episode_artifact_not_in_snapshot:{episode.episode_id}")
+        source = registry_sources.get(episode.source_dataset_id)
+        if source is None:
+            issues.append(f"episode_unknown_source_dataset:{episode.episode_id}")
+        elif source.lane != episode.corpus_sublane:
+            issues.append(f"episode_lane_source_mismatch:{episode.episode_id}")
+        elif not set(episode.source_artifact_ids).issubset(
+            {artifact.artifact_id for artifact in source.artifacts}
+        ):
+            issues.append(f"episode_artifact_not_declared_by_source:{episode.episode_id}")
+    return tuple(issues)
+
+
+def evaluate_product4_gates(
+    registry: SourceRegistry,
+    *,
+    snapshot: CorpusSnapshotManifest | None = None,
+    episodes: Iterable[TrajectoryEpisodeManifest] = (),
+    assignments: Iterable[EpisodeSplitAssignment] = (),
+    expected_lanes: Iterable[str] = REAL_WORLD_CORPUS_LANES,
+) -> Product4GateReport:
+    """Evaluate the complete Product 4 promotion boundary.
+
+    The registry can be coherent while the classifier gate remains blocked. A
+    source registry report therefore is not treated as a snapshot, leakage,
+    quality, or classifier-readiness result. This composed report makes every
+    missing layer explicit and accepts restricted local use when terms are
+    declared, while separately reporting whether derived assets are releasable.
+    """
+
+    expected_lane_values = tuple(dict.fromkeys(expected_lanes))
+    materialized_episodes = tuple(episodes)
+    materialized_assignments = tuple(assignments)
+    registry_report = evaluate_source_registry(
+        registry,
+        expected_lanes=expected_lane_values,
+    )
+    issues: list[str] = list(registry_report.issues)
+
+    selected_source_dataset_ids: tuple[str, ...] = ()
+    selected_source_artifact_ids: tuple[str, ...] = ()
+    snapshot_integrity_issues: tuple[str, ...] = ()
+    if snapshot is not None:
+        selected_source_dataset_ids = tuple(
+            dict.fromkeys(reference.source_dataset_id for reference in snapshot.episodes)
+        )
+        selected_source_artifact_ids = tuple(snapshot.source_artifact_ids)
+        snapshot_integrity_issues = _snapshot_source_integrity_issues(
+            registry,
+            snapshot,
+            materialized_episodes,
+        )
+        issues.extend(snapshot_integrity_issues)
+
+    provenance_issues = _registry_provenance_issues(
+        registry,
+        source_dataset_ids=(
+            set(selected_source_dataset_ids) if snapshot is not None else None
+        ),
+    )
+    issues.extend(provenance_issues)
+    provenance_passes = not provenance_issues
+
+    snapshot_report: SnapshotEvaluationReport | None = None
+    snapshot_passes = False
+    coverage_passes = False
+    quality_passes = False
+    if snapshot is None:
+        issues.append("snapshot_missing")
+    else:
+        snapshot_report = evaluate_snapshot(
+            snapshot,
+            materialized_episodes,
+            expected_lanes=expected_lane_values,
+        )
+        issues.extend(snapshot_report.issues)
+        snapshot_passes = snapshot_report.passes and not snapshot_integrity_issues
+        coverage_passes = snapshot_report.passes and all(
+            snapshot_report.lane_episode_counts.get(lane, 0) > 0
+            for lane in expected_lane_values
+        )
+        if not coverage_passes:
+            issues.append("snapshot_lane_coverage_incomplete")
+        quality_passes = (
+            snapshot_report.quality_finding_severity_counts.get("error", 0) == 0
+            and not any(
+                disposition.casefold() in {"reject", "rejected", "invalid"}
+                for disposition in snapshot_report.quality_disposition_counts
+            )
+        )
+        if not quality_passes:
+            issues.append("snapshot_quality_gate_failed")
+
+    rights_issues: list[str] = []
+    rights_release_ready = False
+    if snapshot is None:
+        rights_issues.append("rights_not_evaluable_without_snapshot")
+    else:
+        artifact_index = {
+            artifact.artifact_id: artifact
+            for source in registry.sources
+            for artifact in source.artifacts
+        }
+        rights_release_ready = True
+        for artifact_id in selected_source_artifact_ids:
+            artifact = artifact_index.get(artifact_id)
+            if artifact is None:
+                rights_issues.append(f"rights_unknown_artifact:{artifact_id}")
+                rights_release_ready = False
+                continue
+            if artifact.license_id is None:
+                rights_issues.append(f"rights_missing_license_terms:{artifact_id}")
+                rights_release_ready = False
+            if not (
+                artifact.redistribution_allowed
+                or artifact.derived_data_redistribution_allowed
+            ):
+                rights_release_ready = False
+    issues.extend(rights_issues)
+    rights_passes = not rights_issues
+
+    classifier_projection_passes = True
+    for episode in materialized_episodes:
+        if episode.classifier_trajectory_view is None:
+            classifier_projection_passes = False
+            issues.append(f"classifier_view_missing:{episode.episode_id}")
+        if not episode.labels:
+            classifier_projection_passes = False
+            issues.append(f"label_assertion_missing:{episode.episode_id}")
+        if any(label.proxy or label.evidence_kind is LabelEvidenceKind.PROXY for label in episode.labels):
+            classifier_projection_passes = False
+            issues.append(f"proxy_label_present:{episode.episode_id}")
+    if snapshot is None or not materialized_episodes:
+        classifier_projection_passes = False
+
+    split_report: SplitAuditReport | None = None
+    leakage_passes = False
+    if snapshot is None:
+        issues.append("split_audit_not_evaluable_without_snapshot")
+    else:
+        split_report = audit_split_assignments(materialized_episodes, materialized_assignments)
+        issues.extend(split_report.issues)
+        assigned_splits = {assignment.split for assignment in materialized_assignments}
+        required_splits = set(SnapshotSplit)
+        leakage_passes = split_report.passes and assigned_splits == required_splits
+        if assigned_splits != required_splits:
+            missing_splits = sorted(split.value for split in required_splits - assigned_splits)
+            issues.append("missing_required_split:" + ",".join(missing_splits))
+        if not split_report.passes:
+            issues.append("split_leakage_gate_failed")
+
+    selected_sources_prepared = snapshot is not None
+    if snapshot is None:
+        selected_sources_prepared = False
+    else:
+        registry_sources = {source.source_dataset_id: source for source in registry.sources}
+        for dataset_id in selected_source_dataset_ids:
+            source = registry_sources.get(dataset_id)
+            if source is None or _EVIDENCE_RANK[source.evidence_state] < _EVIDENCE_RANK[SourceEvidenceState.PREPARED]:
+                selected_sources_prepared = False
+                issues.append(f"source_not_prepared:{dataset_id}")
+
+    classifier_ready = all(
+        (
+            registry_report.classifier_ready,
+            selected_sources_prepared,
+            provenance_passes,
+            rights_passes,
+            snapshot_passes,
+            coverage_passes,
+            quality_passes,
+            leakage_passes,
+            classifier_projection_passes,
+        )
+    )
+    if classifier_ready:
+        decision = "real_world_evidence_supported"
+    elif snapshot is None or not coverage_passes:
+        decision = "insufficient_real_world_evidence"
+    elif not registry_report.classifier_ready or not selected_sources_prepared:
+        decision = "revise_source_portfolio"
+    elif not leakage_passes:
+        decision = "revise_grouping_policy"
+    elif not classifier_projection_passes:
+        decision = "revise_label_claim"
+    else:
+        decision = "supported_with_limits"
+
+    open_gates: list[str] = []
+    if not registry_report.passes:
+        open_gates.append("registry:required_lane_coverage")
+    if not provenance_passes:
+        open_gates.append("provenance:pin_artifact_hashes_and_terms")
+    if not snapshot_passes:
+        open_gates.append("snapshot:immutable_manifest_integrity")
+    if not coverage_passes:
+        open_gates.append("coverage:one_or_more_episodes_per_required_lane")
+    if not quality_passes:
+        open_gates.append("quality:no_error_or_rejected_episodes")
+    if not leakage_passes:
+        open_gates.append("leakage:grouped_train_validation_test_assignments")
+    if not classifier_projection_passes:
+        open_gates.append("classifier_view:identity_free_non_proxy_projection")
+    if not rights_passes:
+        open_gates.append("rights:declared_terms_for_selected_artifacts")
+    if not selected_sources_prepared:
+        open_gates.append("source:promote_selected_sources_to_prepared")
+    if not rights_release_ready and snapshot is not None:
+        open_gates.append("rights:release_boundary_is_restricted")
+
+    unique_issues = tuple(dict.fromkeys(issues))
+    unique_open_gates = tuple(dict.fromkeys(open_gates))
+    return Product4GateReport(
+        registry_id=registry.registry_id,
+        passes=classifier_ready,
+        decision=decision,
+        registry_passes=registry_report.passes,
+        provenance_passes=provenance_passes,
+        rights_passes=rights_passes,
+        rights_release_ready=rights_release_ready,
+        snapshot_present=snapshot is not None,
+        snapshot_passes=snapshot_passes,
+        coverage_passes=coverage_passes,
+        quality_passes=quality_passes,
+        leakage_passes=leakage_passes,
+        classifier_projection_passes=classifier_projection_passes,
+        classifier_ready=classifier_ready,
+        registry_report=registry_report,
+        snapshot_report=snapshot_report,
+        split_report=split_report,
+        selected_source_dataset_ids=selected_source_dataset_ids,
+        selected_source_artifact_ids=selected_source_artifact_ids,
+        issues=unique_issues,
+        open_gates=unique_open_gates,
+    )
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -495,6 +817,7 @@ __all__ = [
     "CorpusSnapshotManifest",
     "CORPUS_SNAPSHOT_VERSION",
     "EpisodeSplitAssignment",
+    "Product4GateReport",
     "REAL_WORLD_CORPUS_LANES",
     "SOURCE_REGISTRY_VERSION",
     "SnapshotEpisodeReference",
@@ -508,6 +831,7 @@ __all__ = [
     "SourceRegistryEntry",
     "SplitAuditReport",
     "audit_split_assignments",
+    "evaluate_product4_gates",
     "evaluate_snapshot",
     "evaluate_source_registry",
     "load_snapshot_episodes",

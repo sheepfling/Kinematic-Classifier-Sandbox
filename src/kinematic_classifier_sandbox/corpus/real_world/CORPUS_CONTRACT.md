@@ -135,7 +135,7 @@ adapter version, evidence lifecycle, artifact/query provenance, grouping namespa
 boundaries, and promotion blockers across the six Product 4 lanes. Source cards and lane-local
 research files remain detailed evidence; the portfolio is the common cross-domain index.
 
-The portfolio API in `portfolio.py` supplies four governed operations:
+The portfolio API in `portfolio.py` supplies five governed operations:
 
 - `load_source_registry()` and `evaluate_source_registry()` report lane coverage and the best
   evidence state without treating fixture validation as classifier readiness;
@@ -147,6 +147,8 @@ The portfolio API in `portfolio.py` supplies four governed operations:
   proxy-label, and classifier-view counts while rejecting reference/episode mismatches;
 - `audit_split_assignments()` rejects physical-platform, source-recording, and mission-event
   groups that cross train/validation/test partitions.
+- `evaluate_product4_gates()` composes those checks into one explicit promotion report without
+  treating source-registry coverage as classifier readiness.
 
 The promotion boundary is intentionally two-dimensional:
 
@@ -159,3 +161,8 @@ An entry at `fixture_validated` proves ingestion and semantics only. A source be
 a classifier-facing snapshot only after its episode manifests, asset hashes, grouping assignments,
 quality findings, and leakage-safe classifier view pass the common snapshot gates. A prepared
 snapshot is immutable: add new data under a new snapshot ID instead of mutating a released one.
+
+`Product4GateReport.passes` is the decision boundary for a six-lane classifier claim. It requires
+the registry, provenance, rights, snapshot, lane coverage, quality, grouped split, and classifier
+projection gates to pass together. `rights_release_ready` is reported separately so a locally
+usable restricted source cannot be mistaken for a redistributable corpus release.

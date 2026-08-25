@@ -55,3 +55,16 @@ Prioritize by readiness and information gain, not by the apparent importance of 
 The evaluation report is intended to become the front door for every future corpus update: first
 the registry must cover the required lanes, then the snapshot must account for every episode and
 hash, and finally the split/leakage and downstream classifier gates must pass.
+
+Run the composed report without creating a repository artifact:
+
+```bash
+PYTHONPATH=src python3 scripts/audit/evaluate_product4_gates.py
+```
+
+The checked-in registry currently reports `insufficient_real_world_evidence`: all six lanes are
+represented, but no lane is `prepared`, no immutable six-lane snapshot is admitted, and the
+classifier bridge remains blocked. A future snapshot can be evaluated from outside the repository
+with `--snapshot PATH --assignments PATH`; add `--require-pass` when the caller wants a blocked
+promotion to fail the command. Keep restricted source bytes, snapshot assets, and generated report
+files outside Git unless their rights and repository role are explicitly established.
