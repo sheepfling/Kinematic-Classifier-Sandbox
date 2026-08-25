@@ -453,6 +453,7 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
     assert report.fixture_validated_lanes == (
         "land_surface",
         "sea_surface",
+        "sea_subsurface",
         "space_near",
         "space_orbital",
     )
@@ -485,7 +486,7 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
     assert cmre_artifacts["cmre_brest_external_validation_route_nomenclature_v2"].sha256 == (
         "ea12d0cf0befee454336a65e5a750aebe4a99e6aeede901017f345c3aa601130"
     )
-    assert report.lane_best_evidence_states["sea_subsurface"] == "mapping_complete"
+    assert report.lane_best_evidence_states["sea_subsurface"] == "fixture_validated"
     assert report.lane_best_evidence_states["land_surface"] == "prepared"
     assert report.lane_best_evidence_states["sea_surface"] == "prepared"
     assert report.lane_best_evidence_states["air_atmospheric"] == "access_verified"

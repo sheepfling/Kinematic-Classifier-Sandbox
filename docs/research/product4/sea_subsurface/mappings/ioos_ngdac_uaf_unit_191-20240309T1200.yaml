@@ -3,7 +3,7 @@ contract_version: trajectory-corpus-v0.1
 source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
 adapter_id: ioos_ngdac_glider_v0
 adapter_version: 0.0-research
-status: mapping_complete
+status: fixture_validated
 grounded_artifact:
   path: fixtures/ioos_uaf_unit_191_profile_1709942882.csv
   sha256: 29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a
@@ -103,4 +103,4 @@ prohibited_exposures:
 - dead-reckoned or interpolated position relabeled as measured GPS
 - calculated depth relabeled as measured depth
 - profile-level latitude/longitude treated as per-sample observed trajectory
-classifier_view_status: blocked_until_common_front_fixture_validation
+classifier_view_status: blocked_until_defensible_target_cohort

@@ -9,7 +9,7 @@ identity:
   dataset_title: UAF Slocum G191 deployment unit_191-20240309T1200
   landing_page: https://gliders.ioos.us/erddap/tabledap/unit_191-20240309T1200.html
 access:
-  evidence_state: mapping_complete
+  evidence_state: fixture_validated
   authentication_required: false
   rights_disposition: usable
   rights_evidence: provider metadata states unrestricted redistribution and use
@@ -21,7 +21,7 @@ access:
   artifact_acquired: true
   schema_inspected: true
   mapping_complete: true
-  fixture_validated: false
+  fixture_validated: true
 native_trajectory:
   physical_platform_key: wmo_id=4902987
   deployment_key: trajectory=unit_191-20240309T1200
@@ -71,8 +71,6 @@ label_claim_boundary:
   does_not_support: [military_submarine, independent_navigation_truth, surface_phase_from_GPS_alone]
 leakage_groups: [physical_platform, deployment, profile, source_recording, source_dataset, geography]
 open_questions:
-- construct the canonical multi-state-view fixture without destroying asynchronous channel events
-- define channel-aware timestamp coalescing and duplicate retention in COMMON-FRONT
-- validate the selected fixture through the canonical common contract
 - retain and inspect one independent Sentry PPL artifact
-research_evidence_state: mapping_complete
+- define a defensible multi-episode target task before prepared promotion; platform type remains metadata
+research_evidence_state: fixture_validated

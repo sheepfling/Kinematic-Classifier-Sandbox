@@ -1,5 +1,5 @@
 registry_version: real-world-source-registry-v0.1
-registry_id: product4-real-world-portfolio-2026-08-25-r5
+registry_id: product4-real-world-portfolio-2026-08-25-r6
 sources:
   - source_dataset_id: fhwa_tgsim_foggy_bottom
     lane: land_surface
@@ -195,7 +195,7 @@ sources:
     adapter_id: ioos_ngdac_glider_v0
     adapter_version: 0.0-research
     portfolio_role: anchor
-    evidence_state: mapping_complete
+    evidence_state: fixture_validated
     artifacts:
       - artifact_id: ioos_uaf_unit_191_profile_1709942882
         uri_or_query: repository://docs/research/product4/sea_subsurface/fixtures/ioos_uaf_unit_191_profile_1709942882.csv
@@ -207,7 +207,8 @@ sources:
         derived_data_redistribution_allowed: true
         notes:
           - The selected profile contains asynchronous channel events and duplicate timestamps.
-          - The committed artifact is not yet a validated common-front episode.
+          - The committed artifact is materialized by the canonical channel-aware common-front builder.
+          - The classifier view remains intentionally absent because this single profile has no defensible target-bearing cohort.
     grouping_namespaces:
       - physical_platform
       - mission_event
@@ -216,10 +217,11 @@ sources:
       - geography
     claim_boundary:
       - Supports explicit measured GPS, dead-reckoned, pressure, and derived-depth semantics.
-      - Does not support independent navigation truth or military-submarine claims.
+      - Supports a validation-only canonical common-front episode with identity-only grouping and explicit missing-state semantics.
+      - Does not support independent navigation truth, classifier performance, or military-submarine claims.
     promotion_blockers:
-      - Preserve channel-aware asynchronous events in the common state-view fixture.
-      - Validate the selected anchor and retain an independent Sentry artifact.
+      - Retain and inspect one independent Sentry PPL artifact before any source-shift claim.
+      - Define a defensible multi-episode target task before any prepared classifier promotion; platform type remains metadata, not a classifier target.
 
   - source_dataset_id: mgds-whoi-sentry-at26-09-navigation
     lane: sea_subsurface

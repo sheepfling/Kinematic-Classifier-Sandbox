@@ -28,8 +28,8 @@ The checks verify:
 - the selected artifact's GPS units/value mismatch and prohibition on unsafe DDMM conversion;
 - measured-pressure versus calculated-depth semantics and conservative position roles;
 - OOI DBD_ASC parsing, source-specific DDMM conversion, GPS/dead-reckoning separation, and null validity;
-- identity-only grouping, classifier-view blocking, registry lifecycle state, and the open G2 gate;
+- identity-only grouping, classifier-view blocking, registry lifecycle state, and completed G2 common-front validation;
 - `SCR-SEA-SUB-001` as a clarification that requires no competing root schema.
 
-These checks validate the research tranche and selected-anchor artifact mapping. They do not validate
-a canonical COMMON-FRONT fixture, a production adapter, or the Sentry independent source.
+These checks validate the research tranche, selected-anchor artifact mapping, and canonical
+COMMON-FRONT fixture. They do not validate a production adapter or the Sentry independent source.

@@ -137,23 +137,23 @@ def test_scorecards_have_valid_weighted_totals() -> None:
 ####
 
 
-def test_portfolio_promotes_anchor_to_mapping_complete_and_keeps_holdout_verified() -> None:
+def test_portfolio_promotes_anchor_to_fixture_validated_and_keeps_holdout_verified() -> None:
     anchor = _read_yaml("source_cards/ioos_ngdac_uaf_unit_191-20240309T1200.yaml")
     holdout = _read_yaml("source_cards/whoi_ndsf_sentry_at26-09.yaml")
     status = _read_yaml("agent_status.yaml")
 
     assert anchor["portfolio_role"] == "anchor"
-    assert anchor["access"]["evidence_state"] == "mapping_complete"
+    assert anchor["access"]["evidence_state"] == "fixture_validated"
     assert anchor["access"]["artifact_acquired"] is True
     assert anchor["access"]["schema_inspected"] is True
     assert anchor["access"]["mapping_complete"] is True
-    assert anchor["access"]["fixture_validated"] is False
+    assert anchor["access"]["fixture_validated"] is True
     assert holdout["portfolio_role"] == "independent_validation"
     assert holdout["access"]["evidence_state"] == "access_verified"
     assert holdout["access"]["artifact_acquired"] is False
     assert status["gates"]["G1_source_portfolio"] == "complete"
     assert status["gates"]["selected_anchor_artifact"] == "acquired_and_inspected"
-    assert status["gates"]["G2_selected_anchor_fixture"] == "open"
+    assert status["gates"]["G2_selected_anchor_fixture"] == "complete"
 
 
 ####
@@ -353,11 +353,12 @@ def test_registry_patch_preserves_honest_lifecycle_states() -> None:
 
     assert len(updates) == 4
     anchor_update = updates["ioos-ngdac-uaf-unit_191-20240309T1200"]
-    assert anchor_update["evidence_state"] == "mapping_complete"
+    assert anchor_update["evidence_state"] == "fixture_validated"
     assert anchor_update["artifact_acquired"] is True
     assert anchor_update["schema_inspected"] is True
     assert anchor_update["mapping_complete"] is True
-    assert anchor_update["fixture_validated"] is False
+    assert anchor_update["fixture_validated"] is True
+    assert anchor_update["lane_g2_satisfied"] is True
     assert updates["mgds-whoi-sentry-at26-09-navigation"]["evidence_state"] == ("access_verified")
     assert updates["mgds-whoi-sentry-at26-09-navigation"]["artifact_acquired"] is False
     assert (
@@ -368,7 +369,14 @@ def test_registry_patch_preserves_honest_lifecycle_states() -> None:
         updates["ooici-marine-integrations-glider-parser-resource"]["evidence_state"]
         == "fixture_validated"
     )
-    assert all(update["lane_g2_satisfied"] is False for update in updates.values())
+    assert updates["mgds-whoi-sentry-at26-09-navigation"]["lane_g2_satisfied"] is False
+    assert all(
+        updates[source_id]["lane_g2_satisfied"] is False
+        for source_id in (
+            "ioos-glider-dac-murphy-official-regression-artifact",
+            "ooici-marine-integrations-glider-parser-resource",
+        )
+    )
 
 
 ####

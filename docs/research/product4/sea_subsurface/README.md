@@ -11,15 +11,15 @@ It is not a completed production adapter or classifier study.
 
 | Role | Source | Evidence state | Current use |
 | --- | --- | --- | --- |
-| Anchor | IOOS/UAF Slocum `unit_191-20240309T1200` | `mapping_complete` | Retained 99-row mixed-provenance profile; canonical fixture still open |
+| Anchor | IOOS/UAF Slocum `unit_191-20240309T1200` | `fixture_validated` | Retained 99-row mixed-provenance profile passes the canonical channel-aware common front; classifier view intentionally blocked |
 | Independent validation | MGDS/WHOI Sentry AT26-09, DOI `10.60521/331959` | `access_verified` | Independent AUV navigation lineage |
 | Contract regression | Official IOOS Murphy profile artifact | `fixture_validated`, restricted | Pressure versus derived depth; conservative interpolated-position semantics |
 | Contract bridge | OOI/OOICI `unit_364` parser resource | `fixture_validated`, restricted | Separate GPS, dead-reckoned horizontal state, depth, and pressure |
 
-`G1_source_portfolio` is complete. The selected anchor is now acquired, hashed, schema-inspected,
-and mapped. `G2_selected_anchor_fixture` remains open until COMMON-FRONT constructs and validates a
-canonical multi-state-view fixture. Independent validation remains open because no Sentry PPL file
-has been retained.
+`G1_source_portfolio` and `G2_selected_anchor_fixture` are complete. The selected anchor is
+acquired, hashed, schema-inspected, mapped, and validated through the canonical multi-state-view
+common front. Independent validation remains open because no Sentry PPL file has been retained;
+classifier readiness is also blocked because one profile is not a target-bearing cohort.
 
 ## Selected-anchor evidence
 
@@ -79,11 +79,11 @@ python -m pytest -q -p no:cacheprovider \
 The repository checks validate source hashes and sizes, scorecard arithmetic, selected-anchor
 channel counts and lifecycle state, asynchronous duplicate handling, the GPS units/value mismatch,
 IOOS pressure/depth semantics, OOI DDMM conversion, separate GPS/dead-reckoned views, missing-state
-handling, identity-only grouping, classifier-view blocking, and the open G2 boundary.
+handling, identity-only grouping, classifier-view blocking, and completed G2 common-front validation.
 
 ## Claim boundary
 
-This tranche supports source selection, selected-anchor acquisition and mapping, restricted fixture
-validation, and a concrete common-contract clarification. It does not claim a completed `P4-010`
-adapter, canonical selected-anchor fixture acceptance, Sentry artifact validation, a prepared pilot,
-classifier performance, or military-submarine truth.
+This tranche supports source selection, selected-anchor acquisition, canonical fixture validation,
+restricted fixture validation, and a concrete common-contract clarification. It does not claim a
+completed `P4-010` production adapter, Sentry artifact validation, a prepared pilot, classifier
+performance, or military-submarine truth.

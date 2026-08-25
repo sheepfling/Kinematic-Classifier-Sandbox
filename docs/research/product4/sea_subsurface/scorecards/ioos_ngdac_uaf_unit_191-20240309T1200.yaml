@@ -10,7 +10,7 @@ hard_gates:
   frame_axes_units: {passed: true, evidence: geodetic horizontal and sea-surface positive-down depth; GPS units/value mismatch explicitly pinned}
   object_event_grouping: {passed: true, evidence: WMO, trajectory, profile_id}
   label_and_claim_boundary: {passed: true, evidence: scientific Slocum identity only}
-  tiny_fixture_path: {passed: false, evidence: retained artifact is mapped but not yet a canonical common-front fixture}
+  tiny_fixture_path: {passed: true, evidence: canonical channel-aware common-front episode passes focused tests}
   no_invented_state_required: {passed: true, evidence: native GPS, dead-reckoning, pressure, and depth channels retained sparsely}
 weighted_scores:
   access_repeatability: {weight: 15, score: 14}
@@ -23,7 +23,7 @@ weighted_scores:
   adapter_feasibility: {weight: 10, score: 9}
   refreshability: {weight: 5, score: 5}
 total_score_0_to_100: 89
-recommended_role: anchor_candidate_pending_common_front_fixture
+recommended_role: anchor_fixture_validated_classifier_blocked
 critical_blockers:
-- construct the canonical state-view fixture from sparse asynchronous source events
-- validate the selected fixture through COMMON-FRONT
+- retain and inspect one independent Sentry PPL artifact
+- define a defensible multi-episode target task before prepared promotion

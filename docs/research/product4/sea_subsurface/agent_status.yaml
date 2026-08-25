@@ -1,5 +1,5 @@
-status_version: product4-sea-sub-research-status-v0.2
-status_date: '2026-08-24'
+status_version: product4-sea-sub-research-status-v0.3
+status_date: '2026-08-25'
 product: Product 4 — Real-World Corpus & Validation
 program_domain: sea
 corpus_sublane: sea_subsurface
@@ -7,13 +7,13 @@ contract_version: trajectory-corpus-v0.1
 portfolio:
   anchor:
     source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
-    evidence_state: mapping_complete
+    evidence_state: fixture_validated
     score: 89
     retained_numeric_bytes: true
     artifact_sha256: 29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a
     schema_inspected: true
     mapping_complete: true
-    fixture_validated: false
+    fixture_validated: true
   independent_validation:
     source_dataset_id: mgds-whoi-sentry-at26-09-navigation
     evidence_state: access_verified
@@ -34,7 +34,7 @@ gates:
   selected_anchor_mapping: complete
   restricted_contract_regression: validated
   restricted_mixed_provenance_bridge: validated
-  G2_selected_anchor_fixture: open
+  G2_selected_anchor_fixture: complete
   G3_reproducible_prepared_pilot: not_started
   G5_independent_source_validation: open
 counts:
@@ -42,7 +42,7 @@ counts:
   retained_source_families: 3
   retained_selected_anchor_artifacts: 1
   restricted_validated_fixtures: 2
-  selected_anchor_fixtures: 0
+  selected_anchor_fixtures: 1
   independent_validation_fixtures: 0
   production_adapters: 0
 change_request:
@@ -50,7 +50,5 @@ change_request:
   root_schema_fork_required: false
   decision: clarify measured pressure versus derived depth acceptance
 blockers:
-- construct a canonical selected-anchor state-view fixture from sparse asynchronous channel events
-- define channel-aware same-time event handling without deleting source evidence
-- run the selected-anchor fixture through the canonical COMMON-FRONT implementation
 - retain one Sentry PPL file and provenance record
+- define a defensible multi-episode target task before any prepared classifier promotion

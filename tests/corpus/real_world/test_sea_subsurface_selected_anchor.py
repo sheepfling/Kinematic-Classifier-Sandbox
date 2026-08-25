@@ -169,17 +169,17 @@ def test_gps_units_mismatch_is_pinned_without_unsafe_ddmm_conversion() -> None:
 ####
 
 
-def test_selected_anchor_is_mapping_complete_but_not_g2_validated() -> None:
+def test_selected_anchor_is_fixture_validated_but_not_classifier_ready() -> None:
     inspection = _read_inspection()
     acceptance = inspection["acceptance"]
 
     assert acceptance == {
         "artifact_acquired": True,
-        "canonical_common_front_validated": False,
-        "lane_g2_satisfied": False,
+        "canonical_common_front_validated": True,
+        "lane_g2_satisfied": True,
         "mapping_complete": True,
         "schema_inspected": True,
-        "selected_anchor_fixture_validated": False,
+        "selected_anchor_fixture_validated": True,
     }
 
 
