@@ -24,6 +24,7 @@ _LANE_MARKERS = {
     "test_sea_subsurface_research_fixtures.py": "product4_sea_subsurface",
     "test_sea_subsurface_selected_anchor.py": "product4_sea_subsurface",
     "test_air_common_front.py": "product4_air_atmospheric",
+    "test_analysis_products.py": "product4_analysis",
     "test_adsblol_readsb_trace.py": "product4_air_atmospheric",
     "test_land_common_front.py": "product4_land_surface",
     "test_space_orbital_common_front.py": "product4_space_orbital",

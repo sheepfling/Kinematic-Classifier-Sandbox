@@ -78,6 +78,14 @@ A state view must declare time basis, coordinate frame, units, dimensionality, v
 
 Studies construct a separate `ClassifierTrajectoryView` from one or more approved episode state views. The projection policy must explicitly select which channels are classifier-visible.
 
+Product 4 exposes three named consumer profiles so deep source or kinematic analysis does not
+become an accidental Product 2 dependency: `source_audit` may inspect all state views,
+`kinematic_analysis` selects normalized analysis state only, and `classifier_ladder` selects
+only identity-free classifier assets from prepared sources with labels stored out of band. The
+target-label namespace must be declared by the study; a generic “some label exists” check is not
+enough. The profile is recorded in a snapshot-hash-bound `AnalysisProductManifest` and has its own isolated
+`product4_analysis` test surface.
+
 The baseline classifier view must not silently include:
 
 - source, provider, recording, mission, object, or track identifiers

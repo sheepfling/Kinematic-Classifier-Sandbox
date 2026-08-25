@@ -15,6 +15,7 @@ implemented in [`tests/conftest.py`](../../tests/conftest.py), and marker declar
 | RL corpus exploration | Product 3 | product | no | no | active |
 | Product 4 common contract | Product 4 | product | yes | no | active |
 | Product 4 cross-domain portfolio | Product 4 | product | yes | no | active |
+| Product 4 analysis-product boundaries | Product 4 | product | yes | no | active |
 | LAND / SEA-SURF / SEA-SUB / AIR / SPACE-NEAR / SPACE-ORB | Product 4 | product | yes, per lane | no | active |
 | Shared analysis and repository contracts | Shared | contract | no | yes | active |
 | Real-world corpus → classifier ladder | Products 2 + 4 | release | no | yes | blocked until prepared snapshot |
@@ -30,9 +31,9 @@ PYTHONPATH=src python3 scripts/run/run_product4_tests.py --workers 4
 PYTHONPATH=src python3 -m pytest -q -m cross_product
 ```
 
-The Product 4 worker runs each common, cross-domain, and domain-lane marker in a separate pytest
-process. Product 2, Product 3, shared analysis, and the aggregate/full gates remain sequential
-until their artifact namespaces are proven isolated.
+The Product 4 worker runs each common, cross-domain, analysis-product, and domain-lane marker in a
+separate pytest process. Product 2, Product 3, shared analysis, and the aggregate/full gates
+remain sequential until their artifact namespaces are proven isolated.
 
 The Product 4 cross-domain gate also exercises `Product4GateReport`: provenance, rights, immutable
 snapshot, lane coverage, quality, grouped leakage, and classifier-view readiness remain separate

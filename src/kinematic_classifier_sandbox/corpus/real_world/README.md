@@ -133,6 +133,22 @@ The validation-only common-front builders are intentionally separated by lane:
 and mission-event keys before proposing deterministic partitions. It is a split proposal only;
 `audit_split_assignments()` remains the release gate.
 
+## Analysis-product boundaries
+
+`analysis_products.py` makes the consumer boundary explicit instead of relying on callers to
+remember which assets are appropriate:
+
+- `source_audit` may inspect every state view and provenance/quality context, but never selects a
+  classifier asset;
+- `kinematic_analysis` selects only normalized `analysis` state assets for domain-aware motion
+  analysis, without source-native audit assets; and
+- `classifier_ladder` selects only identity-free classifier assets, requires prepared sources, and
+  keeps an explicitly declared target-label namespace outside the feature asset.
+
+The resulting `AnalysisProductManifest` is snapshot-hash-bound and records selected asset
+references without copying raw data. Product 2 bridge work must consume the third profile; a
+source or kinematic analysis result is not evidence of classifier readiness.
+
 ## Current claim boundary
 
 This package now validates and normalizes real observations, creates gap-safe windows, assigns
