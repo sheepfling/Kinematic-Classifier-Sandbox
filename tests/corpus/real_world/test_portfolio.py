@@ -456,9 +456,9 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
         "space_near",
         "space_orbital",
     )
-    assert report.prepared_lanes == ("land_surface",)
+    assert report.prepared_lanes == ("land_surface", "sea_surface")
     assert report.classifier_ready is False
-    assert len(report.open_gates) == len(REAL_WORLD_CORPUS_LANES) - 1
+    assert len(report.open_gates) == len(REAL_WORLD_CORPUS_LANES) - 2
     assert report.lane_source_counts["land_surface"] == 3
     assert report.lane_source_counts["space_near"] == 6
     assert {
@@ -476,11 +476,18 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
     cmre = registry.source("cmre_brest_maritime_routes_tracklets_v1_0")
     cmre_artifacts = {artifact.artifact_id: artifact for artifact in cmre.artifacts}
     assert "cmre_brest_external_validation_route_nomenclature_v2" in cmre_artifacts
+    assert cmre.evidence_state.value == "prepared"
+    assert cmre.portfolio_role == "bounded_task_prepared_cohort"
+    assert "cmre_brest_upstream_tracklets_v2" in cmre_artifacts
+    assert cmre_artifacts["cmre_brest_upstream_tracklets_v2"].sha256 == (
+        "655beb132941cc6d5254ef8155e68975b649a4e6ec159488970c828d8de7b7e5"
+    )
     assert cmre_artifacts["cmre_brest_external_validation_route_nomenclature_v2"].sha256 == (
         "ea12d0cf0befee454336a65e5a750aebe4a99e6aeede901017f345c3aa601130"
     )
     assert report.lane_best_evidence_states["sea_subsurface"] == "mapping_complete"
     assert report.lane_best_evidence_states["land_surface"] == "prepared"
+    assert report.lane_best_evidence_states["sea_surface"] == "prepared"
     assert report.lane_best_evidence_states["air_atmospheric"] == "access_verified"
 
 
