@@ -1,0 +1,46 @@
+portfolio_version: product4-air-source-portfolio-v0.1
+lane: air_atmospheric
+contract_version: trajectory-corpus-v0.1
+sources:
+  - source_dataset_id: adsblol_globe_history
+    role: anchor
+    evidence_state: access_verified
+    publisher: ADSB.lol
+    artifact_family: daily_readsb_globe_history_release
+    source_landing_page: https://www.adsb.lol/docs/open-data/historical/
+    release_repository: https://github.com/adsblol/globe_history_2026
+    license_id: ODbL-1.0
+    observation_semantics:
+      - broadcast_state
+      - network_derived_state
+    physical_truth_available: false
+    current_blocker: genuine_historical_trace_not_yet_acquired
+
+  - source_dataset_id: opensky_weekly_state_vectors
+    role: independent_validation
+    evidence_state: access_verified
+    publisher: OpenSky Network
+    artifact_family: published_scientific_state_vectors
+    source_landing_page: https://opensky-network.org/data/scientific
+    rights_status: conditional
+    physical_truth_available: false
+    current_blocker: rights_disposition_required_before_product_validation_use
+
+  - source_dataset_id: faa_releasable_aircraft_reference
+    role: enrichment
+    evidence_state: access_verified
+    publisher: US Federal Aviation Administration
+    artifact_family: aircraft_and_engine_reference_snapshot
+    source_landing_page: https://www.faa.gov/licenses_certificates/aircraft_certification/aircraft_registry/releasable_aircraft_download
+    permitted_use_in_lane: technical_metadata_enrichment
+    prohibited_ingestion:
+      - registrant_name
+      - co_owner_names
+      - postal_address
+    physical_truth_available: false
+lane_status:
+  current_gate: G2_open
+  parser_implemented: true
+  documentation_native_fixture_validated: true
+  historical_source_fixture_validated: false
+  schema_change_request_needed: false
