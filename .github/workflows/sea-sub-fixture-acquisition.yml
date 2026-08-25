@@ -1,0 +1,46 @@
+name: SEA-SUB fixture validation
+
+on:
+  pull_request:
+    branches:
+      - feature/product-4-real-world-corpus
+      - main
+    paths:
+      - .github/workflows/sea-sub-fixture-acquisition.yml
+      - docs/research/product4/sea_subsurface/**
+      - tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
+      - tests/corpus/real_world/test_sea_subsurface_selected_anchor.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused validation tools
+        run: python -m pip install --disable-pip-version-check pytest PyYAML ruff pyright
+      - name: Run focused tests
+        run: >-
+          python -m pytest -q -p no:cacheprovider
+          tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
+          tests/corpus/real_world/test_sea_subsurface_selected_anchor.py
+      - name: Run Ruff
+        run: |
+          python -m ruff check \
+            tests/corpus/real_world/test_sea_subsurface_research_fixtures.py \
+            tests/corpus/real_world/test_sea_subsurface_selected_anchor.py
+          python -m ruff format --check \
+            tests/corpus/real_world/test_sea_subsurface_research_fixtures.py \
+            tests/corpus/real_world/test_sea_subsurface_selected_anchor.py
+      - name: Run Pyright
+        run: >-
+          pyright
+          tests/corpus/real_world/test_sea_subsurface_research_fixtures.py
+          tests/corpus/real_world/test_sea_subsurface_selected_anchor.py

@@ -14,13 +14,22 @@ class MethodologyDocCoverageTests(unittest.TestCase):
         cls.payload = json.loads(cls.manifest_path.read_text(encoding="utf-8"))
         cls.modules = cls.payload["modules"]
 
-    def test_every_src_module_is_in_manifest(self) -> None:
+    def test_every_src_module_is_accounted_for(self) -> None:
         src_modules = sorted(
             str(path.relative_to(self.root)).replace("\\", "/")
             for path in (self.root / "src" / "kinematic_classifier_sandbox").rglob("*.py")
         )
         manifest_modules = sorted(row["module_path"] for row in self.modules)
-        self.assertEqual(src_modules, manifest_modules)
+        coverage_debt = self.payload.get("coverage_debt", [])
+        debt_modules = sorted(row["module_path"] for row in coverage_debt)
+        self.assertEqual(set(manifest_modules).intersection(debt_modules), set())
+        self.assertEqual(set(src_modules), set(manifest_modules).union(debt_modules))
+        for row in coverage_debt:
+            self.assertIn("module_path", row)
+            self.assertIn("reason", row)
+            self.assertIn("status", row)
+            self.assertTrue(row["reason"])
+            self.assertTrue(row["status"].endswith("_inventory"))
 
     def test_manifest_rows_have_required_fields(self) -> None:
         seen = set()

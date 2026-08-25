@@ -1,0 +1,28 @@
+{
+  "validator": "land-wave1-repository-intake-v0.2",
+  "status": "pass",
+  "yaml_files_parsed": 17,
+  "json_files_parsed": 3,
+  "source_ids": [
+    "amazon_precision_gnss",
+    "epfl_pneuma",
+    "fhwa_tgsim_foggy_bottom",
+    "rwth_highd",
+    "thi_revsted"
+  ],
+  "registry_source_count": 5,
+  "committed_fixture_asset_count": 0,
+  "g2_fixture_validated": false,
+  "overall_land_evidence_state": "access_verified",
+  "checks": [
+    "structured files parse",
+    "source-card and scorecard IDs are complete and unique",
+    "registry entries are mappings with complete unique source IDs",
+    "highD raw and derived redistribution remain disabled",
+    "evidence state remains access_verified",
+    "Product 4 G2 remains open",
+    "authoritative validation is not claimed",
+    "restricted fixture assets are absent",
+    "raw and large binary containers are absent"
+  ]
+}

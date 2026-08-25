@@ -1,0 +1,11 @@
+scorecard_version: source-candidate-scorecard-v0.1
+source_dataset_id: rwth_highd
+portfolio_role: secondary_validation
+provisional: true
+total_score_0_to_100: 68
+hard_gate_status: not_all_passed
+critical_blockers:
+- manual approval
+- no redistribution of raw/modified data
+note: Provisional only; final 100-point score should be recomputed after real artifact
+  acquisition.

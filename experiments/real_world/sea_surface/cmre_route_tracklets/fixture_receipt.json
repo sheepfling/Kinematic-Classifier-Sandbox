@@ -1,0 +1,56 @@
+{
+  "receipt_version": "product4-real-fixture-receipt-v0.2",
+  "contract_version": "trajectory-corpus-v0.1",
+  "fixture_id": "cmre_route_tracklets_tiny_fixture_v1",
+  "source_dataset_id": "cmre_brest_maritime_routes_tracklets_v1_0",
+  "research_evidence_state": "fixture_validated",
+  "external_packet": {
+    "filename": "WP-SEA-SURF-001_progress_2026-08-23_v2.zip",
+    "sha256": "1ce9ef330063f395884e3c9524cb1b522a2c81a90ebe397cd95c3ce23f5ba480"
+  },
+  "validation": {
+    "passed": true,
+    "episode_count": 12,
+    "source_contact_count": 60,
+    "classifier_sample_count": 59,
+    "physical_platform_group_count": 6,
+    "repeated_physical_platform_group_count": 3,
+    "route_count": 7,
+    "common_contract_model_validation": true,
+    "deterministic_regeneration": {
+      "supported": true,
+      "conditions": [
+        "same pinned source artifacts",
+        "same selected tracklet IDs",
+        "same adapter version",
+        "same externally supplied identity key"
+      ]
+    },
+    "raw_mmsi_leakage_scan": true,
+    "missing_vertical_state_check": true,
+    "strict_classifier_time_check": true
+  },
+  "claim_boundary": {
+    "supports": [
+      "real five-contact AIS tracklet ingestion",
+      "surface-sea state-view semantics",
+      "missing vertical-state handling",
+      "route-label assertion mapping",
+      "cross-episode physical-platform grouping",
+      "kinematics-only classifier-view construction"
+    ],
+    "does_not_support": [
+      "vessel-type classification",
+      "complete voyage reconstruction",
+      "population-representative maritime behavior claims",
+      "independent-provider validation of NOAA",
+      "military or submarine semantics"
+    ]
+  },
+  "redistribution": {
+    "source_rows_in_repository": false,
+    "derived_state_assets_in_repository": false,
+    "identity_key_in_repository": false,
+    "disposition": "accept_with_restrictions"
+  }
+}

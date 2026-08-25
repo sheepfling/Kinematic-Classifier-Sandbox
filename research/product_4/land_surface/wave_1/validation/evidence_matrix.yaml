@@ -1,0 +1,57 @@
+evidence_matrix_version: land-wave1-evidence-matrix-v0.1
+status_date: '2026-08-24'
+sources:
+  fhwa_tgsim_foggy_bottom:
+    publisher_identity: verified_primary_source
+    citation: verified_primary_source
+    rights: verified_primary_source
+    distribution_endpoints: verified_primary_source
+    support_artifact_names: verified_primary_source
+    collection_context: verified_primary_source
+    frame_origin_and_pixel_scale: verified_primary_source
+    nominal_cadence: verified_primary_source
+    actual_trajectory_rows_retained: false
+    actual_row_schema_inspected: false
+    fixture_validated: false
+  epfl_pneuma:
+    publisher_identity: verified_primary_source
+    doi_and_version: verified_primary_source
+    archive_size_and_md5: verified_primary_source
+    archive_member_inventory: verified_primary_source
+    readme_content: verified_primary_source
+    native_vehicle_classes: verified_primary_source
+    native_units_and_repeated_field_layout: verified_primary_source
+    cadence_exception_23_97_fps: verified_primary_source
+    known_drone_outage_missingness: verified_primary_source
+    known_georegistration_issue_example: verified_primary_source
+    rights: conflicting_primary_source_statements
+    actual_trajectory_rows_retained: false
+    fixture_validated: false
+  rwth_highd:
+    publisher_identity: verified_primary_source
+    format_documentation: verified_primary_source
+    access_terms: verified_primary_source
+    actual_trajectory_rows_retained: false
+    fixture_validated: false
+  thi_revsted:
+    publisher_identity: verified_primary_source
+    citation_and_doi: verified_primary_source
+    immutable_source_artifact_identity: verified_primary_source
+    actual_header_inspected: true
+    bounded_source_records_inspected_locally: true
+    source_native_and_analysis_mapping_prepared: true
+    local_structural_validation: pass
+    concrete_redistribution_license: unresolved
+    repository_fixture_bytes_committed: false
+    authoritative_fixture_validated: false
+    class_evidence: false
+  amazon_precision_gnss:
+    publisher_identity: verified_primary_source
+    citation: verified_primary_source
+    rights: verified_primary_source_CC-BY-4.0
+    archive_identity: verified_primary_source
+    documented_drive_count_and_cadence: verified_primary_source
+    archive_bytes_retained: false
+    actual_csv_schema_inspected: false
+    fixture_validated: false
+    class_evidence: false

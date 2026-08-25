@@ -1,0 +1,17 @@
+{
+  "tranche": "product-4-land-surface-wave-1",
+  "source_packet": "WP-LAND-001_cycle5_common_format.zip",
+  "evidence_snapshot_date": "2026-08-23",
+  "repository_intake_date": "2026-08-24",
+  "source_card_count": 5,
+  "scorecard_count": 5,
+  "anchor_source": "fhwa_tgsim_foggy_bottom",
+  "independent_validation_source": "epfl_pneuma",
+  "auxiliary_source_evidence_state": "schema_inspected",
+  "auxiliary_fixture_state": "local_structural_validation_pass_rights_restricted",
+  "repository_fixture_bytes_committed": false,
+  "amazon_precision_gnss_state": "access_verified",
+  "overall_land_evidence_state": "access_verified",
+  "g2_fixture_validated": false,
+  "authoritative_common_front_validation_run": false
+}

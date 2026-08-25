@@ -1,0 +1,78 @@
+source_card_version: trajectory-source-card-v0.1
+source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+program_domain: sea
+corpus_sublane: sea_subsurface
+portfolio_role: anchor
+identity:
+  publisher: AOOS Glider Observatory / IOOS Glider DAC
+  institution: University of Alaska Fairbanks College of Fisheries and Ocean Science
+  dataset_title: UAF Slocum G191 deployment unit_191-20240309T1200
+  landing_page: https://gliders.ioos.us/erddap/tabledap/unit_191-20240309T1200.html
+access:
+  evidence_state: mapping_complete
+  authentication_required: false
+  rights_disposition: usable
+  rights_evidence: provider metadata states unrestricted redistribution and use
+  exact_query: acquisition/ioos_profile_query.txt
+  artifact: fixtures/ioos_uaf_unit_191_profile_1709942882.csv
+  artifact_sha256: 29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a
+  artifact_byte_size: 15465
+  acquired_at_utc: '2026-08-24T21:23:55Z'
+  artifact_acquired: true
+  schema_inspected: true
+  mapping_complete: true
+  fixture_validated: false
+native_trajectory:
+  physical_platform_key: wmo_id=4902987
+  deployment_key: trajectory=unit_191-20240309T1200
+  episode_key: profile_id
+  selected_profile_id: 1709942882
+time:
+  field: precise_time
+  system: UTC
+  retained_range: ['2024-03-09T00:08:02Z', '2024-03-09T00:16:32Z']
+  row_order: nondecreasing
+  duplicate_timestamp_count: 5
+  interpretation: sparse asynchronous channel events; duplicates are not automatically duplicate states
+horizontal_channels:
+- fields: [m_gps_lat, m_gps_lon]
+  state_role: source_observation
+  value_basis: measured
+  note: >-
+    One onboard GPS event is retained. The units row declares degrees_minutes, but the values fit
+    decimal-degree ranges and the local geodetic neighborhood. Preserve values as retained for this
+    artifact, prohibit automatic DDMM conversion, and do not infer a surface phase from GPS alone.
+- fields: [m_lat, m_lon]
+  state_role: estimate
+  value_basis: dead_reckoned
+  note: two underwater dead-reckoned events are retained; they do not coincide with the GPS event
+vertical_channels:
+- field: pressure
+  state_role: source_observation
+  value_basis: measured
+  units: dbar
+  retained_row_count: 63
+- field: m_depth
+  state_role: estimate
+  value_basis: calculated_from_pressure
+  units: m
+  vertical_reference: sea_surface
+  positive_direction: down
+  retained_row_count: 24
+artifact_findings:
+- code: SEA_SUB_ASYNCHRONOUS_CHANNEL_EVENTS
+  finding: duplicate timestamps carry different source channels and cannot be removed by row deduplication
+- code: SEA_SUB_GPS_UNITS_VALUE_MISMATCH
+  finding: provider units metadata conflicts with retained numeric range; artifact-specific interpretation is pinned
+- code: SEA_SUB_PROFILE_POSITION_IS_CONTEXT
+  finding: standardized latitude/longitude are constant profile-level context in the selected response
+label_claim_boundary:
+  supports: [scientific_Slocum_glider_identity]
+  does_not_support: [military_submarine, independent_navigation_truth, surface_phase_from_GPS_alone]
+leakage_groups: [physical_platform, deployment, profile, source_recording, source_dataset, geography]
+open_questions:
+- construct the canonical multi-state-view fixture without destroying asynchronous channel events
+- define channel-aware timestamp coalescing and duplicate retention in COMMON-FRONT
+- validate the selected fixture through the canonical common contract
+- retain and inspect one independent Sentry PPL artifact
+research_evidence_state: mapping_complete

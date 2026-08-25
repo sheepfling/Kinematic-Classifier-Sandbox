@@ -1,0 +1,300 @@
+source_card_version: trajectory-source-card-v0.1
+contract_version: trajectory-corpus-v0.1
+source_dataset_id: fhwa_tgsim_foggy_bottom
+program_domain: land
+corpus_sublane: land_surface
+identity:
+  publisher: Federal Highway Administration, U.S. Department of Transportation
+  dataset_title: Third Generation Simulation Data (TGSIM) Foggy Bottom Trajectories
+  source_version: Data.gov metadata modified 2026-01-20
+  publication_or_release_date: '2024-11-04'
+  citation: FHWA TGSIM Foggy Bottom Trajectories, DOI 10.21949/1404230
+  official_landing_page: https://data.transportation.gov/d/brzy-6zfh
+  documentation_references:
+  - https://catalog.data.gov/dataset/third-generation-simulation-data-tgsim-foggy-bottom-trajectories
+  - https://rosap.ntl.bts.gov/view/dot/74647
+access:
+  status: access_verified
+  retrieval_method: Public JSON/XML/CSV distributions through data.transportation.gov
+  authentication_required: false
+  terms_or_license_id: us-public-domain
+  license_text_or_reference: http://www.usa.gov/publicdomain/label/1.0/
+  redistribution_allowed: true
+  derived_data_redistribution_allowed: true
+  privacy_or_sensitive_data_notes: null
+  export_or_control_notes: null
+  access_evidence:
+  - Federal Data.gov catalog reports Access Level public.
+  - Federal Data.gov catalog reports U.S. public-domain license.
+  - Official distributions are exposed as JSON, XML, and CSV.
+  - The JSON distribution endpoint is reachable but the complete response exceeds
+    the current web response-size limit.
+artifacts:
+  expected_artifact_kinds:
+  - TGSIM-Foggy Bottom-Data.csv
+  - Reference_Image_Foggy Bottom.png
+  - Foggy_Bottom_boundaries.txt
+  - Annotation on Regions.zip
+  acquired_artifacts: []
+  api_query_definition: 'Official JSON distribution: https://data.transportation.gov/api/v3/views/brzy-6zfh/query.json?accessType=DOWNLOAD;
+    must be bounded to complete tracks before retention.'
+  expected_refresh_or_versioning: Pin catalog modified date plus artifact SHA-256.
+native_trajectory:
+  native_unit: image_track
+  identity_fields:
+  - ID
+  - run/recording context
+  parent_child_structure: collection -> run/recording -> detected road-user track
+    -> samples
+  segmentation_semantics: one complete source track per episode candidate
+  sample_count_or_scale: primary CSV reported at about 350 MB
+  sampling_pattern: regular
+observation:
+  observation_modality: infrastructure_video_optical_tracking
+  state_roles_present:
+  - estimate
+  value_bases_present:
+  - postprocessed
+  observer_or_navigation_system: twelve stationary 4K infrastructure cameras
+  physical_truth_available: false
+  truth_or_reference_notes: Published trajectory products are video-derived and Kalman-filtered
+    estimates.
+time:
+  source_time_system: relative_to_start_of_run
+  absolute_time_available: false
+  epoch_or_reference: start of run
+  units_or_encoding: seconds
+  precision_or_resolution: 0.1 s reported sample interval
+  rollover_or_leap_second_notes: null
+frames:
+- frame_id: tgsim_foggy_bottom_reference_image_xy
+  frame_kind: other_declared
+  axes:
+  - x
+  - y
+  - vertical unavailable
+  axis_units:
+  - m
+  - m
+  - unavailable
+  crs_or_datum: null
+  center_or_origin: Reference-image origin at top-left; region polygon coordinates
+    use (0,0) there.
+  reference_epoch: null
+  vertical_reference: unavailable
+  vertical_positive_direction: unavailable
+  transform_requirements:
+  - Preserve source image-referenced horizontal coordinates.
+  - Use documented conversion 1 pixel = 0.0186613838586 m where source support assets
+    are pixel-based.
+  - Represent vertical as invalid, never as measured zero.
+  - Do not claim a geodetic CRS without an explicit source transform.
+  unresolved_ambiguities:
+  - positive axis directions require closure from retained source assets
+  - no defensible geodetic transform has yet been established
+channels:
+- source_field_or_group: ID
+  semantic_channel: source_track_identity
+  units: ''
+  state_role: ''
+  value_basis: reported
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: time
+  semantic_channel: elapsed_time
+  units: s
+  state_role: estimate
+  value_basis: reported
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: xloc-kf, yloc-kf
+  semantic_channel: position
+  units: m
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators:
+  - Kalman filtered
+- source_field_or_group: speed-kf-x, speed-kf-y
+  semantic_channel: velocity
+  units: m/s
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators:
+  - Kalman filtered
+- source_field_or_group: acceleration-kf-x, acceleration-kf-y
+  semantic_channel: acceleration
+  units: m/s^2
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators:
+  - Kalman filtered
+- source_field_or_group: lane-kf
+  semantic_channel: lane_or_region_id
+  units: ''
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators: []
+- source_field_or_group: length-smoothed, width-smoothed
+  semantic_channel: bounding_box_dimension_proxies
+  units: m
+  state_role: estimate
+  value_basis: postprocessed
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules: []
+  uncertainty_or_quality_indicators:
+  - direct class leakage risk
+- source_field_or_group: type-most-common
+  semantic_channel: road_user_type
+  units: ''
+  state_role: ''
+  value_basis: reported
+  source_or_derived: source
+  availability: always
+  sentinel_or_missing_rules:
+  - expected codes 0-7
+  uncertainty_or_quality_indicators: []
+labels:
+  native_assertions:
+  - field: type-most-common
+    namespace: land.road_user_type
+    values:
+      0: person
+      1: bicycle
+      2: scooter
+      3: passenger_car
+      4: automated_vehicle
+      5: motorcycle
+      6: bus
+      7: truck
+    evidence_kind: source_native
+    proxy: false
+  identity_linked_assertions: []
+  trajectory_derived_assertions: []
+  analyst_or_proxy_assertions: []
+  unavailable_or_unsafe_targets:
+  - make
+  - model
+  - mass
+  - tracked
+  - armored
+  - tank
+  label_dependency_channels: {}
+population:
+  represented_platforms_or_regimes:
+  - person
+  - bicycle
+  - scooter
+  - passenger_car
+  - automated_vehicle
+  - motorcycle
+  - bus
+  - truck
+  temporal_coverage: 'Foggy Bottom collection: continuous weekday commute, 3:00 PM-5:00
+    PM ET; collection date documented as 2023-05-04.'
+  geographic_or_operational_coverage: Foggy Bottom, Washington, D.C.; twelve stationary
+    4K cameras covering four intersections, adjacent crosswalks, road segments between
+    intersections, and partial outgoing segments.
+  population_biases:
+  - single geography
+  - single collection campaign
+  - one optical tracking pipeline
+  known_exclusions:
+  - no defensible vertical state
+  - no onboard truth telemetry
+quality_and_segmentation:
+  known_sentinels: []
+  duplicate_or_rebroadcast_behavior: pending actual rows
+  gap_behavior: pending actual rows
+  reset_or_discontinuity_behavior: pending actual rows
+  source_transition_behavior: camera stitching/region transitions require audit
+  physically_implausible_or_projection_risks:
+  - track fragmentation
+  - ID reuse
+  - interpolation
+  - Kalman-filter edge effects
+  proposed_episode_segmentation: one detected-object track within a confirmed run/recording
+  proposed_segment_annotations:
+  - gap
+  - low_speed
+  - region_transition
+  - quality_warning
+leakage_and_grouping:
+  physical_platform_key_available: true
+  event_or_mission_key_available: false
+  source_recording_key_available: null
+  route_key_available: true
+  geography_key_available: true
+  temporal_collection_key_available: true
+  provider_or_source_key: true
+  raw_identity_restrictions:
+  - never expose source ID/run/region/dimensions to kinematics-only features
+  recommended_disjoint_split_groups:
+  - physical_platform
+  - source_recording
+  - temporal_collection
+  - geography
+  - source_dataset
+common_contract_mapping:
+  direct_common_fields:
+  - source artifact lineage
+  - elapsed time
+  - 2D position with invalid vertical
+  - optional source velocity
+  - optional source acceleration
+  - labels
+  - grouping keys
+  - quality findings
+  domain_extension_fields:
+  - lane_or_region_id
+  - bounding_box_dimension_proxies
+  separate_sensor_observation_fields: []
+  unresolved_schema_fit:
+  - actual recording/run identity and actual-row missingness
+  schema_change_request_needed: false
+pilot:
+  preferred_pilot_subset: complete passenger-car, truck, bus and motorcycle tracks
+    from multiple regions
+  pilot_artifact_size_or_scope: 3-6 complete tracks for first tiny real fixture
+  first_within_source_experiment: 'later: passenger_car vs truck with whole-track
+    grouping'
+  first_independent_validation: pNEUMA source-shift road validation
+  refresh_strategy: new snapshot for content/catalog change
+claim_boundary:
+  supports:
+  - 2D postprocessed road-user trajectory estimates
+  - source-provided broad road-user labels
+  does_not_support:
+  - 3D truth
+  - calibrated physical uncertainty
+  - universal vehicle classification
+  summary: Use as a real optical road-trajectory anchor, not as physical truth.
+research_evidence_state: access_verified
+open_questions:
+- Actual trajectory-row headers/types/order remain unretained.
+- Whether Foggy Bottom includes an explicit run/recording field in row data remains
+  unverified.
+- Native ID scope and reuse remain unverified from rows.
+- Sentinels, duplicate timestamps, out-of-order rows, and gap behavior remain unverified
+  from rows.
+next_actions:
+- retain bounded complete tracks
+- hash artifact
+- inspect rows
+- generate real fixture

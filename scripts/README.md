@@ -35,6 +35,19 @@ Rule of thumb:
 
 - If a script is a canonical entrypoint a user is likely to run directly, keep it at `scripts/`.
 - If a script is a specialized helper for one subsystem, place it in the matching subdirectory.
+
+Product 4 lane tests can run in isolated worker processes:
+
+- `PYTHONPATH=src python3 scripts/run/run_product4_tests.py --workers 4`
+
+The runner uses the explicit `product4_*` pytest markers and keeps common-contract, cross-domain,
+and six lane groups separate. It is safe for the current real-world tests because they use
+repository fixtures and per-test temporary directories; add a dedicated output root before
+parallelizing any test that writes shared generated artifacts.
+
+The complete product/tier/parallel-safety map is [the Product Test Matrix](../docs/testing/TEST_MATRIX.md).
+Use the direct markers for Product 1–3 and shared analysis suites; keep Product 2, Product 3,
+shared analysis, and full-repository gates sequential until their artifact namespaces are isolated.
 - Scripts do not mutate `sys.path`. Run them after `python3 -m pip install -e '.[dev]'`
   or with an explicit `PYTHONPATH=src` environment.
 

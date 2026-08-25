@@ -1,0 +1,31 @@
+spec_version: cmre-bounded-extract-v0.2
+source_dataset_id: cmre_brest_maritime_routes_tracklets_v1_0
+source_doi: 10.5281/zenodo.6402160
+upstream_rehost:
+  repository: Ravnholt7507/P7-projekt
+  commit: 2c7ae2fc31ee97d5f02047a84a0af1a81ed8be6c
+  path: livedata/tracklets.csv
+  blob_sha: 828380c4239c6c4e979e0d316fd227025130fb64
+route_nomenclature:
+  repository: Ravnholt7507/P7-projekt
+  commit: 2c7ae2fc31ee97d5f02047a84a0af1a81ed8be6c
+  path: livedata/nomen.csv
+  blob_sha: f3dd950798f7ded15878e6562dd491c58eb40620
+selection:
+  tracklet_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+  expected_tracklet_count: 12
+  expected_contact_count: 60
+identity_grouping:
+  algorithm: HMAC-SHA256
+  output_bits: 96
+  key_source: external_private_file
+  key_persisted: false
+  minimum_key_bytes: 16
+validated_external_extract:
+  sha256: a009712e9b648545a17397088a1fbe7cd00037b097cf66462f36b6b26e302ce7
+  route_nomenclature_sha256: ea12d0cf0befee454336a65e5a750aebe4a99e6aeede901017f345c3aa601130
+redistribution:
+  source_rows_committed: false
+  derived_state_assets_committed: false
+  disposition: accept_with_restrictions
+  reason: authoritative license metadata requires reconciliation before broad redistribution

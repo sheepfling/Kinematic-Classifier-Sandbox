@@ -1,0 +1,220 @@
+{
+  "fixture_version": "sea-sub-ooi-unit-364-mixed-provenance-v0.1",
+  "contract_version": "trajectory-corpus-v0.1",
+  "source_dataset_id": "ooici-marine-integrations-glider-parser-resource",
+  "fixture_role": "mixed_provenance_contract_bridge",
+  "source_artifact": {
+    "path": "fixtures/ooi_unit_364_2013_192_1_0.mrg",
+    "sha256": "2cd5d6a39e3bf47b7061c4dd1d7ba02c031eaba7a0e3c0e8a6ff872b3ac82557",
+    "byte_size": 1645,
+    "row_count": 4,
+    "column_count": 28,
+    "upstream_repository": "ooici/marine-integrations",
+    "upstream_commit": "a1f2fa611b773cb2ae309fce7b9df2dec6d739d6",
+    "upstream_blob": "d0070b8e9bdbb05eadc29d38bf2527cda3b17a31",
+    "license_path": "fixtures/ooici_marine_integrations_LICENSE.txt",
+    "license_sha256": "62965f01e6fa1ec6d3de2449e902245d9fde81a2e29bc29e92986fd3316073f8",
+    "license_byte_size": 1327,
+    "license_upstream_blob": "c7c7b1182a18ec6704789f2654b2235ea900e299",
+    "rights_boundary": "Repository resource and license only; broader campaign rights are not inferred."
+  },
+  "episode": {
+    "physical_platform_id": "unit_364",
+    "deployment_or_mission_id": "BAVMSIM.MI",
+    "source_recording_id": "unit_364-2013-192-1-0",
+    "grouping_keys": [
+      {
+        "namespace": "physical_platform",
+        "value": "unit_364",
+        "access_class": "identity_grouping_only"
+      },
+      {
+        "namespace": "mission",
+        "value": "BAVMSIM.MI",
+        "access_class": "identity_grouping_only"
+      },
+      {
+        "namespace": "source_recording",
+        "value": "unit_364-2013-192-1-0",
+        "access_class": "identity_grouping_only"
+      },
+      {
+        "namespace": "source_dataset",
+        "value": "ooici-marine-integrations-glider-parser-resource",
+        "access_class": "identity_grouping_only"
+      },
+      {
+        "namespace": "collection_date",
+        "value": "2013-07-12",
+        "access_class": "identity_grouping_only"
+      }
+    ]
+  },
+  "time": {
+    "source_field": "m_present_time",
+    "system": "source_timestamp_posix_like_utc_not_independently_verified",
+    "base_epoch_s": 1373667814.6409,
+    "analysis_field": "elapsed_s",
+    "sample_count": 4
+  },
+  "state_views": [
+    {
+      "state_view_id": "unit-364:surface-gps",
+      "state_role": "source_observation",
+      "value_basis": "measured",
+      "frame": {
+        "horizontal": "geodetic_datum_unresolved",
+        "vertical": null
+      },
+      "source_encoding": "DDMM.MMMM latitude and DDDMM.MMMM longitude",
+      "samples": [
+        {
+          "source_row_index": 1,
+          "elapsed_s": 0.3656001091003418,
+          "position": [
+            32.56317166666667,
+            -118.04496333333333,
+            null
+          ],
+          "position_valid": [
+            true,
+            true,
+            false
+          ],
+          "source_ddmm": [
+            3233.7903,
+            -11802.6978
+          ]
+        },
+        {
+          "source_row_index": 2,
+          "elapsed_s": 41.34756016731262,
+          "position": [
+            32.56317166666667,
+            -118.04496333333333,
+            null
+          ],
+          "position_valid": [
+            true,
+            true,
+            false
+          ],
+          "source_ddmm": [
+            3233.7903,
+            -11802.6978
+          ]
+        }
+      ]
+    },
+    {
+      "state_view_id": "unit-364:underwater-dead-reckoning",
+      "state_role": "estimate",
+      "value_basis": "dead_reckoned",
+      "frame": {
+        "horizontal": "geodetic_datum_unresolved",
+        "vertical": null
+      },
+      "source_encoding": "DDMM.MMMM latitude and DDDMM.MMMM longitude",
+      "samples": [
+        {
+          "source_row_index": 1,
+          "elapsed_s": 0.3656001091003418,
+          "position": [
+            32.56401358038734,
+            -118.04477201552,
+            null
+          ],
+          "position_valid": [
+            true,
+            true,
+            false
+          ],
+          "source_ddmm": [
+            3233.84081482324,
+            -11802.6863209312
+          ],
+          "source_pitch_rad": -0.431096,
+          "source_speed_mps": 0.268558
+        }
+      ]
+    },
+    {
+      "state_view_id": "unit-364:source-depth",
+      "state_role": "source_reported_vertical_state",
+      "value_basis": "unresolved_measurement_or_estimate",
+      "frame": {
+        "horizontal": null,
+        "vertical_reference": "unresolved",
+        "positive_direction": "unresolved"
+      },
+      "samples": [
+        {
+          "source_row_index": 1,
+          "elapsed_s": 0.3656001091003418,
+          "position": [
+            null,
+            null,
+            25.227
+          ],
+          "position_valid": [
+            false,
+            false,
+            true
+          ],
+          "units": "m"
+        }
+      ]
+    },
+    {
+      "state_view_id": "unit-364:pressure-observation",
+      "state_role": "source_observation",
+      "value_basis": "measured",
+      "channels": {
+        "sci_water_pressure": "bar"
+      },
+      "samples": [
+        {
+          "source_row_index": 0,
+          "elapsed_s": 0.0,
+          "pressure_bar": 0.007,
+          "pressure_valid": true,
+          "source_water_conductivity_s_per_m": -2e-05,
+          "source_water_temperature_deg_c": 22.1377
+        }
+      ]
+    }
+  ],
+  "quality_findings": [
+    {
+      "code": "SEA_SUB_GPS_DR_SEPARATION",
+      "severity": "warning",
+      "message": "Surface GPS and dead-reckoned states coexist at one source timestamp and remain distinct."
+    },
+    {
+      "code": "SEA_SUB_VERTICAL_REFERENCE_UNRESOLVED",
+      "severity": "warning",
+      "message": "m_depth units are known, but datum, sign, and derivation lineage are not declared by the artifact."
+    },
+    {
+      "code": "SEA_SUB_SPARSE_PARSER_RESOURCE",
+      "severity": "warning",
+      "message": "Four rows validate representation only; they do not support navigation-performance or phase claims."
+    }
+  ],
+  "classifier_view": {
+    "status": "intentionally_blocked",
+    "blocking_reasons": [
+      "Horizontal datum is unresolved.",
+      "Depth reference, sign, and measurement-versus-estimate lineage are unresolved.",
+      "The artifact is a parser regression resource rather than a selected anchor or independent campaign file."
+    ]
+  },
+  "acceptance": {
+    "common_contract_representation": true,
+    "mixed_surface_gps_and_dead_reckoning": true,
+    "measured_pressure_separate_from_depth": true,
+    "restricted_fixture_validated": true,
+    "lane_g2_satisfied": false,
+    "independent_validation_satisfied": false
+  }
+}

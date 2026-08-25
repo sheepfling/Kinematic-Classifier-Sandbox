@@ -239,6 +239,13 @@ Implemented numeric-example additions:
 These modules are intentionally documented only as infrastructure or appendix
 surfaces rather than standalone math papers:
 
+The machine-readable coverage manifest distinguishes modules covered by the
+current survey documents from explicit inventory-debt rows. A debt row is an
+accounting decision, not a claim that the module has a dedicated methodology
+section. Product 4 source modules remain governed by the Product 4 corpus
+contract and portfolio documentation until the real-world classifier bridge is
+ready for a dedicated cross-product survey section.
+
 - `__init__.py`
 - `__main__.py`
 - `catalog.py`

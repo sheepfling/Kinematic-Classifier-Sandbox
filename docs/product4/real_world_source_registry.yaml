@@ -1,0 +1,340 @@
+registry_version: real-world-source-registry-v0.1
+registry_id: product4-real-world-portfolio-2026-08-24
+sources:
+  - source_dataset_id: fhwa_tgsim_foggy_bottom
+    lane: land_surface
+    domain: land
+    title: FHWA TGSIM Foggy Bottom trajectories
+    adapter_id: tgsim_foggy_bottom_csv
+    adapter_version: 0.1.0
+    portfolio_role: anchor
+    evidence_state: access_verified
+    artifacts:
+      - artifact_id: fhwa_tgsim_foggy_bottom_trajectory_csv
+        uri_or_query: >-
+          https://data.transportation.gov/api/v3/views/brzy-6zfh/export.csv?accessType=DOWNLOAD
+        media_type: text/csv
+        accessed_on: 2026-08-24
+        license_id: us-public-domain
+        redistribution_allowed: true
+        derived_data_redistribution_allowed: true
+        notes:
+          - Complete source rows are not committed in this repository.
+          - Pin the catalog revision and SHA-256 after bounded acquisition.
+    grouping_namespaces:
+      - physical_platform
+      - source_recording
+      - source_dataset
+      - geography
+    claim_boundary:
+      - Supports the common land trajectory contract and the reference road-vehicle study direction.
+      - Does not yet support a real-data classifier claim from the repository fixture.
+    promotion_blockers:
+      - Acquire a bounded complete-track artifact.
+      - Validate actual-row schema, labels, and split groups through the common front.
+
+  - source_dataset_id: cmre_brest_maritime_routes_tracklets_v1_0
+    lane: sea_surface
+    domain: sea
+    title: CMRE/Brest maritime route-association AIS tracklets
+    adapter_id: cmre_route_tracklet_fixture_builder
+    adapter_version: 0.1.0
+    portfolio_role: expansion_regression
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: cmre_brest_external_validation_packet_v2
+        uri_or_query: external://WP-SEA-SURF-001_progress_2026-08-23_v2.zip
+        media_type: application/zip
+        sha256: 1ce9ef330063f395884e3c9524cb1b522a2c81a90ebe397cd95c3ce23f5ba480
+        accessed_on: 2026-08-23
+        license_id: CC-BY-NC-SA-4.0-provisional
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - The receipt validates twelve episodes and six repeated physical-platform groups.
+          - Raw source rows and derived state assets remain outside Git.
+    grouping_namespaces:
+      - physical_platform
+      - source_recording
+      - route
+      - source_dataset
+      - geography
+      - temporal_collection
+    claim_boundary:
+      - Supports real AIS tracklet ingestion, missing vertical-state semantics, and route assertions.
+      - Does not support vessel-family classification or population-representative maritime claims.
+    promotion_blockers:
+      - Build the bounded fixture through the common snapshot loader.
+      - Add an independent-provider holdout before any maritime generalization claim.
+
+  - source_dataset_id: noaa_ais_2024_broadcast_points
+    lane: sea_surface
+    domain: sea
+    title: NOAA 2024 AIS broadcast points
+    adapter_id: noaa_ais_route_tracklet
+    adapter_version: 0.0-research
+    portfolio_role: preferred_anchor
+    evidence_state: schema_inspected
+    artifacts:
+      - artifact_id: noaa_ais_source_portfolio_record
+        uri_or_query: repository://experiments/real_world/sea_surface/cmre_route_tracklets/source_portfolio.yaml#noaa_ais_2024_broadcast_points
+        media_type: application/yaml
+        notes:
+          - An official repeated-observation artifact and checksum are still required.
+    grouping_namespaces:
+      - physical_platform
+      - source_recording
+      - source_dataset
+      - geography
+    claim_boundary:
+      - Supports source-schema and sentinel-mapping evidence only at the current state.
+    promotion_blockers:
+      - Acquire and hash a repeated-observation artifact.
+      - Validate a bounded common-contract fixture.
+
+  - source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
+    lane: sea_subsurface
+    domain: sea
+    title: UAF Slocum glider unit 191 selected IOOS profile
+    adapter_id: ioos_ngdac_glider_v0
+    adapter_version: 0.0-research
+    portfolio_role: anchor
+    evidence_state: mapping_complete
+    artifacts:
+      - artifact_id: ioos_uaf_unit_191_profile_1709942882
+        uri_or_query: repository://docs/research/product4/sea_subsurface/fixtures/ioos_uaf_unit_191_profile_1709942882.csv
+        media_type: text/csv
+        sha256: 29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a
+        accessed_on: 2026-08-24
+        license_id: provider-unrestricted-use
+        redistribution_allowed: true
+        derived_data_redistribution_allowed: true
+        notes:
+          - The selected profile contains asynchronous channel events and duplicate timestamps.
+          - The committed artifact is not yet a validated common-front episode.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+      - geography
+    claim_boundary:
+      - Supports explicit measured GPS, dead-reckoned, pressure, and derived-depth semantics.
+      - Does not support independent navigation truth or military-submarine claims.
+    promotion_blockers:
+      - Preserve channel-aware asynchronous events in the common state-view fixture.
+      - Validate the selected anchor and retain an independent Sentry artifact.
+
+  - source_dataset_id: mgds-whoi-sentry-at26-09-navigation
+    lane: sea_subsurface
+    domain: sea
+    title: WHOI Sentry AT26-09 processed navigation
+    adapter_id: mgds_sentry_ppl_v0
+    adapter_version: 0.0-research
+    portfolio_role: independent_validation
+    evidence_state: access_verified
+    artifacts:
+      - artifact_id: mgds_sentry_at26_09_file_query
+        uri_or_query: https://www.marine-geo.org/tools/files/31959
+        media_type: application/octet-stream
+        accessed_on: 2026-08-24
+        license_id: CC-BY-4.0
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - Exact PPL file UID, bytes, size, checksum, and navigation lineage remain open.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+    claim_boundary:
+      - Supports independent deployment and dive-grouping validation after artifact inspection.
+      - Does not support independent navigation truth at the current evidence state.
+    promotion_blockers:
+      - Acquire one exact PPL artifact and resolve time, datum, depth, and processing semantics.
+
+  - source_dataset_id: adsblol_globe_history
+    lane: air_atmospheric
+    domain: air
+    title: ADSB.lol historical readsb traces
+    adapter_id: adsblol_readsb_trace
+    adapter_version: 0.1-research
+    portfolio_role: anchor
+    evidence_state: access_verified
+    artifacts:
+      - artifact_id: adsblol_globe_history_release
+        uri_or_query: https://www.adsb.lol/docs/open-data/historical/
+        media_type: application/gzip
+        accessed_on: 2026-08-24
+        license_id: ODbL-1.0
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - The repository fixture documents readsb semantics but is not a historical release trace.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+      - temporal_collection
+    claim_boundary:
+      - Supports native readsb parsing, source-derived flight-leg candidates, and vertical semantics.
+      - Does not support physical-truth or authoritative-flight-identity claims.
+    promotion_blockers:
+      - Acquire and checksum a genuine historical trace.
+      - Materialize one common-contract flight-leg fixture and an independent provider holdout.
+
+  - source_dataset_id: opensky_weekly_state_vectors
+    lane: air_atmospheric
+    domain: air
+    title: OpenSky scientific state vectors
+    adapter_id: opensky_state_vectors
+    adapter_version: 0.0-research
+    portfolio_role: independent_validation
+    evidence_state: access_verified
+    artifacts:
+      - artifact_id: opensky_scientific_state_vectors_catalog
+        uri_or_query: https://opensky-network.org/data/scientific
+        media_type: application/octet-stream
+        accessed_on: 2026-08-24
+        license_id: conditional
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - Rights disposition is required before Product 4 validation use.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+    claim_boundary:
+      - Candidate independent-provider validation only.
+    promotion_blockers:
+      - Resolve rights and acquire a bounded state-vector artifact.
+
+  - source_dataset_id: 'darts:soundingrockets-s-310-40'
+    lane: space_near
+    domain: space
+    title: JAXA DARTS S-310-40 sounding-rocket trajectory
+    adapter_id: space_near_repository_fixture
+    adapter_version: 0.1.0
+    portfolio_role: anchor
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: darts_s31040_repository_fixture
+        uri_or_query: repository://tests/corpus/real_world/fixtures/space_near/s31040_apogee_fixture.json.gz
+        media_type: application/gzip
+        accessed_on: 2026-08-23
+        license_id: isas-data-policy-2018
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - Source asset hash and transformation lineage are embedded in the fixture.
+          - Common-front validation remains pending.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+      - temporal_collection
+    claim_boundary:
+      - Supports mission-phase and reference-to-analysis state-view semantics.
+      - Does not support classifier performance or population-level near-space claims.
+    promotion_blockers:
+      - Convert the embedded fixture into the common snapshot manifest.
+      - Preserve mission identity outside classifier features.
+
+  - source_dataset_id: 'nasa-spdf:ENDURANCE_EPHEMERIS_DEF'
+    lane: space_near
+    domain: space
+    title: NASA SPDF Endurance 47.001 synchronized reference solution
+    adapter_id: space_near_repository_fixture
+    adapter_version: 0.1.0
+    portfolio_role: independent_validation
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: nasa_endurance_47_001_synchronized_solution
+        uri_or_query: https://cdaweb.gsfc.nasa.gov/pub/data/sounding_rockets/endurance/endurance-2022/original_ascii/ephem/47.001_SynchronizedSolution.csv
+        media_type: text/csv
+        sha256: 67d4059810e65306aabce9ecf99fa28a75d88ebaa87a496db06b0c8412d3b0a7
+        accessed_on: 2026-08-23
+        license_id: nasa-spdf-public-domain-cc0
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - The repository carries a bounded derived fixture, not the full source solution.
+          - This is a reference solution, not measurement truth.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+    claim_boundary:
+      - Supports an independent-provider near-space semantic validation cohort.
+      - Does not support native GPS-velocity or propulsion-state claims.
+    promotion_blockers:
+      - Pass the common-front loader and independence checks.
+
+  - source_dataset_id: nasa-topo-iss-oem-2022-04-27-bounded-fixture
+    lane: space_orbital
+    domain: space
+    title: NASA TOPO ISS CCSDS OEM bounded inertial fixture
+    adapter_id: space-orb-nasa-iss-oem
+    adapter_version: 0.1.1
+    portfolio_role: validation_fixture
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: nasa_topo_iss_oem_20220427_bounded_extract
+        uri_or_query: repository://tests/corpus/real_world/fixtures/nasa_iss_oem_20220427_excerpt.kvn
+        media_type: text/plain; profile=CCSDS-OEM-2.0-KVN-extract
+        sha256: b74e25876f2c79a191e4cde111775bf4f4c6a8f00f6ea4656329f269b9841b28
+        accessed_on: 2026-08-23
+        license_id: US-PD
+        redistribution_allowed: true
+        derived_data_redistribution_allowed: true
+        notes:
+          - Validation fixture only; classifier eligibility is false in the source metadata.
+          - Source velocity remains distinct from finite-difference velocity.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+    claim_boundary:
+      - Supports CCSDS OEM ingestion, EME2000/UTC semantics, and persistent-object grouping.
+      - Does not support measurement truth or population-level orbital classification.
+    promotion_blockers:
+      - Add a prepared multi-object orbital cohort before classifier use.
+      - Resolve official IGS artifact provenance for an independent reference cohort.
+
+  - source_dataset_id: igs-final-sp3
+    lane: space_orbital
+    domain: space
+    title: International GNSS Service final SP3 precise-orbit products
+    adapter_id: space_orb_igs_sp3
+    adapter_version: 0.0-research
+    portfolio_role: preferred_anchor
+    evidence_state: schema_inspected
+    artifacts:
+      - artifact_id: igs_final_sp3_source_evidence
+        uri_or_query: repository://docs/methods/space_orbital/evidence.yaml#igs_final_sp3_source_card
+        media_type: application/yaml
+        license_id: conditional
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - The parser was tested against an immutable third-party mirror.
+          - The exact official compressed artifact remains to be acquired and compared.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+      - temporal_collection
+    claim_boundary:
+      - Supports source-faithful SP3-c parser and reference-solution semantics.
+      - Does not support official-byte equivalence or classifier readiness at this state.
+    promotion_blockers:
+      - Acquire and checksum the exact official artifact.
+      - Resolve epoch-valid physical-object identities before split assignment.

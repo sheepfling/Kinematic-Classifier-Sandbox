@@ -2259,7 +2259,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/markdown_builder.py",
+      "module_path": "src/kinematic_classifier_sandbox/reports/markdown.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Infrastructure Appendix",
@@ -2759,7 +2759,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/study_candidate_generation.py",
+      "module_path": "src/kinematic_classifier_sandbox/validation/study_candidate/generation.py",
       "coverage_kind": "architecture",
       "primary_doc": "corpus_generation_and_search",
       "primary_section": "Study Candidate Generation And Search Surfaces",
@@ -2769,7 +2769,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/study_candidate_generation_rendering.py",
+      "module_path": "src/kinematic_classifier_sandbox/validation/study_candidate/rendering.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Infrastructure Appendix",
@@ -2779,7 +2779,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/study_candidate_generation_types.py",
+      "module_path": "src/kinematic_classifier_sandbox/validation/study_candidate/types.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Infrastructure Appendix",
@@ -2789,7 +2789,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/study_candidate_generation_utils.py",
+      "module_path": "src/kinematic_classifier_sandbox/validation/study_candidate/utils.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Infrastructure Appendix",
@@ -2799,7 +2799,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/study_candidate_protocol.py",
+      "module_path": "src/kinematic_classifier_sandbox/validation/study_candidate/protocol.py",
       "coverage_kind": "architecture",
       "primary_doc": "corpus_generation_and_search",
       "primary_section": "Study Candidate Generation And Search Surfaces",
@@ -2809,7 +2809,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/study_candidate_protocol_utils.py",
+      "module_path": "src/kinematic_classifier_sandbox/validation/study_candidate/protocol_utils.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Infrastructure Appendix",
@@ -2919,7 +2919,7 @@
       "status": "covered"
     },
     {
-      "module_path": "src/kinematic_classifier_sandbox/trajectory_series.py",
+      "module_path": "src/kinematic_classifier_sandbox/corpus/trajectory_series.py",
       "coverage_kind": "appendix",
       "primary_doc": "methodology_doc_index",
       "primary_section": "Infrastructure Appendix",
@@ -3508,5 +3508,332 @@
       ],
       "status": "covered"
     }
+  ],
+  "coverage_debt": [
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/archive_backend_diagnosis.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/archive_family_promotion_audit.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/archive_feature_headroom_witness.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/archive_vs_physics_witness.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/classifier_family_scorecard.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/drcif_interval_promotion_audit.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/gsf_multimodal_promotion_audit.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/imm_switching_promotion_audit.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/neural_sequence_robustness.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/optional_external_backends.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/physics_family_promotion_audit.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/ts2vec_backend_parity.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/tsc_archive_backend_smoke.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/analysis/ukf_nonlinear_promotion_audit.py",
+    "reason": "Analysis companion is part of a product surface but is not yet assigned to a dedicated methodology-survey section.",
+    "status": "analysis_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/__init__.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/__init__.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/adsblol/__init__.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/adsblol/readsb_trace.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/base.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/cmre_route_tracklets.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/space_orbital_oem.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/space_orbital_oem_metadata.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/space_orbital_oem_parsing.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/space_orbital_sp3.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/space_orbital_sp3_records.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/space_orbital_sp3_types.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/tgsim.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/tgsim_contracts.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/tgsim_corpus.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/tgsim_parsing.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/adapters/tgsim_track.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/contracts.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/corpus_contracts.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/episode_contracts.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/kinematics.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/manifests.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/portfolio.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/projection.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/quality.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/road_vehicle_study.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/road_vehicle_study_artifact_io.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/road_vehicle_study_runner.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/space_near/__init__.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/space_near/fixture_adapter.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/space_near/fixture_models.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/splits.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/windowing.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/validation.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/reports/__init__.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/static_admissibility/__init__.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/static_admissibility/audit.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/static_admissibility/exemplar_suite.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/static_admissibility/io.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/static_admissibility/multi_domain_3d.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/static_admissibility/schemas.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/static_admissibility/study_bundle.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/static_admissibility/validation.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/utils/method_evaluation_summary.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/validation/correctness.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/validation/study_candidate/__init__.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/validation_packets/__init__.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/validation_packets/v7_anduril_c2_blend.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/workbench/__init__.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/workbench/mvp.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/workbench/revision_replay.py",
+    "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
+    "status": "integration_inventory"
+  }
   ]
 }

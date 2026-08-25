@@ -54,6 +54,39 @@ Read next:
   - `test_rbpf.py`
   - `test_advanced_filter_*`
 
+## Product and lane markers
+
+`tests/conftest.py` assigns explicit product markers from the test path and Product 4 lane
+markers from each real-world test module. This keeps lane regressions, cross-domain governance,
+and the older Product 1–3 suites selectable without relying on directory conventions alone.
+
+The authoritative product/tier/artifact matrix is [Product Test Matrix](../docs/testing/TEST_MATRIX.md),
+with its machine-readable definition in [`test_matrix.yaml`](../docs/testing/test_matrix.yaml). It
+also records which suites are safe to run concurrently and which gates deliberately remain
+sequential.
+
+Useful selections:
+
+- `PYTHONPATH=src python3 -m pytest -q -m product4`
+- `PYTHONPATH=src python3 -m pytest -q -m product4_sea_surface`
+- `PYTHONPATH=src python3 -m pytest -q -m 'product4 and not product4_cross_domain'`
+- `PYTHONPATH=src python3 -m pytest -q -m product2`
+- `PYTHONPATH=src python3 -m pytest -q -m product3`
+- `PYTHONPATH=src python3 -m pytest -q -m cross_product`
+- `PYTHONPATH=src python3 -m pytest --collect-only -q -m product4_cross_domain`
+
+The Product 4 runner uses isolated subprocesses so lane tests can run concurrently without
+sharing pytest state:
+
+```bash
+PYTHONPATH=src python3 scripts/run/run_product4_tests.py --workers 4
+```
+
+The runner deliberately keeps the cross-domain group separate from each lane group. Tests that
+write shared generated artifacts should remain in the sequential repository lanes unless their
+output root is explicitly isolated. The planned real-world-to-classifier bridge is a separate
+release gate and is not implied by either `product4` or `product2` passing independently.
+
 ## Useful targeted runs
 
 - Epic 1 showcase smoke regeneration:

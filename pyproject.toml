@@ -53,6 +53,21 @@ indent-style = "space"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+markers = [
+    "product1: Static Admissibility tests",
+    "product2: Classifier Evidence Ladder tests",
+    "product3: RL Corpus Exploration tests",
+    "product4: Real-World Corpus and Validation tests",
+    "cross_product: tests spanning multiple products or repository infrastructure",
+    "product4_common: Product 4 common-contract tests",
+    "product4_cross_domain: Product 4 cross-domain portfolio and gate tests",
+    "product4_land_surface: Product 4 LAND lane tests",
+    "product4_sea_surface: Product 4 SEA-SURF lane tests",
+    "product4_sea_subsurface: Product 4 SEA-SUB lane tests",
+    "product4_air_atmospheric: Product 4 AIR lane tests",
+    "product4_space_near: Product 4 SPACE-NEAR lane tests",
+    "product4_space_orbital: Product 4 SPACE-ORB lane tests",
+]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
