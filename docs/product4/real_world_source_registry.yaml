@@ -1,5 +1,5 @@
 registry_version: real-world-source-registry-v0.1
-registry_id: product4-real-world-portfolio-2026-08-24
+registry_id: product4-real-world-portfolio-2026-08-25
 sources:
   - source_dataset_id: fhwa_tgsim_foggy_bottom
     lane: land_surface
@@ -225,6 +225,7 @@ sources:
       - artifact_id: darts_s31040_repository_fixture
         uri_or_query: repository://tests/corpus/real_world/fixtures/space_near/s31040_apogee_fixture.json.gz
         media_type: application/gzip
+        sha256: c432b7f4f0f3a58f97ff372791c54ffef77a46b95c2416b49e3069cb4febc83a
         accessed_on: 2026-08-23
         license_id: isas-data-policy-2018
         redistribution_allowed: false
@@ -275,6 +276,134 @@ sources:
       - Does not support native GPS-velocity or propulsion-state claims.
     promotion_blockers:
       - Pass the common-front loader and independence checks.
+
+  - source_dataset_id: 'darts:soundingrockets-s-310-44'
+    lane: space_near
+    domain: space
+    title: JAXA DARTS S-310-44 sounding-rocket trajectory
+    adapter_id: space_near_repository_fixture
+    adapter_version: 0.1.0
+    portfolio_role: same_family_replication
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: darts_s31044_repository_fixture
+        uri_or_query: repository://tests/corpus/real_world/fixtures/space_near/s31044_apogee_fixture.json.gz
+        media_type: application/gzip
+        sha256: d054d4d3643b73e1e0b41983378c50546852f2d0cc7f5c8ded403b717dc8e549
+        accessed_on: 2026-08-23
+        license_id: isas-data-policy-2018
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - The bounded fixture preserves the original source hash c92208a55a7057d0b9f908921c1bdc888afd720029aef907c84b1a46d2289030.
+          - Common-front validation is now reproducible but remains validation-only.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+      - temporal_collection
+    claim_boundary:
+      - Supports same-family near-space semantic replication and apogee evidence.
+      - Does not support classifier performance or propulsion-state claims.
+    promotion_blockers:
+      - Resolve the exact vertical datum and measurement method before prepared promotion.
+
+  - source_dataset_id: 'darts:soundingrockets-s-520-26'
+    lane: space_near
+    domain: space
+    title: JAXA DARTS S-520-26 sounding-rocket trajectory
+    adapter_id: space_near_repository_fixture
+    adapter_version: 0.1.0
+    portfolio_role: ascent_expansion
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: darts_s52026_repository_fixture
+        uri_or_query: repository://tests/corpus/real_world/fixtures/space_near/s52026_ascent_fixture.json.gz
+        media_type: application/gzip
+        sha256: b447c7cc1f501268728cdc1df180151935f38d4e40d8b140aee57207614142dd
+        accessed_on: 2026-08-23
+        license_id: isas-data-policy-2018
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - The bounded fixture preserves the original source hash 16db0d0b1e42930d464fc121de9bbb3c90f5b49c93b637f2fc74405630f77c75.
+          - Negative-height tail rows remain outside the selected validation window.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+      - temporal_collection
+    claim_boundary:
+      - Supports a bounded published suborbital ascent semantic fixture.
+      - Does not support powered/coast discrimination or classifier performance.
+    promotion_blockers:
+      - Resolve the exact vertical datum and powered-state boundary before prepared promotion.
+
+  - source_dataset_id: 'darts:soundingrockets-s-520-27'
+    lane: space_near
+    domain: space
+    title: JAXA DARTS S-520-27 sounding-rocket trajectory
+    adapter_id: space_near_repository_fixture
+    adapter_version: 0.1.0
+    portfolio_role: apogee_expansion
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: darts_s52027_repository_fixture
+        uri_or_query: repository://tests/corpus/real_world/fixtures/space_near/s52027_apogee_fixture.json.gz
+        media_type: application/gzip
+        sha256: 3e47f7c11ea351c1d6d144a35a9ec31f080afb2cadbe69637f49a66a55119a01
+        accessed_on: 2026-08-23
+        license_id: isas-data-policy-2018
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - The bounded fixture preserves the original source hash 1a8501a61ccd27982612b234b9f9ea5582ed33949729f9a6ffd497a8ea070571.
+          - Publisher-defined ascent/descent boundaries remain explicit and non-proxy.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+      - temporal_collection
+    claim_boundary:
+      - Supports a bounded published suborbital apogee semantic fixture.
+      - Does not support propulsion-state or classifier performance claims.
+    promotion_blockers:
+      - Resolve the exact vertical datum and measurement method before prepared promotion.
+
+  - source_dataset_id: 'darts:soundingrockets-s-520-29'
+    lane: space_near
+    domain: space
+    title: JAXA DARTS S-520-29 sounding-rocket trajectory
+    adapter_id: space_near_repository_fixture
+    adapter_version: 0.1.0
+    portfolio_role: terminal_descent_expansion
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: darts_s52029_repository_fixture
+        uri_or_query: repository://tests/corpus/real_world/fixtures/space_near/s52029_terminal_descent_fixture.json.gz
+        media_type: application/gzip
+        sha256: bdedfe56655763dc1af1273f50e1646425320909580fad2b8185fdda7407aae6
+        accessed_on: 2026-08-23
+        license_id: isas-data-policy-2018
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - The bounded fixture preserves the original source hash 71ec9fb6fcb3d0916595afb0fa6cd0f5ae1754204d8e0d107824e549e848ef9f.
+          - The conflicting launch epoch and splashdown/negative-height tail remain quality findings.
+    grouping_namespaces:
+      - physical_platform
+      - mission_event
+      - source_recording
+      - source_dataset
+      - temporal_collection
+    claim_boundary:
+      - Supports a bounded published terminal-descent and splashdown semantic fixture.
+      - Does not support atmospheric-regime, propulsion-state, or classifier performance claims.
+    promotion_blockers:
+      - Resolve the launch-epoch conflict and exact vertical datum before prepared promotion.
 
   - source_dataset_id: nasa-topo-iss-oem-2022-04-27-bounded-fixture
     lane: space_orbital

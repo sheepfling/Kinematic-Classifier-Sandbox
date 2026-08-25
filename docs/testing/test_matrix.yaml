@@ -111,7 +111,7 @@ suites:
     runnable: true
     status: active
     promotion_gate: six-lane coherence, provenance, rights, snapshot, quality, leakage, and classifier-view gates
-    notes: The composed Product4GateReport keeps portfolio coherence separate from classifier-ready maturity.
+    notes: The snapshot builder and Product4GateReport keep portfolio coherence separate from classifier-ready maturity.
 
   - suite_id: product4_land_surface
     product: product4

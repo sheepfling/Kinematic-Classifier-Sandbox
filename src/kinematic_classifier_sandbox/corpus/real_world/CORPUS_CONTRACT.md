@@ -135,7 +135,7 @@ adapter version, evidence lifecycle, artifact/query provenance, grouping namespa
 boundaries, and promotion blockers across the six Product 4 lanes. Source cards and lane-local
 research files remain detailed evidence; the portfolio is the common cross-domain index.
 
-The portfolio API in `portfolio.py` supplies five governed operations:
+The portfolio API in `portfolio.py` and `snapshot_builder.py` supplies six governed operations:
 
 - `load_source_registry()` and `evaluate_source_registry()` report lane coverage and the best
   evidence state without treating fixture validation as classifier readiness;
@@ -149,6 +149,9 @@ The portfolio API in `portfolio.py` supplies five governed operations:
   groups that cross train/validation/test partitions.
 - `evaluate_product4_gates()` composes those checks into one explicit promotion report without
   treating source-registry coverage as classifier readiness.
+- `build_snapshot_manifest()` builds a hash-pinned manifest from episode JSON files in an external
+  snapshot root, checks registry/source/lane/artifact identity, records adapter versions, and can
+  refuse any source below `prepared` evidence state.
 
 The promotion boundary is intentionally two-dimensional:
 
@@ -166,3 +169,7 @@ snapshot is immutable: add new data under a new snapshot ID instead of mutating 
 the registry, provenance, rights, snapshot, lane coverage, quality, grouped split, and classifier
 projection gates to pass together. `rights_release_ready` is reported separately so a locally
 usable restricted source cannot be mistaken for a redistributable corpus release.
+
+Snapshot assets and episode manifests may live in the external cache tree. The builder only writes
+the manifest requested by its caller and never copies raw source bytes or private identity keys
+into the repository.

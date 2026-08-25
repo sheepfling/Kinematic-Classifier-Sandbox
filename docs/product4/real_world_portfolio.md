@@ -62,6 +62,30 @@ Run the composed report without creating a repository artifact:
 PYTHONPATH=src python3 scripts/audit/evaluate_product4_gates.py
 ```
 
+Build a manifest only after domain adapters have written episode JSON files into an external
+snapshot root:
+
+```bash
+PYTHONPATH=src python3 scripts/run/build_product4_snapshot.py \
+  --snapshot-root /path/to/external/product4-snapshot \
+  --snapshot-id product4-snapshot-v0.1
+```
+
+Use `--require-prepared-sources` for a classifier promotion attempt. Without that flag, the
+builder can create a validation snapshot from fixture-backed episodes, but the composed gate will
+continue to report the missing evidence, rights, quality, coverage, or classifier-view reasons.
+
+The current SPACE-NEAR tranche has a reproducible external builder:
+
+```bash
+PYTHONPATH=src python3 scripts/run/build_space_near_validation_snapshot.py \
+  --snapshot-root /path/to/external/product4-space-near \
+  --snapshot-id product4-space-near-validation-v0.1
+```
+
+It materializes six common-front episode manifests and hashed state assets, but keeps the
+classifier view intentionally absent while the source portfolio remains `fixture_validated`.
+
 The checked-in registry currently reports `insufficient_real_world_evidence`: all six lanes are
 represented, but no lane is `prepared`, no immutable six-lane snapshot is admitted, and the
 classifier bridge remains blocked. A future snapshot can be evaluated from outside the repository
