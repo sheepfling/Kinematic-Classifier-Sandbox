@@ -296,9 +296,10 @@ def build_fixture_episode_manifest(
 ) -> TrajectoryEpisodeManifest:
     """Write a validation-only common-front episode for one bounded fixture.
 
-    The returned manifest intentionally has no classifier trajectory view. The source fixture
-    portfolio declares authoritative common-front validation as pending, so this builder preserves
-    coverage and quality evidence without converting semantic fixtures into classifier data.
+    The returned manifest intentionally has no classifier trajectory view. Contract construction
+    is validated here, while the source fixture portfolio's authoritative semantic sign-off remains
+    pending; this preserves coverage and quality evidence without converting semantic fixtures into
+    classifier data.
     """
 
     root = Path(output_root)
@@ -389,6 +390,7 @@ def build_fixture_episode_manifest(
             schema_version="0.1.0",
             payload={
                 "fixture_id": fixture.fixture_id,
+                "common_front_contract_validation": "passed",
                 "authoritative_common_front_validation": "pending",
                 "source_asset_id": fixture.source.source_asset_id,
                 "source_asset_sha256": fixture.source.source_asset_sha256,

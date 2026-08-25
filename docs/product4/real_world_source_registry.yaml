@@ -330,7 +330,7 @@ sources:
         derived_data_redistribution_allowed: false
         notes:
           - Source asset hash and transformation lineage are embedded in the fixture.
-          - Common-front validation remains pending.
+          - The common-front contract builder and six-lane snapshot have been exercised; authoritative semantic sign-off remains pending.
     grouping_namespaces:
       - physical_platform
       - mission_event
@@ -341,7 +341,7 @@ sources:
       - Supports mission-phase and reference-to-analysis state-view semantics.
       - Does not support classifier performance or population-level near-space claims.
     promotion_blockers:
-      - Convert the embedded fixture into the common snapshot manifest.
+      - Resolve the exact vertical datum and source-frame semantics before prepared promotion.
       - Preserve mission identity outside classifier features.
 
   - source_dataset_id: 'nasa-spdf:ENDURANCE_EPHEMERIS_DEF'
@@ -373,7 +373,7 @@ sources:
       - Supports an independent-provider near-space semantic validation cohort.
       - Does not support native GPS-velocity or propulsion-state claims.
     promotion_blockers:
-      - Pass the common-front loader and independence checks.
+      - Confirm independent-provider reference-solution semantics and sign off the common-front validation boundary.
 
   - source_dataset_id: 'darts:soundingrockets-s-310-44'
     lane: space_near

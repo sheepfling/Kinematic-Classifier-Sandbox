@@ -95,7 +95,8 @@ def main() -> int:
         snapshot_id=arguments.snapshot_id,
         created_at=created_at,
         notes=(
-            "SPACE-NEAR bounded validation tranche; classifier view intentionally blocked.",
+            "SPACE-NEAR bounded validation tranche; common-front contract validated, "
+            "authoritative semantic sign-off and classifier view intentionally blocked.",
         ),
     )
     output = root / "snapshot.json"
