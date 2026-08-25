@@ -22,7 +22,7 @@ class MethodologyCompendiumTests(unittest.TestCase):
         self.assertIn("## Part 5. Dimensional Lift and Advanced Filter Gates", result.markdown)
         self.assertIn("This note documents the posterior update math", result.markdown)
         self.assertIn("This note covers the evaluation side of the repo", result.markdown)
-        self.assertIn("This note documents the repo's classifier ladder", result.markdown)
+        self.assertIn("This note documents the repo's classifier/filter ladder", result.markdown)
 
     def test_artifacts_are_written(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

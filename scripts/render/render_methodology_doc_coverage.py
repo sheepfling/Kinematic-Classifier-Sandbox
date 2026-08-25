@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from _bootstrap import bootstrap_repo
 
@@ -18,6 +17,7 @@ def load_manifest() -> dict[str, object]:
 
 def render_markdown(payload: dict[str, object]) -> str:
     modules = payload["modules"]
+    coverage_debt = payload.get("coverage_debt", [])
     lines = [
         "# Methodology Documentation Coverage",
         "",
@@ -25,6 +25,7 @@ def render_markdown(payload: dict[str, object]) -> str:
         "",
         f"- Declared docs: {', '.join(f'`{name}`' for name in payload['documents'])}",
         f"- Covered modules: {len(modules)}",
+        f"- Explicit inventory debt: {len(coverage_debt)}",
         "",
         "| Module | Coverage Kind | Primary Doc | Primary Section | Status |",
         "| --- | --- | --- | --- | --- |",
@@ -34,6 +35,20 @@ def render_markdown(payload: dict[str, object]) -> str:
             f"| `{row['module_path']}` | `{row['coverage_kind']}` | "
             f"`{row['primary_doc']}` | `{row['primary_section']}` | `{row['status']}` |"
         )
+    if coverage_debt:
+        lines.extend(
+            [
+                "",
+                "## Explicit Coverage Debt",
+                "",
+                "These modules are accounted for but are not presented as covered by the current survey documents.",
+                "",
+                "| Module | Status | Reason |",
+                "| --- | --- | --- |",
+            ]
+        )
+        for row in coverage_debt:
+            lines.append(f"| `{row['module_path']}` | `{row['status']}` | {row['reason']} |")
     lines.append("")
     return "\n".join(lines)
 
