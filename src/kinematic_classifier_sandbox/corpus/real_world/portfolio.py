@@ -260,6 +260,24 @@ def load_snapshot_manifest(path: str | Path) -> CorpusSnapshotManifest:
     return CorpusSnapshotManifest.model_validate_json(Path(path).read_text(encoding="utf-8"))
 
 
+def _verify_episode_assets(root: Path, episode: TrajectoryEpisodeManifest) -> None:
+    assets = [view.sample_asset for view in episode.state_views]
+    if episode.classifier_trajectory_view is not None:
+        assets.append(episode.classifier_trajectory_view.asset)
+    for asset in assets:
+        asset_path = root / asset.path
+        if not asset_path.is_file():
+            raise ValueError(
+                f"snapshot asset is missing for {episode.episode_id}: {asset.path}"
+            )
+        actual_sha256 = _sha256_file(asset_path)
+        if actual_sha256 != asset.sha256:
+            raise ValueError(
+                f"snapshot asset hash mismatch for {episode.episode_id}: "
+                f"{asset.path}; expected {asset.sha256}, got {actual_sha256}"
+            )
+
+
 def write_snapshot_manifest(manifest: CorpusSnapshotManifest, path: str | Path) -> None:
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -293,6 +311,7 @@ def load_snapshot_episodes(
                 f"snapshot ID mismatch for {reference.episode_id}: "
                 f"expected {manifest.snapshot_id}, got {episode.corpus_snapshot_id}"
             )
+        _verify_episode_assets(root, episode)
         episodes.append(episode)
     return tuple(episodes)
 
@@ -508,6 +527,7 @@ def _snapshot_source_integrity_issues(
 
     registry_sources = {source.source_dataset_id: source for source in registry.sources}
     references = {reference.episode_id: reference for reference in snapshot.episodes}
+    snapshot_adapter_versions = set(snapshot.adapter_versions)
     for reference in snapshot.episodes:
         source = registry_sources.get(reference.source_dataset_id)
         if source is None:
@@ -515,6 +535,9 @@ def _snapshot_source_integrity_issues(
             continue
         if source.lane != reference.lane:
             issues.append(f"snapshot_lane_source_mismatch:{reference.episode_id}")
+        adapter_token = f"{source.adapter_id}:{source.adapter_version}"
+        if adapter_token not in snapshot_adapter_versions:
+            issues.append(f"snapshot_missing_adapter_version:{adapter_token}")
 
     for episode in episodes:
         reference = references.get(episode.episode_id)
@@ -591,14 +614,18 @@ def evaluate_product4_gates(
     if snapshot is None:
         issues.append("snapshot_missing")
     else:
+        snapshot_integrity_report = evaluate_snapshot(
+            snapshot,
+            materialized_episodes,
+        )
         snapshot_report = evaluate_snapshot(
             snapshot,
             materialized_episodes,
             expected_lanes=expected_lane_values,
         )
         issues.extend(snapshot_report.issues)
-        snapshot_passes = snapshot_report.passes and not snapshot_integrity_issues
-        coverage_passes = snapshot_report.passes and all(
+        snapshot_passes = snapshot_integrity_report.passes and not snapshot_integrity_issues
+        coverage_passes = snapshot_integrity_report.passes and all(
             snapshot_report.lane_episode_counts.get(lane, 0) > 0
             for lane in expected_lane_values
         )

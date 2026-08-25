@@ -108,6 +108,14 @@ following fields are retained for diagnostics but are not baseline classifier fe
 Every source track receives exactly one split-group assignment. Window and projection metadata
 retain that assignment, but classifier measurements do not.
 
+## Common snapshot front
+
+`snapshot_builder.py` is the common handoff from domain adapters to Product 4 evaluation. It reads
+episode manifests from an external snapshot root, verifies that each episode belongs to the
+declared registry source and lane, pins the manifest file hash, records source artifact IDs and
+adapter versions, and optionally requires every selected source to be `prepared`. It does not
+promote `fixture_validated` evidence or copy restricted source bytes into Git.
+
 ## Current claim boundary
 
 This package now validates and normalizes real observations, creates gap-safe windows, assigns

@@ -7,12 +7,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from kinematic_classifier_sandbox.corpus.real_world.space_near.common_front import (
+    build_fixture_episode_manifest,
+)
 from kinematic_classifier_sandbox.corpus.real_world.space_near.fixture_adapter import (
     load_space_near_fixture_definitions,
     load_space_near_fixture_portfolio,
     validate_embedded_fixture,
 )
-
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "space_near"
 
@@ -109,4 +111,32 @@ def test_fixture_hash_mismatch_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="hash mismatch"):
         validate_embedded_fixture(fixture)
+
+
+def test_space_near_common_front_preserves_validation_boundary(tmp_path: Path) -> None:
+    fixtures = load_space_near_fixture_definitions(FIXTURE_PATH)
+    manifests = tuple(
+        build_fixture_episode_manifest(
+            fixture,
+            output_root=tmp_path,
+            corpus_snapshot_id="space-near-validation-v0.1",
+            source_artifact_id=f"fixture:{fixture.source.source_dataset_id}",
+        )
+        for fixture in fixtures
+    )
+
+    assert len(manifests) == 6
+    assert all(manifest.classifier_trajectory_view is None for manifest in manifests)
+    assert {manifest.corpus_sublane for manifest in manifests} == {"space_near"}
+    assert sum(manifest.quality_summary.sample_count for manifest in manifests) == 206
+    assert sum(len(manifest.labels) for manifest in manifests) == 16
+    assert all(
+        manifest.domain_extension is not None
+        and manifest.domain_extension.payload["classifier_view_status"]
+        == "intentionally_blocked"
+        for manifest in manifests
+    )
+    for manifest in manifests:
+        for view in manifest.state_views:
+            assert (tmp_path / view.sample_asset.path).is_file()
 ####

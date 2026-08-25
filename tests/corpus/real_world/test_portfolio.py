@@ -47,8 +47,15 @@ from kinematic_classifier_sandbox.corpus.real_world.portfolio import (
     select_snapshot_episodes,
     write_snapshot_manifest,
 )
+from kinematic_classifier_sandbox.corpus.real_world.snapshot_builder import (
+    build_snapshot_manifest,
+)
 
 _SHA = "0" * 64
+_STATE_ASSET_BYTES = b"state-fixture"
+_CLASSIFIER_ASSET_BYTES = b"classifier-fixture"
+_STATE_SHA = hashlib.sha256(_STATE_ASSET_BYTES).hexdigest()
+_CLASSIFIER_SHA = hashlib.sha256(_CLASSIFIER_ASSET_BYTES).hexdigest()
 _REGISTRY = Path(__file__).parents[3] / "docs" / "product4" / "real_world_source_registry.yaml"
 
 
@@ -90,7 +97,7 @@ def _episode(
         sample_asset=AssetReference(
             path=f"states/{episode_id}.json",
             media_type="application/json",
-            sha256=_SHA,
+            sha256=_STATE_SHA,
         ),
         channel_descriptors=(
             ChannelDescriptor(
@@ -114,7 +121,7 @@ def _episode(
             asset=AssetReference(
                 path=f"classifier/{episode_id}.npz",
                 media_type="application/x-npz",
-                sha256=_SHA,
+                sha256=_CLASSIFIER_SHA,
             ),
             sample_count=2,
             frame_id=frame.frame_id,
@@ -182,6 +189,13 @@ def _snapshot(
     registry_id: str = "registry-v0.1",
 ) -> CorpusSnapshotManifest:
     for episode in episodes:
+        for relative_path, content in (
+            (f"states/{episode.episode_id}.json", _STATE_ASSET_BYTES),
+            (f"classifier/{episode.episode_id}.npz", _CLASSIFIER_ASSET_BYTES),
+        ):
+            asset_path = tmp_path / relative_path
+            asset_path.parent.mkdir(parents=True, exist_ok=True)
+            asset_path.write_bytes(content)
         path = tmp_path / "episodes" / f"{episode.episode_id}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(episode.model_dump_json(indent=2), encoding="utf-8")
@@ -209,7 +223,10 @@ def _snapshot(
         created_at=datetime(2026, 8, 25, tzinfo=timezone.utc),
         episodes=refs,
         source_artifact_ids=tuple(episode.source_artifact_ids[0] for episode in episodes),
-        adapter_versions=("fixture:0.1.0",),
+        adapter_versions=tuple(
+            f"fixture-{lane}:0.1.0"
+            for lane in sorted({episode.corpus_sublane for episode in episodes})
+        ),
     )
     write_snapshot_manifest(manifest, tmp_path / "snapshot.json")
     return manifest
@@ -252,6 +269,59 @@ def _prepared_registry() -> SourceRegistry:
         for lane in REAL_WORLD_CORPUS_LANES
     )
     return SourceRegistry(registry_id="registry-v0.1", sources=sources)
+
+
+def test_snapshot_builder_pins_episode_assets_and_adapter_versions(tmp_path) -> None:
+    episode = _episode(snapshot_id="snapshot-v0.2")
+    episode_path = tmp_path / "episodes" / f"{episode.episode_id}.json"
+    episode_path.parent.mkdir(parents=True)
+    (tmp_path / f"states/{episode.episode_id}.json").parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / f"states/{episode.episode_id}.json").write_bytes(_STATE_ASSET_BYTES)
+    (tmp_path / f"classifier/{episode.episode_id}.npz").parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / f"classifier/{episode.episode_id}.npz").write_bytes(_CLASSIFIER_ASSET_BYTES)
+    episode_path.write_text(episode.model_dump_json(indent=2), encoding="utf-8")
+
+    manifest = build_snapshot_manifest(
+        _prepared_registry(),
+        (episode_path,),
+        snapshot_root=tmp_path,
+        snapshot_id="snapshot-v0.2",
+        created_at=datetime(2026, 8, 25, tzinfo=timezone.utc),
+        notes=("external validation snapshot",),
+    )
+
+    assert manifest.registry_id == "registry-v0.1"
+    assert manifest.source_artifact_ids == ("land_surface-artifact",)
+    assert manifest.adapter_versions == ("fixture-land_surface:0.1.0",)
+    assert manifest.episodes[0].manifest.path == "episodes/land-episode-1.json"
+    assert manifest.episodes[0].manifest.sha256 == hashlib.sha256(
+        episode_path.read_bytes()
+    ).hexdigest()
+    assert manifest.notes == ("external validation snapshot",)
+
+
+def test_snapshot_builder_can_refuse_unprepared_sources(tmp_path) -> None:
+    episode = _episode(snapshot_id="snapshot-v0.3")
+    episode_path = tmp_path / "episodes" / f"{episode.episode_id}.json"
+    episode_path.parent.mkdir(parents=True)
+    (tmp_path / f"states/{episode.episode_id}.json").parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / f"states/{episode.episode_id}.json").write_bytes(_STATE_ASSET_BYTES)
+    (tmp_path / f"classifier/{episode.episode_id}.npz").parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / f"classifier/{episode.episode_id}.npz").write_bytes(_CLASSIFIER_ASSET_BYTES)
+    episode_path.write_text(episode.model_dump_json(indent=2), encoding="utf-8")
+    sources = list(_prepared_registry().sources)
+    sources[0] = sources[0].model_copy(update={"evidence_state": SourceEvidenceState.FIXTURE_VALIDATED})
+    registry = SourceRegistry(registry_id="registry-v0.1", sources=tuple(sources))
+
+    with pytest.raises(ValueError, match="not prepared"):
+        build_snapshot_manifest(
+            registry,
+            (episode_path,),
+            snapshot_root=tmp_path,
+            snapshot_id="snapshot-v0.3",
+            created_at=datetime(2026, 8, 25, tzinfo=timezone.utc),
+            require_prepared_sources=True,
+        )
 
 
 def test_registry_rejects_duplicate_source_ids() -> None:
@@ -328,6 +398,17 @@ def test_snapshot_loader_rejects_mutated_episode_asset(tmp_path) -> None:
         load_snapshot_episodes(manifest, tmp_path / "snapshot.json")
 
 
+def test_snapshot_loader_rejects_mutated_nested_state_asset(tmp_path) -> None:
+    episode = _episode(episode_id="episode-1")
+    _snapshot(tmp_path, (episode,))
+    state_path = tmp_path / "states" / "episode-1.json"
+    state_path.write_bytes(_STATE_ASSET_BYTES + b"-mutated")
+
+    manifest = load_snapshot_manifest(tmp_path / "snapshot.json")
+    with pytest.raises(ValueError, match="snapshot asset hash mismatch"):
+        load_snapshot_episodes(manifest, tmp_path / "snapshot.json")
+
+
 def test_split_audit_rejects_physical_platform_cross_split_collision() -> None:
     first = _episode(episode_id="episode-1", platform_group="shared-platform")
     second = _episode(episode_id="episode-2", platform_group="shared-platform")
@@ -358,6 +439,13 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
     assert report.prepared_lanes == ()
     assert report.classifier_ready is False
     assert len(report.open_gates) == len(REAL_WORLD_CORPUS_LANES)
+    assert report.lane_source_counts["space_near"] == 6
+    assert {
+        "darts:soundingrockets-s-310-44",
+        "darts:soundingrockets-s-520-26",
+        "darts:soundingrockets-s-520-27",
+        "darts:soundingrockets-s-520-29",
+    }.issubset({source.source_dataset_id for source in registry.sources})
     assert report.lane_best_evidence_states["sea_subsurface"] == "mapping_complete"
     assert report.lane_best_evidence_states["air_atmospheric"] == "access_verified"
 
@@ -430,6 +518,23 @@ def test_product4_gate_accepts_a_complete_synthetic_six_lane_snapshot(tmp_path) 
     assert report.classifier_projection_passes is True
     assert report.open_gates == ()
     assert report.issues == ()
+
+
+def test_product4_gate_separates_snapshot_integrity_from_lane_coverage(tmp_path) -> None:
+    episode = _episode()
+    manifest = _snapshot(tmp_path, (episode,))
+
+    report = evaluate_product4_gates(
+        _prepared_registry(),
+        snapshot=manifest,
+        episodes=(episode,),
+    )
+
+    assert report.snapshot_present is True
+    assert report.snapshot_passes is True
+    assert report.coverage_passes is False
+    assert report.decision == "insufficient_real_world_evidence"
+    assert "coverage:one_or_more_episodes_per_required_lane" in report.open_gates
 
 
 def test_product4_gate_separates_classifier_claim_from_snapshot_coherence(tmp_path) -> None:
