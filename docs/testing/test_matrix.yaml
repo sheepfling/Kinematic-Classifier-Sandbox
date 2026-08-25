@@ -1,0 +1,267 @@
+matrix_version: product-test-matrix-v1
+description: >-
+  The authoritative map from analysis products to test surfaces, validation tiers,
+  artifact ownership, and safe execution boundaries. Keep product tests separate;
+  use the bridge and full-repository rows only when the claim requires them.
+source_of_truth:
+  product_map: docs/story/three_products.md
+  marker_assignment: tests/conftest.py
+  marker_declarations: pyproject.toml
+
+products:
+  product1: Static Admissibility
+  product2: Classifier Evidence Ladder
+  product3: RL Corpus Exploration
+  product4: Real-World Corpus and Validation
+  shared: Shared contracts, analysis infrastructure, and repository behavior
+
+suites:
+  - suite_id: product1_static_admissibility
+    product: product1
+    title: Static admissibility
+    pytest_marker: product1
+    paths:
+      - tests/static_admissibility
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: per-test temporary packet and audit outputs
+    runnable: true
+    status: active
+    promotion_gate: study-design admissibility
+    notes: Decide whether a study is meaningful before corpus search or classifier escalation.
+
+  - suite_id: product2_classifier_ladder
+    product: product2
+    title: Classifier evidence ladder
+    pytest_marker: product2
+    paths:
+      - tests/advanced_filters
+      - tests/inference
+      - tests/rung_sufficiency
+      - tests/validation
+      - tests/validation_packets
+    tier: product
+    parallel_safe: false
+    cross_product_gate: false
+    artifact_scope: mixed classifier traces and generated artifact namespaces; isolate before parallel execution
+    runnable: true
+    status: active
+    promotion_gate: simplest-sufficient classifier rung
+    notes: This is the deep analysis surface. Run it deliberately, not as an incidental dependency of corpus work.
+
+  - suite_id: product3_corpus_exploration
+    product: product3
+    title: RL corpus exploration
+    pytest_marker: product3
+    paths:
+      - tests/corpus
+      - tests/study_candidate_generation
+    excludes:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: false
+    cross_product_gate: false
+    artifact_scope: mixed search, policy, and corpus artifacts; isolate before parallel execution
+    runnable: true
+    status: active
+    promotion_gate: valid and decision-useful corpus candidate
+    notes: Search and generation remain distinct from observed real-world evidence.
+
+  - suite_id: product4_all
+    product: product4
+    title: Real-world corpus aggregate
+    pytest_marker: product4
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: false
+    cross_product_gate: false
+    artifact_scope: all Product 4 fixtures, registries, snapshots, and temporary projections
+    runnable: true
+    status: active
+    promotion_gate: Product 4 corpus contract and portfolio gates
+    notes: Sequential aggregate gate; use the lane rows for isolated development feedback.
+
+  - suite_id: product4_common
+    product: product4
+    title: Product 4 common contract
+    pytest_marker: product4_common
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: repository fixtures and per-test temporary directories
+    runnable: true
+    status: active
+    promotion_gate: shared episode, projection, quality, and split contracts
+    notes: Domain-neutral Product 4 behavior.
+
+  - suite_id: product4_cross_domain
+    product: product4
+    title: Product 4 cross-domain portfolio gates
+    pytest_marker: product4_cross_domain
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: read-only registry and synthetic portfolio fixtures
+    runnable: true
+    status: active
+    promotion_gate: six-lane coherence, source registry, snapshot, and leakage gates
+    notes: The portfolio can be coherent while still being below classifier-ready maturity.
+
+  - suite_id: product4_land_surface
+    product: product4
+    title: LAND surface lane
+    pytest_marker: product4_land_surface
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: LAND fixtures and per-test temporary directories
+    runnable: true
+    status: active
+    promotion_gate: LAND source evidence, adapter, and split gates
+    notes: Keep vehicle/road evidence independent from other physical lanes.
+
+  - suite_id: product4_sea_surface
+    product: product4
+    title: SEA-SURF surface lane
+    pytest_marker: product4_sea_surface
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: SEA-SURF fixtures and per-test temporary directories
+    runnable: true
+    status: active
+    promotion_gate: surface-vessel source evidence, adapter, and split gates
+    notes: Preserve vessel, route, and observation-modality boundaries.
+
+  - suite_id: product4_sea_subsurface
+    product: product4
+    title: SEA-SUB subsurface lane
+    pytest_marker: product4_sea_subsurface
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: SEA-SUB fixtures and per-test temporary directories
+    runnable: true
+    status: active
+    promotion_gate: subsurface depth semantics, source evidence, adapter, and split gates
+    notes: Depth and vertical-state semantics remain domain-owned, not silently flattened.
+
+  - suite_id: product4_air_atmospheric
+    product: product4
+    title: AIR atmospheric lane
+    pytest_marker: product4_air_atmospheric
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: AIR fixtures and per-test temporary directories
+    runnable: true
+    status: active
+    promotion_gate: aircraft source evidence, adapter, and split gates
+    notes: Preserve altitude, vertical-rate, and track provenance.
+
+  - suite_id: product4_space_near
+    product: product4
+    title: SPACE-NEAR lane
+    pytest_marker: product4_space_near
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: SPACE-NEAR fixtures and per-test temporary directories
+    runnable: true
+    status: active
+    promotion_gate: near-space source evidence, frame semantics, adapter, and split gates
+    notes: Keep frame-aware geometry and sparse observation limits explicit.
+
+  - suite_id: product4_space_orbital
+    product: product4
+    title: SPACE-ORB orbital lane
+    pytest_marker: product4_space_orbital
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: SPACE-ORB fixtures and per-test temporary directories
+    runnable: true
+    status: active
+    promotion_gate: orbital source evidence, frame semantics, adapter, and split gates
+    notes: Keep propagated and observed state roles distinct.
+
+  - suite_id: shared_analysis_and_repository
+    product: shared
+    title: Shared analysis products and repository contracts
+    pytest_marker: cross_product
+    paths:
+      - tests/analysis
+      - tests/api
+      - tests/artifacts
+      - tests/common_experiment
+      - tests/contracts
+      - tests/external_backend_examples
+      - tests/methodology
+      - tests/meta
+      - tests/milestones
+      - tests/registry
+      - tests/scripts
+      - tests/showcase
+      - tests/story
+      - tests/study_confidence
+      - tests/tracing
+      - tests/utils
+      - tests/witnesses
+      - tests/workbench
+      - tests/workflows
+    tier: contract
+    parallel_safe: false
+    cross_product_gate: true
+    artifact_scope: mixed repository fixtures and shared ignored artifact roots
+    runnable: true
+    status: active
+    promotion_gate: contract and repository integrity
+    notes: Mixed analysis is intentionally visible as shared; it must not be mistaken for a single product's evidence.
+
+  - suite_id: real_world_classifier_bridge
+    product: cross_product
+    title: Prepared real-world corpus evaluated through the classifier ladder
+    pytest_marker: null
+    paths:
+      - tests/corpus/real_world
+      - tests/validation
+    tier: release
+    parallel_safe: false
+    cross_product_gate: true
+    artifact_scope: immutable prepared snapshot plus isolated classifier evidence namespace
+    runnable: false
+    status: blocked_until_prepared_snapshot
+    promotion_gate: Product 4 prepared snapshot and Product 2 held-out ladder evaluation
+    notes: Planned release gate. Do not infer classifier readiness from Product 4 contract or lane tests alone.
+
+  - suite_id: full_repository_gate
+    product: all
+    title: Full repository regression gate
+    pytest_marker: null
+    paths: []
+    tier: release
+    parallel_safe: false
+    cross_product_gate: true
+    artifact_scope: entire repository test surface and its ignored temporary outputs
+    runnable: true
+    status: active
+    promotion_gate: integration/release handoff
+    notes: Slow, sequential gate. Run after targeted product and cross-product suites are green.
