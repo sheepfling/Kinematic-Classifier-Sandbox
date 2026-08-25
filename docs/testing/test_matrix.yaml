@@ -111,7 +111,7 @@ suites:
     runnable: true
     status: active
     promotion_gate: six-lane coherence, provenance, rights, snapshot, quality, leakage, and classifier-view gates
-    notes: The snapshot builder, grouped split proposer, and Product4GateReport keep six-lane coherence separate from classifier-ready maturity.
+    notes: The snapshot builder, grouped split proposer, Product4GateReport, and lane matrix keep six-lane coherence separate from classifier-ready maturity while exposing each lane's blockers independently.
 
   - suite_id: product4_analysis
     product: product4

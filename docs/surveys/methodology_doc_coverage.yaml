@@ -3904,6 +3904,11 @@
     "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/space_orbital/common_front.py",
     "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
     "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/portfolio_matrix.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
   }
   ]
 }

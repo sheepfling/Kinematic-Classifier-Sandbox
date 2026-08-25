@@ -133,6 +133,10 @@ The validation-only common-front builders are intentionally separated by lane:
 and mission-event keys before proposing deterministic partitions. It is a split proposal only;
 `audit_split_assignments()` remains the release gate.
 
+`portfolio_matrix.py` evaluates the same gates lane by lane against a single immutable snapshot.
+It is the prioritization/reporting surface: lane blockers stay visible, while `all_lanes_pass` is
+reserved for the full cross-domain decision.
+
 ## Analysis-product boundaries
 
 `analysis_products.py` makes the consumer boundary explicit instead of relying on callers to
