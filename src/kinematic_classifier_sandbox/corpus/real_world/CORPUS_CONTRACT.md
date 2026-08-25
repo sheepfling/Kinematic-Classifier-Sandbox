@@ -126,3 +126,36 @@ A sea, land, air, or space adapter is acceptable only when it preserves these in
 - license, citation, version, and adapter identity remain machine-readable.
 
 This makes land the first populated corpus domain, not a special-case architecture.
+
+## Portfolio, snapshots, and evaluation
+
+The machine-readable portfolio lives at
+`docs/product4/real_world_source_registry.yaml`. It is the authority for source identity,
+adapter version, evidence lifecycle, artifact/query provenance, grouping namespaces, claim
+boundaries, and promotion blockers across the six Product 4 lanes. Source cards and lane-local
+research files remain detailed evidence; the portfolio is the common cross-domain index.
+
+The portfolio API in `portfolio.py` supplies four governed operations:
+
+- `load_source_registry()` and `evaluate_source_registry()` report lane coverage and the best
+  evidence state without treating fixture validation as classifier readiness;
+- `write_snapshot_manifest()`, `load_snapshot_manifest()`, and `load_snapshot_episodes()` define
+  an immutable snapshot boundary and verify every referenced episode asset hash on load;
+- `select_snapshot_episodes()` applies lane, domain, source, and state-role policy before study
+  projection;
+- `evaluate_snapshot()` reports source, state-role, modality, quality, label-evidence, grouping,
+  proxy-label, and classifier-view counts while rejecting reference/episode mismatches;
+- `audit_split_assignments()` rejects physical-platform, source-recording, and mission-event
+  groups that cross train/validation/test partitions.
+
+The promotion boundary is intentionally two-dimensional:
+
+```text
+source evidence lifecycle: lead -> access -> schema -> mapping -> fixture -> prepared -> released
+study eligibility:         metadata -> contract fixture -> snapshot -> leakage audit -> classifier view
+```
+
+An entry at `fixture_validated` proves ingestion and semantics only. A source becomes eligible for
+a classifier-facing snapshot only after its episode manifests, asset hashes, grouping assignments,
+quality findings, and leakage-safe classifier view pass the common snapshot gates. A prepared
+snapshot is immutable: add new data under a new snapshot ID instead of mutating a released one.
