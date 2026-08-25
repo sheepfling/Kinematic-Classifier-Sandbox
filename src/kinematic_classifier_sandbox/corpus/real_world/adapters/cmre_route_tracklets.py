@@ -404,7 +404,8 @@ def _quality(source: Mapping[str, NDArray[Any]]) -> QualitySummary:
     delta = np.diff(elapsed)
     duplicate_count = int(elapsed.size - np.unique(elapsed).size)
     out_of_order_count = int(np.count_nonzero(delta < 0.0))
-    positive = delta[delta > 0.0]
+    chronological_delta = np.diff(np.unique(elapsed))
+    positive = chronological_delta[chronological_delta > 0.0]
     findings = [
         QualityFinding(
             code="vertical_position_unavailable",

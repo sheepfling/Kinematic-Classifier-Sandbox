@@ -479,4 +479,6 @@ def test_classifier_projection_sorts_and_deduplicates_source_time(tmp_path: Path
     assert "out_of_order_timestamp" in {
         finding.code for finding in manifest.quality_summary.findings
     }
+    assert manifest.quality_summary.median_sample_interval_s == pytest.approx(4.5)
+    assert manifest.quality_summary.maximum_gap_s == pytest.approx(10.0)
 ####
