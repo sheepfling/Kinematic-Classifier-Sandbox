@@ -69,5 +69,6 @@ pytestdebug.log
 *.nav
 *.snm
 *.vrb
+output/
 docs/latex/*.pdf
 kinematic_classifier_methodology.pdf

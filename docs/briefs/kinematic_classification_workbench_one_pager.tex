@@ -1,0 +1,149 @@
+\documentclass[9pt]{article}
+
+\usepackage[letterpaper,top=0.40in,bottom=0.40in,left=0.52in,right=0.52in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage[table]{xcolor}
+\usepackage{array,booktabs,tabularx}
+\usepackage{ragged2e}
+\usepackage{setspace}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\tabcolsep}{0pt}
+\renewcommand{\arraystretch}{1.0}
+
+\definecolor{ink}{HTML}{163247}
+\definecolor{teal}{HTML}{007C83}
+\definecolor{sky}{HTML}{1976A8}
+\definecolor{pale}{HTML}{EAF4F5}
+\definecolor{mist}{HTML}{F4F7F8}
+\definecolor{line}{HTML}{B8CDD1}
+\definecolor{warm}{HTML}{E9B44C}
+
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+
+\newcommand{\sectionlabel}[1]{%
+  \vspace{0.45em}%
+  {\color{teal}\footnotesize\bfseries\MakeUppercase{#1}}\par
+  \vspace{0.18em}%
+  {\color{line}\rule{\textwidth}{0.55pt}}\par
+  \vspace{0.34em}%
+}
+
+\newcommand{\valuebullet}[1]{%
+  \noindent\makebox[0.95em][l]{\color{teal}\textbullet}%
+  \parbox[t]{\dimexpr\linewidth-0.95em\relax}{#1}\par\vspace{0.28em}%
+}
+
+\newcommand{\productcard}[4]{%
+  \begingroup
+  \setlength{\fboxsep}{7pt}%
+  \setlength{\fboxrule}{0.55pt}%
+  \fcolorbox{line}{mist}{%
+    \begin{minipage}[t][1.76in][t]{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+      {\color{teal}\bfseries\large #1}\par
+      \vspace{0.22em}
+      {\color{ink}\bfseries\small #2}\par
+      \vspace{0.32em}
+      {\small #3}\par
+      \vfill
+      {\color{sky}\footnotesize\bfseries Delivers: }{\footnotesize #4}
+    \end{minipage}%
+  }%
+  \endgroup
+}
+
+\begin{document}
+\sloppy
+
+\begin{minipage}[t]{0.72\textwidth}
+  {\color{ink}\fontsize{23}{24}\selectfont\bfseries Kinematic Classification\\[-1pt] Decision Workbench}\par
+  \vspace{0.22em}
+  {\color{teal}\large A reusable system for turning uncertain tracking problems into defensible decisions.}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.23\textwidth}
+  \raggedleft
+  {\color{teal}\footnotesize\bfseries EXECUTIVE ONE-PAGER}\par
+  \vspace{0.30em}
+  {\color{ink}\scriptsize\bfseries DRAFT}\par
+  \vspace{0.12em}
+  {\color{ink}\scriptsize LEADERSHIP BRIEF}
+\end{minipage}
+
+\vspace{0.42em}
+{\color{teal}\rule{\textwidth}{2.2pt}}\par
+\vspace{0.52em}
+
+\setlength{\fboxsep}{8pt}
+\noindent\colorbox{pale}{%
+  \parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
+    \color{ink}\normalsize\bfseries The opportunity:\ \normalfont\small
+    Before investing in a classifier, filter, or large data search, make the study itself auditable. This workbench checks whether the proposed classes, features, data, and assumptions can support a meaningful decision; identifies the simplest sufficient evidence; and deliberately discovers the hard cases that reveal what to improve next.
+  }%
+}\par
+
+\sectionlabel{One integrated workbench, three connected products}
+
+\begin{tabularx}{\textwidth}{@{}Y@{\hspace{0.10in}}Y@{\hspace{0.10in}}Y@{}}
+  \productcard{1. Static Admissibility}
+    {Can this study be trusted enough to pursue?}
+    {Screens feature, class, prior, coverage, provenance, and leakage risks before expensive modeling or data search.}
+    {A decision card and a concrete route: promote, revise, or reject.}
+  &
+  \productcard{2. Evidence Ladder}
+    {What is the simplest method that is sufficient?}
+    {Compares classifiers and filters through the same evidence and posterior contract, adding complexity only for a diagnosed failure mode.}
+    {Comparable method scorecards, posterior histories, and a promotion decision.}
+  &
+  \productcard{3. Corpus Explorer}
+    {Which valid hard cases expose the next limitation?}
+    {Generates or selects difficult, decision-useful data while checking validity, coverage, balance, and leakage. Search and RL are tools, not unchecked answers.}
+    {Selected corpus and stress packets that feed targeted cases back into the ladder.}
+\end{tabularx}
+
+\vspace{0.36em}
+\noindent{\color{ink}\small\bfseries The operating loop: }\small
+screen the study \(\rightarrow\) build and compare evidence \(\rightarrow\) find valid boundary cases \(\rightarrow\) improve the study.\par
+The products share one study definition, evidence/posterior contract, and decision language; they are not three disconnected tools.
+
+\begin{minipage}[t]{0.485\textwidth}
+  \sectionlabel{What a sponsor receives}
+  \small
+  \valuebullet{\textbf{Portable study definitions} that make classes, features, priors, data sources, and intended claims explicit.}
+  \valuebullet{\textbf{Decision packets} with provenance, coverage, leakage, prior, and failure diagnostics rather than a black-box score.}
+  \valuebullet{\textbf{Comparable evidence} across interpretable, physics-aware, benchmark, and learned method families.}
+  \valuebullet{\textbf{Purpose-built hard cases} and corpus manifests that turn an observed weakness into the next controlled test.}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.485\textwidth}
+  \sectionlabel{Why it creates value}
+  \small
+  \valuebullet{\textbf{Reduces avoidable spend:} catches inseparable class definitions, weak or leaky features, and fragile priors before compute and model effort scale.}
+  \valuebullet{\textbf{Keeps complexity honest:} supports advanced methods when a named failure case justifies them, not because they are fashionable.}
+  \valuebullet{\textbf{Speeds learning:} turns a weak result into a specific repair, data-search objective, or method decision.}
+  \valuebullet{\textbf{Creates a reusable path to 3D:} preserves study, evidence, artifact, and decision contracts while vector data, features, and dynamics mature.}
+\end{minipage}
+
+\vspace{0.32em}
+\setlength{\fboxsep}{7pt}
+\noindent\fcolorbox{line}{mist}{%
+  \parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}{%
+    \small\color{ink}
+    \textbf{Current boundary.} The end-to-end methodology is demonstrated with controlled 1D witness studies. It is \textbf{not} a claim of complete 3D operational tracking or deployment readiness. The next lift is a mission-relevant pilot using vector corpus, feature, and dynamics adapters while retaining the validated decision core.
+  }%
+}\par
+
+\vspace{0.33em}
+\setlength{\fboxsep}{8pt}
+\noindent\colorbox{ink}{%
+  \parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
+    \color{white}\small\textbf{Recommended leadership decision:} Select one high-value pilot problem and use the workbench to identify the data, 3D adapters, and algorithm investments that are actually justified before broader scale-up.
+  }%
+}
+
+\end{document}
