@@ -136,6 +136,7 @@ class SpaceNearMissionFixtureAdapter:
                 ),
             ),
             coordinate_frame=episode.analysis_frame.frame_id,
+            speed_axis_count=3,
             timestamps_s=timestamps_s,
             position_m=position_m,
             derived_velocity_mps=velocity_mps,

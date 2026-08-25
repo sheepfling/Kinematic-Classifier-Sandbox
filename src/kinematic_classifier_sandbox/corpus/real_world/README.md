@@ -63,7 +63,7 @@ between partitions.
 
 `projection.py` supports two explicit one-dimensional projections into `ExecutableTrajectory`:
 
-- `speed_profile`: derived planar speed in meters per second
+- `speed_profile`: derived speed over the track's declared 2D or 3D speed axes
 - `cumulative_path_length`: distance traveled from the beginning of the window in meters
 
 Projection metadata remains separate and carries dataset, recording, run, source track, window,

@@ -89,7 +89,7 @@ def _speed_projection(
     times = np.asarray(track.timestamps_s[sample_slice], dtype=np.float64)
     times = times - times[0]
     velocity = np.asarray(track.derived_velocity_mps[sample_slice], dtype=np.float64)
-    speed = np.linalg.norm(velocity[:, :2], axis=1)
+    speed = np.linalg.norm(velocity[:, : track.speed_axis_count], axis=1)
     speed_rate = _first_derivative(speed, times)
     speed_acceleration = _first_derivative(speed_rate, times)
     return speed, speed, speed_rate, speed_acceleration, "scalar_speed_mps"

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Annotated, Mapping, Self, TypeAlias
+from typing import Annotated, Literal, Mapping, Self, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -228,6 +228,7 @@ class NormalizedTrack(BaseModel):
     provenance: TrackProvenance
     labels: TrackLabels
     coordinate_frame: str = Field(min_length=1)
+    speed_axis_count: Literal[2, 3] = 2
     timestamps_s: FloatArray1D
     position_m: FloatArrayNx3
     derived_velocity_mps: FloatArrayNx3

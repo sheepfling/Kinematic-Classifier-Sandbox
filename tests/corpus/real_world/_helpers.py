@@ -17,6 +17,8 @@ def make_real_world_track(
     duration_s: float = 40.0,
     sample_interval_s: float = 0.1,
     speed_mps: float = 2.0,
+    vertical_speed_mps: float = 0.0,
+    speed_axis_count: int = 2,
     gap_after_s: float | None = None,
     gap_duration_s: float = 1.0,
 ) -> NormalizedTrack:
@@ -27,18 +29,19 @@ def make_real_world_track(
         timestamps_s[gap_index:] += gap_duration_s
 
     x_m = speed_mps * timestamps_s
+    z_m = vertical_speed_mps * timestamps_s
     position_m = np.column_stack(
         (
             x_m,
             np.zeros(sample_count, dtype=np.float64),
-            np.zeros(sample_count, dtype=np.float64),
+            z_m,
         )
     )
     velocity_mps = np.column_stack(
         (
             np.full(sample_count, speed_mps, dtype=np.float64),
             np.zeros(sample_count, dtype=np.float64),
-            np.zeros(sample_count, dtype=np.float64),
+            np.full(sample_count, vertical_speed_mps, dtype=np.float64),
         )
     )
     acceleration_mps2 = np.zeros_like(velocity_mps)
@@ -62,6 +65,7 @@ def make_real_world_track(
             evidence=LabelEvidence.NATIVE,
         ),
         coordinate_frame="foggy_bottom_local_metric_xy",
+        speed_axis_count=speed_axis_count,
         timestamps_s=timestamps_s,
         position_m=position_m,
         derived_velocity_mps=velocity_mps,
