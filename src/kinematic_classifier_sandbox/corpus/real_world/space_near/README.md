@@ -6,10 +6,11 @@ existing `CorpusTrajectory` / `NormalizedTrack` interface while preserving the
 richer episode evidence as sidecar manifests.
 
 The loader does **not** introduce a competing persistent root schema. The
-per-mission compressed JSON fixture records are evidence for the planned Product 4
-`TrajectoryEpisodeManifest + TrajectoryStateView[]` common front. Until that
-common front lands, the adapter projects exactly one named ECEF analysis state
-view into the current corpus interface.
+per-mission compressed JSON fixture records are evidence for the Product 4
+`TrajectoryEpisodeManifest + TrajectoryStateView[]` common front. The common-front
+builder now validates the contract and projects exactly one named ECEF analysis
+state view into the current corpus interface, while authoritative semantic sign-off
+remains a separate gate.
 
 ## Included missions
 
@@ -32,12 +33,13 @@ view into the current corpus interface.
   split-group material, not numeric channels;
 - all label dependencies and processing steps remain auditable in the episode
   manifest;
-- authoritative Product 4 G2 validation remains pending COMMON-FRONT.
+- common-front contract validation passes for all six bounded fixtures;
+  authoritative Product 4 semantic/G2 sign-off remains pending.
 
 ## Claim boundary
 
-This tranche demonstrates reproducible ingestion and semantic preservation for
-six bounded near-space missions. It does not establish classifier performance,
-production adapter readiness for full raw archives, high-energy reentry
-coverage, native Endurance GPS velocity ingestion, or authoritative G2
+This tranche demonstrates reproducible ingestion and contract-level semantic
+preservation for six bounded near-space missions. It does not establish classifier
+performance, production adapter readiness for full raw archives, high-energy
+reentry coverage, native Endurance GPS velocity ingestion, or authoritative G2
 acceptance.

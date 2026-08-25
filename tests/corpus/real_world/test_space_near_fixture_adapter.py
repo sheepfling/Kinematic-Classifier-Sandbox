@@ -113,7 +113,9 @@ def test_fixture_hash_mismatch_is_rejected(tmp_path: Path) -> None:
         validate_embedded_fixture(fixture)
 
 
-def test_space_near_common_front_preserves_validation_boundary(tmp_path: Path) -> None:
+def test_space_near_common_front_separates_contract_and_authoritative_gates(
+    tmp_path: Path,
+) -> None:
     fixtures = load_space_near_fixture_definitions(FIXTURE_PATH)
     manifests = tuple(
         build_fixture_episode_manifest(
@@ -132,6 +134,9 @@ def test_space_near_common_front_preserves_validation_boundary(tmp_path: Path) -
     assert sum(len(manifest.labels) for manifest in manifests) == 16
     assert all(
         manifest.domain_extension is not None
+        and manifest.domain_extension.payload["common_front_contract_validation"] == "passed"
+        and manifest.domain_extension.payload["authoritative_common_front_validation"]
+        == "pending"
         and manifest.domain_extension.payload["classifier_view_status"]
         == "intentionally_blocked"
         for manifest in manifests

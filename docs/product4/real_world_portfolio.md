@@ -17,7 +17,7 @@ generalization:
 | `sea_surface` | `prepared` | A pinned CMRE/Brest extract supports only an R_06-versus-R_14 route-motion task; route labels remain out-of-band and raw rows/key remain external | Add an independent AIS provider/source-shift holdout; do not reinterpret route as vessel family |
 | `sea_subsurface` | `fixture_validated` | The selected IOOS profile now passes the canonical channel-aware common front; classifier view remains intentionally blocked because one profile has no defensible target cohort | Retain/validate an independent Sentry artifact, then define a legitimate multi-episode task before prepared promotion |
 | `air_atmospheric` | `access_verified` | The documented readsb fixture now has a validation-only common front, not a historical flight corpus | Acquire a genuine historical trace and construct one flight-leg episode |
-| `space_near` | `fixture_validated` | Six bounded mission fixtures exercise reference/analysis lineage and mission grouping | Convert fixtures through the common snapshot loader; keep mission identity audit-only |
+| `space_near` | `fixture_validated` | Six bounded mission fixtures pass common-front contract construction and exercise reference/analysis lineage and mission grouping; authoritative semantic sign-off remains pending | Resolve datum/frame and mission-boundary semantics before any prepared cohort; keep mission identity audit-only |
 | `space_orbital` | `fixture_validated` | NASA ISS now has a validation-only common front; IGS remains the preferred anchor candidate | Build a multi-object prepared cohort and resolve official IGS provenance |
 
 Three lanes have fixture-level evidence beyond the two bounded prepared cohorts; zero lanes are
