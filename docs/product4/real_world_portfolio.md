@@ -11,7 +11,7 @@ classifier corpus:
 
 | Lane | Best current evidence | What that means now | Next promotion gate |
 | --- | --- | --- | --- |
-| `land_surface` | `fixture_validated` | A bounded official three-track extract passes the common front; the full catalog remains external | Add an independent road-vehicle source shift and expand beyond three tracks |
+| `land_surface` | `fixture_validated` | A hash-pinned official 12-track cohort passes the common front; grouped 10/20/30-second studies contain both vehicle classes in train/validation/test; raw rows remain external | Add an independent road-vehicle source shift and emit a task-scoped prepared classifier view |
 | `sea_surface` | `fixture_validated` | CMRE/Brest is a real expansion/regression witness; raw rows remain external | Build the common snapshot and add an independent AIS provider |
 | `sea_subsurface` | `mapping_complete` | The selected IOOS profile now has a channel-aware validation-only common front; G2 remains open | Preserve asynchronous measured/dead-reckoned channels, then validate Sentry independently |
 | `air_atmospheric` | `access_verified` | The documented readsb fixture now has a validation-only common front, not a historical flight corpus | Acquire a genuine historical trace and construct one flight-leg episode |
@@ -29,8 +29,9 @@ Prioritize by readiness and information gain, not by the apparent importance of 
 1. Run the external six-lane validation builder using the already pinned or committed bounded
    inputs. This exercises repeated platform, mission identity, frame/time, missing-state, and
    reference-versus-observation boundaries without promoting any source to `prepared`.
-2. Close the two anchor gaps in parallel: bounded LAND/TGSIM acquisition for the reference road
-   study, and the SEA-SUB selected IOOS profile with channel-aware timestamp handling.
+2. Use the balanced LAND/TGSIM cohort as the bounded road-study anchor while closing the SEA-SUB
+   selected IOOS profile with channel-aware timestamp handling. The LAND source-shift gate remains
+   open.
 3. Add independent cohorts before making within-domain generalization claims: Kystverket or NOAA
    for SEA-SURF, Sentry for SEA-SUB, Endurance/OpenSky for AIR, and IGS or a separate orbital
    object family for SPACE-ORB.

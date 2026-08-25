@@ -457,7 +457,7 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
     assert report.prepared_lanes == ()
     assert report.classifier_ready is False
     assert len(report.open_gates) == len(REAL_WORLD_CORPUS_LANES)
-    assert report.lane_source_counts["land_surface"] == 2
+    assert report.lane_source_counts["land_surface"] == 3
     assert report.lane_source_counts["space_near"] == 6
     assert {
         "darts:soundingrockets-s-310-44",
@@ -466,6 +466,9 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
         "darts:soundingrockets-s-520-29",
     }.issubset({source.source_dataset_id for source in registry.sources})
     assert "fhwa_tgsim_foggy_bottom_bounded_extract_10_20_30" in {
+        source.source_dataset_id for source in registry.sources
+    }
+    assert "fhwa_tgsim_foggy_bottom_balanced_vehicle_cohort_v1" in {
         source.source_dataset_id for source in registry.sources
     }
     cmre = registry.source("cmre_brest_maritime_routes_tracklets_v1_0")

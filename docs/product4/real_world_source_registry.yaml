@@ -1,5 +1,5 @@
 registry_version: real-world-source-registry-v0.1
-registry_id: product4-real-world-portfolio-2026-08-25-r3
+registry_id: product4-real-world-portfolio-2026-08-25-r4
 sources:
   - source_dataset_id: fhwa_tgsim_foggy_bottom
     lane: land_surface
@@ -66,6 +66,41 @@ sources:
     promotion_blockers:
       - Acquire independent road-vehicle source-shift validation before classifier use.
       - Expand beyond the three-track bounded extract for any within-source generalization claim.
+
+  - source_dataset_id: fhwa_tgsim_foggy_bottom_balanced_vehicle_cohort_v1
+    lane: land_surface
+    domain: land
+    title: FHWA TGSIM Foggy Bottom balanced bounded vehicle holdout cohort
+    adapter_id: tgsim_foggy_bottom_csv
+    adapter_version: 0.1.0
+    portfolio_role: bounded_validation_fixture
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: fhwa_tgsim_foggy_bottom_balanced_vehicle_cohort_v1_csv
+        uri_or_query: >-
+          https://data.transportation.gov/resource/brzy-6zfh.csv?$where=id%20in%20(37,107,222,304,322,481,485,553,710,1772,2032,2942)&$limit=100000
+        media_type: text/csv
+        sha256: 81ee74d8575524ca20f7eafd550ab9b25de3da8f645ced2a3ad31ee24bc8742f
+        accessed_on: 2026-08-25
+        license_id: us-public-domain
+        redistribution_allowed: true
+        derived_data_redistribution_allowed: true
+        notes:
+          - Official bounded API response contains 34,059 source rows and 12 complete tracks.
+          - Selected tracks include seven passenger cars and five trucks.
+          - Grouped 10, 20, and 30-second road studies contain both classes in train, validation, and test.
+          - Raw rows remain outside Git; this hash pins the external validation input.
+    grouping_namespaces:
+      - physical_platform
+      - source_recording
+      - source_dataset
+      - geography
+    claim_boundary:
+      - Supports a bounded within-source passenger-car versus truck holdout and common-front validation.
+      - Does not support source-shift, population-representative, or six-lane classifier claims.
+    promotion_blockers:
+      - Add independent road-vehicle provider/source-shift validation before classifier promotion.
+      - Emit a prepared classifier view only under a declared study target namespace and rights boundary.
 
   - source_dataset_id: cmre_brest_maritime_routes_tracklets_v1_0
     lane: sea_surface
