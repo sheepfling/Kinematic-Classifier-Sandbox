@@ -20,9 +20,13 @@ _PRODUCT3_DIRECTORIES = {"corpus", "study_candidate_generation"}
 _LAND_TEST_PREFIXES = ("test_tgsim", "test_road_vehicle")
 _LANE_MARKERS = {
     "test_cmre_route_tracklets.py": "product4_sea_surface",
+    "test_sea_subsurface_common_front.py": "product4_sea_subsurface",
     "test_sea_subsurface_research_fixtures.py": "product4_sea_subsurface",
     "test_sea_subsurface_selected_anchor.py": "product4_sea_subsurface",
+    "test_air_common_front.py": "product4_air_atmospheric",
     "test_adsblol_readsb_trace.py": "product4_air_atmospheric",
+    "test_land_common_front.py": "product4_land_surface",
+    "test_space_orbital_common_front.py": "product4_space_orbital",
     "test_space_near_fixture_adapter.py": "product4_space_near",
     "test_space_orbital_oem.py": "product4_space_orbital",
     "test_space_orbital_sp3.py": "product4_space_orbital",

@@ -840,6 +840,74 @@ def audit_split_assignments(
     )
 
 
+def assign_grouped_snapshot_splits(
+    episodes: Iterable[TrajectoryEpisodeManifest],
+    *,
+    seed: str = "product4-grouped-snapshot-v1",
+) -> tuple[EpisodeSplitAssignment, ...]:
+    """Assign connected grouping components to deterministic train/validation/test splits.
+
+    Episodes sharing a physical-platform, source-recording, or mission-event key are
+    treated as one component. This creates an auditable split proposal but does not
+    promote evidence state or make a classifier claim.
+    """
+
+    materialized = tuple(episodes)
+    episode_ids = tuple(episode.episode_id for episode in materialized)
+    if len(episode_ids) != len(set(episode_ids)):
+        raise ValueError("snapshot split assignment requires unique episode IDs")
+    parent = list(range(len(materialized)))
+
+    def find(index: int) -> int:
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = parent[index]
+        return index
+
+    def union(left: int, right: int) -> None:
+        left_root = find(left)
+        right_root = find(right)
+        if left_root != right_root:
+            parent[right_root] = left_root
+
+    owner_by_group: dict[tuple[GroupingNamespace, str], int] = {}
+    split_capable = {
+        GroupingNamespace.PHYSICAL_PLATFORM,
+        GroupingNamespace.SOURCE_RECORDING,
+        GroupingNamespace.MISSION_EVENT,
+    }
+    for index, episode in enumerate(materialized):
+        for grouping_key in episode.grouping_keys:
+            if grouping_key.namespace not in split_capable:
+                continue
+            identity = (grouping_key.namespace, grouping_key.opaque_value)
+            prior_owner = owner_by_group.get(identity)
+            if prior_owner is None:
+                owner_by_group[identity] = index
+            else:
+                union(index, prior_owner)
+
+    components: dict[int, list[str]] = {}
+    for index, episode_id in enumerate(episode_ids):
+        components.setdefault(find(index), []).append(episode_id)
+    ordered_components = sorted(
+        components.values(),
+        key=lambda component: hashlib.sha256(
+            f"{seed}|{'|'.join(sorted(component))}".encode("utf-8")
+        ).hexdigest(),
+    )
+    split_order = tuple(SnapshotSplit)
+    split_by_episode: dict[str, SnapshotSplit] = {}
+    for component_index, component in enumerate(ordered_components):
+        split = split_order[component_index % len(split_order)]
+        for episode_id in component:
+            split_by_episode[episode_id] = split
+    return tuple(
+        EpisodeSplitAssignment(episode_id=episode_id, split=split_by_episode[episode_id])
+        for episode_id in sorted(episode_ids)
+    )
+
+
 __all__ = [
     "CorpusSnapshotManifest",
     "CORPUS_SNAPSHOT_VERSION",
@@ -857,6 +925,7 @@ __all__ = [
     "SourceRegistryEvaluationReport",
     "SourceRegistryEntry",
     "SplitAuditReport",
+    "assign_grouped_snapshot_splits",
     "audit_split_assignments",
     "evaluate_product4_gates",
     "evaluate_snapshot",

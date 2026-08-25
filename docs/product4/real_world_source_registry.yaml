@@ -1,5 +1,5 @@
 registry_version: real-world-source-registry-v0.1
-registry_id: product4-real-world-portfolio-2026-08-25
+registry_id: product4-real-world-portfolio-2026-08-25-r3
 sources:
   - source_dataset_id: fhwa_tgsim_foggy_bottom
     lane: land_surface
@@ -33,6 +33,40 @@ sources:
       - Acquire a bounded complete-track artifact.
       - Validate actual-row schema, labels, and split groups through the common front.
 
+  - source_dataset_id: fhwa_tgsim_foggy_bottom_bounded_extract_10_20_30
+    lane: land_surface
+    domain: land
+    title: FHWA TGSIM Foggy Bottom bounded complete-track validation extract
+    adapter_id: tgsim_foggy_bottom_csv
+    adapter_version: 0.1.0
+    portfolio_role: bounded_validation_fixture
+    evidence_state: fixture_validated
+    artifacts:
+      - artifact_id: fhwa_tgsim_foggy_bottom_bounded_tracks_10_20_30
+        uri_or_query: >-
+          https://data.transportation.gov/resource/brzy-6zfh.csv?$where=id%20in%20(10,20,30)&$limit=100000
+        media_type: text/csv
+        sha256: 9095c8341c98610191a59ea7b6ba47c50eacd849c6885b82c7a4151d417c4c0c
+        accessed_on: 2026-08-25
+        license_id: us-public-domain
+        redistribution_allowed: true
+        derived_data_redistribution_allowed: true
+        notes:
+          - Bounded official API response contains 1,009 source rows and three complete tracks.
+          - Selected IDs include two passenger-car tracks and one truck track.
+          - Raw rows remain outside Git; this hash pins the external validation input.
+    grouping_namespaces:
+      - physical_platform
+      - source_recording
+      - source_dataset
+      - geography
+    claim_boundary:
+      - Supports bounded TGSIM schema, label, quality, grouping, and common-front validation.
+      - Does not support population-representative road-vehicle claims or classifier performance.
+    promotion_blockers:
+      - Acquire independent road-vehicle source-shift validation before classifier use.
+      - Expand beyond the three-track bounded extract for any within-source generalization claim.
+
   - source_dataset_id: cmre_brest_maritime_routes_tracklets_v1_0
     lane: sea_surface
     domain: sea
@@ -53,6 +87,18 @@ sources:
         notes:
           - The receipt validates twelve episodes and six repeated physical-platform groups.
           - Raw source rows and derived state assets remain outside Git.
+          - The external build input currently resolves to upstream raw tracklets SHA-256 655beb132941cc6d5254ef8155e68975b649a4e6ec159488970c828d8de7b7e5; this is distinct from the bounded-extract receipt hash.
+      - artifact_id: cmre_brest_external_validation_route_nomenclature_v2
+        uri_or_query: external://WP-SEA-SURF-001_progress_2026-08-23_v2.zip#route-nomenclature
+        media_type: text/csv
+        sha256: ea12d0cf0befee454336a65e5a750aebe4a99e6aeede901017f345c3aa601130
+        accessed_on: 2026-08-25
+        license_id: CC-BY-NC-SA-4.0-provisional
+        redistribution_allowed: false
+        derived_data_redistribution_allowed: false
+        notes:
+          - Route nomenclature is retained as a separate provenance input to the common-front builder.
+          - Raw route rows remain outside Git.
     grouping_namespaces:
       - physical_platform
       - source_recording

@@ -95,4 +95,5 @@ Common audit and rerun commands:
 - Product 4 corpus gates: `PYTHONPATH=src python3 scripts/audit/evaluate_product4_gates.py`
 - Build Product 4 snapshot manifest: `PYTHONPATH=src python3 scripts/run/build_product4_snapshot.py --snapshot-root /external/product4-snapshot --snapshot-id product4-snapshot-v0.1`
 - Build SPACE-NEAR validation tranche: `PYTHONPATH=src python3 scripts/run/build_space_near_validation_snapshot.py --snapshot-root /external/product4-space-near --snapshot-id product4-space-near-validation-v0.1`
+- Build six-lane validation tranche: `PYTHONPATH=src python3 scripts/run/build_product4_validation_snapshot.py --snapshot-root /external/product4-six-lane --snapshot-id product4-six-lane-validation-v0.1 --cmre-tracklets /external/tracklets.csv --cmre-nomenclature /external/nomen.csv --cmre-identity-key /secure/cmre-identity.key`
 - Dimensional audit: `python3 scripts/audit/audit_dimensions.py`

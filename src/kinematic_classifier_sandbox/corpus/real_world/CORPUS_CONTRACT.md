@@ -135,7 +135,8 @@ adapter version, evidence lifecycle, artifact/query provenance, grouping namespa
 boundaries, and promotion blockers across the six Product 4 lanes. Source cards and lane-local
 research files remain detailed evidence; the portfolio is the common cross-domain index.
 
-The portfolio API in `portfolio.py` and `snapshot_builder.py` supplies six governed operations:
+The portfolio API in `portfolio.py` and `snapshot_builder.py` supplies the governed registry,
+snapshot, split, and promotion operations:
 
 - `load_source_registry()` and `evaluate_source_registry()` report lane coverage and the best
   evidence state without treating fixture validation as classifier readiness;
@@ -147,6 +148,8 @@ The portfolio API in `portfolio.py` and `snapshot_builder.py` supplies six gover
   proxy-label, and classifier-view counts while rejecting reference/episode mismatches;
 - `audit_split_assignments()` rejects physical-platform, source-recording, and mission-event
   groups that cross train/validation/test partitions.
+- `assign_grouped_snapshot_splits()` proposes deterministic partitions only after unioning all
+  split-capable grouping keys; it never changes evidence state or creates classifier assets.
 - `evaluate_product4_gates()` composes those checks into one explicit promotion report without
   treating source-registry coverage as classifier readiness.
 - `build_snapshot_manifest()` builds a hash-pinned manifest from episode JSON files in an external

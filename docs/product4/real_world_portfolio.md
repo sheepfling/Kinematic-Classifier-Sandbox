@@ -11,14 +11,14 @@ classifier corpus:
 
 | Lane | Best current evidence | What that means now | Next promotion gate |
 | --- | --- | --- | --- |
-| `land_surface` | `access_verified` | TGSIM is the reference adapter direction; no real bounded fixture is admitted | Acquire and validate a bounded complete-track artifact |
+| `land_surface` | `fixture_validated` | A bounded official three-track extract passes the common front; the full catalog remains external | Add an independent road-vehicle source shift and expand beyond three tracks |
 | `sea_surface` | `fixture_validated` | CMRE/Brest is a real expansion/regression witness; raw rows remain external | Build the common snapshot and add an independent AIS provider |
-| `sea_subsurface` | `mapping_complete` | The selected IOOS profile has rich state semantics; common-front fixture is still open | Preserve asynchronous measured/dead-reckoned channels, then validate Sentry independently |
-| `air_atmospheric` | `access_verified` | `readsb` parser semantics are covered by a documented fixture, not a historical flight corpus | Acquire a genuine historical trace and construct one flight-leg episode |
+| `sea_subsurface` | `mapping_complete` | The selected IOOS profile now has a channel-aware validation-only common front; G2 remains open | Preserve asynchronous measured/dead-reckoned channels, then validate Sentry independently |
+| `air_atmospheric` | `access_verified` | The documented readsb fixture now has a validation-only common front, not a historical flight corpus | Acquire a genuine historical trace and construct one flight-leg episode |
 | `space_near` | `fixture_validated` | Six bounded mission fixtures exercise reference/analysis lineage and mission grouping | Convert fixtures through the common snapshot loader; keep mission identity audit-only |
-| `space_orbital` | `fixture_validated` | NASA ISS proves OEM semantics as validation-only; IGS remains the preferred anchor candidate | Build a multi-object prepared cohort and resolve official IGS provenance |
+| `space_orbital` | `fixture_validated` | NASA ISS now has a validation-only common front; IGS remains the preferred anchor candidate | Build a multi-object prepared cohort and resolve official IGS provenance |
 
-Three lanes have fixture-level evidence, but zero lanes are marked `prepared` or `released` in
+Four lanes have fixture-level evidence, but zero lanes are marked `prepared` or `released` in
 the registry. That is the correct result: the current work proves contract coherence and source
 semantics, not cross-domain classifier performance.
 
@@ -26,9 +26,9 @@ semantics, not cross-domain classifier performance.
 
 Prioritize by readiness and information gain, not by the apparent importance of a physical domain.
 
-1. Finish the common snapshot path and promote the existing fixture-backed witnesses: SEA-SURF,
-   SPACE-NEAR, and SPACE-ORB. This exercises repeated platform, mission identity, frame/time,
-   missing-state, and reference-versus-observation boundaries with the least new acquisition risk.
+1. Run the external six-lane validation builder using the already pinned or committed bounded
+   inputs. This exercises repeated platform, mission identity, frame/time, missing-state, and
+   reference-versus-observation boundaries without promoting any source to `prepared`.
 2. Close the two anchor gaps in parallel: bounded LAND/TGSIM acquisition for the reference road
    study, and the SEA-SUB selected IOOS profile with channel-aware timestamp handling.
 3. Add independent cohorts before making within-domain generalization claims: Kystverket or NOAA
@@ -86,9 +86,29 @@ PYTHONPATH=src python3 scripts/run/build_space_near_validation_snapshot.py \
 It materializes six common-front episode manifests and hashed state assets, but keeps the
 classifier view intentionally absent while the source portfolio remains `fixture_validated`.
 
+The full validation-only tranche can be assembled when the pinned SEA-SURF files and private
+grouping key are available locally. All generated assets, raw rows, and the key stay outside Git:
+
+```bash
+PYTHONPATH=src python3 scripts/run/build_product4_validation_snapshot.py \
+  --snapshot-root /path/to/external/product4-six-lane \
+  --snapshot-id product4-six-lane-validation-v0.1 \
+  --cmre-tracklets /path/to/tracklets.csv \
+  --cmre-nomenclature /path/to/nomen.csv \
+  --cmre-identity-key /secure/path/cmre-identity.key
+
+PYTHONPATH=src python3 scripts/audit/evaluate_product4_gates.py \
+  --snapshot /path/to/external/product4-six-lane/snapshot.json \
+  --assignments /path/to/external/product4-six-lane/assignments.json
+```
+
+The validation snapshot is expected to pass immutable snapshot integrity, six-lane coverage,
+quality, and grouped leakage gates. It must continue to fail classifier projection, prepared-source,
+or release-rights gates until each selected source has independently passed those promotions.
+
 The checked-in registry currently reports `insufficient_real_world_evidence`: all six lanes are
-represented, but no lane is `prepared`, no immutable six-lane snapshot is admitted, and the
-classifier bridge remains blocked. A future snapshot can be evaluated from outside the repository
-with `--snapshot PATH --assignments PATH`; add `--require-pass` when the caller wants a blocked
-promotion to fail the command. Keep restricted source bytes, snapshot assets, and generated report
-files outside Git unless their rights and repository role are explicitly established.
+represented, but no lane is `prepared`, and the classifier bridge remains blocked. A validation
+snapshot can be evaluated from outside the repository with `--snapshot PATH --assignments PATH`;
+add `--require-pass` when the caller wants a blocked promotion to fail the command. Keep restricted
+source bytes, snapshot assets, and generated report files outside Git unless their rights and
+repository role are explicitly established.
