@@ -70,6 +70,17 @@ class ProductTestMatrixTests(unittest.TestCase):
         self.assertTrue(analysis["parallel_safe"])
         self.assertFalse(analysis["cross_product_gate"])
 
+        analysis_surfaces = {
+            "product4_source_audit": "product4_source_audit",
+            "product4_kinematic_analysis": "product4_kinematic_analysis",
+            "product4_classifier_ladder": "product4_classifier_ladder",
+        }
+        for suite_id, marker in analysis_surfaces.items():
+            suite = by_id[suite_id]
+            self.assertEqual(suite["pytest_marker"], marker)
+            self.assertTrue(suite["parallel_safe"])
+            self.assertFalse(suite["cross_product_gate"])
+
         bridge = by_id["real_world_classifier_bridge"]
         self.assertFalse(bridge["runnable"])
         self.assertEqual(bridge["status"], "blocked_until_prepared_snapshot")
@@ -77,7 +88,7 @@ class ProductTestMatrixTests(unittest.TestCase):
         bounded_bridge = by_id["real_world_land_classifier_bridge"]
         self.assertTrue(bounded_bridge["runnable"])
         self.assertEqual(bounded_bridge["status"], "active_bounded_task")
-        self.assertEqual(bounded_bridge["pytest_marker"], "product4_analysis")
+        self.assertEqual(bounded_bridge["pytest_marker"], "product4_classifier_ladder")
         self.assertFalse(by_id["full_repository_gate"]["parallel_safe"])
 
     def test_product3_excludes_observed_real_world_corpus(self) -> None:

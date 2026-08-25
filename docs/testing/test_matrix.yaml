@@ -115,7 +115,7 @@ suites:
 
   - suite_id: product4_analysis
     product: product4
-    title: Product 4 analysis-product boundaries
+    title: Product 4 analysis-product aggregate
     pytest_marker: product4_analysis
     paths:
       - tests/corpus/real_world
@@ -125,8 +125,53 @@ suites:
     artifact_scope: external selection manifests and per-test temporary snapshot assets
     runnable: true
     status: active
-    promotion_gate: explicit source-audit, kinematic-analysis, and classifier-bridge boundaries
-    notes: Source and kinematic analysis may inspect deeper state views; the Product 2 bridge may select only identity-free classifier assets from prepared sources.
+    promotion_gate: aggregate check over the three explicitly separated analysis-product surfaces
+    notes: Use the narrower source-audit, kinematic-analysis, and classifier-ladder markers for targeted feedback; this umbrella marker is retained for the aggregate Product 4 analysis contract.
+
+  - suite_id: product4_source_audit
+    product: product4
+    title: Product 4 source-audit analysis
+    pytest_marker: product4_source_audit
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: external source-audit selections and per-test temporary snapshot assets
+    runnable: true
+    status: active
+    promotion_gate: source-native state, provenance, quality, and audit-only selection boundary
+    notes: This surface may inspect source-native and derived state context, but never selects a classifier asset.
+
+  - suite_id: product4_kinematic_analysis
+    product: product4
+    title: Product 4 kinematic analysis
+    pytest_marker: product4_kinematic_analysis
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: external kinematic selections and per-test temporary analysis assets
+    runnable: true
+    status: active
+    promotion_gate: normalized analysis-state selection without source-native classifier leakage
+    notes: This surface selects only analysis state views; it does not imply classifier readiness.
+
+  - suite_id: product4_classifier_ladder
+    product: product4
+    title: Product 4 classifier-ladder bridge
+    pytest_marker: product4_classifier_ladder
+    paths:
+      - tests/corpus/real_world
+    tier: product
+    parallel_safe: true
+    cross_product_gate: false
+    artifact_scope: identity-free classifier selections and isolated Product 2 bridge hooks
+    runnable: true
+    status: active
+    promotion_gate: prepared-source, target-namespace, identity-exclusion, and train-only bridge boundaries
+    notes: This is the only Product 4 analysis surface allowed to feed a Product 2 classifier study; it remains blocked for unprepared lanes.
 
   - suite_id: product4_land_surface
     product: product4
@@ -270,7 +315,7 @@ suites:
   - suite_id: real_world_land_classifier_bridge
     product: cross_product
     title: Bounded prepared LAND corpus evaluated through the classifier ladder
-    pytest_marker: product4_analysis
+    pytest_marker: product4_classifier_ladder
     paths:
       - tests/corpus/real_world
       - tests/validation

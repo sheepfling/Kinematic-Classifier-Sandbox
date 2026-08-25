@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from kinematic_classifier_sandbox.common_experiment.contracts import ExecutableTrajectory
 from kinematic_classifier_sandbox.corpus.real_world.classifier_bridge import (
     BridgeTrajectory,
@@ -9,6 +11,8 @@ from kinematic_classifier_sandbox.corpus.real_world.classifier_bridge import (
 )
 from kinematic_classifier_sandbox.corpus.real_world.episode_contracts import GroupingNamespace
 from kinematic_classifier_sandbox.corpus.real_world.portfolio import SnapshotSplit
+
+pytestmark = pytest.mark.product4_classifier_ladder
 
 
 def _trajectory(
