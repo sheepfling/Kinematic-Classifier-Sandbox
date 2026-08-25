@@ -62,6 +62,11 @@ The evaluation report is intended to become the front door for every future corp
 the registry must cover the required lanes, then the snapshot must account for every episode and
 hash, and finally the split/leakage and downstream classifier gates must pass.
 
+Agent handoffs are captured in the [six lane work packets](work_packets/README.md). Each packet
+defines the next evidence inputs, acceptance gates, validation command, and prohibited claims for
+one lane; agents should return packet evidence without committing raw restricted data or generated
+PDF/LaTeX outputs.
+
 For prioritization, use the lane-isolated matrix rather than reading only the aggregate decision:
 
 ```bash
