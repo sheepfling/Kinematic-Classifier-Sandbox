@@ -113,8 +113,8 @@ def test_sp3_parser_rejects_start_epoch_mismatch() -> None:
 
 def test_sp3_parser_rejects_cadence_mismatch() -> None:
     corrupted = SP3_TEXT.replace(
-        "*  2024  1  3  0 15  0.00000000",
-        "*  2024  1  3  0 16  0.00000000",
+        "*  2024  1  3   0 15  0.00000000",
+        "*  2024  1  3   0 16  0.00000000",
         1,
     )
 
@@ -125,8 +125,8 @@ def test_sp3_parser_rejects_cadence_mismatch() -> None:
 
 def test_sp3_parser_rejects_duplicate_satellite_record() -> None:
     corrupted = SP3_TEXT.replace(
-        "PG02  15300.000000  -1413.000000  22180.000000   -506.000000",
-        "PG01  15300.000000  -1413.000000  22180.000000   -506.000000",
+        "PG02  15300.00000  -1413.000000  22180.000000   -506.000000",
+        "PG01  15300.00000  -1413.000000  22180.000000   -506.000000",
         1,
     )
 
