@@ -70,6 +70,31 @@ def test_flag_decoding_keeps_ground_stale_and_geometric_semantics_distinct() -> 
 ####
 
 
+@pytest.mark.parametrize(
+    ("flags", "expected_altitude_basis", "expected_vertical_rate_basis"),
+    (
+        (4, ReadsbVerticalBasis.GEOMETRIC, ReadsbVerticalBasis.BAROMETRIC),
+        (8, ReadsbVerticalBasis.BAROMETRIC, ReadsbVerticalBasis.GEOMETRIC),
+    ),
+)
+def test_single_vertical_basis_flags_decode_their_declared_channels(
+    flags: int,
+    expected_altitude_basis: ReadsbVerticalBasis,
+    expected_vertical_rate_basis: ReadsbVerticalBasis,
+) -> None:
+    payload: dict[str, object] = {
+        "icao": "abc123",
+        "timestamp": 1000.0,
+        "trace": [[0.0, 34.0, -86.0, 1500, 100.0, 91.0, flags, 256]],
+    }
+
+    point = parse_readsb_trace(payload).points[0]
+
+    assert point.altitude_basis is expected_altitude_basis
+    assert point.vertical_rate_basis is expected_vertical_rate_basis
+####
+
+
 def test_split_uses_source_new_leg_evidence_without_rewriting_parent_trace() -> None:
     payload: dict[str, object] = {
         "icao": "abc123",
