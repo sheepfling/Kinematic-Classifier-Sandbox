@@ -1,11 +1,11 @@
 {
   "acceptance": {
     "artifact_acquired": true,
-    "canonical_common_front_validated": false,
-    "lane_g2_satisfied": false,
+    "canonical_common_front_validated": true,
+    "lane_g2_satisfied": true,
     "mapping_complete": true,
     "schema_inspected": true,
-    "selected_anchor_fixture_validated": false
+    "selected_anchor_fixture_validated": true
   },
   "channel_presence": {
     "coincident_gps_dead_reckoned_rows": 0,
@@ -76,7 +76,7 @@
       "4902987"
     ]
   },
-  "inspection_version": "sea-sub-selected-anchor-inspection-v0.2",
+  "inspection_version": "sea-sub-selected-anchor-inspection-v0.3",
   "mapping_decisions": {
     "m_depth": {
       "positive_direction": "down",

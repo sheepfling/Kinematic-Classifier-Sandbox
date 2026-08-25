@@ -1,17 +1,17 @@
-sync_report_version: product4-corpus-agent-sync-v0.2
-report_date: '2026-08-24'
+sync_report_version: product4-corpus-agent-sync-v0.3
+report_date: '2026-08-25'
 program_domain: sea
 corpus_sublane: sea_subsurface
 anchor:
   source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
-  evidence_state: mapping_complete
+  evidence_state: fixture_validated
   selected_profile_id: 1709942882
   actual_bytes_retained: true
   artifact_sha256: 29114562885c844dec7440148a4dbe8bfbc21efcc4f793190bdd0c5ff2a6d13a
   artifact_byte_size: 15465
   data_rows: 99
-  fixture_validated: false
-  g2_satisfied: false
+  fixture_validated: true
+  g2_satisfied: true
 independent_holdout:
   source_dataset_id: mgds-whoi-sentry-at26-09-navigation
   evidence_state: access_verified
@@ -30,7 +30,7 @@ inspected_artifacts:
   - 63 pressure events and 24 source-depth events
   - five duplicate timestamps are distinct channel events
   - GPS units metadata conflicts with decimal-degree-like values
-  restriction: selected anchor mapped but not canonical-fixture validated
+  restriction: canonical common-front validated; classifier view remains intentionally blocked
 - source_dataset_id: ioos-glider-dac-murphy-official-regression-artifact
   artifact: fixtures/ioos_glider_dac_murphy_profile_1.csv
   sha256: a06b21f02fd1a73e63eb75c1f2fc5fce66426e1b99b8c49510849e90fef96750
@@ -64,11 +64,11 @@ fixture_validation:
   status: validated_restricted
   lane_g2_satisfied: false
 selected_anchor_validation:
-  artifact_status: acquired_schema_inspected_mapping_complete
-  canonical_fixture_status: open
-  blocking_issue: channel-aware state-view construction and COMMON-FRONT validation
+  artifact_status: acquired_schema_inspected_fixture_validated
+  canonical_fixture_status: validated
+  blocking_issue: classifier target cohort and independent Sentry source remain open
 schema_change:
   request_id: SCR-SEA-SUB-001
   request: accept measured pressure plus explicitly derived depth without relabeling depth as measured
   root_schema_fork_required: false
-recommended_disposition: merge_research_tranche_keep_g2_open
+recommended_disposition: promote_anchor_fixture_keep_classifier_and_independent_source_gates_open

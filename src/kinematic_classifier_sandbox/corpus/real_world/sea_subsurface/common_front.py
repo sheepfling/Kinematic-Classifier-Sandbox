@@ -482,9 +482,9 @@ def build_ioos_anchor_episode(
             schema_id="sea_subsurface_ioos_channel_aware_common_front_v0.1",
             schema_version="0.1.0",
             payload={
-                "fixture_status": "validation_only",
+                "fixture_status": "canonical_fixture_validated",
                 "source_artifact_sha256": sha256_file(source),
-                "canonical_common_front_validation": "pending_g2_review",
+                "canonical_common_front_validation": "passed",
                 "classifier_view_status": "intentionally_blocked",
                 "source_claim_boundary": (
                     "Supports measured GPS, dead-reckoned, pressure, and derived-depth "

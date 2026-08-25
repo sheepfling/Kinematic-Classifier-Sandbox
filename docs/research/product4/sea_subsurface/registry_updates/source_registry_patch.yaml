@@ -1,11 +1,11 @@
-registry_patch_version: trajectory-source-registry-patch-v0.2
+registry_patch_version: trajectory-source-registry-patch-v0.3
 contract_version: trajectory-corpus-v0.1
 program_domain: sea
 corpus_sublane: sea_subsurface
 updates:
 - source_dataset_id: ioos-ngdac-uaf-unit_191-20240309T1200
   role: anchor
-  evidence_state: mapping_complete
+  evidence_state: fixture_validated
   publisher: AOOS Glider Observatory / IOOS Glider DAC
   exact_artifact_or_query: acquisition/ioos_profile_query.txt
   rights_disposition: usable
@@ -20,9 +20,9 @@ updates:
   artifact_acquired: true
   schema_inspected: true
   mapping_complete: true
-  fixture_validated: false
-  lane_g2_satisfied: false
-  blocking_issue: Construct and validate the canonical multi-state-view fixture.
+  fixture_validated: true
+  lane_g2_satisfied: true
+  blocking_issue: Retain an independent Sentry artifact and define a defensible target cohort before prepared promotion.
 - source_dataset_id: mgds-whoi-sentry-at26-09-navigation
   role: independent_validation
   evidence_state: access_verified

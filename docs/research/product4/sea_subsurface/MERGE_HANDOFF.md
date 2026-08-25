@@ -24,18 +24,16 @@ establishes:
 - deployment-safe grouping and classifier-feature exclusions;
 - a common-front clarification for measured pressure versus derived depth.
 
-## Deliberately open gates
+## Current follow-on gates
 
 These items are follow-on work, not hidden merge blockers for the research tranche:
 
-- construct and validate the selected anchor through the canonical COMMON-FRONT state-view model;
-- resolve reusable channel-aware coalescing for sparse same-time events;
-- implement the production `P4-010` adapter and prepared pilot;
+- implement the production `P4-010` adapter and prepared pilot only after a defensible target cohort exists;
 - retain and validate one Sentry PPL artifact;
 - run classifier studies or make performance claims.
 
-Do not rewrite the PR description to claim G2, independent validation, study readiness, or classifier
-performance.
+G2 is now complete through the canonical channel-aware common front. Do not rewrite the PR
+description or registry to claim independent validation, study readiness, or classifier performance.
 
 ## Recommended merge handling
 

@@ -15,14 +15,15 @@ generalization:
 | --- | --- | --- | --- |
 | `land_surface` | `prepared` | A hash-pinned official 12-track cohort has an external task-scoped speed-profile classifier snapshot; grouped 10/20/30-second studies contain both vehicle classes in train/validation/test; raw rows remain external | Add an independent road-vehicle source shift |
 | `sea_surface` | `prepared` | A pinned CMRE/Brest extract supports only an R_06-versus-R_14 route-motion task; route labels remain out-of-band and raw rows/key remain external | Add an independent AIS provider/source-shift holdout; do not reinterpret route as vessel family |
-| `sea_subsurface` | `mapping_complete` | The selected IOOS profile now has a channel-aware validation-only common front; G2 remains open | Preserve asynchronous measured/dead-reckoned channels, then validate Sentry independently |
+| `sea_subsurface` | `fixture_validated` | The selected IOOS profile now passes the canonical channel-aware common front; classifier view remains intentionally blocked because one profile has no defensible target cohort | Retain/validate an independent Sentry artifact, then define a legitimate multi-episode task before prepared promotion |
 | `air_atmospheric` | `access_verified` | The documented readsb fixture now has a validation-only common front, not a historical flight corpus | Acquire a genuine historical trace and construct one flight-leg episode |
 | `space_near` | `fixture_validated` | Six bounded mission fixtures exercise reference/analysis lineage and mission grouping | Convert fixtures through the common snapshot loader; keep mission identity audit-only |
 | `space_orbital` | `fixture_validated` | NASA ISS now has a validation-only common front; IGS remains the preferred anchor candidate | Build a multi-object prepared cohort and resolve official IGS provenance |
 
-Two lanes have fixture-level evidence beyond the two bounded prepared cohorts; zero lanes are
-`released`. That is the correct result: the current work proves contract coherence and two
-explicit within-source classifier tasks, not cross-domain or source-shift performance.
+Three lanes have fixture-level evidence beyond the two bounded prepared cohorts; zero lanes are
+`released`. That is the correct result: the current work proves contract coherence, two explicit
+within-source classifier tasks, and one channel-aware validation fixture—not cross-domain or
+source-shift performance.
 
 ## Priority order
 
@@ -33,8 +34,9 @@ Prioritize by readiness and information gain, not by the apparent importance of 
    reference-versus-observation boundaries without promoting the remaining sources to `prepared`.
 2. Treat the bounded LAND/TGSIM and SEA-SURF/CMRE Product 2 bridges as task-level evidence
    boundaries: both use deterministic grouped holdouts and train-only empirical references.
-   Close the SEA-SUB selected IOOS profile with channel-aware timestamp handling; both within-domain
-   source-shift gates remain open.
+   The SEA-SUB selected IOOS profile now passes its channel-aware common front; retain Sentry and
+   define a defensible target cohort before prepared promotion. All within-domain source-shift gates
+   remain open.
 3. Add independent cohorts before making within-domain generalization claims: Kystverket or NOAA
    for SEA-SURF, Sentry for SEA-SUB, Endurance/OpenSky for AIR, and IGS or a separate orbital
    object family for SPACE-ORB.

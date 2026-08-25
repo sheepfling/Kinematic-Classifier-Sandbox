@@ -27,6 +27,10 @@ def test_ioos_common_front_preserves_asynchronous_channel_events(tmp_path: Path)
     assert episode.quality_summary.sample_count == 99
     assert episode.quality_summary.duplicate_timestamp_count == 5
     assert episode.classifier_trajectory_view is None
+    assert episode.domain_extension is not None
+    assert episode.domain_extension.payload["fixture_status"] == "canonical_fixture_validated"
+    assert episode.domain_extension.payload["canonical_common_front_validation"] == "passed"
+    assert episode.domain_extension.payload["classifier_view_status"] == "intentionally_blocked"
     assert {
         finding.code for finding in episode.quality_summary.findings
     } >= {
