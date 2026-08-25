@@ -37,6 +37,7 @@ from kinematic_classifier_sandbox.corpus.real_world.portfolio import (
     SourceEvidenceState,
     SourceRegistry,
     SourceRegistryEntry,
+    assign_grouped_snapshot_splits,
     audit_split_assignments,
     evaluate_product4_gates,
     evaluate_snapshot,
@@ -424,6 +425,22 @@ def test_split_audit_rejects_physical_platform_cross_split_collision() -> None:
     assert any(issue.startswith("group_split_collision") for issue in report.issues)
 
 
+def test_grouped_snapshot_split_builder_keeps_shared_groups_together() -> None:
+    first = _episode(episode_id="episode-1", platform_group="shared-platform")
+    second = _episode(episode_id="episode-2", platform_group="shared-platform")
+    third = _episode(episode_id="episode-3", platform_group="separate-platform")
+    fourth = _episode(episode_id="episode-4", platform_group="another-platform")
+
+    assignments = assign_grouped_snapshot_splits(
+        (first, second, third, fourth),
+        seed="test-grouped-snapshot",
+    )
+    by_episode = {assignment.episode_id: assignment.split for assignment in assignments}
+    assert by_episode["episode-1"] is by_episode["episode-2"]
+    assert set(by_episode.values()) == set(SnapshotSplit)
+    assert audit_split_assignments((first, second, third, fourth), assignments).passes is True
+
+
 def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() -> None:
     registry = load_source_registry(_REGISTRY)
     report = evaluate_source_registry(registry)
@@ -432,6 +449,7 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
     assert report.covered_lanes == REAL_WORLD_CORPUS_LANES
     assert report.missing_lanes == ()
     assert report.fixture_validated_lanes == (
+        "land_surface",
         "sea_surface",
         "space_near",
         "space_orbital",
@@ -439,6 +457,7 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
     assert report.prepared_lanes == ()
     assert report.classifier_ready is False
     assert len(report.open_gates) == len(REAL_WORLD_CORPUS_LANES)
+    assert report.lane_source_counts["land_surface"] == 2
     assert report.lane_source_counts["space_near"] == 6
     assert {
         "darts:soundingrockets-s-310-44",
@@ -446,7 +465,17 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
         "darts:soundingrockets-s-520-27",
         "darts:soundingrockets-s-520-29",
     }.issubset({source.source_dataset_id for source in registry.sources})
+    assert "fhwa_tgsim_foggy_bottom_bounded_extract_10_20_30" in {
+        source.source_dataset_id for source in registry.sources
+    }
+    cmre = registry.source("cmre_brest_maritime_routes_tracklets_v1_0")
+    cmre_artifacts = {artifact.artifact_id: artifact for artifact in cmre.artifacts}
+    assert "cmre_brest_external_validation_route_nomenclature_v2" in cmre_artifacts
+    assert cmre_artifacts["cmre_brest_external_validation_route_nomenclature_v2"].sha256 == (
+        "ea12d0cf0befee454336a65e5a750aebe4a99e6aeede901017f345c3aa601130"
+    )
     assert report.lane_best_evidence_states["sea_subsurface"] == "mapping_complete"
+    assert report.lane_best_evidence_states["land_surface"] == "fixture_validated"
     assert report.lane_best_evidence_states["air_atmospheric"] == "access_verified"
 
 

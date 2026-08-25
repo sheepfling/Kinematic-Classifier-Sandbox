@@ -116,6 +116,23 @@ declared registry source and lane, pins the manifest file hash, records source a
 adapter versions, and optionally requires every selected source to be `prepared`. It does not
 promote `fixture_validated` evidence or copy restricted source bytes into Git.
 
+The validation-only common-front builders are intentionally separated by lane:
+
+- `land.common_front`: TGSIM source/analysis views with no classifier asset;
+- `sea_subsurface.common_front`: IOOS measured, dead-reckoned, pressure, and depth channels with
+  asynchronous events preserved;
+- `air.common_front`: readsb source and normalized altitude/vertical-rate views with per-sample
+  barometric/geometric basis retained;
+- `space_near.common_front`: bounded mission fixtures with reference/analysis lineage;
+- `space_orbital.common_front`: NASA OEM EME2000 source velocity kept distinct from derived
+  velocity; and
+- the existing SEA-SURF adapter: route-tracklet source/analysis/classifier-candidate assets with
+  keyed platform grouping.
+
+`portfolio.assign_grouped_snapshot_splits()` unions shared physical-platform, source-recording,
+and mission-event keys before proposing deterministic partitions. It is a split proposal only;
+`audit_split_assignments()` remains the release gate.
+
 ## Current claim boundary
 
 This package now validates and normalizes real observations, creates gap-safe windows, assigns

@@ -111,7 +111,7 @@ suites:
     runnable: true
     status: active
     promotion_gate: six-lane coherence, provenance, rights, snapshot, quality, leakage, and classifier-view gates
-    notes: The snapshot builder and Product4GateReport keep portfolio coherence separate from classifier-ready maturity.
+    notes: The snapshot builder, grouped split proposer, and Product4GateReport keep six-lane coherence separate from classifier-ready maturity.
 
   - suite_id: product4_land_surface
     product: product4
@@ -126,7 +126,7 @@ suites:
     runnable: true
     status: active
     promotion_gate: LAND source evidence, adapter, and split gates
-    notes: Keep vehicle/road evidence independent from other physical lanes.
+    notes: Keep vehicle/road evidence independent from other physical lanes; common-front tests remain validation-only until a complete source artifact is acquired.
 
   - suite_id: product4_sea_surface
     product: product4
@@ -156,7 +156,7 @@ suites:
     runnable: true
     status: active
     promotion_gate: subsurface depth semantics, source evidence, adapter, and split gates
-    notes: Depth and vertical-state semantics remain domain-owned, not silently flattened.
+    notes: Depth and vertical-state semantics remain domain-owned, not silently flattened; asynchronous channel events are tested in the common front.
 
   - suite_id: product4_air_atmospheric
     product: product4
@@ -171,7 +171,7 @@ suites:
     runnable: true
     status: active
     promotion_gate: aircraft source evidence, adapter, and split gates
-    notes: Preserve altitude, vertical-rate, and track provenance.
+    notes: Preserve altitude, vertical-rate, and track provenance; documented readsb fixtures remain classifier-blocked.
 
   - suite_id: product4_space_near
     product: product4
@@ -201,7 +201,7 @@ suites:
     runnable: true
     status: active
     promotion_gate: orbital source evidence, frame semantics, adapter, and split gates
-    notes: Keep propagated and observed state roles distinct.
+    notes: Keep propagated and observed state roles distinct; the NASA OEM common front remains validation-only.
 
   - suite_id: shared_analysis_and_repository
     product: shared
