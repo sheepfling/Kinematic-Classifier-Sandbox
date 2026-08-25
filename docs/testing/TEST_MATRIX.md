@@ -15,7 +15,9 @@ implemented in [`tests/conftest.py`](../../tests/conftest.py), and marker declar
 | RL corpus exploration | Product 3 | product | no | no | active |
 | Product 4 common contract | Product 4 | product | yes | no | active |
 | Product 4 cross-domain portfolio | Product 4 | product | yes | no | active |
-| Product 4 analysis-product boundaries | Product 4 | product | yes | no | active |
+| Product 4 source-audit analysis | Product 4 | product | yes | no | active |
+| Product 4 kinematic analysis | Product 4 | product | yes | no | active |
+| Product 4 classifier-ladder bridge | Product 4 | product | yes | no | active |
 | LAND / SEA-SURF / SEA-SUB / AIR / SPACE-NEAR / SPACE-ORB | Product 4 | product | yes, per lane | no | active |
 | Shared analysis and repository contracts | Shared | contract | no | yes | active |
 | Bounded LAND corpus → classifier ladder | Products 2 + 4 | release | no | yes | active bounded task |
@@ -29,15 +31,19 @@ PYTHONPATH=src python3 -m pytest -q -m product1
 PYTHONPATH=src python3 -m pytest -q -m product2
 PYTHONPATH=src python3 -m pytest -q -m product3
 PYTHONPATH=src python3 scripts/run/run_product4_tests.py --workers 4
+PYTHONPATH=src python3 -m pytest -q -m product4_source_audit
+PYTHONPATH=src python3 -m pytest -q -m product4_kinematic_analysis
+PYTHONPATH=src python3 -m pytest -q -m product4_classifier_ladder
 PYTHONPATH=src python3 -m pytest -q -m cross_product
 PYTHONPATH=src python3 scripts/audit/evaluate_product4_lane_matrix.py \
   --snapshot /external/product4-six-lane/snapshot.json \
   --assignments /external/product4-six-lane/assignments.json
 ```
 
-The Product 4 worker runs each common, cross-domain, analysis-product, and domain-lane marker in a
-separate pytest process. Product 2, Product 3, shared analysis, and the aggregate/full gates
-remain sequential until their artifact namespaces are proven isolated.
+The Product 4 worker runs each common, cross-domain, source-audit, kinematic-analysis,
+classifier-ladder, and domain-lane marker in a separate pytest process. Product 2, Product 3,
+shared analysis, and the aggregate/full gates remain sequential until their artifact namespaces
+are proven isolated.
 
 The Product 4 cross-domain gate also exercises `Product4GateReport`: provenance, rights, immutable
 snapshot, lane coverage, quality, grouped leakage, and classifier-view readiness remain separate

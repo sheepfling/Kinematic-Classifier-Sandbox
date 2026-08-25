@@ -83,8 +83,10 @@ become an accidental Product 2 dependency: `source_audit` may inspect all state 
 `kinematic_analysis` selects normalized analysis state only, and `classifier_ladder` selects
 only identity-free classifier assets from prepared sources with labels stored out of band. The
 target-label namespace must be declared by the study; a generic “some label exists” check is not
-enough. The profile is recorded in a snapshot-hash-bound `AnalysisProductManifest` and has its own isolated
-`product4_analysis` test surface.
+enough. The profile is recorded in a snapshot-hash-bound `AnalysisProductManifest` and has its own
+isolated test marker: `product4_source_audit`, `product4_kinematic_analysis`, or
+`product4_classifier_ladder`. The aggregate `product4_analysis` marker remains available for the
+combined contract check.
 
 The baseline classifier view must not silently include:
 

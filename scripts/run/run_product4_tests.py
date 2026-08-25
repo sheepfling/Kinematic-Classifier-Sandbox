@@ -12,7 +12,9 @@ from pathlib import Path
 PRODUCT4_GROUPS = (
     "product4_common",
     "product4_cross_domain",
-    "product4_analysis",
+    "product4_source_audit",
+    "product4_kinematic_analysis",
+    "product4_classifier_ladder",
     "product4_land_surface",
     "product4_sea_surface",
     "product4_sea_subsurface",

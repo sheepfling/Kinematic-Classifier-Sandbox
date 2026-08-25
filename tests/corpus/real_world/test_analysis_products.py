@@ -13,6 +13,8 @@ from kinematic_classifier_sandbox.corpus.real_world.portfolio import SourceEvide
 from .test_portfolio import _episode, _prepared_registry, _snapshot
 
 
+@pytest.mark.product4_source_audit
+@pytest.mark.product4_kinematic_analysis
 def test_source_and_kinematic_products_exclude_classifier_assets(tmp_path) -> None:
     episode = _episode()
     snapshot = _snapshot(tmp_path, (episode,))
@@ -37,6 +39,7 @@ def test_source_and_kinematic_products_exclude_classifier_assets(tmp_path) -> No
     assert kinematic.episodes[0].state_assets[0].path == "states/land-episode-1.json"
 
 
+@pytest.mark.product4_classifier_ladder
 def test_classifier_ladder_manifest_is_asset_only_and_round_trips(tmp_path) -> None:
     episode = _episode()
     snapshot = _snapshot(tmp_path, (episode,))
@@ -60,6 +63,7 @@ def test_classifier_ladder_manifest_is_asset_only_and_round_trips(tmp_path) -> N
     assert loaded.policy.requires_prepared_sources is True
 
 
+@pytest.mark.product4_classifier_ladder
 def test_classifier_ladder_requires_prepared_source(tmp_path) -> None:
     episode = _episode()
     snapshot = _snapshot(tmp_path, (episode,))
@@ -78,6 +82,7 @@ def test_classifier_ladder_requires_prepared_source(tmp_path) -> None:
         )
 
 
+@pytest.mark.product4_classifier_ladder
 def test_classifier_ladder_requires_explicit_target_namespace(tmp_path) -> None:
     episode = _episode()
     snapshot = _snapshot(tmp_path, (episode,))
@@ -91,6 +96,7 @@ def test_classifier_ladder_requires_explicit_target_namespace(tmp_path) -> None:
         )
 
 
+@pytest.mark.product4_classifier_ladder
 def test_classifier_ladder_does_not_relabel_route_as_platform_class(tmp_path) -> None:
     base_episode = _episode()
     episode = base_episode.model_copy(
@@ -112,6 +118,7 @@ def test_classifier_ladder_does_not_relabel_route_as_platform_class(tmp_path) ->
         )
 
 
+@pytest.mark.product4_classifier_ladder
 def test_classifier_ladder_rejects_missing_classifier_view(tmp_path) -> None:
     episode = _episode(classifier=False)
     snapshot = _snapshot(tmp_path, (episode,))
@@ -126,6 +133,7 @@ def test_classifier_ladder_rejects_missing_classifier_view(tmp_path) -> None:
         )
 
 
+@pytest.mark.product4_kinematic_analysis
 def test_analysis_product_rejects_registry_snapshot_mismatch(tmp_path) -> None:
     episode = _episode()
     snapshot = _snapshot(tmp_path, (episode,))

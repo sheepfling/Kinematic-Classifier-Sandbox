@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from kinematic_classifier_sandbox.corpus.real_world.episode_contracts import (
     GroupingNamespace,
 )
@@ -15,6 +17,8 @@ from kinematic_classifier_sandbox.corpus.real_world.splits import GroupSplitPoli
 from kinematic_classifier_sandbox.corpus.real_world.windowing import WindowingPolicy
 
 from ._helpers import make_real_world_track
+
+pytestmark = pytest.mark.product4_classifier_ladder
 
 
 def _config() -> PreparedClassifierCohortConfig:
