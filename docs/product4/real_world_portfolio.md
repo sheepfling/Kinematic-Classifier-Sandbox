@@ -59,6 +59,21 @@ The evaluation report is intended to become the front door for every future corp
 the registry must cover the required lanes, then the snapshot must account for every episode and
 hash, and finally the split/leakage and downstream classifier gates must pass.
 
+For prioritization, use the lane-isolated matrix rather than reading only the aggregate decision:
+
+```bash
+PYTHONPATH=src python3 scripts/audit/evaluate_product4_lane_matrix.py \
+  --snapshot /path/to/external/product4-six-lane/snapshot.json \
+  --assignments /path/to/external/product4-six-lane/assignments.json \
+  --output /path/to/external/product4-six-lane/lane-matrix.json
+```
+
+The matrix preserves the original snapshot hash, scopes each lane's episode references before
+running the composed gates, and reports evidence state, classifier-view count, registry blockers,
+quality, rights, leakage, and open gates per lane. Its `all_lanes_pass` field is the only matrix
+decision that can support a full cross-domain claim; a passing individual lane remains a bounded
+task candidate.
+
 Run the composed report without creating a repository artifact:
 
 ```bash

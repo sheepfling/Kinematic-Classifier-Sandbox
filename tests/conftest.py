@@ -27,6 +27,7 @@ _LANE_MARKERS = {
     "test_analysis_products.py": "product4_analysis",
     "test_classifier_bridge.py": "product4_analysis",
     "test_prepared_cohort.py": "product4_analysis",
+    "test_portfolio_matrix.py": "product4_cross_domain",
     "test_adsblol_readsb_trace.py": "product4_air_atmospheric",
     "test_land_common_front.py": "product4_land_surface",
     "test_space_orbital_common_front.py": "product4_space_orbital",

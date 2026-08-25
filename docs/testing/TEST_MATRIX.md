@@ -30,6 +30,9 @@ PYTHONPATH=src python3 -m pytest -q -m product2
 PYTHONPATH=src python3 -m pytest -q -m product3
 PYTHONPATH=src python3 scripts/run/run_product4_tests.py --workers 4
 PYTHONPATH=src python3 -m pytest -q -m cross_product
+PYTHONPATH=src python3 scripts/audit/evaluate_product4_lane_matrix.py \
+  --snapshot /external/product4-six-lane/snapshot.json \
+  --assignments /external/product4-six-lane/assignments.json
 ```
 
 The Product 4 worker runs each common, cross-domain, analysis-product, and domain-lane marker in a
@@ -38,8 +41,9 @@ remain sequential until their artifact namespaces are proven isolated.
 
 The Product 4 cross-domain gate also exercises `Product4GateReport`: provenance, rights, immutable
 snapshot, lane coverage, quality, grouped leakage, and classifier-view readiness remain separate
-signals. A coherent registry is therefore allowed to pass its own product gate while the
-full real-world bridge stays blocked.
+signals. The lane matrix scopes those signals to each lane before composing the full claim, so a
+blocked lane does not hide which other lane is ready for a bounded task. A coherent registry is
+therefore allowed to pass its own product gate while the full real-world bridge stays blocked.
 
 The bounded LAND bridge is runnable because it has a hash-pinned prepared snapshot, an explicit
 physical-platform grouping policy, and a Product 2 evaluation that consumes only identity-free

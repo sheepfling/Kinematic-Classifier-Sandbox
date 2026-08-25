@@ -223,7 +223,9 @@ def _snapshot(
         registry_id=registry_id,
         created_at=datetime(2026, 8, 25, tzinfo=timezone.utc),
         episodes=refs,
-        source_artifact_ids=tuple(episode.source_artifact_ids[0] for episode in episodes),
+        source_artifact_ids=tuple(
+            sorted({artifact_id for episode in episodes for artifact_id in episode.source_artifact_ids})
+        ),
         adapter_versions=tuple(
             f"fixture-{lane}:0.1.0"
             for lane in sorted({episode.corpus_sublane for episode in episodes})
