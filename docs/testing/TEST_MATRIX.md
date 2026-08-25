@@ -18,7 +18,8 @@ implemented in [`tests/conftest.py`](../../tests/conftest.py), and marker declar
 | Product 4 analysis-product boundaries | Product 4 | product | yes | no | active |
 | LAND / SEA-SURF / SEA-SUB / AIR / SPACE-NEAR / SPACE-ORB | Product 4 | product | yes, per lane | no | active |
 | Shared analysis and repository contracts | Shared | contract | no | yes | active |
-| Real-world corpus → classifier ladder | Products 2 + 4 | release | no | yes | blocked until prepared snapshot |
+| Bounded LAND corpus → classifier ladder | Products 2 + 4 | release | no | yes | active bounded task |
+| Full real-world corpus → classifier ladder | Products 2 + 4 | release | no | yes | blocked until all selected lanes are prepared |
 | Full repository regression | All | release | no | yes | active |
 
 Useful targeted commands:
@@ -38,8 +39,10 @@ remain sequential until their artifact namespaces are proven isolated.
 The Product 4 cross-domain gate also exercises `Product4GateReport`: provenance, rights, immutable
 snapshot, lane coverage, quality, grouped leakage, and classifier-view readiness remain separate
 signals. A coherent registry is therefore allowed to pass its own product gate while the
-real-world bridge stays blocked.
+full real-world bridge stays blocked.
 
-The real-world bridge is intentionally not runnable yet. It becomes runnable only when Product 4
-has a prepared immutable snapshot with leakage-safe splits and Product 2 can evaluate that snapshot
-as a held-out corpus without source identity or audit-only fields entering the classifier view.
+The bounded LAND bridge is runnable because it has a hash-pinned prepared snapshot, an explicit
+physical-platform grouping policy, and a Product 2 evaluation that consumes only identity-free
+classifier assets with train-only empirical references and measurement scale. The full six-lane
+bridge remains blocked until every selected lane has independently passed the prepared-source,
+rights, leakage, and held-out evaluation gates.

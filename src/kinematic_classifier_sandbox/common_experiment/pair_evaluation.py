@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import statistics
 from typing import Callable, NamedTuple
-from typing import NamedTuple
 
 from kinematic_classifier_sandbox.utils.math import (
     _quadratic_fit,
@@ -28,6 +27,7 @@ from kinematic_classifier_sandbox.utils.math import (
 
 from ..analysis.feature_analysis import load_feature_set_manifest, resolve_feature_names
 from ..corpus.coverage_report import load_classifier_manifest
+from ..scenarios import get_scenario_measurement_sigma
 from .adapters import ExecutablePairSpec, ExecutableTrajectory, build_reference_trajectory
 from .config import CommonExperimentConfig
 from .contracts import (
@@ -38,6 +38,12 @@ from .contracts import (
     PosteriorHistoryRow,
 )
 from .scoring import score_classifier_family
+
+ReferenceBuilderFn = Callable[
+    [ExecutablePairSpec, str, str, tuple[float, ...]],
+    ExecutableTrajectory,
+]
+MeasurementSigmaFn = Callable[[str], float]
 
 
 class TruncatedTrajectory(NamedTuple):
@@ -170,6 +176,9 @@ def classifier_scores_for_prefix(
     prefix_length: int,
     prior_weights: dict[str, float],
     feature_manifest: dict[str, dict[str, object]],
+    *,
+    reference_builder: ReferenceBuilderFn = reference_trajectory,
+    measurement_sigma: MeasurementSigmaFn = get_scenario_measurement_sigma,
 ) -> dict[str, float]:
     truncated_bundle = truncated_trajectory(trajectory, prefix_length)
     times = truncated_bundle.times
@@ -181,11 +190,12 @@ def classifier_scores_for_prefix(
         times=times,
         prior_weights=prior_weights,
         feature_manifest=feature_manifest,
-        reference_builder=reference_trajectory,
+        reference_builder=reference_builder,
         feature_extractor=trajectory_features,
         feature_sigma=feature_sigma,
         gaussian_logpdf=_gaussian_logpdf,
         safe_log=_safe_log,
+        measurement_sigma=measurement_sigma,
     )
     return score_classifier_family(classifier_entry, context)
 
@@ -198,6 +208,7 @@ def feature_set_scores_for_prefix(
     trajectory: ExecutableTrajectory,
     prefix_length: int,
     prior_weights: dict[str, float],
+    reference_builder: ReferenceBuilderFn = reference_trajectory,
 ) -> dict[str, float]:
     times = trajectory.times[:prefix_length]
     truncated = ExecutableTrajectory(
@@ -221,7 +232,7 @@ def feature_set_scores_for_prefix(
     observed = trajectory_features(truncated, robust=robust)
     scores: dict[str, float] = {}
     for class_name in (pair_spec.class_a, pair_spec.class_b):
-        reference = reference_trajectory(pair_spec, class_name, trajectory.scenario_id, times)
+        reference = reference_builder(pair_spec, class_name, trajectory.scenario_id, times)
         reference_features = trajectory_features(reference, robust=robust)
         score = _safe_log(prior_weights[class_name])
         for feature_name in features:
@@ -277,6 +288,7 @@ def feature_set_scores_for_window(
     window_sample_count: int,
     window_duration: float,
     prior_weights: dict[str, float],
+    reference_builder: ReferenceBuilderFn = reference_trajectory,
 ) -> WindowFeatureScores:
     truncated = slice_trailing_window(
         trajectory,
@@ -289,7 +301,7 @@ def feature_set_scores_for_window(
     observed = trajectory_features(truncated, robust=robust)
     scores: dict[str, float] = {}
     for class_name in (pair_spec.class_a, pair_spec.class_b):
-        reference = reference_trajectory(pair_spec, class_name, trajectory.scenario_id, truncated.times)
+        reference = reference_builder(pair_spec, class_name, trajectory.scenario_id, truncated.times)
         reference_features = trajectory_features(reference, robust=robust)
         score = _safe_log(prior_weights[class_name])
         for feature_name in features:
@@ -320,6 +332,8 @@ def evaluate_executable_pairs(
     trajectories: tuple[ExecutableTrajectory, ...],
     scenario_family_fn: Callable[[str], str],
     scenario_tier_fn: Callable[[str], str],
+    reference_builder: ReferenceBuilderFn = reference_trajectory,
+    measurement_sigma: MeasurementSigmaFn = get_scenario_measurement_sigma,
 ) -> tuple[
     tuple[PairPredictionRow, ...],
     tuple[PosteriorHistoryRow, ...],
@@ -381,6 +395,8 @@ def evaluate_executable_pairs(
                 len(trajectory.times),
                 prior,
                 feature_manifest,
+                reference_builder=reference_builder,
+                measurement_sigma=measurement_sigma,
             )
             final_weights = _normalize_scores(final_scores)
             predicted_class = max(final_weights, key=final_weights.get)
@@ -417,6 +433,8 @@ def evaluate_executable_pairs(
                     prefix_length,
                     prior,
                     feature_manifest,
+                    reference_builder=reference_builder,
+                    measurement_sigma=measurement_sigma,
                 )
                 weights = _normalize_scores(scores)
                 posterior_rows.append(
@@ -472,6 +490,8 @@ def evaluate_executable_pairs(
                             len(trajectory.times),
                             prior,
                             feature_manifest,
+                            reference_builder=reference_builder,
+                            measurement_sigma=measurement_sigma,
                         )
                     )
                     predicted = max(weights, key=weights.get)

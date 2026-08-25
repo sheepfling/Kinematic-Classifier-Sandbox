@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..analysis.common_dataset_comparison import CommonComparisonResult
 from ..schema.feature_rows import FeatureValueMappingMixin
@@ -23,6 +22,7 @@ if TYPE_CHECKING:
         FeatureExtractor,
         FeatureSigma,
         GaussianLogPdf,
+        MeasurementSigma,
         PairSpecBuilder,
         ReferenceBuilder,
         SafeLog,
@@ -101,6 +101,7 @@ class FamilyScoringContext:
     feature_sigma: "FeatureSigma"
     gaussian_logpdf: "GaussianLogPdf"
     safe_log: "SafeLog"
+    measurement_sigma: "MeasurementSigma"
 
 
 @dataclass(frozen=True, slots=True)

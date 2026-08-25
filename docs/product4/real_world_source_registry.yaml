@@ -73,8 +73,8 @@ sources:
     title: FHWA TGSIM Foggy Bottom balanced bounded vehicle holdout cohort
     adapter_id: tgsim_foggy_bottom_csv
     adapter_version: 0.1.0
-    portfolio_role: bounded_validation_fixture
-    evidence_state: fixture_validated
+    portfolio_role: bounded_task_prepared_cohort
+    evidence_state: prepared
     artifacts:
       - artifact_id: fhwa_tgsim_foggy_bottom_balanced_vehicle_cohort_v1_csv
         uri_or_query: >-
@@ -89,6 +89,9 @@ sources:
           - Official bounded API response contains 34,059 source rows and 12 complete tracks.
           - Selected tracks include seven passenger cars and five trucks.
           - Grouped 10, 20, and 30-second road studies contain both classes in train, validation, and test.
+          - The task-scoped prepared speed-profile snapshot is generated externally by
+            scripts/run/build_tgsim_prepared_classifier_snapshot.py; target labels and grouping
+            values remain in episode manifests outside classifier assets.
           - Raw rows remain outside Git; this hash pins the external validation input.
     grouping_namespaces:
       - physical_platform
@@ -96,11 +99,11 @@ sources:
       - source_dataset
       - geography
     claim_boundary:
-      - Supports a bounded within-source passenger-car versus truck holdout and common-front validation.
+      - Supports a bounded within-source passenger-car versus truck holdout and task-scoped prepared speed-profile evaluation.
       - Does not support source-shift, population-representative, or six-lane classifier claims.
     promotion_blockers:
-      - Add independent road-vehicle provider/source-shift validation before classifier promotion.
-      - Emit a prepared classifier view only under a declared study target namespace and rights boundary.
+      - Add independent road-vehicle provider/source-shift validation before any generalization or release claim.
+      - Keep Product 2 evaluation scoped to the declared target namespace and physical-platform holdout policy.
 
   - source_dataset_id: cmre_brest_maritime_routes_tracklets_v1_0
     lane: sea_surface

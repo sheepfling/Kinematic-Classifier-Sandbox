@@ -15,6 +15,7 @@ def build_feature_set_comparison_rows(
     trajectories: tuple[ExecutableTrajectory, ...],
     pair_priors: Callable[[str, str, str], dict[str, float]],
     feature_set_scores_for_prefix: Callable[..., dict[str, float]],
+    reference_builder: Callable[..., ExecutableTrajectory] | None = None,
 ) -> tuple[dict[str, object], ...]:
     feature_manifest = load_feature_set_manifest(config.feature_sets_path)
     pair_lookup = {spec.pair_id: spec for spec in pair_specs}
@@ -29,14 +30,17 @@ def build_feature_set_comparison_rows(
         for trajectory in trajectories:
             pair_spec = pair_lookup[trajectory.class_pair_id]
             prior = pair_priors(pair_spec.class_a, pair_spec.class_b, "uniform")
-            scores = feature_set_scores_for_prefix(
-                feature_set_id=feature_set_id,
-                feature_entry=entry,
-                pair_spec=pair_spec,
-                trajectory=trajectory,
-                prefix_length=len(trajectory.times),
-                prior_weights=prior,
-            )
+            score_kwargs = {
+                "feature_set_id": feature_set_id,
+                "feature_entry": entry,
+                "pair_spec": pair_spec,
+                "trajectory": trajectory,
+                "prefix_length": len(trajectory.times),
+                "prior_weights": prior,
+            }
+            if reference_builder is not None:
+                score_kwargs["reference_builder"] = reference_builder
+            scores = feature_set_scores_for_prefix(**score_kwargs)
             weights = _normalize_scores(scores)
             predicted = max(weights, key=weights.get)
             hit = 1.0 if predicted == trajectory.true_class else 0.0
@@ -65,6 +69,7 @@ def build_irregular_window_comparison_rows(
     trajectories: tuple[ExecutableTrajectory, ...],
     pair_priors: Callable[[str, str, str], dict[str, float]],
     feature_set_scores_for_window: Callable[..., tuple[dict[str, float], dict[str, float], int, float]],
+    reference_builder: Callable[..., ExecutableTrajectory] | None = None,
 ) -> tuple[dict[str, object], ...]:
     feature_manifest = load_feature_set_manifest(config.feature_sets_path)
     pair_lookup = {spec.pair_id: spec for spec in pair_specs}
@@ -87,16 +92,19 @@ def build_irregular_window_comparison_rows(
             prior = pair_priors(pair_spec.class_a, pair_spec.class_b, "uniform")
             trajectory_results: dict[str, dict[str, object]] = {}
             for window_definition in ("sample_count", "elapsed_time"):
-                window_scores = feature_set_scores_for_window(
-                    feature_set_id=feature_set_id,
-                    feature_manifest=feature_manifest,
-                    pair_spec=pair_spec,
-                    trajectory=trajectory,
-                    window_definition=window_definition,
-                    window_sample_count=window_sample_count,
-                    window_duration=window_duration,
-                    prior_weights=prior,
-                )
+                window_kwargs = {
+                    "feature_set_id": feature_set_id,
+                    "feature_manifest": feature_manifest,
+                    "pair_spec": pair_spec,
+                    "trajectory": trajectory,
+                    "window_definition": window_definition,
+                    "window_sample_count": window_sample_count,
+                    "window_duration": window_duration,
+                    "prior_weights": prior,
+                }
+                if reference_builder is not None:
+                    window_kwargs["reference_builder"] = reference_builder
+                window_scores = feature_set_scores_for_window(**window_kwargs)
                 scores = window_scores.scores
                 observed = window_scores.observed
                 selected_count = window_scores.selected_count

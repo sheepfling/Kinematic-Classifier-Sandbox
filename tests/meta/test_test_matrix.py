@@ -74,6 +74,10 @@ class ProductTestMatrixTests(unittest.TestCase):
         self.assertFalse(bridge["runnable"])
         self.assertEqual(bridge["status"], "blocked_until_prepared_snapshot")
         self.assertTrue(bridge["cross_product_gate"])
+        bounded_bridge = by_id["real_world_land_classifier_bridge"]
+        self.assertTrue(bounded_bridge["runnable"])
+        self.assertEqual(bounded_bridge["status"], "active_bounded_task")
+        self.assertEqual(bounded_bridge["pytest_marker"], "product4_analysis")
         self.assertFalse(by_id["full_repository_gate"]["parallel_safe"])
 
     def test_product3_excludes_observed_real_world_corpus(self) -> None:

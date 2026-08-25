@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from ..scenarios import get_scenario_measurement_sigma
 from .contracts import FamilyScoringContext
 
 
@@ -8,7 +7,7 @@ def _pointwise_family_scores(context: FamilyScoringContext) -> dict[str, float]:
     last_time = context.times[-1]
     last_value = context.truncated.measurements[-1]
     scores: dict[str, float] = {}
-    sigma = get_scenario_measurement_sigma(context.trajectory.scenario_id)
+    sigma = context.measurement_sigma(context.trajectory.scenario_id)
     for class_name in (context.pair_spec.class_a, context.pair_spec.class_b):
         reference = context.reference_builder(context.pair_spec, class_name, context.trajectory.scenario_id,
                                               context.times)
@@ -27,7 +26,7 @@ def _pointwise_family_scores(context: FamilyScoringContext) -> dict[str, float]:
 
 def _sequential_bayes_family_scores(context: FamilyScoringContext) -> dict[str, float]:
     scores: dict[str, float] = {}
-    sigma = get_scenario_measurement_sigma(context.trajectory.scenario_id)
+    sigma = context.measurement_sigma(context.trajectory.scenario_id)
     for class_name in (context.pair_spec.class_a, context.pair_spec.class_b):
         reference = context.reference_builder(context.pair_spec, class_name, context.trajectory.scenario_id,
                                               context.truncated.times)
@@ -42,7 +41,7 @@ def _windowed_family_scores(context: FamilyScoringContext, *, family: str, featu
     robust = feature_set_id == "robust_extrema"
     observed = context.feature_extractor(context.truncated, robust=robust)
     scores = {}
-    sigma = get_scenario_measurement_sigma(context.trajectory.scenario_id)
+    sigma = context.measurement_sigma(context.trajectory.scenario_id)
     for class_name in (context.pair_spec.class_a, context.pair_spec.class_b):
         reference = context.reference_builder(context.pair_spec, class_name, context.trajectory.scenario_id,
                                               context.truncated.times)
