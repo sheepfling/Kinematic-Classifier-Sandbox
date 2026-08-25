@@ -10,7 +10,11 @@ from _bootstrap import bootstrap_repo
 
 ROOT = bootstrap_repo(configure_runtime=True)
 
+from kinematic_classifier_sandbox.corpus.real_world.episode_contracts import (  # noqa: E402
+    GroupingNamespace,
+)
 from kinematic_classifier_sandbox.corpus.real_world.portfolio import (  # noqa: E402
+    REAL_WORLD_CORPUS_LANES,
     EpisodeSplitAssignment,
     evaluate_product4_gates,
     load_snapshot_episodes,
@@ -48,6 +52,18 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Return a non-zero status when the composed Product 4 gate is blocked.",
     )
+    parser.add_argument(
+        "--expected-lane",
+        action="append",
+        choices=REAL_WORLD_CORPUS_LANES,
+        help="Expected lane for a task-scoped gate; repeat to require multiple lanes.",
+    )
+    parser.add_argument(
+        "--grouping-namespace",
+        action="append",
+        choices=tuple(namespace.value for namespace in GroupingNamespace),
+        help="Grouping namespace used by the leakage audit; repeat to declare the policy.",
+    )
     return parser.parse_args(argv)
 
 
@@ -70,6 +86,20 @@ def main(argv: list[str] | None = None) -> int:
         snapshot=snapshot,
         episodes=episodes,
         assignments=assignments,
+        **(
+            {"expected_lanes": tuple(args.expected_lane)}
+            if args.expected_lane
+            else {}
+        ),
+        **(
+            {
+                "split_grouping_namespaces": tuple(
+                    GroupingNamespace(value) for value in args.grouping_namespace
+                )
+            }
+            if args.grouping_namespace
+            else {}
+        ),
     )
     print(report.model_dump_json(indent=2))
     return int(args.require_pass and not report.passes)

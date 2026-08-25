@@ -267,6 +267,22 @@ suites:
     promotion_gate: Product 4 prepared snapshot and Product 2 held-out ladder evaluation
     notes: Planned release gate. Do not infer classifier readiness from Product 4 contract or lane tests alone.
 
+  - suite_id: real_world_land_classifier_bridge
+    product: cross_product
+    title: Bounded prepared LAND corpus evaluated through the classifier ladder
+    pytest_marker: product4_analysis
+    paths:
+      - tests/corpus/real_world
+      - tests/validation
+    tier: release
+    parallel_safe: false
+    cross_product_gate: true
+    artifact_scope: external task-scoped LAND snapshot plus isolated Product 2 evidence namespace
+    runnable: true
+    status: active_bounded_task
+    promotion_gate: physical-platform held-out Product 2 bridge with train-only empirical hooks
+    notes: The bounded bridge is evidence for one declared TGSIM task only; source-shift, population, and six-lane release claims remain blocked.
+
   - suite_id: full_repository_gate
     product: all
     title: Full repository regression gate

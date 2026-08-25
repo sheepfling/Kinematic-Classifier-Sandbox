@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
+from .adapters import ExecutablePairSpec, ExecutableTrajectory
 from .analysis import analyze_common_experiment as _analyze_common_experiment
 from .analysis import analyze_common_trajectory_corpus as _analyze_common_trajectory_corpus
-from .config import CommonExperimentConfig
 from .contracts import CommonExperimentResult
 from .persistence import write_common_experiment_artifacts as _write_common_experiment_artifacts
 from .reporting import render_common_experiment_report as _render_common_experiment_report
-from .adapters import ExecutablePairSpec, ExecutableTrajectory
 
 
 def analyze_common_experiment(
@@ -32,6 +32,8 @@ def analyze_common_trajectory_corpus(
     seed: int = 7,
     trajectories_per_case: int | None = None,
     include_comparison: bool = True,
+    reference_builder: Callable[..., ExecutableTrajectory] | None = None,
+    measurement_sigma: Callable[[str], float] | None = None,
 ) -> CommonExperimentResult:
     return _analyze_common_trajectory_corpus(
         pair_specs=pair_specs,
@@ -40,6 +42,8 @@ def analyze_common_trajectory_corpus(
         seed=seed,
         trajectories_per_case=trajectories_per_case,
         include_comparison=include_comparison,
+        reference_builder=reference_builder,
+        measurement_sigma=measurement_sigma,
     )
 
 
@@ -55,10 +59,9 @@ def write_common_experiment_artifacts(
     trajectories_per_case: int = 8,
     result: CommonExperimentResult | None = None,
 ):
-    return _write_common_experiment_artifacts(
-        output_dir,
+    analysis = result or _analyze_common_experiment(
         config_path=config_path,
-        seed=seed,
+        seed=7 if seed is None else seed,
         trajectories_per_case=trajectories_per_case,
-        result=result,
     )
+    return _write_common_experiment_artifacts(output_dir, analysis=analysis)

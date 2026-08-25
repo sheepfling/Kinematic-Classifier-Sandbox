@@ -247,6 +247,11 @@ class Product4GateReport(StrictFrozenModel):
     split_report: SplitAuditReport | None = None
     selected_source_dataset_ids: tuple[str, ...] = ()
     selected_source_artifact_ids: tuple[str, ...] = ()
+    split_grouping_namespaces: tuple[GroupingNamespace, ...] = (
+        GroupingNamespace.PHYSICAL_PLATFORM,
+        GroupingNamespace.SOURCE_RECORDING,
+        GroupingNamespace.MISSION_EVENT,
+    )
     issues: tuple[str, ...] = ()
     open_gates: tuple[str, ...] = ()
 
@@ -564,6 +569,11 @@ def evaluate_product4_gates(
     episodes: Iterable[TrajectoryEpisodeManifest] = (),
     assignments: Iterable[EpisodeSplitAssignment] = (),
     expected_lanes: Iterable[str] = REAL_WORLD_CORPUS_LANES,
+    split_grouping_namespaces: Iterable[GroupingNamespace] = (
+        GroupingNamespace.PHYSICAL_PLATFORM,
+        GroupingNamespace.SOURCE_RECORDING,
+        GroupingNamespace.MISSION_EVENT,
+    ),
 ) -> Product4GateReport:
     """Evaluate the complete Product 4 promotion boundary.
 
@@ -575,6 +585,9 @@ def evaluate_product4_gates(
     """
 
     expected_lane_values = tuple(dict.fromkeys(expected_lanes))
+    effective_grouping_namespaces = tuple(dict.fromkeys(split_grouping_namespaces))
+    if not effective_grouping_namespaces:
+        raise ValueError("at least one split grouping namespace is required")
     materialized_episodes = tuple(episodes)
     materialized_assignments = tuple(assignments)
     registry_report = evaluate_source_registry(
@@ -688,7 +701,11 @@ def evaluate_product4_gates(
     if snapshot is None:
         issues.append("split_audit_not_evaluable_without_snapshot")
     else:
-        split_report = audit_split_assignments(materialized_episodes, materialized_assignments)
+        split_report = audit_split_assignments(
+            materialized_episodes,
+            materialized_assignments,
+            grouping_namespaces=effective_grouping_namespaces,
+        )
         issues.extend(split_report.issues)
         assigned_splits = {assignment.split for assignment in materialized_assignments}
         required_splits = set(SnapshotSplit)
@@ -780,6 +797,7 @@ def evaluate_product4_gates(
         split_report=split_report,
         selected_source_dataset_ids=selected_source_dataset_ids,
         selected_source_artifact_ids=selected_source_artifact_ids,
+        split_grouping_namespaces=effective_grouping_namespaces,
         issues=unique_issues,
         open_gates=unique_open_gates,
     )
@@ -796,10 +814,24 @@ def _sha256_file(path: Path) -> str:
 def audit_split_assignments(
     episodes: Iterable[TrajectoryEpisodeManifest],
     assignments: Iterable[EpisodeSplitAssignment],
+    *,
+    grouping_namespaces: Iterable[GroupingNamespace] = (
+        GroupingNamespace.PHYSICAL_PLATFORM,
+        GroupingNamespace.SOURCE_RECORDING,
+        GroupingNamespace.MISSION_EVENT,
+    ),
 ) -> SplitAuditReport:
+    """Audit split assignments under an explicitly declared grouping policy.
+
+    The default remains conservative for portfolio/release claims. A narrower task-scoped
+    evaluation may select a different grouping namespace, but its report must retain that
+    limitation rather than implying source-recording or mission-level independence.
+    """
+
     materialized = tuple(episodes)
     assignment_rows = tuple(assignments)
     issues: list[str] = []
+    selected_namespaces = frozenset(grouping_namespaces)
     assignment_by_episode: dict[str, SnapshotSplit] = {}
     for assignment in assignment_rows:
         if assignment.episode_id in assignment_by_episode:
@@ -812,11 +844,7 @@ def audit_split_assignments(
             issues.append(f"missing_split_assignment:{episode.episode_id}")
             continue
         for grouping_key in episode.grouping_keys:
-            if grouping_key.namespace not in {
-                GroupingNamespace.PHYSICAL_PLATFORM,
-                GroupingNamespace.SOURCE_RECORDING,
-                GroupingNamespace.MISSION_EVENT,
-            }:
+            if grouping_key.namespace not in selected_namespaces:
                 continue
             identity = (grouping_key.namespace, grouping_key.opaque_value)
             prior_split = group_to_split.get(identity)

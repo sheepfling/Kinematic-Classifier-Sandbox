@@ -32,6 +32,10 @@ class SafeLog(Protocol):
     def __call__(self, value: float) -> float: ...
 
 
+class MeasurementSigma(Protocol):
+    def __call__(self, scenario_id: str) -> float: ...
+
+
 class PairSpecBuilder(Protocol):
     def __call__(self, config: "CommonExperimentConfig") -> tuple["ExecutablePairSpec", ...]: ...
 

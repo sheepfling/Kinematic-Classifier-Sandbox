@@ -3834,6 +3834,76 @@
     "module_path": "src/kinematic_classifier_sandbox/workbench/revision_replay.py",
     "reason": "Integration source surface is not yet assigned to a dedicated methodology-survey section.",
     "status": "integration_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/air/__init__.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/air/common_front.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/analysis_products.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/classifier_bridge.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/common_front_utils.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/land/__init__.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/land/common_front.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/prepared_cohort.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/sea_subsurface/__init__.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/sea_subsurface/common_front.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/snapshot_builder.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/space_near/common_front.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/space_orbital/__init__.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
+  },
+  {
+    "module_path": "src/kinematic_classifier_sandbox/corpus/real_world/space_orbital/common_front.py",
+    "reason": "Product 4 source surface is governed by docs/product4 and corpus contract docs; add a dedicated methodology-survey section when the real-world classifier bridge is promoted.",
+    "status": "product4_inventory"
   }
   ]
 }

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from pathlib import Path
+from typing import Callable
 
 from ..analysis.common_dataset_comparison import (
     CommonComparisonResult,
@@ -82,8 +83,21 @@ def _analyze_common_trajectory_corpus(
     pair_specs: tuple[ExecutablePairSpec, ...],
     trajectories: tuple[ExecutableTrajectory, ...],
     trajectories_per_case: int,
+    reference_builder: Callable[..., ExecutableTrajectory] | None = None,
+    measurement_sigma: Callable[[str], float] | None = None,
 ) -> CommonExperimentResult:
     feature_manifest = load_feature_set_manifest(config.feature_sets_path)
+    evaluation_kwargs: dict[str, object] = {
+        "config": config,
+        "pair_specs": pair_specs,
+        "trajectories": trajectories,
+        "scenario_family_fn": _scenario_family,
+        "scenario_tier_fn": _scenario_tier,
+    }
+    if reference_builder is not None:
+        evaluation_kwargs["reference_builder"] = reference_builder
+    if measurement_sigma is not None:
+        evaluation_kwargs["measurement_sigma"] = measurement_sigma
     (
         pair_prediction_rows,
         posterior_history_rows,
@@ -92,13 +106,7 @@ def _analyze_common_trajectory_corpus(
         metrics_by_class_pair_rows,
         prior_sensitivity_rows,
         metrics_by_classifier_and_feature_set_rows,
-    ) = _pair_eval_evaluate_executable_pairs(
-        config=config,
-        pair_specs=pair_specs,
-        trajectories=trajectories,
-        scenario_family_fn=_scenario_family,
-        scenario_tier_fn=_scenario_tier,
-    )
+    ) = _pair_eval_evaluate_executable_pairs(**evaluation_kwargs)
     metrics_by_classifier_rows = _metrics_by_classifier(pair_prediction_rows)
     metrics_by_sensor_regime_rows = _metrics_by_sensor_regime(pair_prediction_rows)
     pair_prediction_row_dicts = tuple(asdict(row) for row in pair_prediction_rows)
@@ -111,6 +119,7 @@ def _analyze_common_trajectory_corpus(
         trajectories=trajectories,
         pair_priors=_pair_eval_pair_priors,
         feature_set_scores_for_prefix=_pair_eval_feature_set_scores_for_prefix,
+        reference_builder=reference_builder,
     )
     irregular_window_rows = _irregular_window_comparison_rows(
         config=config,
@@ -118,6 +127,7 @@ def _analyze_common_trajectory_corpus(
         trajectories=trajectories,
         pair_priors=_pair_eval_pair_priors,
         feature_set_scores_for_window=_pair_eval_feature_set_scores_for_window,
+        reference_builder=reference_builder,
     )
     class_pair_duration_rows = _class_pair_duration_rows(posterior_history_row_dicts)
     class_pair_scenario_rows = _class_pair_scenario_rows(pair_prediction_row_dicts)
@@ -189,6 +199,8 @@ def analyze_common_trajectory_corpus(
     seed: int = 7,
     trajectories_per_case: int | None = None,
     include_comparison: bool = True,
+    reference_builder: Callable[..., ExecutableTrajectory] | None = None,
+    measurement_sigma: Callable[[str], float] | None = None,
 ) -> CommonExperimentResult:
     config = load_common_experiment_config(config_path)
     comparison = (
@@ -205,4 +217,6 @@ def analyze_common_trajectory_corpus(
         pair_specs=pair_specs,
         trajectories=trajectories,
         trajectories_per_case=trajectories_per_case or max(len(trajectories), 1),
+        reference_builder=reference_builder,
+        measurement_sigma=measurement_sigma,
     )

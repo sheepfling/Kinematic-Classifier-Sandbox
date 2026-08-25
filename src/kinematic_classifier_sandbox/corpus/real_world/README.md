@@ -149,6 +149,13 @@ The resulting `AnalysisProductManifest` is snapshot-hash-bound and records selec
 references without copying raw data. Product 2 bridge work must consume the third profile; a
 source or kinematic analysis result is not evidence of classifier readiness.
 
+The prepared-cohort builder and Product 2 bridge keep this distinction operational. A task-scoped
+cohort writes labels and grouping metadata to episode manifests while classifier assets contain only
+timestamps and projected measurements. The bridge requires an explicit grouping policy, caps
+correlated windows per physical platform, and builds references and measurement scale from the
+training split only. This supports a bounded task claim; it does not promote the six-lane portfolio
+or establish source-shift generalization.
+
 ## Current claim boundary
 
 This package now validates and normalizes real observations, creates gap-safe windows, assigns
