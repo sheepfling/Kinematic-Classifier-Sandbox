@@ -92,4 +92,5 @@ Common audit and rerun commands:
 - Clear all analysis caches: `python3 scripts/audit/manage_analysis_cache.py clear --yes`
 - Artifact/showcase validation: `python3 scripts/audit/validate_artifacts.py`
 - Corpus audit: `python3 scripts/audit/audit_corpus.py`
+- Product 4 corpus gates: `PYTHONPATH=src python3 scripts/audit/evaluate_product4_gates.py`
 - Dimensional audit: `python3 scripts/audit/audit_dimensions.py`

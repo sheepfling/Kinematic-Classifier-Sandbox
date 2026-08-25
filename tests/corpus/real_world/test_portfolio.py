@@ -29,6 +29,7 @@ from kinematic_classifier_sandbox.corpus.real_world.portfolio import (
     REAL_WORLD_CORPUS_LANES,
     CorpusSnapshotManifest,
     EpisodeSplitAssignment,
+    Product4GateReport,
     SnapshotEpisodeReference,
     SnapshotSelectionPolicy,
     SnapshotSplit,
@@ -37,6 +38,7 @@ from kinematic_classifier_sandbox.corpus.real_world.portfolio import (
     SourceRegistry,
     SourceRegistryEntry,
     audit_split_assignments,
+    evaluate_product4_gates,
     evaluate_snapshot,
     evaluate_source_registry,
     load_snapshot_episodes,
@@ -173,7 +175,12 @@ def _episode(
     )
 
 
-def _snapshot(tmp_path, episodes: tuple[TrajectoryEpisodeManifest, ...]) -> CorpusSnapshotManifest:
+def _snapshot(
+    tmp_path,
+    episodes: tuple[TrajectoryEpisodeManifest, ...],
+    *,
+    registry_id: str = "registry-v0.1",
+) -> CorpusSnapshotManifest:
     for episode in episodes:
         path = tmp_path / "episodes" / f"{episode.episode_id}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -198,7 +205,7 @@ def _snapshot(tmp_path, episodes: tuple[TrajectoryEpisodeManifest, ...]) -> Corp
     )
     manifest = CorpusSnapshotManifest(
         snapshot_id="snapshot-v0.1",
-        registry_id="registry-v0.1",
+        registry_id=registry_id,
         created_at=datetime(2026, 8, 25, tzinfo=timezone.utc),
         episodes=refs,
         source_artifact_ids=tuple(episode.source_artifact_ids[0] for episode in episodes),
@@ -206,6 +213,45 @@ def _snapshot(tmp_path, episodes: tuple[TrajectoryEpisodeManifest, ...]) -> Corp
     )
     write_snapshot_manifest(manifest, tmp_path / "snapshot.json")
     return manifest
+
+
+def _prepared_registry() -> SourceRegistry:
+    domain_by_lane = {
+        "land_surface": ProgramDomain.LAND,
+        "sea_surface": ProgramDomain.SEA,
+        "sea_subsurface": ProgramDomain.SEA,
+        "air_atmospheric": ProgramDomain.AIR,
+        "space_near": ProgramDomain.SPACE,
+        "space_orbital": ProgramDomain.SPACE,
+    }
+    sources = tuple(
+        SourceRegistryEntry(
+            source_dataset_id=f"{lane}-dataset",
+            lane=lane,
+            domain=domain_by_lane[lane],
+            title=f"Prepared {lane} fixture",
+            adapter_id=f"fixture-{lane}",
+            adapter_version="0.1.0",
+            evidence_state=SourceEvidenceState.PREPARED,
+            artifacts=(
+                SourceArtifactRecord(
+                    artifact_id=f"{lane}-artifact",
+                    uri_or_query=f"fixture://{lane}",
+                    media_type="application/json",
+                    sha256=_SHA,
+                    license_id="CC0-1.0",
+                    redistribution_allowed=True,
+                    derived_data_redistribution_allowed=True,
+                ),
+            ),
+            grouping_namespaces=(
+                GroupingNamespace.PHYSICAL_PLATFORM,
+                GroupingNamespace.SOURCE_RECORDING,
+            ),
+        )
+        for lane in REAL_WORLD_CORPUS_LANES
+    )
+    return SourceRegistry(registry_id="registry-v0.1", sources=sources)
 
 
 def test_registry_rejects_duplicate_source_ids() -> None:
@@ -314,3 +360,124 @@ def test_canonical_registry_covers_six_lanes_and_reports_open_promotion_gates() 
     assert len(report.open_gates) == len(REAL_WORLD_CORPUS_LANES)
     assert report.lane_best_evidence_states["sea_subsurface"] == "mapping_complete"
     assert report.lane_best_evidence_states["air_atmospheric"] == "access_verified"
+
+
+def test_canonical_product4_gate_reports_coherence_without_classifier_readiness() -> None:
+    registry = load_source_registry(_REGISTRY)
+    report = evaluate_product4_gates(registry)
+
+    assert isinstance(report, Product4GateReport)
+    assert report.registry_passes is True
+    assert report.passes is False
+    assert report.decision == "insufficient_real_world_evidence"
+    assert report.snapshot_present is False
+    assert report.classifier_ready is False
+    assert "snapshot:immutable_manifest_integrity" in report.open_gates
+    assert "source:promote_selected_sources_to_prepared" in report.open_gates
+
+
+def test_product4_gate_accepts_a_complete_synthetic_six_lane_snapshot(tmp_path) -> None:
+    domain_by_lane = {
+        "land_surface": ProgramDomain.LAND,
+        "sea_surface": ProgramDomain.SEA,
+        "sea_subsurface": ProgramDomain.SEA,
+        "air_atmospheric": ProgramDomain.AIR,
+        "space_near": ProgramDomain.SPACE,
+        "space_orbital": ProgramDomain.SPACE,
+    }
+    episodes = tuple(
+        _episode(
+            episode_id=f"{lane}-episode-1",
+            lane=lane,
+            domain=domain_by_lane[lane],
+            platform_group=f"{lane}-platform",
+        )
+        for lane in REAL_WORLD_CORPUS_LANES
+    )
+    manifest = _snapshot(tmp_path, episodes)
+    assignments = tuple(
+        EpisodeSplitAssignment(episode_id=episode.episode_id, split=split)
+        for episode, split in zip(
+            episodes,
+            (
+                SnapshotSplit.TRAIN,
+                SnapshotSplit.VALIDATION,
+                SnapshotSplit.TEST,
+                SnapshotSplit.TRAIN,
+                SnapshotSplit.VALIDATION,
+                SnapshotSplit.TEST,
+            ),
+            strict=True,
+        )
+    )
+
+    report = evaluate_product4_gates(
+        _prepared_registry(),
+        snapshot=manifest,
+        episodes=episodes,
+        assignments=assignments,
+    )
+
+    assert report.passes is True
+    assert report.decision == "real_world_evidence_supported"
+    assert report.classifier_ready is True
+    assert report.rights_passes is True
+    assert report.rights_release_ready is True
+    assert report.snapshot_passes is True
+    assert report.coverage_passes is True
+    assert report.quality_passes is True
+    assert report.leakage_passes is True
+    assert report.classifier_projection_passes is True
+    assert report.open_gates == ()
+    assert report.issues == ()
+
+
+def test_product4_gate_separates_classifier_claim_from_snapshot_coherence(tmp_path) -> None:
+    episodes = tuple(
+        _episode(
+            episode_id=f"{lane}-episode-1",
+            lane=lane,
+            domain=domain,
+            platform_group=f"{lane}-platform",
+            classifier=lane != "air_atmospheric",
+        )
+        for lane, domain in (
+            ("land_surface", ProgramDomain.LAND),
+            ("sea_surface", ProgramDomain.SEA),
+            ("sea_subsurface", ProgramDomain.SEA),
+            ("air_atmospheric", ProgramDomain.AIR),
+            ("space_near", ProgramDomain.SPACE),
+            ("space_orbital", ProgramDomain.SPACE),
+        )
+    )
+    manifest = _snapshot(tmp_path, episodes)
+    assignments = tuple(
+        EpisodeSplitAssignment(episode_id=episode.episode_id, split=split)
+        for episode, split in zip(
+            episodes,
+            (
+                SnapshotSplit.TRAIN,
+                SnapshotSplit.VALIDATION,
+                SnapshotSplit.TEST,
+                SnapshotSplit.TRAIN,
+                SnapshotSplit.VALIDATION,
+                SnapshotSplit.TEST,
+            ),
+            strict=True,
+        )
+    )
+
+    report = evaluate_product4_gates(
+        _prepared_registry(),
+        snapshot=manifest,
+        episodes=episodes,
+        assignments=assignments,
+    )
+
+    assert report.snapshot_passes is True
+    assert report.coverage_passes is True
+    assert report.leakage_passes is True
+    assert report.classifier_projection_passes is False
+    assert report.classifier_ready is False
+    assert report.decision == "revise_label_claim"
+    assert "classifier_view:identity_free_non_proxy_projection" in report.open_gates

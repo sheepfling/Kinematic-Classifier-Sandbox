@@ -110,8 +110,8 @@ suites:
     artifact_scope: read-only registry and synthetic portfolio fixtures
     runnable: true
     status: active
-    promotion_gate: six-lane coherence, source registry, snapshot, and leakage gates
-    notes: The portfolio can be coherent while still being below classifier-ready maturity.
+    promotion_gate: six-lane coherence, provenance, rights, snapshot, quality, leakage, and classifier-view gates
+    notes: The composed Product4GateReport keeps portfolio coherence separate from classifier-ready maturity.
 
   - suite_id: product4_land_surface
     product: product4

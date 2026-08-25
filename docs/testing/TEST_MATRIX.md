@@ -34,6 +34,11 @@ The Product 4 worker runs each common, cross-domain, and domain-lane marker in a
 process. Product 2, Product 3, shared analysis, and the aggregate/full gates remain sequential
 until their artifact namespaces are proven isolated.
 
+The Product 4 cross-domain gate also exercises `Product4GateReport`: provenance, rights, immutable
+snapshot, lane coverage, quality, grouped leakage, and classifier-view readiness remain separate
+signals. A coherent registry is therefore allowed to pass its own product gate while the
+real-world bridge stays blocked.
+
 The real-world bridge is intentionally not runnable yet. It becomes runnable only when Product 4
 has a prepared immutable snapshot with leakage-safe splits and Product 2 can evaluate that snapshot
 as a held-out corpus without source identity or audit-only fields entering the classifier view.
