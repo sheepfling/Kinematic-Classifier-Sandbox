@@ -1,0 +1,60 @@
+portfolio_version: product4-sea-surface-v0.2
+contract_version: trajectory-corpus-v0.1
+program_domain: sea
+corpus_sublane: sea_surface
+sources:
+  - source_dataset_id: cmre_brest_maritime_routes_tracklets_v1_0
+    role: expansion_regression
+    evidence_state: fixture_validated
+    publisher: NATO STO Centre for Maritime Research and Experimentation authors via Zenodo
+    doi: 10.5281/zenodo.6402160
+    source_version: "1.0"
+    observation_modality: cooperative_ais
+    identity_grouping:
+      method: HMAC-SHA256
+      scope: corpus_scoped
+      output_bits: 96
+      key_persisted: false
+    labels:
+      defensible:
+        - route_association
+      unsupported:
+        - vessel_family
+        - voyage_purpose
+        - general_behavior_class
+    rights_disposition: accept_with_restrictions
+    rights_notes:
+      - Treat as CC-BY-NC-SA-4.0 until authoritative record metadata is reconciled.
+      - Do not commit source rows or derived coordinate assets in this tranche.
+    claim_boundary:
+      supports:
+        - real five-contact AIS tracklet ingestion
+        - missing vertical-state semantics
+        - route label assertions
+        - repeated physical-platform grouping
+        - kinematics-only classifier-view leakage checks
+      does_not_support:
+        - complete voyage reconstruction
+        - vessel-family classification
+        - population-representative maritime behavior claims
+        - independent validation of NOAA
+  - source_dataset_id: noaa_ais_2024_broadcast_points
+    role: preferred_anchor
+    evidence_state: schema_inspected
+    publisher: NOAA Office for Coastal Management / USCG NAIS
+    observation_modality: cooperative_ais
+    next_gate: acquire and hash an official repeated-observation artifact
+    claim_boundary:
+      supports:
+        - source schema and sentinel mapping evidence
+      does_not_support:
+        - anchor trajectory G2 from the one-row-per-vessel derivative sample
+  - source_dataset_id: kystverket_historical_ais_open
+    role: preferred_independent_validation
+    evidence_state: access_verified
+    publisher: Norwegian Coastal Administration
+    observation_modality: cooperative_ais
+    known_population_exclusions:
+      - fishing vessels under 15 m
+      - recreational craft under 45 m
+    next_gate: submit a bounded order, hash the artifact, inspect schema, and validate a fixture
