@@ -23,6 +23,9 @@ def test_nasa_iss_common_front_preserves_eci_source_velocity(tmp_path: Path) -> 
     assert episode.corpus_sublane == "space_orbital"
     assert episode.quality_summary.sample_count == 13
     assert episode.classifier_trajectory_view is None
+    assert episode.domain_extension is not None
+    assert episode.domain_extension.payload["common_front_contract_validation"] == "passed"
+    assert episode.domain_extension.payload["classifier_view_status"] == "intentionally_blocked"
     assert episode.state_views[0].frame.crs_or_datum == "EME2000"
     analysis_view = next(
         view for view in episode.state_views if view.view_kind is StateViewKind.ANALYSIS

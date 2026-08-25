@@ -338,6 +338,7 @@ def build_nasa_iss_oem_episode(
             schema_version="0.1.0",
             payload={
                 "fixture_status": "validation_only",
+                "common_front_contract_validation": "passed",
                 "source_fixture_sha256": sha256_file(source),
                 "source_object_id": extract.metadata.source_object_id,
                 "classifier_eligible": False,

@@ -457,6 +457,7 @@ def _build_episode(
             schema_version="0.1.0",
             payload={
                 "fixture_status": "documented_parser_fixture_only",
+                "common_front_contract_validation": "passed",
                 "source_fixture_sha256": source_sha256,
                 "raw_identity_access": "adapter_only",
                 "classifier_view_status": "intentionally_blocked",

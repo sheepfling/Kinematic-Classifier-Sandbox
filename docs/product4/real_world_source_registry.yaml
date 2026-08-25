@@ -270,6 +270,7 @@ sources:
         derived_data_redistribution_allowed: false
         notes:
           - The repository fixture documents readsb semantics but is not a historical release trace.
+          - Common-front contract construction passes for the documented parser fixture; source evidence remains access_verified.
     grouping_namespaces:
       - physical_platform
       - mission_event
@@ -281,7 +282,7 @@ sources:
       - Does not support physical-truth or authoritative-flight-identity claims.
     promotion_blockers:
       - Acquire and checksum a genuine historical trace.
-      - Materialize one common-contract flight-leg fixture and an independent provider holdout.
+      - Rebuild one common-contract flight-leg episode from the historical trace and add an independent provider holdout.
 
   - source_dataset_id: opensky_weekly_state_vectors
     lane: air_atmospheric
@@ -523,6 +524,7 @@ sources:
         notes:
           - Validation fixture only; classifier eligibility is false in the source metadata.
           - Source velocity remains distinct from finite-difference velocity.
+          - Common-front contract construction passes; the fixture remains validation-only.
     grouping_namespaces:
       - physical_platform
       - mission_event

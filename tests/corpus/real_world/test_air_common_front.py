@@ -24,6 +24,11 @@ def test_readsb_common_front_preserves_vertical_basis_and_blocks_classifier(tmp_
     episode = episodes[0]
     assert episode.corpus_sublane == "air_atmospheric"
     assert episode.classifier_trajectory_view is None
+    assert episode.domain_extension is not None
+    assert episode.domain_extension.payload["common_front_contract_validation"] == "passed"
+    assert episode.domain_extension.payload["fixture_status"] == (
+        "documented_parser_fixture_only"
+    )
     assert episode.quality_summary.disposition == "usable_with_restrictions"
     analysis_view = next(
         view for view in episode.state_views if view.view_kind is StateViewKind.ANALYSIS
